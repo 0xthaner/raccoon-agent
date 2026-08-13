@@ -25,6 +25,8 @@
     { "source": "/link", "destination": "/index.html" },
     { "source": "/anleitung", "destination": "/guide.html" },
     { "source": "/guide", "destination": "/guide.html" },
+    { "source": "/datenschutz", "destination": "/datenschutz.html" },
+    { "source": "/privacy", "destination": "/datenschutz.html" },
     { "source": "/demo-renew", "destination": "/demo-renew.html" }
   ]
 }
