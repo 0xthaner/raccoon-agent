@@ -16,6 +16,7 @@ den Coverraccoon-Checkout an die jeweilige Owner-Wallet übergeben.
 - Supabase-Persistenz mit getrennten serverseitigen Zugriffsrechten
 - Cover-Daten über die versionierte Coverraccoon Agent API
 - zitierbares Nexus-Mutual-Wissen über die geschützte Coverraccoon Knowledge API
+- ausschließlich öffentlich sichtbare Basisinformationen; Premium- und interne Inhalte werden server- und clientseitig abgewiesen
 
 ## Lokal starten
 

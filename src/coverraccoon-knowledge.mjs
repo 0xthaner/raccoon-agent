@@ -14,7 +14,7 @@ const topicTerms = {
 export function parseKnowledgeResponse(result) {
 	if (result?.apiVersion !== 'agent-knowledge.v1' || !Array.isArray(result.entries)) return [];
 	return result.entries.slice(0, MAX_ENTRIES).flatMap((entry) => {
-		if (!entry || typeof entry.id !== 'string' || typeof entry.title !== 'string' || typeof entry.content !== 'string' || typeof entry.sourceUrl !== 'string' || typeof entry.updatedAt !== 'string') return [];
+		if (!entry || entry.access !== 'public' || typeof entry.id !== 'string' || typeof entry.title !== 'string' || typeof entry.content !== 'string' || typeof entry.sourceUrl !== 'string' || typeof entry.updatedAt !== 'string') return [];
 		let url;
 		try { url = new URL(entry.sourceUrl); } catch { return []; }
 		if (url.protocol !== 'https:' || url.hostname !== 'coverraccoon.com') return [];
@@ -34,7 +34,7 @@ export function selectKnowledge(entries, question, limit = 4) {
 }
 
 export async function getCoverraccoonKnowledge(question, language = 'de', fetchImpl = fetch) {
-	const apiKey = process.env.COVER_AGENT_API_KEY?.trim() || '';
+	const apiKey = process.env.COVER_AGENT_KNOWLEDGE_API_KEY?.trim() || '';
 	const baseUrl = (process.env.COVER_DATA_BASE_URL?.trim() || 'https://coverraccoon.com').replace(/\/$/, '');
 	if (!apiKey) return '';
 	const apiLanguage = language === 'de' ? 'de' : 'en';
@@ -61,4 +61,3 @@ export async function getCoverraccoonKnowledge(question, language = 'de', fetchI
 		`Updated: ${entry.updatedAt} · Origin: ${entry.origin}`
 	].join('\n')).join('\n\n');
 }
-
