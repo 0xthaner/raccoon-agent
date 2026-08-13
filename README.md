@@ -10,6 +10,7 @@ den Coverraccoon-Checkout an die jeweilige Owner-Wallet übergeben.
 - Telegram-Verknüpfung über kurzlebige, signierte Links
 - Dashboard für Wallets, Covers, Erinnerungen und Renewal-Status
 - Telegram-Befehle und interaktive Buttons
+- freie Telegram-Sprache mit strikt begrenzten, serverseitig ausgeführten Agent-Aktionen
 - konfigurierbare Ablaufwarnungen und Wochenübersicht
 - Supabase-Persistenz mit getrennten serverseitigen Zugriffsrechten
 - Cover-Daten über die versionierte Coverraccoon Agent API

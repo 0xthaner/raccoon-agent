@@ -4,6 +4,7 @@ import { startWebServer } from './web.mjs';
 import { CoverDataError, DEMO_WALLET, formatWalletCovers, getWalletCovers, renewalUrl } from './covers.mjs';
 import { checkExpiryAlerts } from './alerts.mjs';
 import { createDemoRenewToken } from './demo-renew.mjs';
+import { classifyAgentIntent } from './agent-intent.mjs';
 
 const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
 const configuredUsername = process.env.TELEGRAM_BOT_USERNAME?.trim().replace(/^@/, '');
@@ -269,6 +270,63 @@ async function sendCovers(chatId, language) {
 	}
 }
 
+async function sendNextExpiry(chatId, language) {
+	const wallets = await getMonitoredWallets(chatId);
+	if (!wallets.length) {
+		await sendMessage(chatId, language === 'en' ? 'No wallet is linked yet.' : language === 'zh' ? '尚未绑定钱包。' : 'Noch keine Wallet verbunden.');
+		return;
+	}
+	try {
+		const active = [];
+		for (const wallet of wallets) {
+			const result = await getWalletCovers(wallet.wallet);
+			active.push(...result.covers.filter((cover) => cover.status === 'active' && cover.endsAt).map((cover) => ({ cover, wallet })));
+		}
+		active.sort((a, b) => Date.parse(a.cover.endsAt) - Date.parse(b.cover.endsAt));
+		if (!active.length) {
+			await sendMessage(chatId, language === 'en' ? 'I could not find an active cover with an expiry date.' : language === 'zh' ? '未找到带到期日的有效保障。' : 'Ich habe kein aktives Cover mit Ablaufdatum gefunden.');
+			return;
+		}
+		const { cover, wallet } = active[0];
+		const days = Math.max(0, Math.ceil((Date.parse(cover.endsAt) - Date.now()) / 86_400_000));
+		const date = new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : language === 'zh' ? 'zh-CN' : 'de-AT', { dateStyle: 'long', timeZone: 'Europe/Vienna' }).format(new Date(cover.endsAt));
+		await sendMessage(chatId, language === 'en'
+			? `Your next expiry is ${cover.productName ?? `Cover #${cover.coverId}`} on ${date} (${days} days).`
+			: language === 'zh'
+				? `下一个到期保障是 ${cover.productName ?? `保障 #${cover.coverId}`}，到期日为 ${date}（${days} 天）。`
+				: `Als Nächstes läuft ${cover.productName ?? `Cover #${cover.coverId}`} am ${date} aus (noch ${days} Tage).`,
+		{ reply_markup: await dashboardKeyboard(language, wallet.wallet, true) });
+	} catch (error) {
+		await sendMessage(chatId, `⚠️ ${language === 'en' ? 'Expiry data could not be loaded right now.' : language === 'zh' ? '目前无法加载到期数据。' : error instanceof CoverDataError ? error.message : 'Ablaufdaten konnten gerade nicht geladen werden.'}`);
+	}
+}
+
+async function handleNaturalLanguage(message, language) {
+	const decision = await classifyAgentIntent(message.text, language);
+	await recordAgentEvent({ chatId: message.chat.id, eventType: 'agent.intent', source: 'telegram', command: decision.intent, metadata: { classifier: decision.source } }).catch(() => {});
+	switch (decision.intent) {
+		case 'show_covers': await sendCovers(message.chat.id, language); return;
+		case 'show_next_expiry': await sendNextExpiry(message.chat.id, language); return;
+		case 'prepare_renewal': return handleMessage({ ...message, text: '/renew', _agentRouted: true });
+		case 'open_dashboard': return handleMessage({ ...message, text: '/dashboard', _agentRouted: true });
+		case 'help': return handleMessage({ ...message, text: '/help', _agentRouted: true });
+		case 'show_reminders': {
+			const wallet = await getWalletLink(message.chat.id);
+			if (!wallet) await sendMessage(message.chat.id, language === 'en' ? 'No wallet linked.' : language === 'zh' ? '尚未绑定钱包。' : 'Keine Wallet verbunden.');
+			else await sendMessage(message.chat.id, language === 'en' ? `Reminders for ${wallet.label}:` : language === 'zh' ? `${wallet.label} 的提醒：` : `Erinnerungen für ${wallet.label}:`, { reply_markup: reminderKeyboard(wallet, language) });
+			return;
+		}
+		case 'snooze_tomorrow': {
+			const wallet = await getWalletLink(message.chat.id);
+			if (!wallet) await sendMessage(message.chat.id, language === 'en' ? 'No wallet linked.' : language === 'zh' ? '尚未绑定钱包。' : 'Keine Wallet verbunden.');
+			else await sendMessage(message.chat.id, language === 'en' ? 'Which cover should I remind you about tomorrow? Open renewal to choose it.' : language === 'zh' ? '明天要提醒哪个保障？请打开续保并选择。' : 'Für welches Cover soll ich dich morgen erinnern? Öffne die Verlängerung und wähle es aus.', { reply_markup: { inline_keyboard: [[{ text: language === 'en' ? 'Choose cover' : language === 'zh' ? '选择保障' : 'Cover auswählen', callback_data: 'show_covers' }]] } });
+			return;
+		}
+		default:
+			await sendMessage(message.chat.id, language === 'en' ? 'I can help with covers, expiry dates, renewals, reminders and your dashboard. What would you like to know?' : language === 'zh' ? '我可以帮助你查看保障、到期日、续保、提醒和仪表板。你想了解什么？' : 'Ich helfe dir bei Covers, Ablaufdaten, Verlängerungen, Erinnerungen und dem Dashboard. Was möchtest du wissen?', { reply_markup: navigationKeyboard(language) });
+	}
+}
+
 async function unlinkTelegramFor(chatId, language) {
 	const wallets = await getMonitoredWallets(chatId);
 	await Promise.all(wallets.map((wallet) => rememberUnlinkedWallet(chatId, wallet.wallet)));
@@ -311,14 +369,20 @@ async function confirmWalletUnlink(chatId, language) {
 
 async function handleMessage(message) {
 	if (!message?.chat?.id || message.chat.type !== 'private') return;
+	if (typeof message.text !== 'string' || !message.text.trim()) return;
 	const command = commandOf(message.text);
 	if (!command) return;
-	await recordAgentEvent({ chatId: message.chat.id, eventType: 'bot.command', source: 'telegram', command }).catch(() => {});
+	const explicitCommand = message.text.trim().startsWith('/') || ['📊 Dashboard', '🛡 Meine Covers', '🛡 My covers', '🛡 我的保障', '🔄 Verlängerung prüfen', '🔄 Review renewal', '🔄 检查续保', '⚙️ Einstellungen', '⚙️ Settings', '⚙️ 设置'].includes(message.text.trim());
+	await recordAgentEvent({ chatId: message.chat.id, eventType: explicitCommand ? 'bot.command' : 'bot.free_text', source: 'telegram', command: explicitCommand ? command : 'free_text' }).catch(() => {});
 	const startCode = command === '/start' ? startCodeOf(message.text) : null;
 	if (startCode) await consumeTelegramHandoff(startCode, message.chat.id);
 	const language = await getLanguage(message.chat.id);
 	if (!language && command !== '/start' && command !== '/language') {
 		await askLanguage(message.chat.id);
+		return;
+	}
+	if (!message._agentRouted && !explicitCommand) {
+		await handleNaturalLanguage(message, language);
 		return;
 	}
 
