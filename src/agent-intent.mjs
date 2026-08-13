@@ -5,6 +5,7 @@ const ALLOWED_INTENTS = [
 	'snooze_tomorrow',
 	'show_reminders',
 	'open_dashboard',
+	'explain_product',
 	'help',
 	'unknown'
 ];
@@ -20,8 +21,9 @@ function localIntent(text) {
 	if (/\b(morgen|tomorrow|明天)\b/.test(value) && /\b(erinner|remind|提醒)\w*/.test(value)) return 'snooze_tomorrow';
 	if (/\b(einstellung|settings?|interval|warn|erinnerungen?|reminders?|提醒)\w*/.test(value)) return 'show_reminders';
 	if (/\b(nächst|naechst|next|wann|ablauf|auslauf|expiry|expire|到期)\w*/.test(value)) return 'show_next_expiry';
-	if (/\b(covers?|schutz|abgesichert|coverage|protection|保障)\b/.test(value)) return 'show_covers';
 	if (/\b(hilfe|help|was kannst du|功能)\b/.test(value)) return 'help';
+	if (/\b(wie|warum|was (ist|sind|bedeutet)|funktionier|erklär|erklaer|how|why|what|explain|什么|如何|为什么)\w*/.test(value) && !/\b(mein|meine|my|我的)\b.*\b(covers?|schutz|coverage|protection|保障)\b/.test(value)) return 'explain_product';
+	if (/\b(covers?|schutz|abgesichert|coverage|protection|保障)\b/.test(value)) return 'show_covers';
 	return 'unknown';
 }
 

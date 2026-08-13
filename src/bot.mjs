@@ -5,6 +5,7 @@ import { CoverDataError, DEMO_WALLET, formatWalletCovers, getWalletCovers, renew
 import { checkExpiryAlerts } from './alerts.mjs';
 import { createDemoRenewToken } from './demo-renew.mjs';
 import { classifyAgentIntent } from './agent-intent.mjs';
+import { answerProductQuestion } from './agent-knowledge.mjs';
 
 const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
 const configuredUsername = process.env.TELEGRAM_BOT_USERNAME?.trim().replace(/^@/, '');
@@ -310,6 +311,18 @@ async function handleNaturalLanguage(message, language) {
 		case 'prepare_renewal': return handleMessage({ ...message, text: '/renew', _agentRouted: true });
 		case 'open_dashboard': return handleMessage({ ...message, text: '/dashboard', _agentRouted: true });
 		case 'help': return handleMessage({ ...message, text: '/help', _agentRouted: true });
+		case 'explain_product': {
+			const answer = await answerProductQuestion(message.text, language);
+			const wallet = await getWalletLink(message.chat.id);
+			const dashboard = wallet ? await newDashboardAccess(wallet.wallet) : null;
+			await sendMessage(message.chat.id, answer ?? (language === 'en' ? 'I could not answer that reliably right now. You can find the verified process in the guide.' : language === 'zh' ? '我目前无法可靠地回答这个问题。你可以在使用指南中查看经过核实的流程。' : 'Das kann ich gerade nicht zuverlässig beantworten. Den geprüften Ablauf findest du in der Anleitung.'), {
+				reply_markup: { inline_keyboard: [[
+					{ text: language === 'en' ? 'Guide' : language === 'zh' ? '使用指南' : 'Anleitung', url: `${appBaseUrl}/anleitung` },
+					{ text: language === 'en' ? 'Dashboard' : language === 'zh' ? '仪表板' : 'Dashboard', url: dashboard ? `${appBaseUrl}/?access=${encodeURIComponent(dashboard.code)}` : appBaseUrl }
+				]] }
+			});
+			return;
+		}
 		case 'show_reminders': {
 			const wallet = await getWalletLink(message.chat.id);
 			if (!wallet) await sendMessage(message.chat.id, language === 'en' ? 'No wallet linked.' : language === 'zh' ? '尚未绑定钱包。' : 'Keine Wallet verbunden.');
