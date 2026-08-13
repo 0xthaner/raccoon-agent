@@ -1,10 +1,20 @@
 const cache = new Map();
 const catalogCache = new Map();
 const CACHE_MS = 5 * 60_000;
-const MAX_ENTRIES = 8;
+const MAX_ENTRIES = 64;
 const MAX_CATALOG_MATCHES = 4;
 
 const topicTerms = {
+	'coverraccoon.overview': ['coverraccoon', 'raccoon', 'plattform', 'platform', 'macht', 'about'],
+	'cover.basics': ['cover', 'schutz', 'onchain', 'risiko', 'risk', 'wording', 'versicherung', 'insurance'],
+	'cover.gap-check': ['gap', 'lücke', 'luecke', 'gedeckt', 'deckung', 'coverage', 'excluded', 'ausgeschlossen', 'conditional', 'bedingt'],
+	'cover.score': ['score', 'bewertung', 'rating', 'punkte', 'stark', 'schwach'],
+	'cover.audience': ['retail', 'team', 'nutzer', 'user', 'anspruch', 'zielgruppe'],
+	'cover.provider-broker': ['broker', 'aggregator', 'risikoträger', 'risikotraeger', 'underwriter', 'vermittler'],
+	'cover.buying': ['kaufen', 'kauf', 'buy', 'approve', 'freigabe', 'prämie', 'premium', 'provision'],
+	'cover.renewal': ['verlängerung', 'verlaengerung', 'renewal', 'renew', 'verlängern', 'verlaengern'],
+	'cover.nft-wallet': ['nft', 'wallet', 'owner', 'besitz', 'ethereum'],
+	'broker.opencover': ['opencover', 'broker', 'aggregator'],
 	'nexus.overview': ['nexus', 'mutual', 'anbieter', 'provider', 'versicherung', 'insurance', 'discretionary', 'mitglied'],
 	'nexus.mechanics': ['funktion', 'ablauf', 'pool', 'stake', 'staking', 'nxm', 'kapital', 'premium', 'prämie', 'reward'],
 	'nexus.coverage': ['gedeckt', 'deckung', 'cover', 'schutz', 'hack', 'exploit', 'depeg', 'ausgeschlossen', 'coverage', 'excluded'],
@@ -29,9 +39,11 @@ export function parseKnowledgeResponse(result) {
 
 export function selectKnowledge(entries, question, limit = 4) {
 	const text = String(question ?? '').toLowerCase();
+	const queryWords = new Set(words(text));
 	return [...entries].map((entry, index) => ({
 		entry, index,
-		score: (topicTerms[entry.id] ?? []).reduce((sum, term) => sum + (text.includes(term) ? 1 : 0), 0)
+		score: (topicTerms[entry.id] ?? []).reduce((sum, term) => sum + (text.includes(term) ? 3 : 0), 0)
+			+ words(`${entry.id} ${entry.title}`).reduce((sum, word) => sum + (queryWords.has(word) ? 1 : 0), 0)
 	})).sort((a, b) => b.score - a.score || a.index - b.index).slice(0, Math.max(1, limit)).map(({ entry }) => entry);
 }
 
@@ -92,24 +104,75 @@ export function selectAnalysisCatalog(entries, question, limit = MAX_CATALOG_MAT
 	}).filter(({ score }) => score > 0).sort((a, b) => b.score - a.score || a.index - b.index).slice(0, limit).map(({ entry }) => entry);
 }
 
-export async function getCoverAnalysisReferences(question, fetchImpl = fetch) {
+async function loadAnalysisCatalog(fetchImpl) {
 	const baseUrl = (process.env.COVER_DATA_BASE_URL?.trim() || 'https://coverraccoon.com').replace(/\/$/, '');
 	let entries = catalogCache.get(baseUrl);
 	if (!entries || entries.expiresAt <= Date.now()) {
 		try {
 			const response = await fetchImpl(`${baseUrl}/api/cover/v1/analyses`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(8_000) });
-			if (!response.ok) return '';
+			if (!response.ok) return null;
 			const parsed = parseAnalysisCatalog(await response.json());
-			if (!parsed.length) return '';
+			if (!parsed.length) return null;
 			entries = { value: parsed, expiresAt: Date.now() + CACHE_MS };
 			catalogCache.set(baseUrl, entries);
-		} catch { return ''; }
+		} catch { return null; }
 	}
-	return selectAnalysisCatalog(entries.value, question).map((entry) => [
+	return { baseUrl, entries: entries.value };
+}
+
+export async function getCoverAnalysisReferences(question, fetchImpl = fetch) {
+	const catalog = await loadAnalysisCatalog(fetchImpl);
+	if (!catalog) return '';
+	return selectAnalysisCatalog(catalog.entries, question).map((entry) => [
 		`Product: ${entry.name}`,
 		entry.subject ? `Subject: ${entry.subject}` : '',
 		`Public summary score: ${entry.score ?? 'not scored'}`,
 		`Full analysis page: ${entry.web}`,
 		`Analysis date: ${entry.asOf || 'unknown'}`
 	].filter(Boolean).join('\n')).join('\n\n');
+}
+
+function localText(value, language) {
+	if (typeof value === 'string') return value;
+	if (!value || typeof value !== 'object') return '';
+	return String(value[language === 'de' ? 'de' : 'en'] ?? value.en ?? '').slice(0, 1_000);
+}
+
+export function parseGapCheck(result, language = 'de') {
+	if (!result || !Array.isArray(result.coverage) || !Array.isArray(result.redFlags) || typeof result.web !== 'string') return null;
+	let web;
+	try { web = new URL(result.web); } catch { return null; }
+	if (web.protocol !== 'https:' || web.hostname !== 'coverraccoon.com' || !web.pathname.startsWith('/cover/')) return null;
+	const coverage = result.coverage.slice(0, 20).flatMap((item) => {
+		if (!item || !['covered', 'conditional', 'excluded'].includes(item.status)) return [];
+		const risk = localText(item.risk, language);
+		const note = localText(item.note, language);
+		return risk && note ? [{ risk, status: item.status, note }] : [];
+	});
+	const redFlags = result.redFlags.slice(0, 20).map((item) => localText(item, language)).filter(Boolean);
+	if (!coverage.length) return null;
+	return { coverage, redFlags, web: web.toString(), asOf: String(result.asOf ?? '').slice(0, 10) };
+}
+
+export async function getCoverGapCheck(question, language = 'de', fetchImpl = fetch) {
+	if (!/\b(gap|lücke|luecke|deckt|gedeckt|deckung|coverage|cover|risiko|risk|ausschluss|ausgeschlossen|excluded|bedingt|conditional|red.?flag|hack|exploit|depeg|oracle|slashing)\w*/i.test(String(question ?? ''))) return '';
+	const catalog = await loadAnalysisCatalog(fetchImpl);
+	if (!catalog) return '';
+	const match = selectAnalysisCatalog(catalog.entries, question, 1)[0];
+	if (!match) return '';
+	try {
+		const response = await fetchImpl(`${catalog.baseUrl}/api/cover/v1/analyses/${encodeURIComponent(match.provider)}/${encodeURIComponent(match.product)}/check`, {
+			headers: { accept: 'application/json' }, signal: AbortSignal.timeout(8_000)
+		});
+		if (!response.ok) return '';
+		const check = parseGapCheck(await response.json(), language);
+		if (!check) return '';
+		return [
+			`Product: ${match.name}`,
+			...check.coverage.map((item) => `${item.risk}: ${item.status}. ${item.note}`),
+			...(check.redFlags.length ? ['Public red flags:', ...check.redFlags.map((flag) => `- ${flag}`)] : []),
+			`Full analysis page: ${check.web}`,
+			`Checked as of: ${check.asOf || match.asOf || 'unknown'}`
+		].join('\n');
+	} catch { return ''; }
 }

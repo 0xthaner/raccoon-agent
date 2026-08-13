@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getCoverraccoonKnowledge, parseAnalysisCatalog, parseKnowledgeResponse, selectAnalysisCatalog, selectKnowledge } from '../src/coverraccoon-knowledge.mjs';
+import { getCoverraccoonKnowledge, parseAnalysisCatalog, parseGapCheck, parseKnowledgeResponse, selectAnalysisCatalog, selectKnowledge } from '../src/coverraccoon-knowledge.mjs';
 
 const entries = parseKnowledgeResponse({ apiVersion: 'agent-knowledge.v1', entries: [
 	{ id: 'nexus.overview', title: 'Overview', content: 'Nexus Mutual overview content.', sourceUrl: 'https://coverraccoon.com/cover/nexus-mutual', updatedAt: '2026-07-14', origin: 'mixed', access: 'public' },
@@ -35,4 +35,15 @@ test('analysis catalog accepts only Coverraccoon pages and matches a requested p
 	] });
 	assert.equal(catalog.length, 1);
 	assert.equal(selectAnalysisCatalog(catalog, 'Gib mir die komplette Analyse zu Aave v3')[0].product, 'aave-v3');
+});
+
+test('gap check accepts only bounded public Coverraccoon data', () => {
+	const check = parseGapCheck({
+		asOf: '2026-08-01', web: 'https://coverraccoon.com/cover/nexus-mutual/aave-v3',
+		coverage: [{ risk: { de: 'Oracle-Manipulation', en: 'Oracle manipulation' }, status: 'conditional', note: { de: 'Nur unter den Bedingungen des Wordings.', en: 'Only under the wording conditions.' } }],
+		redFlags: [{ de: 'Keine Auszahlungsgarantie.', en: 'No payout guarantee.' }]
+	}, 'de');
+	assert.equal(check.coverage[0].status, 'conditional');
+	assert.match(check.coverage[0].risk, /Oracle/);
+	assert.equal(parseGapCheck({ coverage: [], redFlags: [], web: 'https://evil.example/' }, 'de'), null);
 });
