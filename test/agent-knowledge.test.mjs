@@ -6,4 +6,6 @@ test('product knowledge states the safety boundary and excludes autonomous purch
 	assert.match(productKnowledge, /never executed autonomously/i);
 	assert.match(productKnowledge, /never asks for or stores a seed phrase/i);
 	assert.match(productKnowledge, /no wallet address, cover data, or Telegram chat ID/i);
+	assert.match(productKnowledge, /In Telegram groups, the bot responds only/i);
+	assert.match(productKnowledge, /Personal requests are continued in a private chat/i);
 });

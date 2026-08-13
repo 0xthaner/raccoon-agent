@@ -11,6 +11,7 @@ den Coverraccoon-Checkout an die jeweilige Owner-Wallet übergeben.
 - Dashboard für Wallets, Covers, Erinnerungen und Renewal-Status
 - Telegram-Befehle und interaktive Buttons
 - freie Telegram-Sprache mit strikt begrenzten, serverseitig ausgeführten Agent-Aktionen
+- sicherer Gruppenmodus: Antworten nur bei @Erwähnung oder direkter Antwort; persönliche Daten und Aktionen bleiben im privaten Chat
 - konfigurierbare Ablaufwarnungen und Wochenübersicht
 - Supabase-Persistenz mit getrennten serverseitigen Zugriffsrechten
 - Cover-Daten über die versionierte Coverraccoon Agent API
@@ -29,6 +30,10 @@ npm start
 Trage vor dem Start ausschließlich eigene Entwicklungswerte in `.env` ein. Die
 benötigten Variablen und ihr Einsatzzweck sind in [.env.example](.env.example)
 dokumentiert. Produktions-Secrets gehören in den Secret Store der Hosting-Plattform.
+
+### Telegram-Gruppenmodus
+
+Der Bot verarbeitet in Gruppen nur Nachrichten, die an ihn adressiert sind. Am zuverlässigsten beginnt eine Unterhaltung bei aktiviertem Telegram Privacy Mode mit `/chat@BOT_USERNAME deine Frage`; danach kann durch direkte Antworten auf seine Nachricht weitergeplaudert werden. Eine normale `@BOT_USERNAME`-Erwähnung wird ebenfalls beantwortet, sofern Telegram sie dem Bot zustellt. Persönliche Wallet-, Cover-, Reminder-, Dashboard- und Renewal-Anfragen werden mit einem Button in den privaten Bot-Chat umgeleitet.
 
 ## Qualitätschecks
 

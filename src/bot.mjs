@@ -5,7 +5,8 @@ import { CoverDataError, DEMO_WALLET, formatWalletCovers, getWalletCovers, renew
 import { checkExpiryAlerts } from './alerts.mjs';
 import { createDemoRenewToken } from './demo-renew.mjs';
 import { classifyAgentIntent } from './agent-intent.mjs';
-import { answerProductQuestion } from './agent-knowledge.mjs';
+import { answerGroupQuestion, answerProductQuestion } from './agent-knowledge.mjs';
+import { groupLanguage, groupQuestion, isGroupMessageForBot } from './group-chat.mjs';
 
 const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
 const configuredUsername = process.env.TELEGRAM_BOT_USERNAME?.trim().replace(/^@/, '');
@@ -105,8 +106,8 @@ async function telegram(method, payload = {}) {
 }
 
 async function sendMessage(chatId, text, options = {}) {
-	const { _messageKind = 'bot_response', ...telegramOptions } = options;
-	const deliveryId = await beginTelegramDelivery(chatId, _messageKind).catch(() => null);
+	const { _messageKind = 'bot_response', _trackDelivery = true, ...telegramOptions } = options;
+	const deliveryId = _trackDelivery ? await beginTelegramDelivery(chatId, _messageKind).catch(() => null) : null;
 	try {
 		const result = await telegram('sendMessage', { chat_id: chatId, text, disable_web_page_preview: true, ...telegramOptions });
 		if (deliveryId) await finishTelegramDelivery(deliveryId, { messageId: result?.message_id }).catch(() => {});
@@ -115,6 +116,33 @@ async function sendMessage(chatId, text, options = {}) {
 		if (deliveryId) await finishTelegramDelivery(deliveryId, { errorCode: 'TELEGRAM_SEND_FAILED', errorMessage: error.message }).catch(() => {});
 		throw error;
 	}
+}
+
+function privateChatKeyboard(language) {
+	const username = configuredUsername;
+	const privateUrl = username ? `https://t.me/${username}?start=group` : appBaseUrl;
+	return { inline_keyboard: [[
+		{ text: language === 'en' ? '🔒 Open private chat' : language === 'zh' ? '🔒 打开私聊' : '🔒 Privaten Chat öffnen', url: privateUrl },
+		{ text: language === 'en' ? 'Guide' : language === 'zh' ? '使用指南' : 'Anleitung', url: `${appBaseUrl}/anleitung` }
+	]] };
+}
+
+async function handleGroupMessage(message) {
+	if (!isGroupMessageForBot(message, configuredUsername)) return;
+	const language = groupLanguage(message);
+	const question = groupQuestion(message, configuredUsername);
+	const decision = await classifyAgentIntent(question || 'hello', language);
+	const personalIntents = new Set(['show_covers', 'show_next_expiry', 'prepare_renewal', 'snooze_tomorrow', 'show_reminders', 'open_dashboard']);
+	if (personalIntents.has(decision.intent)) {
+		await sendMessage(message.chat.id,
+			language === 'en' ? 'Let’s do that privately so no personal wallet or cover data appears in the group.' : language === 'zh' ? '让我们在私聊中处理，以免个人钱包或保障数据出现在群组中。' : 'Das machen wir privat, damit keine persönlichen Wallet- oder Coverdaten in der Gruppe landen.',
+			{ reply_to_message_id: message.message_id, reply_markup: privateChatKeyboard(language), _trackDelivery: false, _messageKind: 'group_private_redirect' });
+		return;
+	}
+	const answer = await answerGroupQuestion(question || (language === 'en' ? 'Say hello to the group.' : language === 'zh' ? '向群组问好。' : 'Begrüße die Gruppe.'), language);
+	await sendMessage(message.chat.id,
+		answer ?? (language === 'en' ? 'Hey! 🦝 Ask me something about Raccoon Agent—or open the private chat for personal cover questions.' : language === 'zh' ? '你好！🦝 可以问我有关 Raccoon Agent 的问题；个人保障问题请在私聊中进行。' : 'Servus! 🦝 Frag mich gern etwas zum Raccoon Agent – persönliche Coverfragen klären wir im privaten Chat.'),
+		{ reply_to_message_id: message.message_id, reply_markup: privateChatKeyboard(language), _trackDelivery: false, _messageKind: 'group_response' });
 }
 
 function greeting(firstName, language) {
@@ -381,7 +409,8 @@ async function confirmWalletUnlink(chatId, language) {
 }
 
 async function handleMessage(message) {
-	if (!message?.chat?.id || message.chat.type !== 'private') return;
+	if (!message?.chat?.id) return;
+	if (message.chat.type !== 'private') return handleGroupMessage(message);
 	if (typeof message.text !== 'string' || !message.text.trim()) return;
 	const command = commandOf(message.text);
 	if (!command) return;
