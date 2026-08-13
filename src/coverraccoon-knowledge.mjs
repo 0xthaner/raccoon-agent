@@ -1,6 +1,8 @@
 const cache = new Map();
+const catalogCache = new Map();
 const CACHE_MS = 5 * 60_000;
 const MAX_ENTRIES = 8;
+const MAX_CATALOG_MATCHES = 4;
 
 const topicTerms = {
 	'nexus.overview': ['nexus', 'mutual', 'anbieter', 'provider', 'versicherung', 'insurance', 'discretionary', 'mitglied'],
@@ -60,4 +62,56 @@ export async function getCoverraccoonKnowledge(question, language = 'de', fetchI
 		`Source: ${entry.sourceUrl}`,
 		`Updated: ${entry.updatedAt} · Origin: ${entry.origin}`
 	].join('\n')).join('\n\n');
+}
+
+function words(value) {
+	return String(value ?? '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').match(/[a-z0-9]{3,}/g) ?? [];
+}
+
+export function parseAnalysisCatalog(result) {
+	if (String(result?.apiVersion) !== '1' || !Array.isArray(result.analyses)) return [];
+	return result.analyses.slice(0, 500).flatMap((entry) => {
+		if (!entry || typeof entry.name !== 'string' || typeof entry.product !== 'string' || typeof entry.provider !== 'string' || typeof entry.web !== 'string') return [];
+		let web;
+		try { web = new URL(entry.web); } catch { return []; }
+		if (web.protocol !== 'https:' || web.hostname !== 'coverraccoon.com' || !web.pathname.startsWith('/cover/')) return [];
+		return [{
+			name: entry.name.slice(0, 180), subject: String(entry.subject ?? '').slice(0, 180),
+			provider: entry.provider.slice(0, 80), product: entry.product.slice(0, 120), web: web.toString(),
+			score: Number.isFinite(entry.raccoonScore) ? entry.raccoonScore : null,
+			asOf: String(entry.asOf ?? '').slice(0, 10)
+		}];
+	});
+}
+
+export function selectAnalysisCatalog(entries, question, limit = MAX_CATALOG_MATCHES) {
+	const query = new Set(words(question).filter((word) => !['analyse', 'analysis', 'review', 'bewertung', 'komplett', 'complete', 'full', 'vollstandig', 'cover', 'produkt', 'product', 'bitte', 'zeige', 'show'].includes(word)));
+	if (!query.size) return [];
+	return entries.map((entry, index) => {
+		const searchable = new Set(words(`${entry.name} ${entry.subject} ${entry.provider} ${entry.product}`));
+		const score = [...query].reduce((sum, word) => sum + (searchable.has(word) ? 1 : 0), 0);
+		return { entry, index, score };
+	}).filter(({ score }) => score > 0).sort((a, b) => b.score - a.score || a.index - b.index).slice(0, limit).map(({ entry }) => entry);
+}
+
+export async function getCoverAnalysisReferences(question, fetchImpl = fetch) {
+	const baseUrl = (process.env.COVER_DATA_BASE_URL?.trim() || 'https://coverraccoon.com').replace(/\/$/, '');
+	let entries = catalogCache.get(baseUrl);
+	if (!entries || entries.expiresAt <= Date.now()) {
+		try {
+			const response = await fetchImpl(`${baseUrl}/api/cover/v1/analyses`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(8_000) });
+			if (!response.ok) return '';
+			const parsed = parseAnalysisCatalog(await response.json());
+			if (!parsed.length) return '';
+			entries = { value: parsed, expiresAt: Date.now() + CACHE_MS };
+			catalogCache.set(baseUrl, entries);
+		} catch { return ''; }
+	}
+	return selectAnalysisCatalog(entries.value, question).map((entry) => [
+		`Product: ${entry.name}`,
+		entry.subject ? `Subject: ${entry.subject}` : '',
+		`Public summary score: ${entry.score ?? 'not scored'}`,
+		`Full analysis page: ${entry.web}`,
+		`Analysis date: ${entry.asOf || 'unknown'}`
+	].filter(Boolean).join('\n')).join('\n\n');
 }
