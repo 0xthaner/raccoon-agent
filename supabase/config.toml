@@ -1,0 +1,10 @@
+project_id = "raccoon-agent"
+[db]
+major_version = 17
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[db.seed]
+enabled = false

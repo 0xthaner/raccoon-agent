@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="247 36.5 928 928" width="512" height="512">
+  <defs>
+    <linearGradient id="gradH" x1="317" y1="185" x2="1105" y2="816" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7CFFEA"/>
+      <stop offset="0.25" stop-color="#B98CFF"/>
+      <stop offset="0.5" stop-color="#FF8CD9"/>
+      <stop offset="0.75" stop-color="#FFD98C"/>
+      <stop offset="1" stop-color="#7CFFEA"/>
+      <animateTransform attributeName="gradientTransform" type="rotate" from="0 711 500" to="360 711 500" dur="10s" repeatCount="indefinite"/>
+    </linearGradient>
+  </defs>
+  <rect x="247" y="36.5" width="928" height="928" fill="#0a0a12"/>
+  <path d="M401 223 L552 319 L870 319 L1021 223 L1058 285 L1105 578 L711 786 L317 578 L364 285 Z M432 518 L504 473 L552 473 L659 550 L532 613 L472 575 Z M990 518 L918 473 L870 473 L763 550 L890 613 L950 575 Z M669 662 L692 650 L730 650 L753 662 L748 695 L711 711 L674 695 Z" fill-rule="evenodd" fill="url(#gradH)"/>
+</svg>

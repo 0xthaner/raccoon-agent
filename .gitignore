@@ -1,0 +1,35 @@
+# Lokale Geheimnisse
+.env
+.env.*
+!.env.example
+.npmrc
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+
+# Abhängigkeiten und Build-Ausgaben
+node_modules/
+dist/
+build/
+dist-web/
+.svelte-kit/
+.vercel/
+coverage/
+supabase/.temp/
+
+# Laufzeitdaten und Logs
+*.log
+data/
+tmp/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.dump
+
+# Editor und Betriebssystem
+.DS_Store
+.idea/
+.vscode/
