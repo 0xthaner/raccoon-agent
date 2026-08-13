@@ -3,6 +3,7 @@ import { newDashboardAccess, newLinkRequest } from './linking.mjs';
 import { startWebServer } from './web.mjs';
 import { CoverDataError, DEMO_WALLET, formatWalletCovers, getWalletCovers, renewalUrl } from './covers.mjs';
 import { checkExpiryAlerts } from './alerts.mjs';
+import { authenticPrivateMessage, telegramTimingMetadata } from './telegram-audit.mjs';
 import { createDemoRenewToken } from './demo-renew.mjs';
 import { classifyAgentIntent } from './agent-intent.mjs';
 import { answerGroupQuestion, answerProductQuestion } from './agent-knowledge.mjs';
@@ -408,14 +409,21 @@ async function confirmWalletUnlink(chatId, language) {
 	);
 }
 
-async function handleMessage(message) {
+async function handleMessage(message, updateContext = {}) {
 	if (!message?.chat?.id) return;
 	if (message.chat.type !== 'private') return handleGroupMessage(message);
+	if (!authenticPrivateMessage(message)) return;
 	if (typeof message.text !== 'string' || !message.text.trim()) return;
 	const command = commandOf(message.text);
 	if (!command) return;
 	const explicitCommand = message.text.trim().startsWith('/') || ['📊 Dashboard', '🛡 Meine Covers', '🛡 My covers', '🛡 我的保障', '🔄 Verlängerung prüfen', '🔄 Review renewal', '🔄 检查续保', '⚙️ Einstellungen', '⚙️ Settings', '⚙️ 设置'].includes(message.text.trim());
-	await recordAgentEvent({ chatId: message.chat.id, eventType: explicitCommand ? 'bot.command' : 'bot.free_text', source: 'telegram', command: explicitCommand ? command : 'free_text' }).catch(() => {});
+	await recordAgentEvent({
+		chatId: message.chat.id,
+		eventType: explicitCommand ? 'bot.command' : 'bot.free_text',
+		source: 'telegram',
+		command: explicitCommand ? command : 'free_text',
+		metadata: telegramTimingMetadata(message, updateContext.updateId, updateContext.receivedAt)
+	}).catch(() => {});
 	const startCode = command === '/start' ? startCodeOf(message.text) : null;
 	if (startCode) await consumeTelegramHandoff(startCode, message.chat.id);
 	const language = await getLanguage(message.chat.id);
@@ -434,6 +442,16 @@ async function handleMessage(message) {
 				await askLanguage(message.chat.id);
 				break;
 			}
+			{
+				const existingWallet = await getWalletLink(message.chat.id);
+				if (existingWallet) {
+					await sendMessage(message.chat.id,
+						language === 'zh' ? 'Raccoon Agent 已启用 🦝' : language === 'en' ? 'Raccoon Agent is already active 🦝' : 'Raccoon Agent ist bereits aktiv 🦝',
+						{ reply_markup: await dashboardKeyboard(language, existingWallet.wallet, true) }
+					);
+					break;
+				}
+			}
 			await sendMessage(message.chat.id, greeting(message.from?.first_name, language), { reply_markup: navigationKeyboard(language) });
 			if (!await getWalletLink(message.chat.id)) {
 				const link = await newLinkRequest(message.chat.id);
@@ -443,10 +461,7 @@ async function handleMessage(message) {
 						inline_keyboard: [[{ text: language === 'zh' ? '🔗 绑定钱包' : language === 'en' ? '🔗 Connect wallet' : '🔗 Wallet verbinden', url: walletUrl }]]
 					}
 				});
-			} else await sendMessage(message.chat.id,
-				language === 'zh' ? '一切设置完毕 🦝\n\n我现在会监控你的保障并及时提醒你。你可以随时在仪表板中查看保障、期限和设置。' : language === 'de' ? 'Alles eingerichtet 🦝\n\nIch überwache jetzt deine Covers und melde mich rechtzeitig. Im Dashboard kannst du Covers, Laufzeiten und Einstellungen jederzeit ansehen.' : 'Everything is set up 🦝\n\nI will now monitor your cover and notify you in time. You can view cover, expiry dates and settings in the dashboard at any time.',
-				{ reply_markup: await dashboardKeyboard(language, (await getWalletLink(message.chat.id))?.wallet, true) }
-			);
+			}
 			break;
 		case '/help':
 			await sendMessage(message.chat.id, language === 'zh' ? helpTextZh : language === 'en' ? helpTextEn : helpTextDe, { reply_markup: await dashboardKeyboard(language, (await getWalletLink(message.chat.id))?.wallet) });
@@ -652,7 +667,7 @@ async function handleCallbackQuery(query) {
 
 export async function handleUpdate(update) {
 	if (update?.callback_query) await handleCallbackQuery(update.callback_query);
-	else await handleMessage(update?.message);
+	else await handleMessage(update?.message, { updateId: update?.update_id, receivedAt: Date.now() });
 }
 
 async function runAlertCheck() {
