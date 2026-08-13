@@ -36,15 +36,13 @@ export function selectKnowledge(entries, question, limit = 4) {
 }
 
 export async function getCoverraccoonKnowledge(question, language = 'de', fetchImpl = fetch) {
-	const apiKey = process.env.COVER_AGENT_KNOWLEDGE_API_KEY?.trim() || '';
 	const baseUrl = (process.env.COVER_DATA_BASE_URL?.trim() || 'https://coverraccoon.com').replace(/\/$/, '');
-	if (!apiKey) return '';
 	const apiLanguage = language === 'de' ? 'de' : 'en';
 	let entries = cache.get(apiLanguage);
 	if (!entries || entries.expiresAt <= Date.now()) {
 		try {
 			const response = await fetchImpl(`${baseUrl}/api/agent/v1/knowledge?lang=${apiLanguage}`, {
-				headers: { authorization: `Bearer ${apiKey}`, accept: 'application/json' },
+				headers: { accept: 'application/json' },
 				signal: AbortSignal.timeout(8_000)
 			});
 			if (!response.ok) return '';

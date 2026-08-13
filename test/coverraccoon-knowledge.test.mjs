@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseAnalysisCatalog, parseKnowledgeResponse, selectAnalysisCatalog, selectKnowledge } from '../src/coverraccoon-knowledge.mjs';
+import { getCoverraccoonKnowledge, parseAnalysisCatalog, parseKnowledgeResponse, selectAnalysisCatalog, selectKnowledge } from '../src/coverraccoon-knowledge.mjs';
 
 const entries = parseKnowledgeResponse({ apiVersion: 'agent-knowledge.v1', entries: [
 	{ id: 'nexus.overview', title: 'Overview', content: 'Nexus Mutual overview content.', sourceUrl: 'https://coverraccoon.com/cover/nexus-mutual', updatedAt: '2026-07-14', origin: 'mixed', access: 'public' },
@@ -16,6 +16,16 @@ test('knowledge response accepts only versioned Coverraccoon sources', () => {
 
 test('knowledge selection prioritizes the relevant topic', () => {
 	assert.equal(selectKnowledge(entries, 'Wie funktioniert ein Claim und die Auszahlung?', 1)[0].id, 'nexus.claims');
+});
+
+test('public knowledge request sends no credential', async () => {
+	let received;
+	const value = await getCoverraccoonKnowledge('Claim', 'de', async (_url, options) => {
+		received = options.headers;
+		return { ok: true, json: async () => ({ apiVersion: 'agent-knowledge.v1', entries: entries.map((entry) => ({ ...entry, access: 'public' })) }) };
+	});
+	assert.deepEqual(received, { accept: 'application/json' });
+	assert.match(value, /Claims committee/);
 });
 
 test('analysis catalog accepts only Coverraccoon pages and matches a requested product', () => {
