@@ -15,6 +15,7 @@ den Coverraccoon-Checkout an die jeweilige Owner-Wallet übergeben.
 - konfigurierbare Ablaufwarnungen und Wochenübersicht
 - Supabase-Persistenz mit getrennten serverseitigen Zugriffsrechten
 - Cover-Daten über die versionierte Coverraccoon Agent API
+- zitierbares Nexus-Mutual-Wissen über die geschützte Coverraccoon Knowledge API
 
 ## Lokal starten
 
