@@ -1,7 +1,7 @@
-import { isAddress, verifyMessage } from 'viem';
+import { isAddress } from 'viem';
 import { consumePendingLink, getPendingLink, getLanguage } from '../../src/db.mjs';
-import { newDashboardAccess, signingMessage } from '../../src/linking.mjs';
-import { createDashboardSession } from '../../src/dashboard-auth.mjs';
+import { linkSiweExpectation, newDashboardAccess, signingMessage } from '../../src/linking.mjs';
+import { verifyExpectedSiweSignature } from '../../src/siwe-auth.mjs';
 import { enforceRateLimit, requireJson, requireSameOrigin } from '../../src/http-security.mjs';
 
 async function notifyLinked(chatId, wallet) {
@@ -42,13 +42,22 @@ export default async function handler(request, response) {
 	if (!isAddress(wallet) || typeof signature !== 'string') {
 		return response.status(400).json({ ok: false, error: 'Ungültige Signaturdaten.' });
 	}
-	const message = signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at });
-	if (!await verifyMessage({ address: wallet, message, signature })) {
+	// AGENT-SEC-A3/A4: der Text wird serverseitig aus dem gespeicherten
+	// Pending-Link rekonstruiert; Felder und Signatur prueft dieselbe
+	// gemeinsame Grenze wie beim Dashboard. Der Client schickt keine eigene
+	// Nachricht, und die interne Ursache verlaesst den Server nicht.
+	const expected = linkSiweExpectation({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code });
+	const message = signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code });
+	if (await verifyExpectedSiweSignature({ message, signature, expected }) !== 'VALID') {
 		return response.status(401).json({ ok: false, error: 'Signatur konnte nicht bestätigt werden.' });
 	}
 	const chatId = await consumePendingLink(code, wallet);
 	if (!chatId) return response.status(409).json({ ok: false, error: 'Verbindungscode wurde bereits verwendet.' });
 	await notifyLinked(chatId, wallet);
-	response.setHeader('set-cookie', `__Host-raccoon_dashboard=${encodeURIComponent(createDashboardSession(wallet))}; Path=/; Max-Age=604800; HttpOnly; Secure; SameSite=Strict`);
+	// AGENT-SEC-A1, 29.08.2026: hier wurde bis dahin ein Dashboard-Sessioncookie
+	// gesetzt. Die signierte Nachricht autorisiert aber ausschliesslich das
+	// Einrichten von Telegram-Ablaufwarnungen. Eine Verknuepfungssignatur
+	// erzeugt deshalb KEINE Dashboardberechtigung. Der Weg ins Dashboard fuehrt
+	// ueber den eigenen Anmeldeweg beziehungsweise den Telegram-Zugangslink.
 	return response.status(200).json({ ok: true });
 }

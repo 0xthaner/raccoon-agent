@@ -1,24 +1,11 @@
-import { isAddress, verifyMessage } from 'viem';
+import { isAddress } from 'viem';
 import { getWalletCovers, renewalUrl } from '../src/covers.mjs';
-import { createDashboardChallenge, createDashboardSession, dashboardMessage, verifyDashboardSession, verifyDashboardToken } from '../src/dashboard-auth.mjs';
-import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, getWalletLinkByWallet, isDashboardSessionRevoked, recordAgentEvent, storeDashboardChallenge, unlinkWalletByWallet } from '../src/db.mjs';
+import { CLEAR_SESSION_COOKIES, createDashboardChallenge, dashboardMessage, dashboardSiweExpectation, readSessionCookie, resolveLogout, sessionCookieHeader, verifyDashboardSession, verifyDashboardToken } from '../src/dashboard-auth.mjs';
+import { verifyExpectedSiweSignature } from '../src/siwe-auth.mjs';
+import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, getWalletLinkByWallet, isDashboardSessionRevoked, recordAgentEvent, revokeDashboardSessions, storeDashboardChallenge, unlinkWalletByWallet } from '../src/db.mjs';
 import { createDemoRenewToken } from '../src/demo-renew.mjs';
 import { newTelegramHandoff } from '../src/linking.mjs';
 import { enforceRateLimit, requireJson, requireSameOrigin } from '../src/http-security.mjs';
-
-const SESSION_COOKIE = '__Host-raccoon_dashboard';
-const SESSION_COOKIE_OPTIONS = 'Path=/; Max-Age=604800; HttpOnly; Secure; SameSite=Strict';
-const CLEAR_SESSION_COOKIES = [
-	`${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`,
-	'raccoon_dashboard=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax'
-];
-
-function cookieOf(request, name) {
-	const cookies = request.headers.cookie?.split(';') ?? [];
-	const match = cookies.map((item) => item.trim().split('=')).find(([key]) => key === name);
-	if (!match) return null;
-	try { return decodeURIComponent(match.slice(1).join('=')); } catch { return null; }
-}
 
 async function dashboardData(wallet) {
 	const [result, telegramLink] = await Promise.all([getWalletCovers(wallet), getWalletLinkByWallet(wallet)]);
@@ -63,11 +50,28 @@ export default async function handler(request, response) {
 		if (!await enforceRateLimit(request, response, 'dashboard-read', 120, 600)) return;
 		const access = typeof request.query.access === 'string' ? request.query.access : '';
 		if (access) {
+			// AGENT-SEC-A2, 29.08.2026: der Telegram-Zugangslink hat bis dahin
+			// unmittelbar ein Sessioncookie gesetzt und die Dashboarddaten
+			// ausgeliefert. Damit genuegte die KENNTNIS des Links, um Walletbesitz
+			// zu behaupten. Der Code loest jetzt nur noch die erwartete Wallet auf
+			// und uebergibt an den bestehenden Signaturflow: keine Session, kein
+			// Cookie, keine Cover- und keine Telegramdaten vor der Signatur.
+			//
+			// Der Verbrauch bleibt hier im GET und bleibt atomar. Das ist eine
+			// bewusste Entscheidung: die Telegram-URL zeigt auf die statische
+			// Seite, der Code wird erst durch diesen Aufruf aus dem geladenen
+			// Client eingeloest. Ein Linkscanner ohne JavaScript kann ihn deshalb
+			// nicht verbrauchen, und selbst wenn er es koennte, erhielte er nur
+			// den Handoffzustand.
 			const wallet = await consumeDashboardAccess(access);
-			if (!wallet || !isAddress(wallet)) return response.status(410).json({ ok: false, error: 'Dieser Dashboard-Link ist ungültig oder abgelaufen.' });
-			response.setHeader('set-cookie', `${SESSION_COOKIE}=${encodeURIComponent(createDashboardSession(wallet))}; ${SESSION_COOKIE_OPTIONS}`);
+			if (!wallet || !isAddress(wallet)) {
+				// Das Datenmodell unterscheidet ungueltig, abgelaufen und
+				// verbraucht nicht. Es wird keine Information erfunden: nach
+				// aussen genau ein Code.
+				return response.status(410).json({ ok: false, code: 'ACCESS_CODE_INVALID', error: 'Dieser Dashboard-Link ist ungültig oder abgelaufen.' });
+			}
 			await recordAgentEvent({ wallet, eventType: 'dashboard.access_link_consumed', source: 'dashboard' }).catch(() => {});
-			return response.status(200).json(await dashboardData(wallet));
+			return response.status(200).json({ ok: false, code: 'WALLET_SIGNATURE_REQUIRED', wallet: wallet.toLowerCase() });
 		}
 		const wallet = typeof request.query.wallet === 'string' ? request.query.wallet : '';
 		if (wallet) {
@@ -78,7 +82,7 @@ export default async function handler(request, response) {
 			await storeDashboardChallenge({ nonce: verified.nonce, wallet: verified.wallet, expiresAt: verified.exp });
 			return response.status(200).json({ ok: true, ...challenge });
 		}
-		const saved = verifyDashboardSession(cookieOf(request, SESSION_COOKIE) ?? cookieOf(request, 'raccoon_dashboard'));
+		const saved = verifyDashboardSession(readSessionCookie(request));
 		if (!saved) {
 			response.setHeader('set-cookie', CLEAR_SESSION_COOKIES);
 			return response.status(401).json({ ok: false, code: 'NO_SESSION', error: 'Keine aktive Dashboard-Sitzung.' });
@@ -92,7 +96,7 @@ export default async function handler(request, response) {
 	if (request.method === 'DELETE') {
 		if (!requireSameOrigin(request, response)) return;
 		if (!await enforceRateLimit(request, response, 'dashboard-delete', 10, 600)) return;
-		const saved = verifyDashboardSession(cookieOf(request, SESSION_COOKIE) ?? cookieOf(request, 'raccoon_dashboard'));
+		const saved = verifyDashboardSession(readSessionCookie(request));
 		if (request.query.telegram === '1') {
 			if (!saved || await isDashboardSessionRevoked(saved.wallet, sessionIssuedAt(saved))) return response.status(401).json({ ok: false, error: 'Keine aktive Dashboard-Sitzung.' });
 			const removed = await unlinkWalletByWallet(saved.wallet);
@@ -100,9 +104,17 @@ export default async function handler(request, response) {
 			await notifyTelegramDisconnected(removed.map((row) => row.chat_id));
 			return response.status(200).json({ ok: true, disconnected: removed.length > 0 });
 		}
+		// AGENT-SEC-A1, 29.08.2026: der Logout loeschte bis dahin nur Browsercookies.
+		// Eine abgegriffene Session blieb damit sieben Tage gueltig. Jetzt wird sie
+		// serverseitig widerrufen. Die Cookies verschwinden in JEDEM Fall, auch
+		// wenn der Widerruf scheitert; gemeldet wird der Erfolg aber erst danach.
 		response.setHeader('set-cookie', CLEAR_SESSION_COOKIES);
-		if (saved?.wallet) await recordAgentEvent({ wallet: saved.wallet, eventType: 'dashboard.signed_out', source: 'dashboard' }).catch(() => {});
-		return response.status(200).json({ ok: true });
+		const logout = await resolveLogout({
+			session: saved,
+			revoke: revokeDashboardSessions,
+			audit: (wallet) => recordAgentEvent({ wallet, eventType: 'dashboard.signed_out', source: 'dashboard' }).catch(() => {})
+		});
+		return response.status(logout.status).json(logout.body);
 	}
 	if (request.method !== 'POST') return response.status(405).json({ ok: false, error: 'Method not allowed' });
 	if (!requireSameOrigin(request, response) || !requireJson(request, response)) return;
@@ -110,9 +122,19 @@ export default async function handler(request, response) {
 	const { wallet, token, signature } = request.body ?? {};
 	const challenge = verifyDashboardToken(token);
 	if (challenge?.type !== 'challenge' || !isAddress(wallet) || challenge.wallet !== wallet.toLowerCase() || typeof signature !== 'string') return response.status(401).json({ ok: false, error: 'Dashboard-Anmeldung ungültig oder abgelaufen.' });
-	if (!await verifyMessage({ address: wallet, message: dashboardMessage(challenge, wallet), signature })) return response.status(401).json({ ok: false, error: 'Wallet-Signatur konnte nicht bestätigt werden.' });
+	// AGENT-SEC-A3/A4: der SIWE-Text wird serverseitig aus der verifizierten
+	// Challenge rekonstruiert; Felder und Signatur prueft die eine gemeinsame
+	// Grenze. Die interne Ursache bleibt dort, nach aussen geht eine stabile,
+	// allgemeine Meldung.
+	const message = dashboardMessage(challenge, wallet);
+	const verified = await verifyExpectedSiweSignature({
+		message,
+		signature,
+		expected: dashboardSiweExpectation(challenge, wallet)
+	});
+	if (verified !== 'VALID') return response.status(401).json({ ok: false, error: 'Wallet-Signatur konnte nicht bestätigt werden.' });
 	if (!await consumeDashboardChallenge(challenge.nonce, wallet)) return response.status(409).json({ ok: false, error: 'Diese Login-Anfrage wurde bereits verwendet.' });
-	response.setHeader('set-cookie', `${SESSION_COOKIE}=${encodeURIComponent(createDashboardSession(wallet))}; ${SESSION_COOKIE_OPTIONS}`);
+	response.setHeader('set-cookie', sessionCookieHeader(wallet));
 	await recordAgentEvent({ wallet, eventType: 'dashboard.wallet_authenticated', source: 'dashboard' }).catch(() => {});
 	return response.status(200).json(await dashboardData(wallet));
 }

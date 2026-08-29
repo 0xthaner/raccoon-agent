@@ -1,5 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { checkRateLimit } from './db.mjs';
+import { dashboardSecretConfigured } from './dashboard-auth.mjs';
 
 const JSON_TYPE = /^application\/json(?:\s*;|$)/i;
 
@@ -9,8 +10,15 @@ function requestIp(request) {
 		.split(',', 1)[0].trim().slice(0, 128);
 }
 
+/**
+ * AGENT-SEC-A1, 29.08.2026: kein Rueckfall mehr auf `TELEGRAM_WEBHOOK_SECRET`.
+ * Die Rate-Limit-Identitaet ist eine Dashboard-Groesse und haengt allein am
+ * Dashboard-Secret. Ist es nicht oder zu kurz gesetzt, bleibt der Schluessel
+ * leer und `enforceRateLimit` nimmt den bestehenden sicheren 503-Pfad; es gibt
+ * keinen leeren HMAC-Schluessel und keinen Default.
+ */
 function rateSecret() {
-	return process.env.DASHBOARD_SESSION_SECRET?.trim() || process.env.TELEGRAM_WEBHOOK_SECRET?.trim() || '';
+	return dashboardSecretConfigured() ? process.env.DASHBOARD_SESSION_SECRET.trim() : '';
 }
 
 export function requireJson(request, response, maxBytes = 16_384) {

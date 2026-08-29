@@ -149,7 +149,22 @@ function renderDashboard(data) {
 	if (data.telegramLinked) { const unlink = document.createElement('button'); unlink.className = 'text-action'; unlink.textContent = t.disconnectTelegram; unlink.addEventListener('click', disconnectTelegram); actions.appendChild(unlink); }
 }
 
+/**
+ * AGENT-SEC-A2: die vom Zugangslink erwartete Wallet.
+ *
+ * Die Sicherheitsgrenze liegt auf dem Server: ohne gueltige Signatur DIESER
+ * Wallet entsteht keine Session. Diese Pruefung verhindert zusaetzlich das
+ * stille Umschalten auf eine andere Adresse, wenn die Wallet-App eine andere
+ * liefert als der Link erwartet.
+ */
+let expectedWallet = null;
+
 async function openDashboard(wallet, sign) {
+	if (expectedWallet && String(wallet).toLowerCase() !== expectedWallet) {
+		throw new Error(language === 'de'
+			? `Diese Wallet passt nicht zum Dashboard-Link. Erwartet wird ${shortWallet(expectedWallet)}. Wechsle die Wallet oder fordere in Telegram einen neuen Link an.`
+			: `This wallet does not match the dashboard link. Expected ${shortWallet(expectedWallet)}. Switch wallet or request a new link in Telegram.`);
+	}
 	show('Persönlicher Bereich wird vorbereitet …');
 	const challenge = await fetch(`/api/dashboard?wallet=${encodeURIComponent(wallet)}`, { signal: AbortSignal.timeout(15000) }).then((res) => res.json());
 	if (!challenge.ok) throw new Error(challenge.error);
@@ -334,8 +349,12 @@ document.querySelector('#switch-wallet').addEventListener('click', () => endSess
 async function restoreDashboard() {
 	if (code) return;
 	try {
-		const response = await fetch(access ? `/api/dashboard?access=${encodeURIComponent(access)}` : '/api/dashboard', { signal: AbortSignal.timeout(10000) });
+		// AGENT-SEC-A2: der Code verlaesst die sichtbare URL SOFORT, vor dem
+		// Netzaufruf. Vorher geschah das erst nach der Antwort; in diesem Fenster
+		// stand er in der Adresszeile und haette bei einer Navigation mitgehen
+		// koennen. Er wird nirgends gespeichert.
 		if (access) history.replaceState({}, '', '/');
+		const response = await fetch(access ? `/api/dashboard?access=${encodeURIComponent(access)}` : '/api/dashboard', { signal: AbortSignal.timeout(10000) });
 		if (!response.ok) {
 			const failure = await response.json().catch(() => ({}));
 			if (failure.code === 'SESSION_REVOKED' || failure.code === 'NO_SESSION') {
@@ -345,7 +364,18 @@ async function restoreDashboard() {
 			return;
 		}
 		const dashboard = await response.json();
-		if (!dashboard.ok) return;
+		if (!dashboard.ok) {
+			// AGENT-SEC-A2: der Zugangslink authentifiziert nicht mehr. Er nennt
+			// nur die erwartete Wallet; angemeldet wird ueber den bestehenden
+			// Signaturflow.
+			if (dashboard.code === 'WALLET_SIGNATURE_REQUIRED' && typeof dashboard.wallet === 'string') {
+				expectedWallet = dashboard.wallet.toLowerCase();
+				show(language === 'de'
+					? `Verbinde ${shortWallet(expectedWallet)} und signiere die Anmeldung. Es ist keine Transaktion.`
+					: `Connect ${shortWallet(expectedWallet)} and sign in. This is not a transaction.`);
+			}
+			return;
+		}
 		await configPromise;
 		renderDashboard(dashboard);
 	} catch { /* Ohne gespeicherte Sitzung bleibt die Wallet-Auswahl sichtbar. */ }

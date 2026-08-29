@@ -16,6 +16,6 @@ export default async function handler(request, response) {
 	if (!isAddress(wallet)) return response.status(400).json({ ok: false, error: 'Ungültige Wallet-Adresse.' });
 	return response.status(200).json({
 		ok: true,
-		message: signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at })
+		message: signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code })
 	});
 }
