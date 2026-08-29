@@ -36,7 +36,7 @@ export async function getPendingLink(code) {
 
 export async function consumePendingLink(code, wallet) {
 	const chatId = value(await db.rpc('consume_wallet_link', { link_code: code, linked_wallet: wallet.toLowerCase() }));
-	if (chatId) value(await db.from('pending_links').delete().like('chat_id', `unlinked:${chatId}%`));
+	if (chatId) value(await db.from('pending_links').delete().like('chat_id', `unlinked:${chatId}:%`));
 	return chatId;
 }
 
@@ -56,7 +56,7 @@ export async function createTelegramHandoff({ code, wallet, expiresAt }) {
 
 export async function consumeTelegramHandoff(code, chatId) {
 	const wallet = value(await db.rpc('consume_telegram_handoff', { handoff_code: code, telegram_chat_id: String(chatId) }));
-	if (wallet) value(await db.from('pending_links').delete().like('chat_id', `unlinked:${chatId}%`));
+	if (wallet) value(await db.from('pending_links').delete().like('chat_id', `unlinked:${chatId}:%`));
 	return wallet;
 }
 
@@ -119,8 +119,21 @@ export async function getWalletLink(chatId) {
 }
 
 export async function getWalletLinkByWallet(wallet) {
-	const rows = value(await db.from('monitored_wallets').select('chat_id,wallet,alerts_enabled,label,is_primary,alert_thresholds,weekly_summary').ilike('wallet', wallet.toLowerCase()).eq('alerts_enabled', true).limit(1));
-	return rows[0] ?? null;
+	const state = await getWalletLinkStateByWallet(wallet);
+	return state.link;
+}
+
+// A Wallet kann bewusst mit mehreren Telegram-Chats verbunden sein. Ein
+// wallet-authentifiziertes Dashboard darf dann nicht per `limit(1)` zufaellig
+// Label oder Einstellungen eines dieser Chats offenlegen. Nur der aggregierte
+// Verbindungsstatus ist eindeutig; chatbezogene Metadaten gibt es genau dann,
+// wenn exakt eine aktive Zuordnung existiert.
+export async function getWalletLinkStateByWallet(wallet) {
+	const rows = value(await db.from('monitored_wallets')
+		.select('chat_id,wallet,alerts_enabled,label,is_primary,alert_thresholds,weekly_summary')
+		.eq('wallet', wallet.toLowerCase())
+		.eq('alerts_enabled', true));
+	return { linked: rows.length > 0, link: rows.length === 1 ? rows[0] : null };
 }
 
 export async function getMonitoredWallets(chatId) {
@@ -169,30 +182,52 @@ export async function rememberUnlinkedWallet(chatId, wallet) {
 }
 
 export async function getRememberedWallet(chatId) {
-	const rows = value(await db.from('pending_links').select('nonce').like('chat_id', `unlinked:${chatId}%`).limit(1));
+	const rows = value(await db.from('pending_links').select('nonce').like('chat_id', `unlinked:${chatId}:%`).limit(1));
 	return rows[0]?.nonce ?? null;
 }
 
 export async function getRememberedWallets(chatId) {
-	const rows = value(await db.from('pending_links').select('nonce').like('chat_id', `unlinked:${chatId}%`));
+	const rows = value(await db.from('pending_links').select('nonce').like('chat_id', `unlinked:${chatId}:%`));
 	return [...new Set(rows.map((row) => row.nonce))];
 }
 
 export async function forgetRememberedWallet(chatId) {
-	value(await db.from('pending_links').delete().like('chat_id', `unlinked:${chatId}%`));
+	value(await db.from('pending_links').delete().like('chat_id', `unlinked:${chatId}:%`));
 }
 
 export async function unlinkWalletByWallet(wallet) {
 	const normalized = wallet.toLowerCase();
-	const matches = value(await db.from('monitored_wallets').select('chat_id').ilike('wallet', normalized));
-	const chats = [...new Set(matches.map((row) => row.chat_id))];
-	for (const chatId of chats) {
-		const wallets = value(await db.from('monitored_wallets').select('wallet').eq('chat_id', chatId));
-		value(await db.from('monitored_wallets').delete().eq('chat_id', chatId));
+	const matches = value(await db.from('monitored_wallets').select('chat_id,is_primary').eq('wallet', normalized));
+	// Ohne eindeutigen Chatkontext gibt es keine sichere Zielzuordnung. Bei
+	// mehreren Treffern muss die Trennung im jeweiligen Telegram-Chat erfolgen.
+	if (matches.length !== 1) return [];
+	const [{ chat_id: chatId, is_primary: wasPrimary }] = matches;
+
+	// Die Walletsignatur autorisiert die Entfernung dieser Wallet, nicht die
+	// Loeschung aller anderen Wallets desselben Telegram-Chats.
+	value(await db.from('monitored_wallets').delete().match({ chat_id: chatId, wallet: normalized }));
+	await rememberUnlinkedWallet(chatId, normalized);
+
+	const remaining = value(await db.from('monitored_wallets')
+		.select('*')
+		.eq('chat_id', chatId)
+		.order('is_primary', { ascending: false })
+		.order('linked_at'));
+	if (!remaining.length) {
 		value(await db.from('wallet_links').delete().eq('chat_id', chatId));
-		await Promise.all(wallets.map((item) => rememberUnlinkedWallet(chatId, item.wallet)));
+		return [{ chat_id: chatId }];
 	}
-	return chats.map((chat_id) => ({ chat_id }));
+	const primary = remaining.find((item) => item.is_primary) ?? remaining[0];
+	if (wasPrimary && !primary.is_primary) {
+		value(await db.from('monitored_wallets').update({ is_primary: true, updated_at: new Date().toISOString() }).match({ chat_id: chatId, wallet: primary.wallet }));
+	}
+	value(await db.from('wallet_links').upsert({
+		chat_id: chatId,
+		wallet: primary.wallet,
+		linked_at: new Date().toISOString(),
+		alerts_enabled: primary.alerts_enabled
+	}));
+	return [{ chat_id: chatId }];
 }
 
 export async function revokeDashboardSessions(wallet, now = Date.now()) {
