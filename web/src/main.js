@@ -217,7 +217,17 @@ async function setupWalletConnect() {
 	const [{ createAppKit }, { EthersAdapter }, { mainnet }] = await Promise.all([import('@reown/appkit'), import('@reown/appkit-adapter-ethers'), import('@reown/appkit/networks')]);
 	await configPromise;
 	if (!config.reownProjectId) throw new Error('Mobile Wallet-Verbindung ist nicht konfiguriert.');
-	const modal = createAppKit({ adapters: [new EthersAdapter()], networks: [mainnet], projectId: config.reownProjectId, metadata: { name: 'Raccoon Agent', description: 'Personal DeFi cover monitoring', url: location.origin, icons: [`${location.origin}/holo-raccoon.svg`] }, allWallets: 'SHOW', features: { analytics: false, email: false, socials: [] }, debug: walletDebug });
+	/*
+		themeVariables setzt die Schrift des Wallet-Fensters - und schaltet damit acht
+		Fremdanfragen ab. AppKit haengt beim Start acht <link rel="preload"> auf
+		fonts.reown.com in den Head, aber nur solange keine eigene Schrift gesetzt ist
+		(initializeTheming in @reown/appkit-ui, Zweig `if (!hasCustomFont)`). Diese
+		Preloads feuern sofort, nicht erst beim Klick, und uebertragen die IP jedes
+		Besuchers an einen Dritten - dasselbe Problem wie zuvor bei Google Fonts.
+		Mit gesetzter Schrift entfaellt der ganze Zweig, und das Fenster traegt
+		dieselbe Schrift wie der Rest der Seite.
+	*/
+	const modal = createAppKit({ themeVariables: { '--apkt-font-family': "'Satoshi', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" }, adapters: [new EthersAdapter()], networks: [mainnet], projectId: config.reownProjectId, metadata: { name: 'Raccoon Agent', description: 'Personal DeFi cover monitoring', url: location.origin, icons: [`${location.origin}/holo-raccoon.svg`] }, allWallets: 'SHOW', features: { analytics: false, email: false, socials: [] }, debug: walletDebug });
 	if (walletDebug) {
 		debugWallet('AppKit ready');
 		modal.subscribeState((state) => debugWallet('state', { open: state.open, loading: state.loading, selectedNetworkId: state.selectedNetworkId }));

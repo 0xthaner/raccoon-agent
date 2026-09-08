@@ -96,7 +96,17 @@ async function setupWalletConnect() {
 	const [{ createAppKit }, { EthersAdapter }, { mainnet }] = await Promise.all([import('@reown/appkit'), import('@reown/appkit-adapter-ethers'), import('@reown/appkit/networks')]);
 	const config = await fetch('/api/config').then((r) => r.json());
 	if (!config.reownProjectId) { walletconnect.disabled = true; return; }
-	appKit = createAppKit({ adapters: [new EthersAdapter()], networks: [mainnet], projectId: config.reownProjectId, metadata: { name: 'Raccoon Agent', description: 'Personal DeFi cover renewal', url: location.origin, icons: [] }, features: { analytics: false, email: false, socials: [] } });
+	/*
+		themeVariables setzt die Schrift des Wallet-Fensters - und schaltet damit acht
+		Fremdanfragen ab. AppKit haengt beim Start acht <link rel="preload"> auf
+		fonts.reown.com in den Head, aber nur solange keine eigene Schrift gesetzt ist
+		(initializeTheming in @reown/appkit-ui, Zweig `if (!hasCustomFont)`). Diese
+		Preloads feuern sofort, nicht erst beim Klick, und uebertragen die IP jedes
+		Besuchers an einen Dritten - dasselbe Problem wie zuvor bei Google Fonts.
+		Mit gesetzter Schrift entfaellt der ganze Zweig, und das Fenster traegt
+		dieselbe Schrift wie der Rest der Seite.
+	*/
+	appKit = createAppKit({ themeVariables: { '--apkt-font-family': "'Satoshi', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" }, adapters: [new EthersAdapter()], networks: [mainnet], projectId: config.reownProjectId, metadata: { name: 'Raccoon Agent', description: 'Personal DeFi cover renewal', url: location.origin, icons: [] }, features: { analytics: false, email: false, socials: [] } });
 	walletconnect.addEventListener('click', async () => {
 		try {
 			await connectViaAppKit();
