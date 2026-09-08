@@ -2,7 +2,16 @@
 .env
 .env.*
 !.env.example
-.npmrc
+# .npmrc ist bewusst NICHT ignoriert.
+#
+# Dort steht ignore-scripts=true, und die Einstellung muss auch fuer Vercels ZWEITEN
+# Installationslauf gelten - den fuer die Serverless-Funktionen unter api/. Der ignoriert
+# das installCommand aus vercel.json (nachgewiesen im Build-Log vom 09.09.2026: der erste
+# Lauf meldet `npm ci --ignore-scripts`, der zweite wieder "1 package has install scripts").
+# Nur eine mitcommittete .npmrc deckt beide ab.
+#
+# ZUGANGSDATEN GEHOEREN NICHT HINEIN. Ein Token gehoert in eine Umgebungsvariable und wird
+# von dort geholt:  //registry.npmjs.org/:_authToken=${NPM_TOKEN}
 *.pem
 *.key
 *.p12
