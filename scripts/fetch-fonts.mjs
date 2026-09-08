@@ -20,19 +20,42 @@
 import { mkdir, readdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { inflateRawSync } from 'node:zlib';
+import { createHash } from 'node:crypto';
 
 const ZIP = 'https://api.fontshare.com/v2/fonts/download/satoshi';
 const ZIEL = resolve('web/public/fonts');
 
 // Name im Archiv -> Name auf der Platte.
+/*
+ * Name im Archiv -> Zielname und erwarteter SHA-256.
+ *
+ * Ohne die Pruefsumme muesste man dem Download blind vertrauen: der Build laedt bei
+ * jedem Deploy neu, und was ankommt, landet ungeprueft auf der ausgelieferten Seite.
+ * Waere die Quelle einmal kompromittiert, wuerde es niemand bemerken. Mit der
+ * Pruefsumme bricht der Build ab, statt etwas Fremdes zu veroeffentlichen.
+ *
+ * Die Werte stammen aus dem offiziellen Paket vom 08.09.2026. Aendert ITF die
+ * Schrift, schlaegt der Build fehl - das ist gewollt: eine neue Fassung der
+ * Hausschrift will gesehen und bewusst uebernommen werden, nicht stillschweigend
+ * ausgerollt. Dann die Datei pruefen und den Wert hier ersetzen.
+ */
 const GEWOLLT = new Map([
-	['Satoshi_Complete/Fonts/WEB/fonts/Satoshi-Variable.woff2', 'Satoshi-Variable.woff2'],
-	['Satoshi_Complete/Fonts/WEB/fonts/Satoshi-VariableItalic.woff2', 'Satoshi-VariableItalic.woff2'],
-	['Satoshi_Complete/License/FFL.txt', 'LICENSE-Satoshi-FFL.txt']
+	['Satoshi_Complete/Fonts/WEB/fonts/Satoshi-Variable.woff2', {
+		ziel: 'Satoshi-Variable.woff2',
+		sha256: 'e739aff9b4d02c264341d6d4872edcda28e79373aeda936f659566a1cd3eb47f'
+	}],
+	['Satoshi_Complete/Fonts/WEB/fonts/Satoshi-VariableItalic.woff2', {
+		ziel: 'Satoshi-VariableItalic.woff2',
+		sha256: 'e7b4e0ec5fbb156df444371d62c3506fe6256db6ffb55c4982dddbb44e2de351'
+	}],
+	['Satoshi_Complete/License/FFL.txt', {
+		ziel: 'LICENSE-Satoshi-FFL.txt',
+		sha256: '145e7fe2429a3336ba215c070ef722000e01348a3e1baaa127e871bb5012f554'
+	}]
 ]);
 
 const vorhanden = await readdir(ZIEL).catch(() => []);
-if ([...GEWOLLT.values()].every((f) => vorhanden.includes(f))) {
+if ([...GEWOLLT.values()].every((e) => vorhanden.includes(e.ziel))) {
 	console.log('Fonts vorhanden, kein Download.');
 	process.exit(0);
 }
@@ -110,8 +133,26 @@ const dateien = ausZipLesen(buf, GEWOLLT);
 const fehlend = [...GEWOLLT.keys()].filter((k) => !dateien.has(k));
 if (fehlend.length) throw new Error(`Im Archiv nicht gefunden:\n  ${fehlend.join('\n  ')}`);
 
+/* Erst alles pruefen, dann erst schreiben: sonst laege nach einem Treffer schon
+   eine unbestaetigte Datei im Zielordner, die der naechste Lauf fuer gueltig haelt. */
+for (const [pfad, inhalt] of dateien) {
+	const { ziel, sha256 } = GEWOLLT.get(pfad);
+	const ist = createHash('sha256').update(inhalt).digest('hex');
+	if (ist !== sha256) {
+		console.error(
+			`\nPruefsumme stimmt nicht fuer ${ziel}:\n` +
+			`  erwartet: ${sha256}\n` +
+			`  bekommen: ${ist}\n` +
+			`Der Build bricht ab. Entweder hat ITF die Schrift aktualisiert - dann die\n` +
+			`Datei pruefen und den Wert in diesem Skript ersetzen - oder die Quelle ist\n` +
+			`nicht die, fuer die sie sich ausgibt.\n`
+		);
+		process.exit(1);
+	}
+}
+
 await mkdir(ZIEL, { recursive: true });
 for (const [pfad, inhalt] of dateien) {
-	await writeFile(join(ZIEL, GEWOLLT.get(pfad)), inhalt);
+	await writeFile(join(ZIEL, GEWOLLT.get(pfad).ziel), inhalt);
 }
-console.log(`Satoshi nach ${ZIEL} geschrieben (${dateien.size} Dateien).`);
+console.log(`Satoshi nach ${ZIEL} geschrieben (${dateien.size} Dateien, Pruefsummen ok).`);
