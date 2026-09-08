@@ -33,3 +33,7 @@ tmp/
 .DS_Store
 .idea/
 .vscode/
+
+# Selbst gehostete Fonts: holt `npm run fonts`. Nicht committen - dieses Repo ist
+# oeffentlich, und die ITF-FFL untersagt Weitergabe ueber oeffentliche Repositories.
+web/public/fonts/

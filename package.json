@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:web": "vite build web --config vite.config.js --outDir ../dist-web --emptyOutDir",
+    "build:web": "npm run fonts && vite build web --config vite.config.js --outDir ../dist-web --emptyOutDir",
+    "fonts": "node scripts/fetch-fonts.mjs",
 	"test": "node --env-file=.env --test",
     "start": "npm run build:web && node --env-file=.env src/bot.mjs",
 		"check": "node --check src/bot.mjs && node --check src/group-chat.mjs && node --check src/telegram-audit.mjs && node --check src/coverraccoon-knowledge.mjs && node --check src/agent-intent.mjs && node --check src/agent-knowledge.mjs && node --check src/alerts.mjs && node --check src/covers.mjs && node --check src/db.mjs && node --check src/linking.mjs && node --check src/web.mjs && npm run build:web"
