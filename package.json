@@ -8,7 +8,7 @@
     "fonts": "node scripts/fetch-fonts.mjs",
 	"test": "node --env-file=.env --test",
     "start": "npm run build:web && node --env-file=.env src/bot.mjs",
-		"check": "node --check src/bot.mjs && node --check src/group-chat.mjs && node --check src/telegram-audit.mjs && node --check src/coverraccoon-knowledge.mjs && node --check src/agent-intent.mjs && node --check src/agent-knowledge.mjs && node --check src/alerts.mjs && node --check src/covers.mjs && node --check src/db.mjs && node --check src/linking.mjs && node --check src/web.mjs && npm run build:web && npm run check:signaturen",
+		"check": "node --check src/bot.mjs && node --check src/group-chat.mjs && node --check src/telegram-audit.mjs && node --check src/coverraccoon-knowledge.mjs && node --check src/agent-intent.mjs && node --check src/agent-knowledge.mjs && node --check src/alerts.mjs && node --check src/covers.mjs && node --check src/db.mjs && node --check src/linking.mjs && node --check src/web.mjs && node scripts/check-frontend.mjs && npm run build:web && npm run check:signaturen",
     "check:signaturen": "npm audit signatures"
   },
   "engines": {

@@ -1,5 +1,5 @@
 const en = {
-	back: '← Back to dashboard', eyebrow: 'User guide', title: 'Start simply.<br><em>Stay protected.</em>',
+	back: '← Back to dashboard', eyebrow: 'User guide', title: ['Start simply.', 'Stay protected.'],
 	lead: 'How to connect your wallet, activate Telegram and renew cover. At every step you can see whether a signature or a real transaction follows.',
 	quickStart: 'Quick start', quickStartCopy: 'Open wallet and dashboard', quickTgCopy: 'Activate reminders', quickRenew: 'Renew', quickRenewCopy: 'Review and complete an offer',
 	expect: 'What your wallet shows', source: 'Data source', result: 'Result', tip: 'Tip', proof: 'Your proof',
@@ -16,24 +16,29 @@ const en = {
 	disconnectTitle: 'Disconnecting', unlinkTg: 'Disconnect Telegram', unlinkTgCopy: 'Stops notifications. Your existing dashboard session remains active.', unlinkWallet: 'Fully disconnect wallet', unlinkWalletCopy: 'Stops Telegram and signs out every dashboard session for this wallet.',
 	cta: 'Ready? Open your personal area and connect your wallet.', ctaButton: 'Open Agent'
 };
-const instagramIcon = document.querySelector('.social-links a[href*="instagram.com"] svg');
-if (instagramIcon) {
-	instagramIcon.style.fill = 'none';
-	instagramIcon.setAttribute('fill', 'none');
-	instagramIcon.setAttribute('stroke', 'currentColor');
-	instagramIcon.setAttribute('stroke-width', '2');
-	instagramIcon.setAttribute('stroke-linecap', 'round');
-	instagramIcon.setAttribute('stroke-linejoin', 'round');
-	instagramIcon.innerHTML = '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>';
-}
+/*
+	AGENT-SEC-F1: hier wurde das Instagram-Zeichen zur Laufzeit per innerHTML
+	ersetzt. Der Inhalt war fest, aber ein innerHTML-Zugriff bleibt eine Tuer,
+	die spaeter jemand mit einem Fremdwert aufstoesst. Die Umrissfassung steht
+	jetzt unveraendert in guide.html - kein Skript noetig.
+*/
 const de = Object.fromEntries([...document.querySelectorAll('[data-i18n]')].map((node) => [node.dataset.i18n, node.textContent]));
-const deHtml = Object.fromEntries([...document.querySelectorAll('[data-i18n-html]')].map((node) => [node.dataset.i18nHtml, node.innerHTML]));
+const deTeile = Object.fromEntries([...document.querySelectorAll('[data-i18n-teile]')]
+	.map((node) => [node.dataset.i18nTeile, [...node.querySelectorAll('[data-teil]')].map((teil) => teil.textContent)]));
 const language = localStorage.getItem('raccoon_language') || (navigator.language?.toLowerCase().startsWith('de') ? 'de' : 'en');
 function apply(next) {
 	const lang = next === 'de' ? 'de' : 'en'; localStorage.setItem('raccoon_language', lang); document.documentElement.lang = lang;
 	document.querySelectorAll('[data-language]').forEach((button) => button.classList.toggle('active', button.dataset.language === lang));
 	document.querySelectorAll('[data-i18n]').forEach((node) => { node.textContent = lang === 'en' ? (en[node.dataset.i18n] ?? node.textContent) : (de[node.dataset.i18n] ?? node.textContent); });
-	document.querySelectorAll('[data-i18n-html]').forEach((node) => { node.innerHTML = lang === 'en' ? (en[node.dataset.i18nHtml] ?? node.innerHTML) : (deHtml[node.dataset.i18nHtml] ?? node.innerHTML); });
+	document.querySelectorAll('[data-i18n-teile]').forEach((node) => {
+		const schluessel = node.dataset.i18nTeile;
+		const werte = lang === 'en' ? en[schluessel] : deTeile[schluessel];
+		if (!Array.isArray(werte)) return;
+		werte.forEach((wert, index) => {
+			const ziel = node.querySelector(`[data-teil="${index}"]`);
+			if (ziel) ziel.textContent = wert;
+		});
+	});
 	document.title = lang === 'de' ? 'Raccoon Agent · Anleitung' : 'Raccoon Agent · Guide';
 }
 document.querySelectorAll('[data-language]').forEach((button) => button.addEventListener('click', () => apply(button.dataset.language)));

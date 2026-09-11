@@ -425,7 +425,16 @@ async function handleMessage(message, updateContext = {}) {
 		metadata: telegramTimingMetadata(message, updateContext.updateId, updateContext.receivedAt)
 	}).catch(() => {});
 	const startCode = command === '/start' ? startCodeOf(message.text) : null;
-	if (startCode) await consumeTelegramHandoff(startCode, message.chat.id);
+	/*
+		AGENT-UX-1: der Rueckgabewert wurde bisher verworfen. `consumeTelegramHandoff`
+		verknuepft die Wallet hier tatsaechlich - und `/start` sah gleich darauf eine
+		bestehende Verknuepfung und meldete "bereits aktiv". Wer eben getrennt hatte,
+		bekam also auf seinen Verbindungsversuch die Auskunft, er sei ohnehin schon
+		verbunden. Die Verbindung kam zustande, nur die Meldung war die falsche.
+
+		Deshalb wird jetzt festgehalten, ob DIESER Aufruf verknuepft hat.
+	*/
+	const frischVerknuepft = startCode ? Boolean(await consumeTelegramHandoff(startCode, message.chat.id)) : false;
 	const language = await getLanguage(message.chat.id);
 	if (!language && command !== '/start' && command !== '/language') {
 		await askLanguage(message.chat.id);
@@ -445,8 +454,14 @@ async function handleMessage(message, updateContext = {}) {
 			{
 				const existingWallet = await getWalletLink(message.chat.id);
 				if (existingWallet) {
+					const verbunden = language === 'zh'
+						? '已连接 🦝\n\n此钱包的到期和续保提醒现已启用。'
+						: language === 'en'
+							? 'Connected 🦝\n\nExpiry and renewal notices for this wallet are active from now on.'
+							: 'Verbunden 🦝\n\nAblauf- und Verlängerungshinweise für diese Wallet sind ab jetzt aktiv.';
+					const schonAktiv = language === 'zh' ? 'Raccoon Agent 已启用 🦝' : language === 'en' ? 'Raccoon Agent is already active 🦝' : 'Raccoon Agent ist bereits aktiv 🦝';
 					await sendMessage(message.chat.id,
-						language === 'zh' ? 'Raccoon Agent 已启用 🦝' : language === 'en' ? 'Raccoon Agent is already active 🦝' : 'Raccoon Agent ist bereits aktiv 🦝',
+						frischVerknuepft ? verbunden : schonAktiv,
 						{ reply_markup: await dashboardKeyboard(language, existingWallet.wallet, true) }
 					);
 					break;

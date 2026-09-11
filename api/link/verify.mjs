@@ -2,7 +2,7 @@ import { isAddress } from 'viem';
 import { consumePendingLink, getPendingLink, getLanguage } from '../../src/db.mjs';
 import { linkSiweExpectation, newDashboardAccess, signingMessage } from '../../src/linking.mjs';
 import { verifyExpectedSiweSignature } from '../../src/siwe-auth.mjs';
-import { enforceRateLimit, requireJson, requireSameOrigin } from '../../src/http-security.mjs';
+import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin } from '../../src/http-security.mjs';
 
 async function notifyLinked(chatId, wallet) {
 	const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
@@ -35,7 +35,17 @@ export default async function handler(request, response) {
 	if (!requireSameOrigin(request, response) || !requireJson(request, response)) return;
 	if (!await enforceRateLimit(request, response, 'wallet-link-verify', 10, 600)) return;
 	const { code, wallet, signature } = request.body ?? {};
-	const pending = typeof code === 'string' && await getPendingLink(code);
+	if (typeof code !== 'string' || code.length > 128) {
+		return response.status(410).json({ ok: false, error: 'Verbindungscode ungültig oder abgelaufen.' });
+	}
+	/*
+		AGENT-SEC-A5: zweite Schranke, diesmal am Code statt an der IP. Das Limit
+		oben zaehlt pro Aufrufer und laesst einen verteilten Versuch gegen genau
+		diesen einen Code durch. Dieses hier gilt fuer alle Aufrufer zusammen und
+		greift, bevor irgendetwas geprueft oder verbraucht wird.
+	*/
+	if (!await enforceRateLimitFor(response, 'wallet-link-code', code, 5, 600)) return;
+	const pending = await getPendingLink(code);
 	if (!pending || pending.used_at || pending.expires_at < Date.now()) {
 		return response.status(410).json({ ok: false, error: 'Verbindungscode ungültig oder abgelaufen.' });
 	}

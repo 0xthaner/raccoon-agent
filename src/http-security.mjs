@@ -51,6 +51,28 @@ export function requireSameOrigin(request, response) {
 	return true;
 }
 
+/**
+ * AGENT-SEC-A5: ein Limit pro IP allein schuetzt einen einzelnen Verbindungscode
+ * nicht - wer ueber viele Adressen verteilt raet, laeuft nie in die Schranke.
+ * Deshalb zusaetzlich ein Limit, das am Wert selbst haengt und damit fuer alle
+ * Aufrufer zusammen gilt.
+ *
+ * Der Wert geht nur als HMAC in den Schluessel: der Zaehler soll den Code
+ * begrenzen, ihn aber nirgends im Klartext ablegen.
+ */
+export async function enforceRateLimitFor(response, scope, wert, maxRequests, windowSeconds) {
+	const secret = rateSecret();
+	if (!secret) {
+		response.status(503).json({ ok: false, error: 'Security configuration missing.' });
+		return false;
+	}
+	const identity = createHmac('sha256', secret).update(String(wert)).digest('hex');
+	if (await checkRateLimit(`${scope}:${identity}`, maxRequests, windowSeconds)) return true;
+	response.setHeader('retry-after', String(windowSeconds));
+	response.status(429).json({ ok: false, error: 'Too many requests. Please try again later.' });
+	return false;
+}
+
 export async function enforceRateLimit(request, response, scope, maxRequests, windowSeconds) {
 	const secret = rateSecret();
 	if (!secret) {
