@@ -16,8 +16,7 @@ import { join } from 'node:path';
 import {
 	appKitMethoden,
 	WALLET_METHODEN_ALLE,
-	WALLET_METHODEN_ANMELDEN,
-	WALLET_METHODEN_DEMO
+	WALLET_METHODEN_ANMELDEN
 } from '../web/src/wallet-methods.js';
 
 function source(relative) {
@@ -74,15 +73,8 @@ test('W1 die Anmeldung fragt genau eine Signaturmethode an', () => {
 	assert.deepEqual(WALLET_METHODEN_ANMELDEN, ['eth_requestAccounts', 'eth_accounts', 'personal_sign']);
 });
 
-test('W1 die Demo darf zusaetzlich nur das Netz wechseln', () => {
-	assert.deepEqual(
-		WALLET_METHODEN_DEMO.filter((m) => !WALLET_METHODEN_ANMELDEN.includes(m)),
-		['wallet_switchEthereumChain']
-	);
-});
-
 test('W1 keine Liste enthaelt eine wertbewegende Methode', () => {
-	for (const liste of [WALLET_METHODEN_ANMELDEN, WALLET_METHODEN_DEMO, WALLET_METHODEN_ALLE]) {
+	for (const liste of [WALLET_METHODEN_ANMELDEN, WALLET_METHODEN_ALLE]) {
 		for (const verboten of NIEMALS) {
 			assert.equal(liste.includes(verboten), false, verboten);
 		}
@@ -95,11 +87,11 @@ test('W1 jede erlaubte Methode ist eine, die AppKit ueberhaupt aushandelt', () =
 	}
 });
 
-test('W1 die Begrenzung streicht zwanzig der vierundzwanzig Vorgabemethoden', () => {
+test('W1 die Begrenzung streicht einundzwanzig der vierundzwanzig Vorgabemethoden', () => {
 	const gestrichen = APPKIT_VORGABE.filter((m) => !WALLET_METHODEN_ALLE.includes(m));
 	assert.equal(APPKIT_VORGABE.length, 24);
-	assert.equal(gestrichen.length, 20);
-	assert.equal(WALLET_METHODEN_ALLE.length, 4);
+	assert.equal(gestrichen.length, 21);
+	assert.equal(WALLET_METHODEN_ALLE.length, 3);
 	// Die vier gefaehrlichsten namentlich, damit ihr Wiederauftauchen auffaellt.
 	for (const methode of ['eth_sendTransaction', 'eth_sign', 'wallet_sendCalls', 'wallet_grantPermissions']) {
 		assert.ok(gestrichen.includes(methode), methode);
@@ -129,7 +121,7 @@ test('W1 kein createAppKit ohne Begrenzung', () => {
 			);
 		}
 	}
-	assert.equal(aufrufe, 2, 'es gibt genau zwei Stellen, die AppKit erzeugen');
+	assert.equal(aufrufe, 1, 'es gibt genau eine Stelle, die AppKit erzeugt');
 });
 
 test('W1 die Methodenliste steht an genau einer Stelle', () => {
@@ -142,8 +134,26 @@ test('W1 die Methodenliste steht an genau einer Stelle', () => {
 			`${pfad} baut eine eigene Methodenliste`
 		);
 	}
-	// Und die eine Stelle ist auch wirklich die, die beide Aufrufer benutzen.
-	for (const datei of ['../web/src/main.js', '../web/src/demo-renew.js']) {
-		assert.ok(source(datei).includes("from './wallet-methods.js'"), datei);
-	}
+	// Und die eine Stelle ist auch wirklich die, die der Aufrufer benutzt.
+	assert.ok(source('../web/src/main.js').includes("from './wallet-methods.js'"));
+});
+
+/*
+	AGENT-SEC-W2: die Methodenliste ist nur eine Bitte - MetaMask Mobile genehmigt
+	trotzdem alles. Deshalb muss die Sitzung nach der Signatur weg. Geprueft wird,
+	dass das Trennen im `finally` des WalletConnect-Wegs steht, also auch nach
+	einem Fehler oder Abbruch laeuft, und dass es wirklich `disconnect` aufruft.
+*/
+test('W2 die WalletConnect-Sitzung wird nach der Signatur immer getrennt', () => {
+	const quelle = ohneKommentare(source('../web/src/main.js'));
+	const trenner = quelle.slice(quelle.indexOf('async function trenneWalletConnect('));
+	assert.match(trenner.slice(0, trenner.indexOf('\n}')), /modal\.disconnect\(\)/);
+
+	const klick = quelle.slice(quelle.indexOf("wcButton.addEventListener('click'"));
+	const handler = klick.slice(0, klick.indexOf('\n});'));
+	const signatur = handler.indexOf("method: 'personal_sign'");
+	const zweig = handler.indexOf('} finally {');
+	assert.ok(signatur > 0, 'der WalletConnect-Weg signiert');
+	assert.ok(zweig > signatur, 'finally steht nach der Signatur');
+	assert.match(handler.slice(zweig), /await trenneWalletConnect\(modal\)/);
 });

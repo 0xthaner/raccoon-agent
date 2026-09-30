@@ -1,4 +1,4 @@
-import { getWalletCovers, renewalUrl } from './covers.mjs';
+import { getWalletCovers } from './covers.mjs';
 import { newDashboardAccess } from './linking.mjs';
 import { clearSnooze, getCoverSnapshots, listAlertSubscriptions, listDueSnoozes, recordAlertSent, recordRenewalEvent, recordWeeklySummary, saveCoverSnapshot, wasAlertSent, wasWeeklySummarySent } from './db.mjs';
 
@@ -164,14 +164,10 @@ export async function checkExpiryAlerts({ sendMessage, dashboardUrl, now = Date.
 				if (cover.status !== 'active' || !cover.endsAt) continue;
 				const threshold = dueThreshold(cover.endsAt, now, subscription.alert_thresholds);
 				if (threshold == null || await wasAlertSent(subscription.chat_id, cover.coverId, cover.endsAt, threshold)) continue;
-				const renew = renewalUrl(cover);
-				const renewButton = cover.demo
-					? { text: subscription.language === 'zh' ? '检查续保' : subscription.language === 'en' ? 'Review renewal' : 'Verlängerung prüfen', callback_data: `demo_renew:${cover.coverId}` }
-					: renew ? { text: subscription.language === 'zh' ? '检查续保' : subscription.language === 'en' ? 'Review renewal' : 'Verlängerung prüfen', url: renew } : null;
-				const rows = renewButton ? [[
-						renewButton,
-						{ text: subscription.language === 'zh' ? '明天提醒' : subscription.language === 'en' ? 'Remind tomorrow' : 'Morgen erinnern', callback_data: `renew_later:${cover.coverId}:${subscription.wallet}` }
-					]] : [];
+				// Der Callback heisst aus Kompatibilitaet mit bereits verschickten Knoepfen weiter `renew_later`.
+				const rows = [[
+					{ text: subscription.language === 'zh' ? '明天提醒' : subscription.language === 'en' ? 'Remind tomorrow' : 'Morgen erinnern', callback_data: `renew_later:${cover.coverId}:${subscription.wallet}` }
+				]];
 				if (dashboardUrl) {
 					const access = await newDashboardAccess(subscription.wallet);
 					rows.push([{ text: subscription.language === 'zh' ? '打开仪表板' : subscription.language === 'en' ? 'Open dashboard' : 'Dashboard öffnen', url: `${dashboardUrl}/?access=${encodeURIComponent(access.code)}` }]);

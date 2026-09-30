@@ -13,12 +13,15 @@
 	Sitzung das auch gar nicht erst hergeben. Ein Wallet zeigt beim Verbinden, was
 	es erteilt; wer hier nur signieren will, soll auch nur um Signieren bitten.
 
-	Der Unterschied zum Waechter in `dashboard-auth-boundaries.test.mjs` ist
-	wesentlich: jener prueft, dass UNSER Code nichts Gefaehrliches aufruft. Diese
-	Liste sorgt dafuer, dass fremder Code es ebenfalls nicht koennte - ein
-	eingeschleustes Skript, eine kompromittierte Abhaengigkeit, eine spaetere
-	Unachtsamkeit. Der Wall steht dann nicht mehr nur in unserem Quelltext,
-	sondern in der ausgehandelten Sitzung selbst.
+	Der Unterschied zum Waechter in `dashboard-auth-boundaries.test.mjs`: jener
+	prueft, dass UNSER Code nichts Gefaehrliches aufruft. Diese Liste legt fest,
+	worum wir die Wallet ueberhaupt bitten.
+
+	Mehr als eine Bitte ist sie aber nicht. Ob die Wallet sich daran haelt,
+	entscheidet die Wallet: MetaMask Mobile genehmigt trotzdem seine volle Liste,
+	`eth_sendTransaction` eingeschlossen (am 30.09.2026 in der ausgehandelten
+	Sitzung nachgesehen). Die eigentliche Grenze zieht deshalb AGENT-SEC-W2 in
+	`main.js`: die Sitzung wird direkt nach der Signatur getrennt.
 
 	AppKit nimmt die Liste ueber `universalProviderConfigOverride.methods`
 	entgegen und ERSETZT damit die Vorgabe, statt sie zu ergaenzen
@@ -31,16 +34,8 @@ const BASIS = ['eth_requestAccounts', 'eth_accounts'];
 /** Der Anmeldeweg: eine Klartextsignatur, sonst nichts. */
 export const WALLET_METHODEN_ANMELDEN = [...BASIS, 'personal_sign'];
 
-/*
-	Die Verlaengerungsdemo stellt zusaetzlich sicher, dass die Wallet auf Mainnet
-	steht, bevor sie die beiden Demo-Signaturen anfragt. `wallet_addEthereumChain`
-	steht bewusst NICHT dabei: die Seite kennt genau ein Netz, und eine Wallet, die
-	Mainnet nicht hat, soll keines hinzugefuegt bekommen.
-*/
-export const WALLET_METHODEN_DEMO = [...WALLET_METHODEN_ANMELDEN, 'wallet_switchEthereumChain'];
-
 /** Die Gesamtmenge. Keine Stelle im Frontend darf darueber hinausgehen. */
-export const WALLET_METHODEN_ALLE = [...WALLET_METHODEN_DEMO];
+export const WALLET_METHODEN_ALLE = [...WALLET_METHODEN_ANMELDEN];
 
 /** Formt die Liste in die Gestalt, die `createAppKit` erwartet. */
 export function appKitMethoden(methoden) {

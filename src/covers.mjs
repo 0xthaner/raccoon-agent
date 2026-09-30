@@ -24,18 +24,6 @@ export class CoverDataError extends Error {
 	}
 }
 
-export function renewalUrl(cover, periodDays = 365) {
-	if (cover?.demo || cover?.status !== 'active' || !cover.productId || !cover.coverId || cover.amount == null || cover.asset?.id == null) return null;
-	const url = new URL('/cover/buy', 'https://coverraccoon.com');
-	url.searchParams.set('action', 'renew');
-	url.searchParams.set('productId', String(cover.productId));
-	url.searchParams.set('coverId', String(cover.coverId));
-	url.searchParams.set('amount', String(cover.amount));
-	url.searchParams.set('assetId', String(cover.asset.id));
-	url.searchParams.set('periodDays', String(periodDays));
-	return url.toString();
-}
-
 export async function getWalletCovers(wallet) {
 	if (mode !== 'api') throw new CoverDataError('mock_mode', 'Cover-Datenquelle steht noch im Testmodus.');
 	if (!apiKey) throw new CoverDataError('not_configured', 'COVER_AGENT_API_KEY fehlt.');

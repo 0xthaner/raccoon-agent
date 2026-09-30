@@ -9,10 +9,10 @@ const access = searchParams.get('access');
 const walletDebug = searchParams.get('debug') === 'wallet';
 const translations = {
 	de: {
-		online: ['Private Cover-Überwachung · ', 'online'], kicker: 'Unabhängige DeFi-Cover-Überwachung', title: ['Schutz, ', 'immer im Blick.'], lead: 'Öffne dein persönliches Dashboard und aktiviere auf Wunsch Telegram-Erinnerungen.', walletUntouched: 'Wallet bleibt unberührt', signature: 'Nur eine Signatur', alerts: 'Hinweise über Telegram', step: '01 · Identität', connectTitle: 'Wallet verbinden', connectCopy: 'Eine Signatur bestätigt die Wallet und öffnet dein persönliches Dashboard.', connect: 'Mit Wallet verbinden', injected: 'Browser-Wallet verwenden', security: 'Keine Transaktion, keine Freigabe und keine Gasgebühr.', dashKicker: 'Persönliches Dashboard', dashTitle: ['Dein Cover,', 'immer im Blick.'], switchWallet: 'Wallet wechseln', logout: 'Abmelden', activeLabel: 'Aktive Covers', expiryLabel: 'Nächster Ablauf', telegramLabel: 'Telegram-Überwachung', telegramTitle: 'Telegram-Benachrichtigungen', protection: 'Dein Schutz', footer: 'Unterstützt durch Coverraccoon Intelligence', footerExplainer: 'Bündelt Cover-Daten für Überwachung, Ablauf und Verlängerung.', active: 'aktiv', noCover: 'Kein aktives Cover', days: 'Tage', telegramActive: 'Aktiv', notConnected: 'Nicht verbunden', tgConnected: '● Telegram verbunden', tgDisconnected: 'Telegram nicht verbunden', tgOnCopy: 'Ablauf- und Verlängerungshinweise sind aktiv. Öffne Telegram, um mit deinem Agenten zu sprechen.', tgOffCopy: 'Erhalte Ablauf- und Verlängerungshinweise, ohne laufend das Dashboard prüfen zu müssen.', openTelegram: 'Telegram öffnen', connectTelegram: 'Telegram aktivieren', updated: 'Aktualisiert', empty: 'Für diese Wallet wurde kein aktives Nexus-Mutual-Cover gefunden.', product: 'Produkt', protectionAmount: 'Schutz', expiry: 'Ablauf', status: 'Status', review: 'Verlängerung ansehen', moreCover: 'Weiteres Cover entdecken', getCover: 'Cover abschließen', renewalTitle: 'Nächste Verlängerung', renewalAction: 'Verlängerung prüfen', renewalCopy: (name, days) => `${name} läuft in ${days} Tagen aus. Angebot und Owner-Wallet werden vor der Bestätigung nochmals geprüft.`, linkTitle: 'Telegram mit deiner Wallet verbinden', linkCopy: 'Einmal signieren, um Erinnerungen für diese Wallet zu aktivieren.', linkStep: '01 · Telegram einrichten', linkSecurity: 'Eine Signatur. Keine Transaktion, Gasgebühr oder Tokenfreigabe. Der Link ist zehn Minuten gültig.', success: 'Alles eingerichtet.', successCopy: 'Deine Telegram-Erinnerungen sind aktiv. Du kannst jetzt zum Raccoon Agent zurückkehren.', backTelegram: 'Zurück zum Raccoon Agent', openDashboard: 'Dashboard öffnen', disconnectTelegram: 'Telegram trennen', confirmDisconnect: 'Telegram-Benachrichtigungen für diese Wallet wirklich trennen?'
+		online: ['Private Cover-Überwachung · ', 'online'], kicker: 'Unabhängige DeFi-Cover-Überwachung', title: ['Schutz, ', 'immer im Blick.'], lead: 'Öffne dein persönliches Dashboard und aktiviere auf Wunsch Telegram-Erinnerungen.', walletUntouched: 'Wallet bleibt unberührt', signature: 'Nur eine Signatur', alerts: 'Hinweise über Telegram', step: '01 · Identität', connectTitle: 'Wallet verbinden', connectCopy: 'Eine Signatur bestätigt die Wallet und öffnet dein persönliches Dashboard.', connect: 'Mit Wallet verbinden', injected: 'Browser-Wallet verwenden', security: 'Keine Transaktion, keine Freigabe und keine Gasgebühr.', dashKicker: 'Persönliches Dashboard', dashTitle: ['Dein Cover,', 'immer im Blick.'], switchWallet: 'Wallet wechseln', logout: 'Abmelden', activeLabel: 'Aktive Covers', expiryLabel: 'Nächster Ablauf', telegramLabel: 'Telegram-Überwachung', telegramTitle: 'Telegram-Benachrichtigungen', protection: 'Dein Schutz', footer: 'Unterstützt durch Coverraccoon Intelligence', footerExplainer: 'Bündelt Cover-Daten für Überwachung und Ablauf.', active: 'aktiv', noCover: 'Kein aktives Cover', days: 'Tage', telegramActive: 'Aktiv', notConnected: 'Nicht verbunden', tgConnected: '● Telegram verbunden', tgDisconnected: 'Telegram nicht verbunden', tgOnCopy: 'Ablaufhinweise sind aktiv. Öffne Telegram, um mit deinem Agenten zu sprechen.', tgOffCopy: 'Erhalte Ablaufhinweise, ohne laufend das Dashboard prüfen zu müssen.', openTelegram: 'Telegram öffnen', connectTelegram: 'Telegram aktivieren', updated: 'Aktualisiert', empty: 'Für diese Wallet wurde kein aktives Nexus-Mutual-Cover gefunden.', product: 'Produkt', protectionAmount: 'Schutz', expiry: 'Ablauf', status: 'Status', moreCover: 'Weiteres Cover entdecken', getCover: 'Cover abschließen', linkTitle: 'Telegram mit deiner Wallet verbinden', linkCopy: 'Einmal signieren, um Erinnerungen für diese Wallet zu aktivieren.', linkStep: '01 · Telegram einrichten', linkSecurity: 'Eine Signatur. Keine Transaktion, Gasgebühr oder Tokenfreigabe. Der Link ist zehn Minuten gültig.', success: 'Alles eingerichtet.', successCopy: 'Deine Telegram-Erinnerungen sind aktiv. Du kannst jetzt zum Raccoon Agent zurückkehren.', backTelegram: 'Zurück zum Raccoon Agent', openDashboard: 'Dashboard öffnen', disconnectTelegram: 'Telegram trennen', confirmDisconnect: 'Telegram-Benachrichtigungen für diese Wallet wirklich trennen?'
 	},
 	en: {
-		online: ['Private cover monitoring · ', 'online'], kicker: 'Independent DeFi cover monitor', title: ['Protection, ', 'kept in sight.'], lead: 'Open your personal dashboard and optionally activate Telegram reminders.', walletUntouched: 'Wallet stays untouched', signature: 'Signature only', alerts: 'Alerts via Telegram', step: '01 · Identity', connectTitle: 'Connect your wallet', connectCopy: 'A signature confirms the wallet and opens your personal dashboard.', connect: 'Connect wallet', injected: 'Use browser wallet', security: 'No transaction, approval or gas fee.', dashKicker: 'Personal dashboard', dashTitle: ['Your cover,', 'under watch.'], switchWallet: 'Switch wallet', logout: 'Sign out', activeLabel: 'Active covers', expiryLabel: 'Next expiry', telegramLabel: 'Telegram monitoring', telegramTitle: 'Telegram notifications', protection: 'Your protection', footer: 'Powered by Coverraccoon intelligence', footerExplainer: 'Brings cover data together for monitoring, expiry and renewal.', active: 'active', noCover: 'No active cover', days: 'days', telegramActive: 'Active', notConnected: 'Not connected', tgConnected: '● Telegram connected', tgDisconnected: 'Telegram not connected', tgOnCopy: 'Expiry and renewal notices are active. Open Telegram to talk to your agent.', tgOffCopy: 'Get expiry and renewal notices without having to check the dashboard.', openTelegram: 'Open Telegram', connectTelegram: 'Connect Telegram', updated: 'Updated', empty: 'No active Nexus Mutual cover was found for this wallet.', product: 'Product', protectionAmount: 'Protection', expiry: 'Expiry', status: 'Status', review: 'Review renewal', moreCover: 'Explore more cover', getCover: 'Get cover', renewalTitle: 'Next renewal', renewalAction: 'Review renewal', renewalCopy: (name, days) => `${name} expires in ${days} days. The offer and owner wallet are checked again before confirmation.`, linkTitle: 'Connect Telegram to your wallet', linkCopy: 'Sign once to activate reminders for this wallet.', linkStep: '01 · Telegram setup', linkSecurity: 'One signature. No transaction, gas fee or token approval. The link is valid for ten minutes.', success: 'Everything is set up.', successCopy: 'Your Telegram reminders are active. You can now return to Raccoon Agent.', backTelegram: 'Return to Raccoon Agent', openDashboard: 'Open dashboard', disconnectTelegram: 'Disconnect Telegram', confirmDisconnect: 'Disconnect Telegram notifications for this wallet?'
+		online: ['Private cover monitoring · ', 'online'], kicker: 'Independent DeFi cover monitor', title: ['Protection, ', 'kept in sight.'], lead: 'Open your personal dashboard and optionally activate Telegram reminders.', walletUntouched: 'Wallet stays untouched', signature: 'Signature only', alerts: 'Alerts via Telegram', step: '01 · Identity', connectTitle: 'Connect your wallet', connectCopy: 'A signature confirms the wallet and opens your personal dashboard.', connect: 'Connect wallet', injected: 'Use browser wallet', security: 'No transaction, approval or gas fee.', dashKicker: 'Personal dashboard', dashTitle: ['Your cover,', 'under watch.'], switchWallet: 'Switch wallet', logout: 'Sign out', activeLabel: 'Active covers', expiryLabel: 'Next expiry', telegramLabel: 'Telegram monitoring', telegramTitle: 'Telegram notifications', protection: 'Your protection', footer: 'Powered by Coverraccoon intelligence', footerExplainer: 'Brings cover data together for monitoring and expiry.', active: 'active', noCover: 'No active cover', days: 'days', telegramActive: 'Active', notConnected: 'Not connected', tgConnected: '● Telegram connected', tgDisconnected: 'Telegram not connected', tgOnCopy: 'Expiry notices are active. Open Telegram to talk to your agent.', tgOffCopy: 'Get expiry notices without having to check the dashboard.', openTelegram: 'Open Telegram', connectTelegram: 'Connect Telegram', updated: 'Updated', empty: 'No active Nexus Mutual cover was found for this wallet.', product: 'Product', protectionAmount: 'Protection', expiry: 'Expiry', status: 'Status', moreCover: 'Explore more cover', getCover: 'Get cover', linkTitle: 'Connect Telegram to your wallet', linkCopy: 'Sign once to activate reminders for this wallet.', linkStep: '01 · Telegram setup', linkSecurity: 'One signature. No transaction, gas fee or token approval. The link is valid for ten minutes.', success: 'Everything is set up.', successCopy: 'Your Telegram reminders are active. You can now return to Raccoon Agent.', backTelegram: 'Return to Raccoon Agent', openDashboard: 'Open dashboard', disconnectTelegram: 'Disconnect Telegram', confirmDisconnect: 'Disconnect Telegram notifications for this wallet?'
 	}
 };
 let language = localStorage.getItem('raccoon_language') || (navigator.language?.toLowerCase().startsWith('de') ? 'de' : 'en');
@@ -85,12 +85,6 @@ if (walletDebug) {
 function daysUntil(iso) { return Math.max(0, Math.ceil((Date.parse(iso) - Date.now()) / 86_400_000)); }
 function shortWallet(wallet) { return `${wallet.slice(0, 6)}…${wallet.slice(-4)}`; }
 function formatDate(iso) { return iso ? new Intl.DateTimeFormat(language === 'de' ? 'de-AT' : 'en-GB', { dateStyle: 'medium' }).format(new Date(iso)) : '—'; }
-function safeHttpsUrl(value) {
-	try {
-		const url = new URL(value, location.origin);
-		return ['https:', ...(location.hostname === 'localhost' ? ['http:'] : [])].includes(url.protocol) ? url.href : null;
-	} catch { return null; }
-}
 function addTextElement(parent, tag, value, className = '') {
 	const element = document.createElement(tag);
 	if (className) element.className = className;
@@ -108,18 +102,6 @@ function renderDashboard(data) {
 	document.querySelector('#metric-active').textContent = active.length ? `${active.length} ${t.active}` : t.noCover;
 	document.querySelector('#metric-expiry').textContent = next ? `${daysUntil(next.endsAt)} ${t.days}` : '—';
 	document.querySelector('#metric-telegram').textContent = data.telegramLinked ? t.telegramActive : t.notConnected;
-	const renewable = active.filter((cover) => cover.endsAt && cover.renewalUrl).sort((a, b) => Date.parse(a.endsAt) - Date.parse(b.endsAt))[0];
-	const renewalCard = document.querySelector('#renewal-card');
-	renewalCard.hidden = !renewable;
-	if (renewable) {
-		document.querySelector('#renewal-title').textContent = t.renewalTitle;
-		document.querySelector('#renewal-copy').textContent = t.renewalCopy(renewable.productName ?? `Cover #${renewable.coverId}`, daysUntil(renewable.endsAt));
-		const renewalAction = document.querySelector('#renewal-action');
-		const renewalHref = safeHttpsUrl(renewable.renewalUrl);
-		renewalAction.textContent = t.renewalAction;
-		renewalAction.hidden = !renewalHref;
-		if (renewalHref) renewalAction.href = renewalHref;
-	}
 	const telegramState = document.querySelector('#telegram-state');
 	const telegramCopy = document.querySelector('#telegram-copy');
 	const telegramAction = document.querySelector('#telegram-action');
@@ -159,9 +141,7 @@ function renderDashboard(data) {
 		addTextElement(amount, 'strong', `${Number.isFinite(numericAmount) ? numericAmount.toLocaleString(language === 'de' ? 'de-AT' : 'en-GB') : '—'} ${cover.asset?.symbol ?? ''}`.trim()); card.appendChild(amount);
 		const expiry = document.createElement('div'); addTextElement(expiry, 'small', t.expiry); addTextElement(expiry, 'strong', formatDate(cover.endsAt)); card.appendChild(expiry);
 		const state = document.createElement('div'); addTextElement(state, 'small', t.status); addTextElement(state, 'strong', `● ${t.active}`, 'active-state'); card.appendChild(state);
-		const renewalHref = cover.renewalUrl && safeHttpsUrl(cover.renewalUrl);
-		if (renewalHref) { const link = addTextElement(card, 'a', t.review, 'cover-action'); link.href = renewalHref; }
-		else card.appendChild(document.createElement('span'));
+		card.appendChild(document.createElement('span'));
 		list.appendChild(card);
 	}
 	const actions = document.querySelector('#dash-actions'); actions.replaceChildren();
@@ -469,13 +449,31 @@ async function connectWithModal(modal) {
 	return { wallet, provider };
 }
 
+/*
+	AGENT-SEC-W2: nach der Signatur wird die WalletConnect-Sitzung getrennt,
+	egal ob die Anmeldung geklappt hat. Angemeldet bleibt man ueber das
+	Sitzungscookie; die Wallet wird nur fuer die eine Signatur gebraucht.
+
+	Grund: die Methodenliste aus W1 ist nur eine Bitte. MetaMask Mobile
+	genehmigt trotzdem seine volle Liste, das Senden von Transaktionen
+	eingeschlossen (am 30.09.2026 in der ausgehandelten Sitzung nachgesehen). Eine Sitzung, die
+	nach dem Login offen bleibt, traegt diese Rechte also weiter. Eine getrennte
+	traegt gar keine.
+*/
+async function trenneWalletConnect(modal) {
+	if (!modal?.getAddress()) return;
+	debugWallet('Trenne WalletConnect nach der Signatur');
+	try { await withTimeout(modal.disconnect(), 5000, 'disconnect timeout'); } catch {}
+}
+
 wcButton.addEventListener('click', async () => {
+	let modal;
 	try {
 		debugWallet('Connect clicked');
 		wcButton.disabled = true;
 		show('Wallet-Auswahl wird geladen …');
 		await dashboardRestorePromise;
-		const modal = await getWalletConnectModal();
+		modal = await getWalletConnectModal();
 		if (modal.getAddress()) {
 			debugWallet('Clearing restored account before new login', modal.getAddress());
 			show('Wallet-Auswahl wird vorbereitet …');
@@ -488,6 +486,7 @@ wcButton.addEventListener('click', async () => {
 		debugWallet('Connection error', error);
 		show(error.message);
 	} finally {
+		await trenneWalletConnect(modal);
 		wcButton.disabled = false;
 	}
 });

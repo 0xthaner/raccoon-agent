@@ -1,10 +1,9 @@
 import { beginTelegramDelivery, consumeTelegramHandoff, finishTelegramDelivery, forgetRememberedWallet, getLanguage, getMonitoredWallets, getRememberedWallets, getWalletLink, recordAgentEvent, rememberUnlinkedWallet, renameMonitoredWallet, revokeDashboardSessions, setLanguage, setPrimaryWallet, setWalletAlertSettings, snoozeCoverAlert, unlinkWallet } from './db.mjs';
 import { newDashboardAccess, newLinkRequest } from './linking.mjs';
 import { startWebServer } from './web.mjs';
-import { CoverDataError, DEMO_WALLET, formatWalletCovers, getWalletCovers, renewalUrl } from './covers.mjs';
+import { CoverDataError, formatWalletCovers, getWalletCovers } from './covers.mjs';
 import { checkExpiryAlerts } from './alerts.mjs';
 import { authenticPrivateMessage, telegramTimingMetadata } from './telegram-audit.mjs';
-import { createDemoRenewToken } from './demo-renew.mjs';
 import { classifyAgentIntent } from './agent-intent.mjs';
 import { answerGroupQuestion, answerProductQuestion } from './agent-knowledge.mjs';
 import { groupLanguage, groupQuestion, isGroupMessageForBot } from './group-chat.mjs';
@@ -62,11 +61,11 @@ async function dashboardKeyboard(language, wallet, includeCovers = false) {
 
 function navigationKeyboard(language) {
 	const labels = language === 'zh'
-		? ['📊 Dashboard', '🛡 我的保障', '🔄 检查续保', '⚙️ 设置']
+		? ['📊 Dashboard', '🛡 我的保障', '⚙️ 设置']
 		: language === 'en'
-			? ['📊 Dashboard', '🛡 My covers', '🔄 Review renewal', '⚙️ Settings']
-			: ['📊 Dashboard', '🛡 Meine Covers', '🔄 Verlängerung prüfen', '⚙️ Einstellungen'];
-	return { keyboard: [[{ text: labels[0] }, { text: labels[1] }], [{ text: labels[2] }, { text: labels[3] }]], resize_keyboard: true, is_persistent: true };
+			? ['📊 Dashboard', '🛡 My covers', '⚙️ Settings']
+			: ['📊 Dashboard', '🛡 Meine Covers', '⚙️ Einstellungen'];
+	return { keyboard: [[{ text: labels[0] }, { text: labels[1] }], [{ text: labels[2] }]], resize_keyboard: true, is_persistent: true };
 }
 
 function settingsKeyboard(language) {
@@ -178,7 +177,6 @@ const helpTextDe = [
 	'/status – aktuellen Teststatus anzeigen',
 	'/covers – aktive Covers der verbundenen Wallet anzeigen',
 	'/dashboard – persönliches Dashboard öffnen',
-	'/renew – Verlängerung für ein aktives Cover prüfen',
 	'/rename_wallet Name – aktuelle Primär-Wallet benennen',
 	'/test_alert – simulierte Ablaufwarnung senden',
 	'/unlink_telegram – nur Telegram-Benachrichtigungen trennen',
@@ -193,7 +191,6 @@ const helpTextEn = [
 	'/status – show current status',
 	'/covers – show active covers for the linked wallet',
 	'/dashboard – open your personal dashboard',
-	'/renew – review renewal for an active cover',
 	'/rename_wallet Name – name the current primary wallet',
 	'/test_alert – send a simulated expiry alert',
 	'/unlink_telegram – disconnect Telegram notifications only',
@@ -208,7 +205,6 @@ const helpTextZh = [
 	'/status – 显示当前状态',
 	'/covers – 显示已绑定钱包的有效保障',
 	'/dashboard – 打开个人仪表板',
-	'/renew – 检查有效保障的续保',
 	'/rename_wallet 名称 – 命名当前主钱包',
 	'/test_alert – 发送模拟到期提醒',
 	'/unlink_telegram – 仅断开 Telegram 通知',
@@ -361,11 +357,11 @@ async function handleNaturalLanguage(message, language) {
 		case 'snooze_tomorrow': {
 			const wallet = await getWalletLink(message.chat.id);
 			if (!wallet) await sendMessage(message.chat.id, language === 'en' ? 'No wallet linked.' : language === 'zh' ? '尚未绑定钱包。' : 'Keine Wallet verbunden.');
-			else await sendMessage(message.chat.id, language === 'en' ? 'Which cover should I remind you about tomorrow? Open renewal to choose it.' : language === 'zh' ? '明天要提醒哪个保障？请打开续保并选择。' : 'Für welches Cover soll ich dich morgen erinnern? Öffne die Verlängerung und wähle es aus.', { reply_markup: { inline_keyboard: [[{ text: language === 'en' ? 'Choose cover' : language === 'zh' ? '选择保障' : 'Cover auswählen', callback_data: 'show_covers' }]] } });
+			else await sendMessage(message.chat.id, language === 'en' ? 'Which cover should I remind you about tomorrow? Choose it from your covers.' : language === 'zh' ? '明天要提醒哪个保障？请在你的保障中选择。' : 'Für welches Cover soll ich dich morgen erinnern? Wähle es in deinen Covers aus.', { reply_markup: { inline_keyboard: [[{ text: language === 'en' ? 'Choose cover' : language === 'zh' ? '选择保障' : 'Cover auswählen', callback_data: 'show_covers' }]] } });
 			return;
 		}
 		default:
-			await sendMessage(message.chat.id, language === 'en' ? 'I can help with covers, expiry dates, renewals, reminders and your dashboard. What would you like to know?' : language === 'zh' ? '我可以帮助你查看保障、到期日、续保、提醒和仪表板。你想了解什么？' : 'Ich helfe dir bei Covers, Ablaufdaten, Verlängerungen, Erinnerungen und dem Dashboard. Was möchtest du wissen?', { reply_markup: navigationKeyboard(language) });
+			await sendMessage(message.chat.id, language === 'en' ? 'I can help with covers, expiry dates, reminders and your dashboard. What would you like to know?' : language === 'zh' ? '我可以帮助你查看保障、到期日、提醒和仪表板。你想了解什么？' : 'Ich helfe dir bei Covers, Ablaufdaten, Erinnerungen und dem Dashboard. Was möchtest du wissen?', { reply_markup: navigationKeyboard(language) });
 	}
 }
 
@@ -455,10 +451,10 @@ async function handleMessage(message, updateContext = {}) {
 				const existingWallet = await getWalletLink(message.chat.id);
 				if (existingWallet) {
 					const verbunden = language === 'zh'
-						? '已连接 🦝\n\n此钱包的到期和续保提醒现已启用。'
+						? '已连接 🦝\n\n此钱包的到期提醒现已启用。'
 						: language === 'en'
-							? 'Connected 🦝\n\nExpiry and renewal notices for this wallet are active from now on.'
-							: 'Verbunden 🦝\n\nAblauf- und Verlängerungshinweise für diese Wallet sind ab jetzt aktiv.';
+							? 'Connected 🦝\n\nExpiry notices for this wallet are active from now on.'
+							: 'Verbunden 🦝\n\nAblaufhinweise für diese Wallet sind ab jetzt aktiv.';
 					const schonAktiv = language === 'zh' ? 'Raccoon Agent 已启用 🦝' : language === 'en' ? 'Raccoon Agent is already active 🦝' : 'Raccoon Agent ist bereits aktiv 🦝';
 					await sendMessage(message.chat.id,
 						frischVerknuepft ? verbunden : schonAktiv,
@@ -496,35 +492,17 @@ async function handleMessage(message, updateContext = {}) {
 			);
 			}
 			break;
-		case '/renew': {
-			const wallets = await getMonitoredWallets(message.chat.id);
-			if (!wallets.length) {
-				await sendMessage(message.chat.id, language === 'zh' ? '尚未绑定钱包。请先发送 /start。' : language === 'en' ? 'No wallet linked yet. Send /start first.' : 'Noch keine Wallet verbunden. Sende zuerst /start.');
-				break;
-			}
-			try {
-				const renewable = [];
-				for (const wallet of wallets) {
-					const result = await getWalletCovers(wallet.wallet);
-					renewable.push(...result.covers.filter((cover) => cover.status === 'active' && (cover.demo || renewalUrl(cover))).map((cover) => ({ cover, wallet, url: renewalUrl(cover) })));
-				}
-				if (!renewable.length) {
-					await sendMessage(message.chat.id, language === 'zh' ? '目前没有可续保的有效保障。' : language === 'en' ? 'There is currently no active cover available to renew.' : 'Aktuell gibt es kein aktives Cover, das verlängert werden kann.');
-					break;
-				}
-				await sendMessage(message.chat.id,
-					language === 'zh' ? '选择要续保的保障：' : language === 'en' ? 'Choose the cover whose renewal you want to review:' : 'Wähle das Cover, dessen Verlängerung du prüfen möchtest:',
-					{ reply_markup: { inline_keyboard: renewable.map(({ cover, wallet, url }) => [{
-						text: `${wallet.label} · ${cover.productName ?? `Cover #${cover.coverId}`} · #${cover.coverId}`,
-						...(cover.demo ? { callback_data: `demo_renew:${cover.coverId}` } : { url })
-					}]) } }
-				);
-			} catch (error) {
-				const detail = error instanceof CoverDataError ? error.message : 'Cover-Daten konnten gerade nicht geladen werden.';
-				await sendMessage(message.chat.id, `⚠️ ${language === 'en' ? 'Renewal data could not be loaded right now.' : language === 'zh' ? '目前无法加载续保数据。' : detail}`);
-			}
+		case '/renew':
+			/*
+				Verlaengerungen sind auf Eis (Stand vor dem Entfernen: Tag `renew-auf-eis`).
+				Der Befehl bleibt nur, damit alte Tastaturen, /renew aus dem Verlauf und
+				ein "verlaengern" im Freitext eine klare Antwort bekommen - und die
+				mitgeschickte Tastatur ersetzt die alte mit dem Verlaengerungsknopf.
+			*/
+			await sendMessage(message.chat.id,
+				language === 'zh' ? '通过 Agent 续保目前已暂停。到期提醒会照常继续。' : language === 'en' ? 'Renewals through the Agent are paused for now. Expiry reminders continue as usual.' : 'Verlängerungen über den Agent sind derzeit pausiert. Die Ablauf-Erinnerungen laufen wie gewohnt weiter.',
+				{ reply_markup: navigationKeyboard(language) });
 			break;
-		}
 		case '/test_alert':
 			await sendMessage(message.chat.id, simulatedAlert(language));
 			break;
@@ -629,28 +607,6 @@ async function handleCallbackQuery(query) {
 		const language = await getLanguage(query.message.chat.id) ?? 'de';
 		await telegram('answerCallbackQuery', { callback_query_id: query.id });
 		await sendCovers(query.message.chat.id, language);
-		return;
-	}
-	const demoRenew = /^demo_renew:(424242)$/.exec(query?.data ?? '');
-	if (demoRenew && query.message?.chat?.id) {
-		const language = await getLanguage(query.message.chat.id) ?? 'de';
-		const wallets = await getMonitoredWallets(query.message.chat.id);
-		if (!DEMO_WALLET || !wallets.some((wallet) => wallet.wallet.toLowerCase() === DEMO_WALLET)) {
-			await telegram('answerCallbackQuery', { callback_query_id: query.id, text: 'Dieses Cover gehört nicht zu deiner Wallet.', show_alert: true });
-			return;
-		}
-		await telegram('answerCallbackQuery', { callback_query_id: query.id });
-		const checkoutUrl = `${appBaseUrl}/demo-renew?token=${encodeURIComponent(createDemoRenewToken(query.message.chat.id))}`;
-		await sendMessage(query.message.chat.id, language === 'en'
-			? 'Renewal proposal\n\nAave v3 · Cover #424242\nCover amount: 15,000 USDC\nNew term: 365 days\n\nThe final premium is calculated when the owner wallet confirms.\n\nDemo for this wallet · no transaction'
-			: language === 'zh'
-				? '续保方案\n\nAave v3 · 保障 #424242\n保障金额：15,000 USDC\n新期限：365 天\n\n最终保费将在所有者钱包确认时计算。\n\n仅此钱包演示 · 不会执行交易'
-				: 'Verlängerungsangebot\n\nAave v3 · Cover #424242\nVersicherungssumme: 15.000 USDC\nNeue Laufzeit: 365 Tage\n\nDie finale Prämie wird bei Bestätigung durch die Owner-Wallet berechnet.\n\nDemo für diese Wallet · keine Transaktion', {
-			reply_markup: { inline_keyboard: [[
-				{ text: language === 'en' ? 'Continue with wallet' : language === 'zh' ? '使用钱包继续' : 'Mit Wallet fortfahren', url: checkoutUrl },
-				{ text: language === 'en' ? 'Later' : language === 'zh' ? '稍后' : 'Später', callback_data: 'renew_later:424242' }
-			]] }
-		});
 		return;
 	}
 	const later = /^renew_later:(\d+)(?::(0x[a-fA-F0-9]{40}))?$/.exec(query?.data ?? '');

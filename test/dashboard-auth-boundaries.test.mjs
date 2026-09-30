@@ -375,12 +375,11 @@ test('R37 der Login setzt das Host-Cookie an genau einer Stelle', () => {
 });
 
 /*
-	AGENT-SEC-W1: der Waechter sah bisher nur `main.js`. `demo-renew.js` spricht
-	ebenfalls mit einer Wallet und war damit der eine Ort, an dem ein echtes
-	`approve` haette landen koennen, ohne dass es jemand bemerkt. Beide Dateien
-	stehen jetzt in derselben Schranke.
+	AGENT-SEC-W1: jede Frontenddatei, die mit einer Wallet spricht, steht in
+	dieser Schranke. Seit die Verlaengerungsdemo auf Eis liegt, ist das nur
+	noch `main.js`.
 */
-const WALLET_CLIENTS = ['../web/src/main.js', '../web/src/demo-renew.js'];
+const WALLET_CLIENTS = ['../web/src/main.js'];
 
 test('R38 bis R42 der Client signiert nur und schreibt nichts', () => {
 	for (const datei of WALLET_CLIENTS) {

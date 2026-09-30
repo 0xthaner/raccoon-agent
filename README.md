@@ -1,14 +1,15 @@
 # Raccoon Agent
 
 Raccoon Agent verbindet eine Ethereum-Wallet mit Telegram, zeigt aktive DeFi-Covers
-im Dashboard und erinnert an bevorstehende Ablaufdaten. Verlängerungen werden über
-den Coverraccoon-Checkout an die jeweilige Owner-Wallet übergeben.
+im Dashboard und erinnert an bevorstehende Ablaufdaten. Die Wallet wird nur für eine
+Login-Signatur gebraucht; die WalletConnect-Sitzung wird danach sofort getrennt.
+Verlängerungen über den Agent sind derzeit auf Eis (letzter Stand: Tag `renew-auf-eis`).
 
 ## Funktionen
 
 - Wallet-Login per Reown AppKit / WalletConnect
 - Telegram-Verknüpfung über kurzlebige, signierte Links
-- Dashboard für Wallets, Covers, Erinnerungen und Renewal-Status
+- Dashboard für Wallets, Covers und Erinnerungen
 - Telegram-Befehle und interaktive Buttons
 - freie Telegram-Sprache mit strikt begrenzten, serverseitig ausgeführten Agent-Aktionen
 - sicherer Gruppenmodus: Antworten nur bei @Erwähnung oder direkter Antwort; persönliche Daten und Aktionen bleiben im privaten Chat

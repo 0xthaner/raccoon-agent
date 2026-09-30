@@ -1,9 +1,8 @@
 import { isAddress } from 'viem';
-import { getWalletCovers, renewalUrl } from '../src/covers.mjs';
+import { getWalletCovers } from '../src/covers.mjs';
 import { CLEAR_SESSION_COOKIES, createDashboardChallenge, dashboardMessage, dashboardSiweExpectation, readSessionCookie, resolveLogout, sessionCookieHeader, verifyDashboardSession, verifyDashboardToken } from '../src/dashboard-auth.mjs';
 import { verifyExpectedSiweSignature } from '../src/siwe-auth.mjs';
 import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, getWalletLinkStateByWallet, isDashboardSessionRevoked, recordAgentEvent, revokeDashboardSessions, storeDashboardChallenge, unlinkWalletByWallet } from '../src/db.mjs';
-import { createDemoRenewToken } from '../src/demo-renew.mjs';
 import { newTelegramHandoff } from '../src/linking.mjs';
 import { enforceRateLimit, requireJson, requireSameOrigin } from '../src/http-security.mjs';
 
@@ -13,10 +12,7 @@ async function dashboardData(wallet) {
 	const telegramHandoff = telegramState.linked ? null : await newTelegramHandoff(wallet);
 	const covers = result.covers.map((cover) => ({
 		coverId: cover.coverId, productId: cover.productId, productName: cover.productName,
-		status: cover.status, amount: cover.amount, asset: cover.asset, endsAt: cover.endsAt,
-		renewalUrl: cover.demo && telegramLink
-			? `/demo-renew?token=${encodeURIComponent(createDemoRenewToken(telegramLink.chat_id))}`
-			: renewalUrl(cover)
+		status: cover.status, amount: cover.amount, asset: cover.asset, endsAt: cover.endsAt
 	}));
 	return { ok: true, wallet: wallet.toLowerCase(), covers, telegramLinked: telegramState.linked, telegramStartCode: telegramHandoff?.code ?? null, agentSettings: telegramLink ? { label: telegramLink.label, alertThresholds: telegramLink.alert_thresholds, weeklySummary: telegramLink.weekly_summary } : null, checkedAt: new Date().toISOString(), demoWallet: Boolean(result.demoWallet) };
 }

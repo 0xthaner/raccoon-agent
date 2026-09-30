@@ -6,7 +6,6 @@ export default defineConfig({
 		rollupOptions: {
 			input: {
 				main: resolve('web/index.html'),
-				demoRenew: resolve('web/demo-renew.html'),
 				guide: resolve('web/guide.html'),
 				privacy: resolve('web/datenschutz.html')
 			}

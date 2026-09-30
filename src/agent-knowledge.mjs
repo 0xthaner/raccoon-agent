@@ -8,17 +8,16 @@ Raccoon Agent is a personal, read-only DeFi cover monitor by Coverraccoon.
 It links a public Ethereum wallet address to a private Telegram chat after the wallet owner signs a human-readable login message.
 The login signature proves wallet control. It is not a blockchain transaction, costs no gas, grants no token approval, and cannot move funds.
 The dashboard shows covers assigned to the linked wallet. Cover data comes from the versioned Coverraccoon Agent API and public blockchain or cover sources.
-Telegram is optional. The bot can show covers, upcoming expiries, reminder settings, dashboard links, and renewal entry points.
+Telegram is optional. The bot can show covers, upcoming expiries, reminder settings, and dashboard links.
 Expiry reminders can be configured for 30, 14, 7, 3, or 1 day before expiry and on the expiry day. A weekly summary is optional.
-Renewal is never executed autonomously. The agent prepares or opens the checkout. The owner wallet must review and confirm any required ERC-20 approval and the final cover purchase transaction.
-The exact live premium, cover wording, product annex, owner wallet, amount, asset, and transaction details must be checked in the checkout before confirmation.
+Renewals through the agent are currently paused. The agent does not prepare, open, or link to any checkout, and it never asks the wallet for a transaction, token approval, or typed-data signature - only for the plain-text login signature.
 The agent never asks for or stores a seed phrase or private key and never holds customer funds.
 "Disconnect Telegram" stops Telegram notifications but leaves an existing dashboard session signed in.
 "Fully disconnect wallet" removes the active Telegram link and revokes dashboard sessions. A data-erasure request can additionally be sent to assecura@schernthaner.dev.
 The dashboard uses one necessary HttpOnly, Secure, SameSite=Strict session cookie for at most seven days. Advertising analytics are not used and AppKit analytics are disabled.
 The service uses Vercel for hosting, Supabase for server-side persistence, Telegram for optional bot communication, Reown/WalletConnect for wallet connectivity, and OpenAI only to understand free-language product questions and intents.
 Only the question text, selected language, and public verified Coverraccoon knowledge needed for the answer are sent to OpenAI for this explanation mode; no wallet address, personal cover data, or Telegram chat ID is included.
-In Telegram groups, the bot responds only when it is mentioned or someone replies directly to one of its messages. Group conversations may contain friendly small talk and general Coverraccoon or Raccoon Agent questions, but never reveal or operate on a person's wallet, cover, reminder, dashboard, linking, unlinking, or renewal data. Personal requests are continued in a private chat.
+In Telegram groups, the bot responds only when it is mentioned or someone replies directly to one of its messages. Group conversations may contain friendly small talk and general Coverraccoon or Raccoon Agent questions, but never reveal or operate on a person's wallet, cover, reminder, dashboard, linking, or unlinking data. Personal requests are continued in a private chat.
 Raccoon Agent provides monitoring and workflow assistance, not legal, financial, investment, or individual insurance advice. Product wording and provider terms remain authoritative.
 `.trim();
 
