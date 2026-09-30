@@ -38,7 +38,7 @@ const OTHER_WALLET = '0x2222222222222222222222222222222222222222';
 const EIP55_LOWERCASE = '0x52908400098527886e0f7030069857d2e4169ee7';
 const NONCE = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
 const CODE = 'test-pending-link-code';
-const DOMAIN = 'agent.coverraccoon.com';
+const DOMAIN = 'coverraccoon.com';
 
 function withEnv(values, run) {
 	const previous = {};
@@ -83,24 +83,25 @@ function telegramParts() {
  * 1 bis 7, zentrale Konfiguration
  * ------------------------------------------------------------------------- */
 
-test('1 die Productionorigin ist exakt agent.coverraccoon.com', () => {
+test('1 die Productionorigin ist exakt coverraccoon.com', () => {
 	const origin = inProduction(() => siweOrigin());
 	assert.deepEqual(origin, { domain: DOMAIN, uri: PRODUCTION_ORIGIN });
 });
 
 test('2 HTTP wird in Production abgelehnt', () => {
-	withEnv({ APP_BASE_URL: 'http://agent.coverraccoon.com', VERCEL_ENV: 'production', NODE_ENV: undefined }, () => {
+	withEnv({ APP_BASE_URL: 'http://coverraccoon.com', VERCEL_ENV: 'production', NODE_ENV: undefined }, () => {
 		assert.throws(() => siweOrigin());
 	});
 });
 
 test('3 und 4 fremde Domain und Subdomain-Abweichung werden abgelehnt', () => {
 	for (const value of [
-		'https://coverraccoon.com',
-		'https://www.agent.coverraccoon.com',
-		'https://agent.coverraccoon.com.evil.tld',
+		// Die fruehere Adresse leitet nur noch weiter und darf nicht mehr anmelden.
+		'https://agent.coverraccoon.com',
+		'https://www.coverraccoon.com',
+		'https://coverraccoon.com.evil.tld',
 		'https://evil.tld',
-		'https://agent.coverraccoon.com:8443'
+		'https://coverraccoon.com:8443'
 	]) {
 		withEnv({ APP_BASE_URL: value, VERCEL_ENV: 'production', NODE_ENV: undefined }, () => {
 			assert.throws(() => siweOrigin(), undefined, value);
@@ -155,7 +156,7 @@ test('6 eine lokale HTTP-Origin gilt nur in Development', () => {
 });
 
 test('7 eine fehlende oder unbrauchbare Konfiguration faellt zu', () => {
-	for (const value of [undefined, '', 'kein-url', 'https://agent.coverraccoon.com/pfad', 'https://user:pw@agent.coverraccoon.com']) {
+	for (const value of [undefined, '', 'kein-url', 'https://coverraccoon.com/pfad', 'https://user:pw@coverraccoon.com']) {
 		withEnv({ APP_BASE_URL: value, VERCEL_ENV: 'production', NODE_ENV: undefined }, () => {
 			assert.throws(() => siweOrigin(), undefined, String(value));
 		});

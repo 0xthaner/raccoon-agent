@@ -57,7 +57,7 @@ function withDashboardSecret(run) {
 	return withEnv({
 		DASHBOARD_SESSION_SECRET: TEST_DASHBOARD_SECRET,
 		TELEGRAM_WEBHOOK_SECRET: TEST_TELEGRAM_SECRET,
-		APP_BASE_URL: 'https://agent.coverraccoon.com'
+		APP_BASE_URL: 'https://coverraccoon.com'
 	}, run);
 }
 
@@ -304,11 +304,11 @@ test('R33 und R34 die Challenge traegt SIWE, die Nonceform bleibt', () => {
 	assert.match(data.rid, /^[a-f0-9]{32}$/);
 	assert.ok(Number.isFinite(data.iat));
 
-	assert.ok(message.startsWith('agent.coverraccoon.com wants you to sign in with your Ethereum account:\n'));
+	assert.ok(message.startsWith('coverraccoon.com wants you to sign in with your Ethereum account:\n'));
 	assert.ok(message.includes(`\nNonce: ${data.nonce}\n`));
 	assert.ok(message.includes(`\nRequest ID: ${data.rid}`));
 	assert.ok(message.includes('\nChain ID: 1\n'));
-	assert.ok(message.includes('\nURI: https://agent.coverraccoon.com\n'));
+	assert.ok(message.includes('\nURI: https://coverraccoon.com\n'));
 	// Und der alte Klartext ist weg.
 	assert.equal(message.startsWith('Raccoon Agent\n'), false);
 	assert.equal(message.includes('Zweck: Persönliches Cover-Dashboard öffnen.'), false);

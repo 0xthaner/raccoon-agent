@@ -54,7 +54,7 @@ function anfrage(headers) {
 test('W2 die eigene Origin wird durchgelassen', () => {
 	inProduction(() => {
 		const response = fakeResponse();
-		assert.equal(requireSameOrigin(anfrage({ origin: PRODUCTION_ORIGIN, host: 'agent.coverraccoon.com' }), response), true);
+		assert.equal(requireSameOrigin(anfrage({ origin: PRODUCTION_ORIGIN, host: 'coverraccoon.com' }), response), true);
 		assert.equal(response.gesehen.status, null);
 	});
 });
@@ -62,7 +62,7 @@ test('W2 die eigene Origin wird durchgelassen', () => {
 test('W2 eine fremde Origin faellt', () => {
 	inProduction(() => {
 		const response = fakeResponse();
-		assert.equal(requireSameOrigin(anfrage({ origin: 'https://evil.example', host: 'agent.coverraccoon.com' }), response), false);
+		assert.equal(requireSameOrigin(anfrage({ origin: 'https://evil.example', host: 'coverraccoon.com' }), response), false);
 		assert.equal(response.gesehen.status, 403);
 	});
 });
@@ -80,7 +80,7 @@ test('W2 der Host-Header bestimmt die Erwartung nicht mehr', () => {
 test('W2 ohne Konfiguration gibt es keinen Rueckfall, sondern 503', () => {
 	withEnv({ APP_BASE_URL: undefined, NODE_ENV: undefined, VERCEL_ENV: 'production' }, () => {
 		const response = fakeResponse();
-		assert.equal(requireSameOrigin(anfrage({ origin: 'https://agent.coverraccoon.com', host: 'agent.coverraccoon.com' }), response), false);
+		assert.equal(requireSameOrigin(anfrage({ origin: 'https://coverraccoon.com', host: 'coverraccoon.com' }), response), false);
 		assert.equal(response.gesehen.status, 503);
 		assert.equal(response.gesehen.body.ok, false);
 	});

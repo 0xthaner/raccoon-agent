@@ -140,7 +140,7 @@ test('7 die Signatur einer anderen Wallet wird abgelehnt', async () => {
 test('8 bis 14 eine gueltig signierte, aber veraenderte Nachricht wird abgelehnt', async () => {
 	const { message, expected } = dashboardPair();
 	const cases = [
-		['DOMAIN_MISMATCH', message.replace('agent.coverraccoon.com wants you', 'evil.tld wants you')],
+		['DOMAIN_MISMATCH', message.replace('coverraccoon.com wants you', 'evil.tld wants you')],
 		['URI_MISMATCH', message.replace(`URI: ${PRODUCTION_ORIGIN}\n`, 'URI: https://evil.tld\n')],
 		['CHAIN_MISMATCH', message.replace('Chain ID: 1\n', 'Chain ID: 137\n')],
 		['STATEMENT_MISMATCH', message.replace(DASHBOARD_STATEMENT, TELEGRAM_STATEMENT)],

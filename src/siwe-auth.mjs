@@ -26,7 +26,7 @@ export const SIWE_VERSION = '1';
  */
 export const SIWE_CHAIN_ID = 1;
 
-export const PRODUCTION_ORIGIN = 'https://agent.coverraccoon.com';
+export const PRODUCTION_ORIGIN = 'https://coverraccoon.com';
 
 /**
  * ERC-4361 laesst fuer das Statement genau EINE Zeile zu; `createSiweMessage`
@@ -103,7 +103,8 @@ function configurationError() {
  * bewusst keinen Request entgegen, damit eine Ueberschreibung strukturell
  * unmoeglich ist.
  *
- * In Production ist genau `https://agent.coverraccoon.com` zulaessig. Nur in
+ * In Production ist genau `https://coverraccoon.com` zulaessig (bis 30.09.2026
+ * `https://agent.coverraccoon.com`, das seither nur noch weiterleitet). Nur in
  * einer ausdruecklich nicht-produktiven Umgebung ist zusaetzlich
  * `http://localhost:<PORT>` beziehungsweise `http://127.0.0.1:<PORT>` erlaubt.
  * Alles andere faellt zu: keine Preview-Domain ohne eigene Konfiguration, kein
