@@ -1,4 +1,5 @@
 import { appKitMethoden, WALLET_METHODEN_ANMELDEN } from './wallet-methods.js';
+import { mountEye } from './eye.js';
 
 const status = document.querySelector('#status');
 const wcButton = document.querySelector('#walletconnect');
@@ -96,6 +97,7 @@ function addTextElement(parent, tag, value, className = '') {
 function renderDashboard(data) {
 	window.dashboardData = data;
 	document.body.classList.add('dashboard-mode');
+	mountEye(document.querySelector('#dash-eye'));
 	document.querySelector('#dash-wallet').textContent = shortWallet(data.wallet);
 	const active = data.covers.filter((cover) => cover.status === 'active');
 	const next = active.filter((cover) => cover.endsAt).sort((a, b) => Date.parse(a.endsAt) - Date.parse(b.endsAt))[0];

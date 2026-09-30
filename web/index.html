@@ -117,6 +117,9 @@
       body.dashboard-mode main { display: block; padding-top: 58px; }
       body.dashboard-mode .intro, body.dashboard-mode .connect { display: none; }
       body.dashboard-mode .dashboard { display: block; }
+      .dash-head { display: flex; align-items: center; gap: 20px; }
+      .dash-eye { width: 56px; height: 56px; flex: none; cursor: pointer; filter: drop-shadow(0 8px 18px rgba(0,0,0,.5)) drop-shadow(0 0 18px rgba(40,205,150,.16)); }
+      @media (max-width: 560px) { .dash-eye { width: 44px; height: 44px; } .dash-head { gap: 14px; } }
       .dash-top { display: flex; justify-content: space-between; align-items: end; gap: 30px; margin-bottom: 38px; }
       .dash-top h1 { font-size: clamp(2.8rem, 6vw, 5.4rem); }
       .wallet-chip { color: var(--silver); padding: 12px 15px; border: 1px solid var(--line); border-radius: 999px; font: 500 .68rem/1 ui-monospace,SFMono-Regular,Menlo,monospace; }
@@ -233,7 +236,7 @@
         </section>
 
         <section class="dashboard" id="dashboard" aria-label="Persönliches Cover-Dashboard">
-          <div class="dash-top"><div><p class="kicker" id="dash-kicker">Persönliches Dashboard</p><h1 id="dash-title"><span data-teil="0">Dein Cover,</span><br><em data-teil="1">immer im Blick.</em></h1></div><div class="wallet-menu"><span class="wallet-chip" id="dash-wallet"></span><button class="text-action" id="switch-wallet">Wallet wechseln</button><button class="text-action" id="logout">Abmelden</button></div></div>
+          <div class="dash-top"><div class="dash-head"><canvas class="dash-eye" id="dash-eye" aria-hidden="true"></canvas><div><p class="kicker" id="dash-kicker">Persönliches Dashboard</p><h1 id="dash-title"><span data-teil="0">Dein Cover,</span><br><em data-teil="1">immer im Blick.</em></h1></div></div><div class="wallet-menu"><span class="wallet-chip" id="dash-wallet"></span><button class="text-action" id="switch-wallet">Wallet wechseln</button><button class="text-action" id="logout">Abmelden</button></div></div>
           <div class="metrics">
             <div class="metric"><span id="label-active">Aktive Covers</span><strong id="metric-active">—</strong></div>
             <div class="metric"><span id="label-expiry">Nächster Ablauf</span><strong id="metric-expiry">—</strong></div>

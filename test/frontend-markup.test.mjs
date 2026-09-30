@@ -22,7 +22,7 @@ test('1 der aktuelle Stand traegt keine Markup-Senke', () => {
 });
 
 test('2 keine Quelldatei des Frontends greift auf innerHTML zu', () => {
-	for (const datei of ['web/src/main.js', 'web/src/guide.js']) {
+	for (const datei of ['web/src/main.js', 'web/src/guide.js', 'web/src/eye.js']) {
 		const quelle = readFileSync(datei, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 		assert.equal(/\.innerHTML|insertAdjacentHTML|document\.write/.test(quelle), false, datei);
 	}
