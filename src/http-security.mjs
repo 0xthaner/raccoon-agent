@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { checkRateLimit } from './db.mjs';
 import { dashboardSecretConfigured } from './dashboard-auth.mjs';
+import { siweOrigin } from './siwe-auth.mjs';
 
 const JSON_TYPE = /^application\/json(?:\s*;|$)/i;
 
@@ -34,6 +35,18 @@ export function requireJson(request, response, maxBytes = 16_384) {
 	return true;
 }
 
+/**
+ * AGENT-SEC-W2: hier stand ein Rueckfall auf `https://${request.headers.host}`,
+ * falls `APP_BASE_URL` fehlt. Damit entschied ein Requestwert darueber, welche
+ * Herkunft als die eigene gilt - genau das, was `siweOrigin()` eine Datei weiter
+ * mit ausfuehrlicher Begruendung ausschliesst. Aus dem Browser war es nicht
+ * ausnutzbar, weil dieser `Host` selbst auf das echte Ziel setzt; aber es war
+ * eine Vertrauensquelle, die hier nichts zu suchen hat.
+ *
+ * Jetzt gilt dieselbe Herkunft wie fuer die Anmeldung, aus derselben Funktion.
+ * Ist sie nicht konfiguriert, gibt es keinen Rueckfall, sondern 503 - wie beim
+ * fehlenden Rate-Limit-Secret eine Zeile weiter oben.
+ */
 export function requireSameOrigin(request, response) {
 	const site = String(request.headers['sec-fetch-site'] ?? '').toLowerCase();
 	if (site && !['same-origin', 'none'].includes(site)) {
@@ -42,8 +55,13 @@ export function requireSameOrigin(request, response) {
 	}
 	const origin = request.headers.origin;
 	if (!origin) return true;
-	const configured = process.env.APP_BASE_URL?.trim();
-	const expected = configured ? new URL(configured).origin : `https://${request.headers.host}`;
+	let expected;
+	try {
+		expected = siweOrigin().uri;
+	} catch {
+		response.status(503).json({ ok: false, error: 'Security configuration missing.' });
+		return false;
+	}
 	if (origin !== expected) {
 		response.status(403).json({ ok: false, error: 'Invalid request origin.' });
 		return false;

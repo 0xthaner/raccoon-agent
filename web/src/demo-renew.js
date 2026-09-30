@@ -1,3 +1,5 @@
+import { appKitMethoden, WALLET_METHODEN_DEMO } from './wallet-methods.js';
+
 const token = new URLSearchParams(location.search).get('token');
 const preview = new URLSearchParams(location.search).get('preview') === '1';
 const status = document.querySelector('#status');
@@ -106,7 +108,7 @@ async function setupWalletConnect() {
 		Mit gesetzter Schrift entfaellt der ganze Zweig, und das Fenster traegt
 		dieselbe Schrift wie der Rest der Seite.
 	*/
-	appKit = createAppKit({ themeVariables: { '--apkt-font-family': "'Satoshi', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" }, adapters: [new EthersAdapter()], networks: [mainnet], projectId: config.reownProjectId, metadata: { name: 'Raccoon Agent', description: 'Personal DeFi cover renewal', url: location.origin, icons: [] }, features: { analytics: false, email: false, socials: [] } });
+	appKit = createAppKit({ universalProviderConfigOverride: appKitMethoden(WALLET_METHODEN_DEMO), themeVariables: { '--apkt-font-family': "'Satoshi', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" }, adapters: [new EthersAdapter()], networks: [mainnet], projectId: config.reownProjectId, metadata: { name: 'Raccoon Agent', description: 'Personal DeFi cover renewal', url: location.origin, icons: [] }, features: { analytics: false, email: false, socials: [] } });
 	walletconnect.addEventListener('click', async () => {
 		try {
 			await connectViaAppKit();

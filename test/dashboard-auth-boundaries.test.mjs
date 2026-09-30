@@ -374,20 +374,30 @@ test('R37 der Login setzt das Host-Cookie an genau einer Stelle', () => {
 	assert.equal(source('../api/link/verify.mjs').includes('sessionCookieHeader'), false);
 });
 
+/*
+	AGENT-SEC-W1: der Waechter sah bisher nur `main.js`. `demo-renew.js` spricht
+	ebenfalls mit einer Wallet und war damit der eine Ort, an dem ein echtes
+	`approve` haette landen koennen, ohne dass es jemand bemerkt. Beide Dateien
+	stehen jetzt in derselben Schranke.
+*/
+const WALLET_CLIENTS = ['../web/src/main.js', '../web/src/demo-renew.js'];
+
 test('R38 bis R42 der Client signiert nur und schreibt nichts', () => {
-	const code = source('../web/src/main.js');
-	assert.ok(code.includes("method: 'personal_sign'"));
-	for (const forbidden of [
-		'eth_sendTransaction',
-		'wallet_sendCalls',
-		'eth_signTransaction',
-		'eth_signTypedData',
-		'signTypedData',
-		'writeContract',
-		'sendTransaction'
-	]) {
-		assert.equal(code.includes(forbidden), false, forbidden);
+	for (const datei of WALLET_CLIENTS) {
+		const code = source(datei);
+		assert.ok(code.includes("method: 'personal_sign'"), datei);
+		for (const forbidden of [
+			'eth_sendTransaction',
+			'wallet_sendCalls',
+			'eth_signTransaction',
+			'eth_signTypedData',
+			'signTypedData',
+			'writeContract',
+			'sendTransaction'
+		]) {
+			assert.equal(code.includes(forbidden), false, `${datei}: ${forbidden}`);
+		}
+		assert.equal(/\bapprove\s*\(/.test(code), false, datei);
+		assert.equal(/\bpermit\s*\(/.test(code), false, datei);
 	}
-	assert.equal(/\bapprove\s*\(/.test(code), false);
-	assert.equal(/\bpermit\s*\(/.test(code), false);
 });

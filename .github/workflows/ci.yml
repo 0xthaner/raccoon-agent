@@ -1,0 +1,41 @@
+# AGENT-SEC-W1, 30.09.2026: die Waechter laufen jetzt bei jedem Push.
+#
+# Das Audit vom 30.09.2026 hielt fest, dass fuenfzehn Testdateien mit 133 gruenen
+# Tests im Repository lagen - und nichts sie ausfuehrte. Kein Workflow, kein
+# Git-Hook, kein Buildschritt; `vercel.json` baut mit `build:web` und ruft weder
+# `test` noch `check`. Betroffen war ausgerechnet der wichtigste Wallet-Waechter
+# des Projekts, `R38 bis R42 der Client signiert nur und schreibt nichts`. Ein
+# guter Waechter, der nie anschlug, weil ihn niemand startete.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    env:
+      # Kein Geheimnis und keine echte Adresse: `src/db.mjs` wirft beim Import,
+      # wenn diese beiden Variablen fehlen, und nimmt damit `alerts.test.mjs`
+      # mit. Kein Test macht einen Netzaufruf - nachgewiesen ueber alle fuenfzehn
+      # Dateien -, also genuegen zwei Attrappen. Eine .invalid-Domain kann per
+      # RFC 2606 nicht aufloesen: faellt doch einmal ein echter Aufruf hinein,
+      # scheitert er sofort, statt still irgendwohin zu gehen.
+      SUPABASE_URL: https://example.invalid
+      SUPABASE_SECRET_KEY: ci-dummy-not-a-real-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Dieselbe Hauptversion wie in `engines.node`.
+          node-version: '24'
+          cache: npm
+      # Dieselbe Installation wie auf Vercel, damit CI und Deploy nicht
+      # unterschiedliche Baeume pruefen.
+      - run: npm ci --ignore-scripts
+      # Die Sicherheitswaechter zuerst: schlaegt einer an, braucht der Rest
+      # nicht mehr zu laufen.
+      - run: npm run test:ci
+      - run: npm run check:ci

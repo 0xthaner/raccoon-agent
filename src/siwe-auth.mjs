@@ -85,7 +85,8 @@ export function telegramRequestId(code) {
  */
 function explicitlyNonProduction() {
 	const vercel = process.env.VERCEL_ENV?.trim();
-	if (vercel) return vercel !== 'production' && vercel === 'development';
+	// Auf Vercel zaehlt AUSSCHLIESSLICH `development`; `preview` gilt wie Production.
+	if (vercel) return vercel === 'development';
 	const node = process.env.NODE_ENV?.trim();
 	return node === 'development' || node === 'test';
 }

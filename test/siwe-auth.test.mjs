@@ -117,7 +117,15 @@ test('5 kein Requestwert kann die Domain ueberschreiben', () => {
 	// Query und Body ausdruecklich, um ihre Abwesenheit zu erklaeren. Eine
 	// Pruefung, die dieses negierende Wort mitzaehlt, verfehlt ihren Gegenstand.
 	const source = readFileSync(new URL('../src/siwe-auth.mjs', import.meta.url), 'utf8');
-	const code = source.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ').toLowerCase();
+	/*
+		AGENT-SEC-W2: das `[^:]` ist notwendig. Ohne es haelt der Filter das `//` in
+		`https://` fuer einen Zeilenkommentar und loescht den Rest der Zeile - diese
+		Pruefung war damit auf jeder Zeile blind, die eine Adresse enthaelt.
+	*/
+	const code = source
+		.replace(/\/\*[\s\S]*?\*\//g, (treffer) => treffer.replace(/[^\n]/g, ' '))
+		.replace(/(^|[^:])\/\/[^\n]*/g, (treffer, vor) => vor + ' '.repeat(treffer.length - vor.length))
+		.toLowerCase();
 	// Echte Requestzugriffe, nicht das blosse Wort: `requestId` ist ein
 	// legitimes SIWE-Feld und darf die Pruefung nicht ausloesen.
 	for (const untrusted of [

@@ -1,3 +1,5 @@
+import { appKitMethoden, WALLET_METHODEN_ANMELDEN } from './wallet-methods.js';
+
 const status = document.querySelector('#status');
 const wcButton = document.querySelector('#walletconnect');
 const injectedButton = document.querySelector('#injected');
@@ -287,7 +289,7 @@ async function setupWalletConnect() {
 			wcSchluessel: Object.keys(localStorage).filter((k) => /^wc@2:/.test(k)).length
 		});
 	}
-	const modal = createAppKit({ themeVariables: { '--apkt-font-family': "'Satoshi', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" }, adapters: [new EthersAdapter()], networks: [mainnet], projectId: config.reownProjectId, metadata: { name: 'Raccoon Agent', description: 'Personal DeFi cover monitoring', url: location.origin, icons: [`${location.origin}/holo-raccoon.svg`] }, allWallets: 'SHOW', enableCoinbase: false, features: { analytics: false, email: false, socials: [] }, debug: walletDebug });
+	const modal = createAppKit({ universalProviderConfigOverride: appKitMethoden(WALLET_METHODEN_ANMELDEN), themeVariables: { '--apkt-font-family': "'Satoshi', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" }, adapters: [new EthersAdapter()], networks: [mainnet], projectId: config.reownProjectId, metadata: { name: 'Raccoon Agent', description: 'Personal DeFi cover monitoring', url: location.origin, icons: [`${location.origin}/holo-raccoon.svg`] }, allWallets: 'SHOW', enableCoinbase: false, features: { analytics: false, email: false, socials: [] }, debug: walletDebug });
 	/*
 		AGENT-UX-3: schlaegt die WalletConnect-Paarung fehl, gibt es keine
 		Paarungsadresse - und damit keinen QR-Code. Der Dialog schloss sich dann
