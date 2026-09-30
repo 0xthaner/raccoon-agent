@@ -223,13 +223,36 @@ async function finish(wallet, sign) {
 
 if (code) applyLanguage(language);
 
+/*
+	AGENT-SEC-W3: dasselbe wie W2, fuer die Browser-Erweiterung. Dort gibt es
+	keine WalletConnect-Sitzung, aber die Erweiterung merkt sich die Seite als
+	"verbunden" - und eine verbundene Seite darf ohne neue Rueckfrage Konten
+	lesen und Anfragen stellen. Nach der Signatur wird diese Freigabe wieder
+	entzogen (EIP-2255, von MetaMask unterstuetzt). Wallets, die das nicht
+	kennen, lehnen ab; das wird still hingenommen, der Login ist dann trotzdem
+	gueltig. Folge: beim naechsten Login fragt die Erweiterung wieder, ob sie
+	sich verbinden soll. Das ist gewollt.
+*/
+async function trenneBrowserWallet() {
+	try {
+		await withTimeout(window.ethereum.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] }), 5000, 'revoke timeout');
+		debugWallet('Browser-Wallet-Freigabe entzogen');
+	} catch (error) {
+		debugWallet('Browser-Wallet-Freigabe nicht entzogen', error?.message ?? error);
+	}
+}
+
 injectedButton.addEventListener('click', async () => {
+	let verbunden = false;
 	try {
 		if (!window.ethereum) throw new Error('Keine Browser-Wallet gefunden. Nutze „Connect mobile wallet“.');
 		show('Browser-Wallet wird verbunden …');
 		const [wallet] = await window.ethereum.request({ method: 'eth_requestAccounts' });
+		verbunden = true;
 		await finish(wallet, (message) => window.ethereum.request({ method: 'personal_sign', params: [message, wallet] }));
-	} catch (error) { show(error.message); }
+	} catch (error) { show(error.message); } finally {
+		if (verbunden) await trenneBrowserWallet();
+	}
 });
 
 async function setupWalletConnect() {

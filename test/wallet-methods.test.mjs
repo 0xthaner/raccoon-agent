@@ -157,3 +157,24 @@ test('W2 die WalletConnect-Sitzung wird nach der Signatur immer getrennt', () =>
 	assert.ok(zweig > signatur, 'finally steht nach der Signatur');
 	assert.match(handler.slice(zweig), /await trenneWalletConnect\(modal\)/);
 });
+
+/*
+	AGENT-SEC-W3: dasselbe fuer die Browser-Erweiterung. Sie hat keine
+	WalletConnect-Sitzung, merkt sich die Seite aber als verbunden. Nach der
+	Signatur wird diese Freigabe entzogen - im `finally`, also auch nach einem
+	Fehler, und nur fuer Kontenfreigaben, nichts anderes.
+*/
+test('W3 die Browser-Wallet-Freigabe wird nach der Signatur entzogen', () => {
+	const quelle = ohneKommentare(source('../web/src/main.js'));
+	const trenner = quelle.slice(quelle.indexOf('async function trenneBrowserWallet('));
+	const koerper = trenner.slice(0, trenner.indexOf('\n}'));
+	assert.match(koerper, /method: 'wallet_revokePermissions', params: \[\{ eth_accounts: \{\} \}\]/);
+
+	const klick = quelle.slice(quelle.indexOf("injectedButton.addEventListener('click'"));
+	const handler = klick.slice(0, klick.indexOf('\n});'));
+	const signatur = handler.indexOf("method: 'personal_sign'");
+	const zweig = handler.indexOf('finally {');
+	assert.ok(signatur > 0, 'der Browser-Wallet-Weg signiert');
+	assert.ok(zweig > signatur, 'finally steht nach der Signatur');
+	assert.match(handler.slice(zweig), /await trenneBrowserWallet\(\)/);
+});

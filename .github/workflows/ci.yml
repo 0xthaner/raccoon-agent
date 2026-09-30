@@ -26,8 +26,11 @@ jobs:
       SUPABASE_URL: https://example.invalid
       SUPABASE_SECRET_KEY: ci-dummy-not-a-real-key
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # Auf Commit festgenagelt statt auf ein Tag: ein Tag laesst sich nachtraeglich
+      # umhaengen, ein Commit nicht. v7 laeuft auf Node 24 (v4 auf dem
+      # abgekuendigten Node 20, daher die Warnung in jedem Lauf).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           # Dieselbe Hauptversion wie in `engines.node`.
           node-version: '24'
