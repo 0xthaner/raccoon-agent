@@ -1,6 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { checkExpiryAlerts } from '../src/alerts.mjs';
-import { beginTelegramDelivery, finishTelegramDelivery } from '../src/db.mjs';
+import { beginTelegramDelivery, finishTelegramDelivery, purgeOldRecords } from '../src/db.mjs';
 
 function authorized(header) {
 	const expected = process.env.CRON_SECRET?.trim() ?? '';
@@ -34,5 +34,8 @@ export default async function handler(request, response) {
 	if (!authorized(request.headers.authorization)) return response.status(401).json({ ok: false });
 	const dashboardUrl = (process.env.APP_BASE_URL?.trim() || '').replace(/\/$/, '');
 	const result = await checkExpiryAlerts({ sendMessage, dashboardUrl });
-	return response.status(200).json({ ok: true, ...result });
+	// Nach den Erinnerungen und unabhaengig davon: scheitert die Bereinigung,
+	// steht es im Ergebnis, aber keine Erinnerung ist verloren.
+	const bereinigt = await purgeOldRecords().catch((error) => ({ fehler: error?.message ?? 'unbekannt' }));
+	return response.status(200).json({ ok: true, ...result, bereinigt });
 }

@@ -413,3 +413,38 @@ export async function saveChatProductContext(chatId, productIds) {
 	value(await db.from('chat_product_context').upsert({ chat_id: String(chatId), product_ids: ids, updated_at: new Date().toISOString() }, { onConflict: 'chat_id' }));
 	value(await db.from('chat_product_context').delete().lt('updated_at', new Date(Date.now() - PRODUCT_CONTEXT_TTL_MS).toISOString()));
 }
+
+/*
+	Taegliche Bereinigung, angestossen vom Lauf um 8 Uhr (api/alerts.mjs).
+
+	Bis 01.10.2026 wurden Protokolle nie geloescht, obwohl die
+	Datenschutzinformation "nur solange erforderlich" verspricht. Jetzt:
+	Ereignisse, Zustellprotokolle und Erinnerungs-Nachweise nach 90 Tagen,
+	Login-Codes sobald sie abgelaufen sind (danach sind sie wertlos).
+	Wallet-Verknuepfungen, Einstellungen und Cover-Abbilder bleiben, bis jemand
+	trennt; sie sind keine Protokolle, sondern der Dienst selbst.
+*/
+export const RETENTION_DAYS = 90;
+
+export async function purgeOldRecords({ client = db, now = Date.now() } = {}) {
+	const cutoff = new Date(now - RETENTION_DAYS * 86_400_000).toISOString();
+	const jetzt = new Date(now).toISOString();
+	const rules = [
+		['agent_events', 'occurred_at', cutoff],
+		['telegram_deliveries', 'attempted_at', cutoff],
+		['sent_alerts', 'ends_at', cutoff],
+		['weekly_summary_log', 'sent_at', cutoff],
+		['dashboard_challenges', 'expires_at', jetzt]
+	];
+	const result = {};
+	for (const [table, column, before] of rules) {
+		// Einzeln, damit eine fehlende oder gesperrte Tabelle die anderen nicht aufhaelt.
+		try {
+			const { error, count } = await client.from(table).delete({ count: 'exact' }).lt(column, before);
+			result[table] = error ? `fehler: ${error.message}` : count ?? 0;
+		} catch (error) {
+			result[table] = `fehler: ${error?.message ?? 'unbekannt'}`;
+		}
+	}
+	return result;
+}
