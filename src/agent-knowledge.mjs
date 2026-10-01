@@ -1,4 +1,7 @@
 import { getNexusProductFacts } from './nexus-facts.mjs';
+import { filterAnswer } from './answer-filter.mjs';
+
+const botUsername = process.env.TELEGRAM_BOT_USERNAME?.trim() || '';
 
 const apiKey = process.env.OPENAI_API_KEY?.trim() || '';
 const model = process.env.OPENAI_AGENT_MODEL?.trim() || 'gpt-5.6-luna';
@@ -58,7 +61,8 @@ export async function answerProductQuestion(question, language = 'de', fetchImpl
 		});
 		if (!response.ok) return null;
 		const answer = outputText(await response.json());
-		return answer ? answer.slice(0, 3_500) : null;
+		if (!answer) return null;
+		return filterAnswer(answer, { kontext: `${productKnowledge}\n${nexusBasics}\n${productFacts ?? ''}`, botUsername }).text.slice(0, 3_500);
 	} catch {
 		return null;
 	}
@@ -81,7 +85,8 @@ export async function answerGroupQuestion(question, language = 'de', fetchImpl =
 		});
 		if (!response.ok) return null;
 		const answer = outputText(await response.json());
-		return answer ? answer.slice(0, 2_000) : null;
+		if (!answer) return null;
+		return filterAnswer(answer, { kontext: `${productKnowledge}\n${nexusBasics}\n${productFacts ?? ''}`, botUsername }).text.slice(0, 2_000);
 	} catch {
 		return null;
 	}
