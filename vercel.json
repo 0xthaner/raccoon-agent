@@ -30,7 +30,6 @@
     { "source": "/de", "destination": "https://analysen.coverraccoon.com/de", "permanent": false },
     { "source": "/de/:path*", "destination": "https://analysen.coverraccoon.com/de/:path*", "permanent": false },
     { "source": "/agb", "destination": "https://analysen.coverraccoon.com/agb", "permanent": false },
-    { "source": "/impressum", "destination": "https://analysen.coverraccoon.com/impressum", "permanent": false },
     { "source": "/brokers", "destination": "https://analysen.coverraccoon.com/brokers", "permanent": false },
     { "source": "/brokers/:path*", "destination": "https://analysen.coverraccoon.com/brokers/:path*", "permanent": false },
     { "source": "/covered", "destination": "https://analysen.coverraccoon.com/covered", "permanent": false },
@@ -61,6 +60,8 @@
     { "source": "/anleitung", "destination": "/guide.html" },
     { "source": "/guide", "destination": "/guide.html" },
     { "source": "/datenschutz", "destination": "/datenschutz.html" },
-    { "source": "/privacy", "destination": "/datenschutz.html" }
+    { "source": "/privacy", "destination": "/datenschutz.html" },
+    { "source": "/impressum", "destination": "/impressum.html" },
+    { "source": "/imprint", "destination": "/impressum.html" }
   ]
 }

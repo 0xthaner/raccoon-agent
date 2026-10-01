@@ -7,7 +7,8 @@ export default defineConfig({
 			input: {
 				main: resolve('web/index.html'),
 				guide: resolve('web/guide.html'),
-				privacy: resolve('web/datenschutz.html')
+				privacy: resolve('web/datenschutz.html'),
+				imprint: resolve('web/impressum.html')
 			}
 		}
 	}
