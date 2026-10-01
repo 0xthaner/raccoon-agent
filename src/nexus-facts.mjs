@@ -145,15 +145,26 @@ async function fetchJson(url, fetchImpl) {
  * Der Fakten-Block fuer die Antwort auf eine Produktfrage. `null`, wenn die
  * Frage kein Produkt nennt; ein Hinweis, wenn Nexus nicht erreichbar ist.
  */
-export async function getNexusProductFacts(question, { fetchImpl = fetch, now = Date.now() } = {}) {
+export async function getNexusProductFacts(question, { fetchImpl = fetch, now = Date.now(), previousProductIds = null, onProducts = null } = {}) {
 	let catalog;
 	try {
 		catalog = await getCatalog(fetchImpl, now);
 	} catch {
 		return 'Nexus Mutual product data is unavailable right now.';
 	}
-	const matches = matchProducts(question, catalog);
+	let matches = matchProducts(question, catalog);
+	/*
+		Rueckfrage ohne Produktnamen ("und was ist da versichert?"): war gerade
+		eben von einem Produkt die Rede, gilt die Frage diesem. Der Bot merkt
+		sich dafuer nur die Produkt-IDs, 15 Minuten lang (db.mjs).
+	*/
+	let fromContext = false;
+	if (!matches.length && Array.isArray(previousProductIds) && previousProductIds.length) {
+		matches = catalog.filter((p) => previousProductIds.includes(p.id)).slice(0, MAX_CANDIDATES);
+		fromContext = matches.length > 0;
+	}
 	if (!matches.length) return null;
+	if (onProducts) await Promise.resolve(onProducts(matches.map((p) => p.id))).catch(() => {});
 	const retrievedAt = new Date(now).toISOString();
 	const blocks = await Promise.all(matches.map(async (p) => {
 		let capacity = null;
@@ -182,9 +193,11 @@ export async function getNexusProductFacts(question, { fetchImpl = fetch, now = 
 			p.annexUrl ? `Official product annex: ${p.annexUrl}` : null
 		].filter(Boolean).join('\n');
 	}));
-	const header = matches.length > 1
-		? `Several Nexus Mutual products match the question. Ask which one is meant before going into detail.`
-		: 'One Nexus Mutual product matches the question.';
+	const header = fromContext
+		? `This message names no product, but the conversation was about ${matches.length > 1 ? 'these products' : 'this product'} a moment ago. Treat the question as referring to ${matches.length > 1 ? 'them; if it matters which one, ask' : 'it'}.`
+		: matches.length > 1
+			? `Several Nexus Mutual products match the question. Ask which one is meant before going into detail.`
+			: 'One Nexus Mutual product matches the question.';
 	return `${header}\nSource: api.nexusmutual.io, retrieved ${retrievedAt}\n\n${blocks.join('\n\n')}`;
 }
 

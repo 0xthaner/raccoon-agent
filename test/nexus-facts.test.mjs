@@ -81,6 +81,22 @@ test('eingestellte Produkte bekommen keinen Preis von 0 Prozent', async () => {
 	assert.ok(!aufrufe.some((a) => a.includes('/v2/capacity/')), 'Kapazitaet wird gar nicht erst geholt');
 });
 
+test('eine Rueckfrage ohne Produktnamen bezieht sich auf das gerade besprochene Produkt', async () => {
+	// Echter Verlauf vom 01.10.2026: "Was kostet a Versicherung fuer AAVE" -> "Ja und was ist da versichert?"
+	const { fetchImpl } = nexus();
+	let gemerkt = null;
+	await getNexusProductFacts('Was kostet a Versicherung für Aave v3', { fetchImpl, onProducts: (ids) => { gemerkt = ids; } });
+	assert.deepEqual(gemerkt, [97]);
+	const facts = await getNexusProductFacts('Ja und was ist da versichert?', { fetchImpl, previousProductIds: gemerkt });
+	assert.match(facts, /conversation was about this product a moment ago/);
+	assert.match(facts, /Product: Aave v3/);
+	assert.match(facts, /Official cover wording/);
+	// Ohne Vorgeschichte bleibt es bei "kein Produkt".
+	assert.equal(await getNexusProductFacts('Ja und was ist da versichert?', { fetchImpl }), null);
+	// Ein neu genanntes Produkt schlaegt den Kontext.
+	assert.match(await getNexusProductFacts('Und Sky Savings Rate?', { fetchImpl, previousProductIds: [97] }), /Sky Savings Rate/);
+});
+
 test('mehrere Treffer fuehren zur Rueckfrage', async () => {
 	const { fetchImpl } = nexus();
 	const facts = await getNexusProductFacts('Aave v3 oder Sky Savings Rate?', { fetchImpl });

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { productKnowledge } from '../src/agent-knowledge.mjs';
 
 test('product knowledge states the safety boundary and excludes autonomous purchases', () => {
@@ -8,6 +9,9 @@ test('product knowledge states the safety boundary and excludes autonomous purch
 	assert.match(productKnowledge, /never asks for or stores a seed phrase/i);
 	// Seit 01.10.2026 live von der Kette; der fruehere Weg ueber die Coverraccoon Agent API darf nicht mehr behauptet werden.
 	assert.match(productKnowledge, /read live from the Ethereum blockchain/i);
+	// Telegram zeigt Markdown als Rohtext (kein parse_mode); die Anweisung muss reinen Text verlangen.
+	const quelle = readFileSync(new URL('../src/agent-knowledge.mjs', import.meta.url), 'utf8');
+	assert.equal(quelle.split('Write plain text only: no Markdown').length - 1, 2, 'privat und Gruppe');
 	assert.doesNotMatch(productKnowledge, /Coverraccoon Agent API/i);
 	assert.match(productKnowledge, /public Nexus Mutual product data/i);
 	assert.match(productKnowledge, /no wallet address, personal cover data, or Telegram chat ID/i);

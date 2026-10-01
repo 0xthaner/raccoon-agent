@@ -1,4 +1,4 @@
-import { beginTelegramDelivery, consumeTelegramHandoff, finishTelegramDelivery, forgetRememberedWallet, getLanguage, getMonitoredWallets, getRememberedWallets, getWalletLink, recordAgentEvent, rememberUnlinkedWallet, renameMonitoredWallet, revokeDashboardSessions, setLanguage, setPrimaryWallet, setWalletAlertSettings, snoozeCoverAlert, unlinkWallet } from './db.mjs';
+import { beginTelegramDelivery, consumeTelegramHandoff, getChatProductContext, saveChatProductContext, finishTelegramDelivery, forgetRememberedWallet, getLanguage, getMonitoredWallets, getRememberedWallets, getWalletLink, recordAgentEvent, rememberUnlinkedWallet, renameMonitoredWallet, revokeDashboardSessions, setLanguage, setPrimaryWallet, setWalletAlertSettings, snoozeCoverAlert, unlinkWallet } from './db.mjs';
 import { newDashboardAccess, newLinkRequest } from './linking.mjs';
 import { startWebServer } from './web.mjs';
 import { CoverDataError, formatWalletCovers, getWalletCovers } from './covers.mjs';
@@ -337,7 +337,11 @@ async function handleNaturalLanguage(message, language) {
 		case 'open_dashboard': return handleMessage({ ...message, text: '/dashboard', _agentRouted: true });
 		case 'help': return handleMessage({ ...message, text: '/help', _agentRouted: true });
 		case 'explain_product': {
-			const answer = await answerProductQuestion(message.text, language);
+			const previousProductIds = await getChatProductContext(message.chat.id).catch(() => null);
+			const answer = await answerProductQuestion(message.text, language, fetch, {
+				previousProductIds,
+				onProducts: (ids) => saveChatProductContext(message.chat.id, ids)
+			});
 			const wallet = await getWalletLink(message.chat.id);
 			const dashboard = wallet ? await newDashboardAccess(wallet.wallet) : null;
 			await sendMessage(message.chat.id, answer ?? (language === 'en' ? 'I could not answer that reliably right now. You can find the verified process in the guide.' : language === 'zh' ? '我目前无法可靠地回答这个问题。你可以在使用指南中查看经过核实的流程。' : 'Das kann ich gerade nicht zuverlässig beantworten. Den geprüften Ablauf findest du in der Anleitung.'), {

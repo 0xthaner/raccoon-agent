@@ -393,3 +393,23 @@ export async function recordAlertSent(chatId, coverId, endsAt, thresholdDays) {
 		sent_at: new Date().toISOString()
 	}, { onConflict: 'chat_id,cover_id,ends_at,threshold_days', ignoreDuplicates: true }));
 }
+
+/*
+	Das zuletzt besprochene Produkt eines privaten Chats, fuer Rueckfragen wie
+	"und was ist da versichert?". Gilt 15 Minuten; aeltere Zeilen werden beim
+	Schreiben mit aufgeraeumt. Nur Produkt-IDs, kein Text.
+*/
+export const PRODUCT_CONTEXT_TTL_MS = 15 * 60 * 1000;
+
+export async function getChatProductContext(chatId, now = Date.now()) {
+	const row = value(await db.from('chat_product_context').select('product_ids, updated_at').eq('chat_id', String(chatId)).maybeSingle());
+	if (!row || now - Date.parse(row.updated_at) > PRODUCT_CONTEXT_TTL_MS) return null;
+	return Array.isArray(row.product_ids) ? row.product_ids.filter(Number.isInteger) : null;
+}
+
+export async function saveChatProductContext(chatId, productIds) {
+	const ids = [...new Set(productIds)].filter(Number.isInteger).slice(0, 5);
+	if (!ids.length) return;
+	value(await db.from('chat_product_context').upsert({ chat_id: String(chatId), product_ids: ids, updated_at: new Date().toISOString() }, { onConflict: 'chat_id' }));
+	value(await db.from('chat_product_context').delete().lt('updated_at', new Date(Date.now() - PRODUCT_CONTEXT_TTL_MS).toISOString()));
+}
