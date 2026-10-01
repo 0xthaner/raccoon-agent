@@ -1,0 +1,7 @@
+# Lokale Geheimnisse gehen nie mit in ein Deployment. Bis 01.10.2026 lud
+# `vercel --prod` die lokale .env (Telegram-Bot-Token, Supabase-Schluessel) als
+# Quelldatei mit hoch; sichtbar nur im eigenen Vercel-Konto, aber unnoetig.
+# Die echten Werte stehen in den Vercel-Einstellungen.
+.env
+.env.*
+!.env.example

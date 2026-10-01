@@ -226,6 +226,41 @@ async function finish(wallet, sign) {
 if (code) applyLanguage(language);
 
 /*
+	Verknuepfungsmodus: vor dem Signieren zeigen, mit WELCHEM Telegram-Konto die
+	Wallet verbunden wird. Ein fremder Link ("bitte kurz bestaetigen") faellt so
+	auf, bevor jemand seine Wallet an einen fremden Chat haengt.
+*/
+async function zeigeTelegramKonto() {
+	const feld = document.querySelector('#link-account');
+	if (!code || !feld) return;
+	const de = language === 'de';
+	const info = await fetch(`/api/link?code=${encodeURIComponent(code)}`).then((res) => res.json()).catch(() => null);
+	feld.replaceChildren();
+	if (!info?.ok) {
+		feld.classList.add('warn');
+		feld.textContent = info?.error || (de ? 'Der Verknüpfungslink konnte nicht geprüft werden.' : 'The link could not be checked.');
+		feld.hidden = false;
+		return;
+	}
+	const konto = info.telegram;
+	if (!konto) {
+		feld.classList.add('warn');
+		feld.textContent = de
+			? 'Das Telegram-Konto zu diesem Link ließ sich nicht anzeigen. Verbinde nur, wenn du den Link gerade selbst im Raccoon-Agent-Bot angefordert hast.'
+			: 'The Telegram account for this link could not be shown. Only connect if you just requested this link yourself in the Raccoon Agent bot.';
+		feld.hidden = false;
+		return;
+	}
+	const anzeige = konto.username ? `@${konto.username}${konto.name ? ` (${konto.name})` : ''}` : konto.name;
+	feld.append(document.createTextNode(de ? 'Deine Wallet wird mit diesem Telegram-Konto verknüpft: ' : 'Your wallet will be linked to this Telegram account: '));
+	const fett = document.createElement('strong');
+	fett.textContent = anzeige;
+	feld.append(fett, document.createTextNode(de ? '. Ist das nicht dein eigenes Konto, brich hier ab.' : '. If this is not your own account, stop here.'));
+	feld.hidden = false;
+}
+zeigeTelegramKonto();
+
+/*
 	AGENT-SEC-W3: dasselbe wie W2, fuer die Browser-Erweiterung. Dort gibt es
 	keine WalletConnect-Sitzung, aber die Erweiterung merkt sich die Seite als
 	"verbunden" - und eine verbundene Seite darf ohne neue Rueckfrage Konten

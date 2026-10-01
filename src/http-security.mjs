@@ -78,6 +78,13 @@ export function requireSameOrigin(request, response) {
  * Der Wert geht nur als HMAC in den Schluessel: der Zaehler soll den Code
  * begrenzen, ihn aber nirgends im Klartext ablegen.
  */
+/** Pseudonyme Zaehl-Kennung fuer Begrenzungen ausserhalb von HTTP (z. B. Bot-Nachrichten). */
+export function rateKey(scope, wert) {
+	const secret = rateSecret();
+	if (!secret) return null;
+	return `${scope}:${createHmac('sha256', secret).update(String(wert)).digest('hex')}`;
+}
+
 export async function enforceRateLimitFor(response, scope, wert, maxRequests, windowSeconds) {
 	const secret = rateSecret();
 	if (!secret) {

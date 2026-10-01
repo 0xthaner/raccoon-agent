@@ -5,6 +5,7 @@ import { CoverDataError, formatWalletCovers, getWalletCovers } from './covers.mj
 import { checkExpiryAlerts } from './alerts.mjs';
 import { authenticPrivateMessage, telegramTimingMetadata } from './telegram-audit.mjs';
 import { classifyAgentIntent } from './agent-intent.mjs';
+import { allowAiRequest } from './ai-budget.mjs';
 import { answerGroupQuestion, answerProductQuestion } from './agent-knowledge.mjs';
 import { groupLanguage, groupQuestion, isGroupMessageForBot } from './group-chat.mjs';
 
@@ -129,6 +130,8 @@ function privateChatKeyboard(language) {
 
 async function handleGroupMessage(message) {
 	if (!isGroupMessageForBot(message, configuredUsername)) return;
+	// Ueber der Grenze schweigt der Bot in Gruppen: eine Hinweisnachricht je Spam-Nachricht waere selbst Spam.
+	if (!await allowAiRequest({ chatId: message.chat.id, senderId: message.from?.id, isGroup: true })) return;
 	const language = groupLanguage(message);
 	const question = groupQuestion(message, configuredUsername);
 	const decision = await classifyAgentIntent(question || 'hello', language);
@@ -328,6 +331,10 @@ async function sendNextExpiry(chatId, language) {
 }
 
 async function handleNaturalLanguage(message, language) {
+	if (!await allowAiRequest({ chatId: message.chat.id })) {
+		await sendMessage(message.chat.id, language === 'en' ? 'That was a lot of questions in a short time. Please try again in a little while; commands and buttons keep working.' : language === 'zh' ? '短时间内问题太多了。请稍后再试；命令和按钮仍可使用。' : 'Das waren gerade viele Fragen auf einmal. Versuch es bitte in einer Weile wieder; Befehle und Knöpfe funktionieren weiterhin.');
+		return;
+	}
 	const decision = await classifyAgentIntent(message.text, language);
 	await recordAgentEvent({ chatId: message.chat.id, eventType: 'agent.intent', source: 'telegram', command: decision.intent, metadata: { classifier: decision.source } }).catch(() => {});
 	switch (decision.intent) {
