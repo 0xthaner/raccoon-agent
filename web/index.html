@@ -103,6 +103,23 @@
       button:disabled { opacity: .42; cursor: not-allowed; transform: none; }
       .security { position: relative; z-index: 1; display: flex; align-items: flex-start; gap: 10px; margin: 25px 0 0; padding-top: 20px; border-top: 1px solid var(--line-soft); color: var(--dim); font-size: .7rem; line-height: 1.48; }
       .security svg { flex: 0 0 auto; margin-top: 1px; color: var(--silver); }
+      .verify { position: relative; z-index: 1; margin: 12px 0 0; font-size: .7rem; }
+      .verify summary { display: inline-flex; align-items: center; gap: 9px; padding: 6px 0; color: var(--silver); list-style: none; cursor: pointer; transition: color .2s ease; }
+      .verify summary::-webkit-details-marker { display: none; }
+      .verify summary::after { content: "+"; color: var(--dim); font: 500 .75rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .verify[open] summary::after { content: "\2212"; }
+      .verify summary:hover { color: var(--white); }
+      .verify summary:focus-visible { outline: 1px solid var(--mint); outline-offset: 3px; border-radius: 4px; }
+      .verify-dot { flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; background: var(--mint); animation: verify-puls 2.8s ease-out infinite; }
+      .verify[open] .verify-dot { animation: none; box-shadow: 0 0 10px rgba(124,255,233,.5); }
+      @keyframes verify-puls {
+        0% { box-shadow: 0 0 0 0 rgba(124,255,233,.42), 0 0 9px rgba(124,255,233,.45); }
+        70% { box-shadow: 0 0 0 7px rgba(124,255,233,0), 0 0 9px rgba(124,255,233,.45); }
+        100% { box-shadow: 0 0 0 0 rgba(124,255,233,0), 0 0 9px rgba(124,255,233,.45); }
+      }
+      .verify-list { margin: 8px 0 2px; padding: 12px 14px 12px 30px; border: 1px solid var(--line-soft); border-radius: 10px; background: rgba(255,255,255,.02); color: var(--silver); line-height: 1.55; }
+      .verify-list li + li { margin-top: 6px; }
+      .verify-list li::marker { color: var(--mint); font-size: .65rem; }
       #status { position: relative; z-index: 1; margin-top: 14px; color: var(--silver); font-size: .8rem; line-height: 1.5; }
       #status:not(:empty) { padding: 12px 14px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,.025); }
       #status strong { color: var(--mint); font-weight: 570; }
@@ -192,7 +209,7 @@
         .cover-card { grid-template-columns:1fr; }
         .cover-action { grid-column:auto; }
       }
-      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } .verify-dot { animation: none; box-shadow: 0 0 9px rgba(124,255,233,.45); } }
     </style>
   </head>
   <body>
@@ -232,6 +249,15 @@
               <svg width="13" height="15" viewBox="0 0 13 15" fill="none" aria-hidden="true"><rect x="1" y="6" width="11" height="8" rx="2" stroke="currentColor"/><path d="M3.5 6V4a3 3 0 0 1 6 0v2" stroke="currentColor"/></svg>
               <span>Keine Transaktion, keine Freigabe und keine Gasgebühr.</span>
             </div>
+            <details class="verify">
+              <summary><span class="verify-dot" aria-hidden="true"></span><span id="verify-title">Woran erkenne ich eine echte Anfrage?</span></summary>
+              <ol class="verify-list">
+                <li id="verify-1">Es ist eine Signatur, keine Transaktion: kein Betrag, keine Gasgebühr.</li>
+                <li id="verify-2">Die Nachricht beginnt mit „coverraccoon.com wants you to sign in“, und die Adresszeile zeigt coverraccoon.com.</li>
+                <li id="verify-3">Kein „Permit“, kein „Approve“, kein Token-Betrag und kein unlesbarer Hex-Text. Siehst du so etwas, brich ab.</li>
+                <li id="verify-4">Links zum Verbinden einer Wallet kommen nur aus deinem privaten Chat mit dem Raccoon-Agent-Bot.</li>
+              </ol>
+            </details>
           </div>
         </section>
 
