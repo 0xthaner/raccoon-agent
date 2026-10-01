@@ -13,7 +13,7 @@ Expiry reminders can be configured for 30, 14, 7, 3, or 1 day before expiry and 
 Renewals through the agent are currently paused. The agent does not prepare, open, or link to any checkout, and it never asks the wallet for a transaction, token approval, or typed-data signature - only for the plain-text login signature.
 The agent never asks for or stores a seed phrase or private key and never holds customer funds.
 "Disconnect Telegram" stops Telegram notifications but leaves an existing dashboard session signed in.
-"Fully disconnect wallet" removes the active Telegram link and revokes dashboard sessions. A data-erasure request can additionally be sent to assecura@schernthaner.dev.
+"Fully disconnect wallet" removes the active Telegram link and revokes dashboard sessions. A data-erasure request can additionally be sent to office@assecura.at.
 The dashboard uses one necessary HttpOnly, Secure, SameSite=Strict session cookie for at most seven days. Advertising analytics are not used and AppKit analytics are disabled.
 The service uses Vercel for hosting, Supabase for server-side persistence, Telegram for optional bot communication, Reown/WalletConnect for wallet connectivity, Alchemy to read cover data from the blockchain (only the public wallet address is sent), and OpenAI only to understand free-language product questions and intents.
 Only the question text, selected language, and public verified Coverraccoon knowledge needed for the answer are sent to OpenAI for this explanation mode; no wallet address, personal cover data, or Telegram chat ID is included.
