@@ -15,7 +15,7 @@ import { readFileSync } from 'node:fs';
 const bot = readFileSync('src/bot.mjs', 'utf8');
 
 test('1 der Rueckgabewert der Verknuepfung wird ausgewertet, nicht verworfen', () => {
-	assert.match(bot, /const frischVerknuepft = startCode \? Boolean\(await consumeTelegramHandoff\(/);
+	assert.match(bot, /const frischVerknuepft = startCode(?: && !ANMELDUNG_PAUSIERT)? \? Boolean\(await consumeTelegramHandoff\(/);
 	assert.equal(/if \(startCode\) await consumeTelegramHandoff\(/.test(bot), false,
 		'der alte, verwerfende Aufruf steht noch da');
 });

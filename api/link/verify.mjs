@@ -3,6 +3,7 @@ import { consumePendingLink, getPendingLink, getLanguage } from '../../src/db.mj
 import { linkSiweExpectation, newDashboardAccess, signingMessage } from '../../src/linking.mjs';
 import { verifyExpectedSiweSignature } from '../../src/siwe-auth.mjs';
 import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin } from '../../src/http-security.mjs';
+import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../../src/pause.mjs';
 
 async function notifyLinked(chatId, wallet) {
 	const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
@@ -32,6 +33,7 @@ async function notifyLinked(chatId, wallet) {
 export default async function handler(request, response) {
 	response.setHeader('cache-control', 'no-store');
 	if (request.method !== 'POST') return response.status(405).json({ ok: false, error: 'Method not allowed' });
+	if (ANMELDUNG_PAUSIERT) return pauseAntwort(response);
 	if (!requireSameOrigin(request, response) || !requireJson(request, response)) return;
 	if (!await enforceRateLimit(request, response, 'wallet-link-verify', 10, 600)) return;
 	const { code, wallet, signature } = request.body ?? {};

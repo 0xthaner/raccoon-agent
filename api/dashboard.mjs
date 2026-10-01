@@ -4,6 +4,7 @@ import { CLEAR_SESSION_COOKIES, createDashboardChallenge, dashboardMessage, dash
 import { verifyExpectedSiweSignature } from '../src/siwe-auth.mjs';
 import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, getWalletLinkStateByWallet, isDashboardSessionRevoked, recordAgentEvent, revokeDashboardSessions, storeDashboardChallenge, unlinkWalletByWallet } from '../src/db.mjs';
 import { newTelegramHandoff } from '../src/linking.mjs';
+import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../src/pause.mjs';
 import { enforceRateLimit, requireJson, requireSameOrigin } from '../src/http-security.mjs';
 
 async function dashboardData(wallet) {
@@ -46,6 +47,7 @@ export default async function handler(request, response) {
 	if (request.method === 'GET') {
 		if (!await enforceRateLimit(request, response, 'dashboard-read', 120, 600)) return;
 		const access = typeof request.query.access === 'string' ? request.query.access : '';
+		if (access && ANMELDUNG_PAUSIERT) return pauseAntwort(response);
 		if (access) {
 			// AGENT-SEC-A2, 29.08.2026: der Telegram-Zugangslink hat bis dahin
 			// unmittelbar ein Sessioncookie gesetzt und die Dashboarddaten
@@ -71,6 +73,7 @@ export default async function handler(request, response) {
 			return response.status(200).json({ ok: false, code: 'WALLET_SIGNATURE_REQUIRED', wallet: wallet.toLowerCase() });
 		}
 		const wallet = typeof request.query.wallet === 'string' ? request.query.wallet : '';
+		if (wallet && ANMELDUNG_PAUSIERT) return pauseAntwort(response);
 		if (wallet) {
 			if (!isAddress(wallet)) return response.status(400).json({ ok: false, error: 'Ungültige Wallet-Adresse.' });
 			if (!await enforceRateLimit(request, response, 'dashboard-challenge', 20, 600)) return;
@@ -115,6 +118,7 @@ export default async function handler(request, response) {
 	}
 	if (request.method !== 'POST') return response.status(405).json({ ok: false, error: 'Method not allowed' });
 	if (!requireSameOrigin(request, response) || !requireJson(request, response)) return;
+	if (ANMELDUNG_PAUSIERT) return pauseAntwort(response);
 	if (!await enforceRateLimit(request, response, 'dashboard-login', 10, 600)) return;
 	const { wallet, token, signature } = request.body ?? {};
 	const challenge = verifyDashboardToken(token);

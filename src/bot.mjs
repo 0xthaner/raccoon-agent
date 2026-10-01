@@ -6,6 +6,7 @@ import { checkExpiryAlerts } from './alerts.mjs';
 import { authenticPrivateMessage, telegramTimingMetadata } from './telegram-audit.mjs';
 import { classifyAgentIntent } from './agent-intent.mjs';
 import { allowAiRequest } from './ai-budget.mjs';
+import { ANMELDUNG_PAUSIERT, PAUSE_TEXT } from './pause.mjs';
 import { answerGroupQuestion, answerProductQuestion } from './agent-knowledge.mjs';
 import { groupLanguage, groupQuestion, isGroupMessageForBot } from './group-chat.mjs';
 
@@ -87,6 +88,7 @@ function reminderKeyboard(wallet, language) {
 async function walletSettingsKeyboard(chatId, language) {
 	const wallets = await getMonitoredWallets(chatId);
 	const rows = wallets.map((wallet) => [{ text: `${wallet.is_primary ? '⭐' : '○'} ${wallet.label} · ${wallet.wallet.slice(0, 6)}…${wallet.wallet.slice(-4)}`, callback_data: `wallet:primary:${wallet.wallet}` }]);
+	if (ANMELDUNG_PAUSIERT) return { inline_keyboard: rows };
 	const link = await newLinkRequest(chatId);
 	rows.push([{ text: language === 'en' ? '＋ Add wallet' : language === 'zh' ? '＋ 添加钱包' : '＋ Wallet hinzufügen', url: `${appBaseUrl}/link?code=${link.code}` }]);
 	return { inline_keyboard: rows };
@@ -441,7 +443,8 @@ async function handleMessage(message, updateContext = {}) {
 
 		Deshalb wird jetzt festgehalten, ob DIESER Aufruf verknuepft hat.
 	*/
-	const frischVerknuepft = startCode ? Boolean(await consumeTelegramHandoff(startCode, message.chat.id)) : false;
+	// Waehrend der Pause wird kein Code eingeloest, also keine neue Verknuepfung.
+	const frischVerknuepft = startCode && !ANMELDUNG_PAUSIERT ? Boolean(await consumeTelegramHandoff(startCode, message.chat.id)) : false;
 	const language = await getLanguage(message.chat.id);
 	if (!language && command !== '/start' && command !== '/language') {
 		await askLanguage(message.chat.id);
@@ -475,7 +478,9 @@ async function handleMessage(message, updateContext = {}) {
 				}
 			}
 			await sendMessage(message.chat.id, greeting(message.from?.first_name, language), { reply_markup: navigationKeyboard(language) });
-			if (!await getWalletLink(message.chat.id)) {
+			if (!await getWalletLink(message.chat.id) && ANMELDUNG_PAUSIERT) {
+				await sendMessage(message.chat.id, PAUSE_TEXT[language] ?? PAUSE_TEXT.de);
+			} else if (!await getWalletLink(message.chat.id)) {
 				const link = await newLinkRequest(message.chat.id);
 				const walletUrl = `${appBaseUrl}/link?code=${link.code}`;
 				await sendMessage(message.chat.id, language === 'zh' ? '绑定钱包（10 分钟内有效）：' : language === 'en' ? 'Connect wallet (valid for 10 minutes):' : 'Wallet verbinden (10 Minuten gültig):', {
@@ -635,7 +640,9 @@ async function handleCallbackQuery(query) {
 	await setLanguage(chatId, language);
 	await telegram('answerCallbackQuery', { callback_query_id: query.id, text: language === 'zh' ? '语言已保存' : language === 'en' ? 'Language saved' : 'Sprache gespeichert' });
 	await sendMessage(chatId, greeting(query.from?.first_name, language), { reply_markup: navigationKeyboard(language) });
-	if (!await getWalletLink(chatId)) {
+	if (!await getWalletLink(chatId) && ANMELDUNG_PAUSIERT) {
+		await sendMessage(chatId, PAUSE_TEXT[language] ?? PAUSE_TEXT.de);
+	} else if (!await getWalletLink(chatId)) {
 		const link = await newLinkRequest(chatId);
 		const walletUrl = `${appBaseUrl}/link?code=${link.code}`;
 		await sendMessage(chatId, language === 'zh' ? '绑定钱包（10 分钟内有效）：' : language === 'en' ? 'Connect wallet (valid for 10 minutes):' : 'Wallet verbinden (10 Minuten gültig):', {

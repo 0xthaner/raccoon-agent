@@ -2,6 +2,7 @@ import { isAddress } from 'viem';
 import { getPendingLink } from '../src/db.mjs';
 import { signingMessage } from '../src/linking.mjs';
 import { enforceRateLimit } from '../src/http-security.mjs';
+import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../src/pause.mjs';
 
 async function telegramAccount(chatId) {
 	const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
@@ -22,6 +23,7 @@ async function telegramAccount(chatId) {
 export default async function handler(request, response) {
 	response.setHeader('cache-control', 'no-store');
 	if (request.method !== 'GET') return response.status(405).json({ ok: false, error: 'Method not allowed' });
+	if (ANMELDUNG_PAUSIERT) return pauseAntwort(response);
 	if (!await enforceRateLimit(request, response, 'wallet-link-read', 30, 600)) return;
 	const code = typeof request.query.code === 'string' ? request.query.code : '';
 	const wallet = typeof request.query.wallet === 'string' ? request.query.wallet : '';

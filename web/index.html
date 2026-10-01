@@ -97,6 +97,7 @@
       .actions { position: relative; z-index: 1; display: grid; gap: 10px; }
       .disclaimer-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(4,5,6,.78); backdrop-filter: blur(6px); }
       .disclaimer-overlay[hidden] { display: none; }
+      .actions[hidden], .security[hidden], .verify[hidden], .link-account[hidden], .login-paused[hidden] { display: none; }
       body.overlay-open { overflow: hidden; }
       .disclaimer { width: min(560px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; padding: 26px 26px 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); box-shadow: 0 35px 100px rgba(0,0,0,.5); color: var(--silver); font-size: .78rem; line-height: 1.58; }
       .disclaimer > strong { display: block; margin-bottom: 12px; color: var(--white); font-size: 1rem; font-weight: 600; }
@@ -136,6 +137,7 @@
       .verify-list li::marker { color: var(--mint); font-size: .65rem; }
       .link-account { position: relative; z-index: 1; margin: -14px 0 24px; padding: 12px 14px; border-left: 2px solid var(--mint); border-radius: 6px; background: rgba(124,255,233,.05); color: var(--silver); font-size: .82rem; line-height: 1.55; }
       .link-account strong { color: var(--white); font-weight: 600; }
+      .login-paused { position: relative; z-index: 1; margin: 0 0 4px; padding: 14px 16px; border-left: 2px solid var(--gold); border-radius: 6px; background: rgba(255,217,140,.06); color: var(--white); font-size: .86rem; line-height: 1.55; }
       .link-account.warn { border-left-color: var(--gold); background: rgba(255,217,140,.06); }
       #status { position: relative; z-index: 1; margin-top: 14px; color: var(--silver); font-size: .8rem; line-height: 1.5; }
       #status:not(:empty) { padding: 12px 14px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,.025); }
@@ -258,6 +260,7 @@
             <h2>Wallet verbinden</h2>
             <p class="panel-copy">Eine Signatur bestätigt die Wallet und öffnet dein persönliches Dashboard.</p>
             <p class="link-account" id="link-account" hidden></p>
+            <p class="login-paused" id="login-paused" hidden></p>
             <div class="actions">
               <button id="walletconnect">Mit Wallet verbinden</button>
               <button id="injected" class="secondary">Browser-Wallet verwenden</button>

@@ -11,11 +11,14 @@
 */
 const TELEGRAM_NAME = /^[A-Za-z0-9_]{5,32}$/;
 
+import { ANMELDUNG_PAUSIERT } from '../src/pause.mjs';
+
 export default function handler(_request, response) {
 	response.setHeader('cache-control', 'no-store');
 	const username = process.env.TELEGRAM_BOT_USERNAME?.trim().replace(/^@/, '') || '';
 	response.status(200).json({
 		reownProjectId: process.env.REOWN_PROJECT_ID?.trim() || '',
-		telegramUsername: TELEGRAM_NAME.test(username) ? username : ''
+		telegramUsername: TELEGRAM_NAME.test(username) ? username : '',
+		anmeldungPausiert: ANMELDUNG_PAUSIERT
 	});
 }

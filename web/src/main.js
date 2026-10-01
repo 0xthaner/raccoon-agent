@@ -48,6 +48,7 @@ function schliesseHinweise() {
 }
 
 function mitHinweisen(aktion) {
+	if (config.anmeldungPausiert) return zeigeAnmeldungPausiert();
 	if (hinweiseAkzeptiert) return aktion();
 	wartendeAktion = aktion;
 	fokusVorher = document.activeElement;
@@ -311,6 +312,26 @@ async function zeigeTelegramKonto() {
 	feld.hidden = false;
 }
 zeigeTelegramKonto();
+
+/*
+	Anmeldung pausiert (src/pause.mjs, ueber /api/config gemeldet): statt der
+	Knoepfe steht ein Hinweis. Der Server lehnt neue Anmeldungen ohnehin ab;
+	das hier erspart nur den Klick ins Leere. Eine bestehende Sitzung zeigt
+	weiter das Dashboard.
+*/
+function zeigeAnmeldungPausiert() {
+	const hinweis = document.querySelector('#login-paused');
+	if (!hinweis) return;
+	hinweis.textContent = language === 'de'
+		? (code ? 'Das Verknüpfen neuer Wallets ist derzeit pausiert. Bereits verbundene Wallets werden weiter überwacht.' : 'Neue Anmeldungen sind derzeit pausiert. Bereits verbundene Wallets werden weiter überwacht.')
+		: (code ? 'Connecting new wallets is paused for now. Wallets that are already connected keep being monitored.' : 'New sign-ins are paused for now. Wallets that are already connected keep being monitored.');
+	hinweis.hidden = false;
+	for (const auswahl of ['.actions', '.security', '.verify', '#link-account']) {
+		const element = document.querySelector(auswahl);
+		if (element) element.hidden = true;
+	}
+}
+configPromise.then(() => { if (config.anmeldungPausiert) zeigeAnmeldungPausiert(); }).catch(() => {});
 
 /*
 	AGENT-SEC-W3: dasselbe wie W2, fuer die Browser-Erweiterung. Dort gibt es
