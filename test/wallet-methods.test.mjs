@@ -149,8 +149,9 @@ test('W2 die WalletConnect-Sitzung wird nach der Signatur immer getrennt', () =>
 	const trenner = quelle.slice(quelle.indexOf('async function trenneWalletConnect('));
 	assert.match(trenner.slice(0, trenner.indexOf('\n}')), /modal\.disconnect\(\)/);
 
-	const klick = quelle.slice(quelle.indexOf("wcButton.addEventListener('click'"));
-	const handler = klick.slice(0, klick.indexOf('\n});'));
+	// Seit dem Hinweis-Overlay steht der Weg in einer eigenen Funktion.
+	const klick = quelle.slice(quelle.indexOf('async function verbindeWalletConnect() {'));
+	const handler = klick.slice(0, klick.indexOf('\n}\n'));
 	const signatur = handler.indexOf("method: 'personal_sign'");
 	const zweig = handler.indexOf('} finally {');
 	assert.ok(signatur > 0, 'der WalletConnect-Weg signiert');
@@ -170,8 +171,8 @@ test('W3 die Browser-Wallet-Freigabe wird nach der Signatur entzogen', () => {
 	const koerper = trenner.slice(0, trenner.indexOf('\n}'));
 	assert.match(koerper, /method: 'wallet_revokePermissions', params: \[\{ eth_accounts: \{\} \}\]/);
 
-	const klick = quelle.slice(quelle.indexOf("injectedButton.addEventListener('click'"));
-	const handler = klick.slice(0, klick.indexOf('\n});'));
+	const klick = quelle.slice(quelle.indexOf('async function verbindeBrowserWallet() {'));
+	const handler = klick.slice(0, klick.indexOf('\n}\n'));
 	const signatur = handler.indexOf("method: 'personal_sign'");
 	const zweig = handler.indexOf('finally {');
 	assert.ok(signatur > 0, 'der Browser-Wallet-Weg signiert');

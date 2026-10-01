@@ -10,10 +10,10 @@ const access = searchParams.get('access');
 const walletDebug = searchParams.get('debug') === 'wallet';
 const translations = {
 	de: {
-		online: ['Private Cover-Überwachung · ', 'online'], kicker: 'Unabhängige DeFi-Cover-Überwachung', title: ['Schutz, ', 'immer im Blick.'], lead: 'Öffne dein persönliches Dashboard und aktiviere auf Wunsch Telegram-Erinnerungen.', walletUntouched: 'Wallet bleibt unberührt', signature: 'Nur eine Signatur', alerts: 'Hinweise über Telegram', step: '01 · Identität', connectTitle: 'Wallet verbinden', connectCopy: 'Eine Signatur bestätigt die Wallet und öffnet dein persönliches Dashboard.', connect: 'Mit Wallet verbinden', injected: 'Browser-Wallet verwenden', security: 'Keine Transaktion, keine Freigabe und keine Gasgebühr.', dashKicker: 'Persönliches Dashboard', dashTitle: ['Dein Cover,', 'immer im Blick.'], switchWallet: 'Wallet wechseln', logout: 'Abmelden', activeLabel: 'Aktive Covers', expiryLabel: 'Nächster Ablauf', telegramLabel: 'Telegram-Überwachung', telegramTitle: 'Telegram-Benachrichtigungen', protection: 'Dein Schutz', footer: 'Daten: Nexus Mutual · Ethereum', footerExplainer: 'Covers live von der Blockchain, ohne Bewertung und ohne Verkauf.', active: 'aktiv', noCover: 'Kein aktives Cover', days: 'Tage', telegramActive: 'Aktiv', notConnected: 'Nicht verbunden', tgConnected: '● Telegram verbunden', tgDisconnected: 'Telegram nicht verbunden', tgOnCopy: 'Ablaufhinweise sind aktiv. Öffne Telegram, um mit deinem Agenten zu sprechen.', tgOffCopy: 'Erhalte Ablaufhinweise, ohne laufend das Dashboard prüfen zu müssen.', openTelegram: 'Telegram öffnen', connectTelegram: 'Telegram aktivieren', updated: 'Aktualisiert', empty: 'Für diese Wallet wurde kein aktives Nexus-Mutual-Cover gefunden.', product: 'Produkt', protectionAmount: 'Schutz', expiry: 'Ablauf', status: 'Status', linkTitle: 'Telegram mit deiner Wallet verbinden', linkCopy: 'Einmal signieren, um Erinnerungen für diese Wallet zu aktivieren.', linkStep: '01 · Telegram einrichten', linkSecurity: 'Eine Signatur. Keine Transaktion, Gasgebühr oder Tokenfreigabe. Der Link ist zehn Minuten gültig.', success: 'Alles eingerichtet.', successCopy: 'Deine Telegram-Erinnerungen sind aktiv. Du kannst jetzt zum Raccoon Agent zurückkehren.', backTelegram: 'Zurück zum Raccoon Agent', openDashboard: 'Dashboard öffnen', disconnectTelegram: 'Telegram trennen', confirmDisconnect: 'Telegram-Benachrichtigungen für diese Wallet wirklich trennen?', disclaimerTitle: 'Bevor du dich verbindest', disclaimer: ['Der Raccoon Agent ist experimentell und befindet sich in Entwicklung. Fehler, Ausfälle und unvollständige oder falsche Daten sind möglich. Wer sich auf Anzeigen oder Erinnerungen verlässt, etwa wenn eine Ablauf-Erinnerung ausbleibt, kann dadurch Nachteile oder Verluste erleiden. DeFi und Onchain-Cover sind mit erheblichen Risiken bis hin zum Totalverlust verbunden.', 'Der Raccoon Agent zeigt Informationen zu deinen Nexus-Mutual-Covers an und erinnert an Abläufe. Er verkauft und vermittelt nichts und ist keine Versicherungs-, Rechts- oder Anlageberatung.', 'Nexus Mutual ist keine Versicherung. Es besteht kein Rechtsanspruch auf eine Auszahlung; maßgeblich sind allein die Bedingungen von Nexus Mutual.', 'Angezeigte Daten werden live aus der Blockchain und von Nexus Mutual gelesen. Wir übernehmen keine Gewähr für Richtigkeit, Vollständigkeit oder Aktualität.', 'Soweit gesetzlich zulässig, ist unsere Haftung für Schäden aus der Nutzung ausgeschlossen, insbesondere für leichte Fahrlässigkeit sowie für Ausfälle oder Fehler von Blockchain, Wallets, Nexus Mutual und anderen Drittdiensten. Unberührt bleibt die Haftung für Vorsatz und grobe Fahrlässigkeit, für Personenschäden und nach zwingenden gesetzlichen Vorschriften.', 'Du bestätigst nur eine Anmelde-Signatur. Der Agent fragt nie nach einer Transaktion, einer Freigabe oder deiner Seed Phrase.'], disclaimerLabel: ['Ich habe die Hinweise gelesen und akzeptiere sie sowie die ', 'Datenschutzerklärung', '.'], disclaimerImprint: 'Impressum', verifyTitle: 'Woran erkenne ich eine echte Anfrage?', verify: ['Es ist eine Signatur, keine Transaktion: kein Betrag, keine Gasgebühr.', 'Die Nachricht beginnt mit „coverraccoon.com wants you to sign in“, und die Adresszeile zeigt coverraccoon.com.', 'Kein „Permit“, kein „Approve“, kein Token-Betrag und kein unlesbarer Hex-Text. Siehst du so etwas, brich ab.', 'Links zum Verbinden einer Wallet kommen nur aus deinem privaten Chat mit dem Raccoon-Agent-Bot.']
+		online: ['Private Cover-Überwachung · ', 'online'], kicker: 'Unabhängige DeFi-Cover-Überwachung', title: ['Schutz, ', 'immer im Blick.'], lead: 'Öffne dein persönliches Dashboard und aktiviere auf Wunsch Telegram-Erinnerungen.', walletUntouched: 'Wallet bleibt unberührt', signature: 'Nur eine Signatur', alerts: 'Hinweise über Telegram', step: '01 · Identität', connectTitle: 'Wallet verbinden', connectCopy: 'Eine Signatur bestätigt die Wallet und öffnet dein persönliches Dashboard.', connect: 'Mit Wallet verbinden', injected: 'Browser-Wallet verwenden', security: 'Keine Transaktion, keine Freigabe und keine Gasgebühr.', dashKicker: 'Persönliches Dashboard', dashTitle: ['Dein Cover,', 'immer im Blick.'], switchWallet: 'Wallet wechseln', logout: 'Abmelden', activeLabel: 'Aktive Covers', expiryLabel: 'Nächster Ablauf', telegramLabel: 'Telegram-Überwachung', telegramTitle: 'Telegram-Benachrichtigungen', protection: 'Dein Schutz', footer: 'Daten: Nexus Mutual · Ethereum', footerExplainer: 'Covers live von der Blockchain, ohne Bewertung und ohne Verkauf.', active: 'aktiv', noCover: 'Kein aktives Cover', days: 'Tage', telegramActive: 'Aktiv', notConnected: 'Nicht verbunden', tgConnected: '● Telegram verbunden', tgDisconnected: 'Telegram nicht verbunden', tgOnCopy: 'Ablaufhinweise sind aktiv. Öffne Telegram, um mit deinem Agenten zu sprechen.', tgOffCopy: 'Erhalte Ablaufhinweise, ohne laufend das Dashboard prüfen zu müssen.', openTelegram: 'Telegram öffnen', connectTelegram: 'Telegram aktivieren', updated: 'Aktualisiert', empty: 'Für diese Wallet wurde kein aktives Nexus-Mutual-Cover gefunden.', product: 'Produkt', protectionAmount: 'Schutz', expiry: 'Ablauf', status: 'Status', linkTitle: 'Telegram mit deiner Wallet verbinden', linkCopy: 'Einmal signieren, um Erinnerungen für diese Wallet zu aktivieren.', linkStep: '01 · Telegram einrichten', linkSecurity: 'Eine Signatur. Keine Transaktion, Gasgebühr oder Tokenfreigabe. Der Link ist zehn Minuten gültig.', success: 'Alles eingerichtet.', successCopy: 'Deine Telegram-Erinnerungen sind aktiv. Du kannst jetzt zum Raccoon Agent zurückkehren.', backTelegram: 'Zurück zum Raccoon Agent', openDashboard: 'Dashboard öffnen', disconnectTelegram: 'Telegram trennen', confirmDisconnect: 'Telegram-Benachrichtigungen für diese Wallet wirklich trennen?', disclaimerTitle: 'Bevor du dich verbindest', disclaimer: ['Der Raccoon Agent ist experimentell und befindet sich in Entwicklung. Fehler, Ausfälle und unvollständige oder falsche Daten sind möglich. Wer sich auf Anzeigen oder Erinnerungen verlässt, etwa wenn eine Ablauf-Erinnerung ausbleibt, kann dadurch Nachteile oder Verluste erleiden. DeFi und Onchain-Cover sind mit erheblichen Risiken bis hin zum Totalverlust verbunden.', 'Der Raccoon Agent zeigt Informationen zu deinen Nexus-Mutual-Covers an und erinnert an Abläufe. Er verkauft und vermittelt nichts und ist keine Versicherungs-, Rechts- oder Anlageberatung.', 'Nexus Mutual ist keine Versicherung. Es besteht kein Rechtsanspruch auf eine Auszahlung; maßgeblich sind allein die Bedingungen von Nexus Mutual.', 'Angezeigte Daten werden live aus der Blockchain und von Nexus Mutual gelesen. Wir übernehmen keine Gewähr für Richtigkeit, Vollständigkeit oder Aktualität.', 'Soweit gesetzlich zulässig, ist unsere Haftung für Schäden aus der Nutzung ausgeschlossen, insbesondere für leichte Fahrlässigkeit sowie für Ausfälle oder Fehler von Blockchain, Wallets, Nexus Mutual und anderen Drittdiensten. Unberührt bleibt die Haftung für Vorsatz und grobe Fahrlässigkeit, für Personenschäden und nach zwingenden gesetzlichen Vorschriften.', 'Du bestätigst nur eine Anmelde-Signatur. Der Agent fragt nie nach einer Transaktion, einer Freigabe oder deiner Seed Phrase.'], disclaimerLabel: ['Ich habe die Hinweise gelesen und akzeptiere sie sowie die ', 'Datenschutzerklärung', '.'], disclaimerImprint: 'Impressum', disclaimerContinue: 'Weiter zur Wallet', disclaimerCancel: 'Abbrechen', verifyTitle: 'Woran erkenne ich eine echte Anfrage?', verify: ['Es ist eine Signatur, keine Transaktion: kein Betrag, keine Gasgebühr.', 'Die Nachricht beginnt mit „coverraccoon.com wants you to sign in“, und die Adresszeile zeigt coverraccoon.com.', 'Kein „Permit“, kein „Approve“, kein Token-Betrag und kein unlesbarer Hex-Text. Siehst du so etwas, brich ab.', 'Links zum Verbinden einer Wallet kommen nur aus deinem privaten Chat mit dem Raccoon-Agent-Bot.']
 	},
 	en: {
-		online: ['Private cover monitoring · ', 'online'], kicker: 'Independent DeFi cover monitor', title: ['Protection, ', 'kept in sight.'], lead: 'Open your personal dashboard and optionally activate Telegram reminders.', walletUntouched: 'Wallet stays untouched', signature: 'Signature only', alerts: 'Alerts via Telegram', step: '01 · Identity', connectTitle: 'Connect your wallet', connectCopy: 'A signature confirms the wallet and opens your personal dashboard.', connect: 'Connect wallet', injected: 'Use browser wallet', security: 'No transaction, approval or gas fee.', dashKicker: 'Personal dashboard', dashTitle: ['Your cover,', 'under watch.'], switchWallet: 'Switch wallet', logout: 'Sign out', activeLabel: 'Active covers', expiryLabel: 'Next expiry', telegramLabel: 'Telegram monitoring', telegramTitle: 'Telegram notifications', protection: 'Your protection', footer: 'Data: Nexus Mutual · Ethereum', footerExplainer: 'Covers read live from the blockchain, no ratings and no sales.', active: 'active', noCover: 'No active cover', days: 'days', telegramActive: 'Active', notConnected: 'Not connected', tgConnected: '● Telegram connected', tgDisconnected: 'Telegram not connected', tgOnCopy: 'Expiry notices are active. Open Telegram to talk to your agent.', tgOffCopy: 'Get expiry notices without having to check the dashboard.', openTelegram: 'Open Telegram', connectTelegram: 'Connect Telegram', updated: 'Updated', empty: 'No active Nexus Mutual cover was found for this wallet.', product: 'Product', protectionAmount: 'Protection', expiry: 'Expiry', status: 'Status', linkTitle: 'Connect Telegram to your wallet', linkCopy: 'Sign once to activate reminders for this wallet.', linkStep: '01 · Telegram setup', linkSecurity: 'One signature. No transaction, gas fee or token approval. The link is valid for ten minutes.', success: 'Everything is set up.', successCopy: 'Your Telegram reminders are active. You can now return to Raccoon Agent.', backTelegram: 'Return to Raccoon Agent', openDashboard: 'Open dashboard', disconnectTelegram: 'Disconnect Telegram', confirmDisconnect: 'Disconnect Telegram notifications for this wallet?', disclaimerTitle: 'Before you connect', disclaimer: ['Raccoon Agent is experimental and under development. Errors, outages and incomplete or wrong data are possible. Relying on what it shows or on its reminders, for example if an expiry reminder does not arrive, can lead to disadvantages or losses. DeFi and onchain cover carry significant risks, up to total loss.', 'Raccoon Agent shows information about your Nexus Mutual covers and reminds you of expiries. It does not sell or arrange anything and is not insurance, legal or investment advice.', 'Nexus Mutual is not insurance. There is no legal right to a payout; only the terms of Nexus Mutual apply.', 'Data shown is read live from the blockchain and from Nexus Mutual. We give no warranty for accuracy, completeness or timeliness.', 'To the extent permitted by law, our liability for damage arising from use is excluded, in particular for slight negligence and for outages or errors of the blockchain, wallets, Nexus Mutual and other third-party services. Liability for intent and gross negligence, for personal injury and under mandatory statutory provisions remains unaffected.', 'You only confirm a sign-in signature. The agent never asks for a transaction, an approval or your seed phrase.'], disclaimerLabel: ['I have read and accept these notes and the ', 'privacy policy', '.'], disclaimerImprint: 'Imprint', verifyTitle: 'How do I recognise a genuine request?', verify: ['It is a signature, not a transaction: no amount, no gas fee.', 'The message starts with “coverraccoon.com wants you to sign in”, and the address bar shows coverraccoon.com.', 'No “Permit”, no “Approve”, no token amount and no unreadable hex text. If you see any of that, cancel.', 'Links to connect a wallet only come from your private chat with the Raccoon Agent bot.']
+		online: ['Private cover monitoring · ', 'online'], kicker: 'Independent DeFi cover monitor', title: ['Protection, ', 'kept in sight.'], lead: 'Open your personal dashboard and optionally activate Telegram reminders.', walletUntouched: 'Wallet stays untouched', signature: 'Signature only', alerts: 'Alerts via Telegram', step: '01 · Identity', connectTitle: 'Connect your wallet', connectCopy: 'A signature confirms the wallet and opens your personal dashboard.', connect: 'Connect wallet', injected: 'Use browser wallet', security: 'No transaction, approval or gas fee.', dashKicker: 'Personal dashboard', dashTitle: ['Your cover,', 'under watch.'], switchWallet: 'Switch wallet', logout: 'Sign out', activeLabel: 'Active covers', expiryLabel: 'Next expiry', telegramLabel: 'Telegram monitoring', telegramTitle: 'Telegram notifications', protection: 'Your protection', footer: 'Data: Nexus Mutual · Ethereum', footerExplainer: 'Covers read live from the blockchain, no ratings and no sales.', active: 'active', noCover: 'No active cover', days: 'days', telegramActive: 'Active', notConnected: 'Not connected', tgConnected: '● Telegram connected', tgDisconnected: 'Telegram not connected', tgOnCopy: 'Expiry notices are active. Open Telegram to talk to your agent.', tgOffCopy: 'Get expiry notices without having to check the dashboard.', openTelegram: 'Open Telegram', connectTelegram: 'Connect Telegram', updated: 'Updated', empty: 'No active Nexus Mutual cover was found for this wallet.', product: 'Product', protectionAmount: 'Protection', expiry: 'Expiry', status: 'Status', linkTitle: 'Connect Telegram to your wallet', linkCopy: 'Sign once to activate reminders for this wallet.', linkStep: '01 · Telegram setup', linkSecurity: 'One signature. No transaction, gas fee or token approval. The link is valid for ten minutes.', success: 'Everything is set up.', successCopy: 'Your Telegram reminders are active. You can now return to Raccoon Agent.', backTelegram: 'Return to Raccoon Agent', openDashboard: 'Open dashboard', disconnectTelegram: 'Disconnect Telegram', confirmDisconnect: 'Disconnect Telegram notifications for this wallet?', disclaimerTitle: 'Before you connect', disclaimer: ['Raccoon Agent is experimental and under development. Errors, outages and incomplete or wrong data are possible. Relying on what it shows or on its reminders, for example if an expiry reminder does not arrive, can lead to disadvantages or losses. DeFi and onchain cover carry significant risks, up to total loss.', 'Raccoon Agent shows information about your Nexus Mutual covers and reminds you of expiries. It does not sell or arrange anything and is not insurance, legal or investment advice.', 'Nexus Mutual is not insurance. There is no legal right to a payout; only the terms of Nexus Mutual apply.', 'Data shown is read live from the blockchain and from Nexus Mutual. We give no warranty for accuracy, completeness or timeliness.', 'To the extent permitted by law, our liability for damage arising from use is excluded, in particular for slight negligence and for outages or errors of the blockchain, wallets, Nexus Mutual and other third-party services. Liability for intent and gross negligence, for personal injury and under mandatory statutory provisions remains unaffected.', 'You only confirm a sign-in signature. The agent never asks for a transaction, an approval or your seed phrase.'], disclaimerLabel: ['I have read and accept these notes and the ', 'privacy policy', '.'], disclaimerImprint: 'Imprint', disclaimerContinue: 'Continue to wallet', disclaimerCancel: 'Cancel', verifyTitle: 'How do I recognise a genuine request?', verify: ['It is a signature, not a transaction: no amount, no gas fee.', 'The message starts with “coverraccoon.com wants you to sign in”, and the address bar shows coverraccoon.com.', 'No “Permit”, no “Approve”, no token amount and no unreadable hex text. If you see any of that, cancel.', 'Links to connect a wallet only come from your private chat with the Raccoon Agent bot.']
 	}
 };
 let language = localStorage.getItem('raccoon_language') || (navigator.language?.toLowerCase().startsWith('de') ? 'de' : 'en');
@@ -23,31 +23,55 @@ const show = (message) => { status.textContent = message; };
 const disable = () => { wcButton.disabled = true; injectedButton.disabled = true; };
 
 /*
-	Hinweise vor dem Verbinden. Die Knoepfe sind erst frei, wenn das Haekchen
-	gesetzt ist. Der Browser merkt sich die Zustimmung je Textfassung; aendert
-	sich der Text, muss neu bestaetigt werden. Gespeichert wird nur hier im
-	Browser, nicht auf dem Server.
+	Hinweise vor dem Verbinden, als Overlay. Wer "Mit Wallet verbinden" oder
+	"Browser-Wallet verwenden" drueckt, sieht zuerst die Hinweise; "Weiter zur
+	Wallet" ist erst nach dem Haekchen frei und startet dann genau den Weg, der
+	gedrueckt wurde, im selben Klick (Wallets oeffnen sich nur auf eine echte
+	Nutzeraktion hin). Der Browser merkt sich die Zustimmung je Textfassung;
+	aendert sich der Text, erscheint das Overlay wieder. Gespeichert wird nur
+	hier im Browser, nicht auf dem Server.
 */
 const HINWEISE_FASSUNG = 'hinweise-2026-10-01';
 let hinweiseAkzeptiert = false;
 try { hinweiseAkzeptiert = localStorage.getItem('raccoon_hinweise') === HINWEISE_FASSUNG; } catch { /* kein Speicher: neu bestaetigen */ }
+const hinweisFenster = document.querySelector('#disclaimer-overlay');
 const hinweisHaken = document.querySelector('#disclaimer-ok');
-function knoepfeFreigeben() {
-	wcButton.disabled = !hinweiseAkzeptiert;
-	injectedButton.disabled = !hinweiseAkzeptiert;
+const hinweisWeiter = document.querySelector('#disclaimer-continue');
+let wartendeAktion = null;
+let fokusVorher = null;
+
+function schliesseHinweise() {
+	hinweisFenster.hidden = true;
+	document.body.classList.remove('overlay-open');
+	wartendeAktion = null;
+	fokusVorher?.focus?.();
 }
-if (hinweisHaken) {
-	hinweisHaken.checked = hinweiseAkzeptiert;
-	hinweisHaken.addEventListener('change', () => {
-		hinweiseAkzeptiert = hinweisHaken.checked;
-		try {
-			if (hinweiseAkzeptiert) localStorage.setItem('raccoon_hinweise', HINWEISE_FASSUNG);
-			else localStorage.removeItem('raccoon_hinweise');
-		} catch { /* kein Speicher: gilt nur fuer diesen Besuch */ }
-		knoepfeFreigeben();
-	});
+
+function mitHinweisen(aktion) {
+	if (hinweiseAkzeptiert) return aktion();
+	wartendeAktion = aktion;
+	fokusVorher = document.activeElement;
+	hinweisHaken.checked = false;
+	hinweisWeiter.disabled = true;
+	hinweisFenster.hidden = false;
+	document.body.classList.add('overlay-open');
+	hinweisHaken.focus();
 }
-knoepfeFreigeben();
+
+hinweisHaken.addEventListener('change', () => { hinweisWeiter.disabled = !hinweisHaken.checked; });
+hinweisWeiter.addEventListener('click', () => {
+	if (!hinweisHaken.checked) return;
+	hinweiseAkzeptiert = true;
+	try { localStorage.setItem('raccoon_hinweise', HINWEISE_FASSUNG); } catch { /* gilt dann nur fuer diesen Besuch */ }
+	const aktion = wartendeAktion;
+	wartendeAktion = null;
+	hinweisFenster.hidden = true;
+	document.body.classList.remove('overlay-open');
+	aktion?.();
+});
+document.querySelector('#disclaimer-cancel').addEventListener('click', schliesseHinweise);
+hinweisFenster.addEventListener('click', (event) => { if (event.target === hinweisFenster) schliesseHinweise(); });
+document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !hinweisFenster.hidden) schliesseHinweise(); });
 const TELEGRAM_NAME = /^[A-Za-z0-9_]{5,32}$/;
 let config = {};
 const configPromise = fetch('/api/config')
@@ -86,7 +110,7 @@ function applyLanguage(next) {
 	text('#principle-wallet', t.walletUntouched); text('#principle-signature', t.signature); text('#principle-alerts', t.alerts);
 	text('.step', code ? t.linkStep : t.step); text('.panel h2', code ? t.linkTitle : t.connectTitle); text('.panel-copy', code ? t.linkCopy : t.connectCopy);
 	text('#walletconnect', t.connect); text('#injected', t.injected); text('.security span', code ? t.linkSecurity : t.security);
-	text('#disclaimer-title', t.disclaimerTitle); t.disclaimer.forEach((punkt, index) => text(`#disclaimer-${index + 1}`, punkt)); teile('#disclaimer-label', t.disclaimerLabel); text('#disclaimer-imprint', t.disclaimerImprint);
+	text('#disclaimer-title', t.disclaimerTitle); t.disclaimer.forEach((punkt, index) => text(`#disclaimer-${index + 1}`, punkt)); teile('#disclaimer-label', t.disclaimerLabel); text('#disclaimer-imprint', t.disclaimerImprint); text('#disclaimer-continue', t.disclaimerContinue); text('#disclaimer-cancel', t.disclaimerCancel);
 	text('#verify-title', t.verifyTitle); t.verify.forEach((punkt, index) => text(`#verify-${index + 1}`, punkt));
 	text('#dash-kicker', t.dashKicker); teile('#dash-title', t.dashTitle); text('#switch-wallet', t.switchWallet); text('#logout', t.logout);
 	text('#label-active', t.activeLabel); text('#label-expiry', t.expiryLabel); text('#label-telegram', t.telegramLabel); text('#telegram-title', t.telegramTitle); text('#protection-title', t.protection); text('#footer-copy', t.footer); text('#footer-explainer', t.footerExplainer);
@@ -307,7 +331,7 @@ async function trenneBrowserWallet() {
 	}
 }
 
-injectedButton.addEventListener('click', async () => {
+async function verbindeBrowserWallet() {
 	if (!hinweiseAkzeptiert) return;
 	let verbunden = false;
 	try {
@@ -319,7 +343,8 @@ injectedButton.addEventListener('click', async () => {
 	} catch (error) { show(error.message); } finally {
 		if (verbunden) await trenneBrowserWallet();
 	}
-});
+}
+injectedButton.addEventListener('click', () => mitHinweisen(verbindeBrowserWallet));
 
 async function setupWalletConnect() {
 	const [{ createAppKit }, { EthersAdapter }, { mainnet }] = await Promise.all([import('@reown/appkit'), import('@reown/appkit-adapter-ethers'), import('@reown/appkit/networks')]);
@@ -555,7 +580,7 @@ async function trenneWalletConnect(modal) {
 	try { await withTimeout(modal.disconnect(), 5000, 'disconnect timeout'); } catch {}
 }
 
-wcButton.addEventListener('click', async () => {
+async function verbindeWalletConnect() {
 	if (!hinweiseAkzeptiert) return;
 	let modal;
 	try {
@@ -577,9 +602,10 @@ wcButton.addEventListener('click', async () => {
 		show(error.message);
 	} finally {
 		await trenneWalletConnect(modal);
-		knoepfeFreigeben();
+		wcButton.disabled = false;
 	}
-});
+}
+wcButton.addEventListener('click', () => mitHinweisen(verbindeWalletConnect));
 
 async function endSession({ disconnect = false } = {}) {
 	if (disconnect) show('Wallet-Verbindung wird getrennt …');
@@ -594,7 +620,7 @@ async function endSession({ disconnect = false } = {}) {
 	}
 	window.dashboardData = null; document.body.classList.remove('dashboard-mode'); status.textContent = ''; enable(); applyLanguage(language);
 }
-function enable() { knoepfeFreigeben(); }
+function enable() { wcButton.disabled = false; injectedButton.disabled = false; }
 async function disconnectTelegram() {
 	if (!confirm(t.confirmDisconnect)) return;
 	const response = await fetch('/api/dashboard?telegram=1', { method: 'DELETE' });

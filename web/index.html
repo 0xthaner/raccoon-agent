@@ -95,15 +95,20 @@
       .panel h2 { position: relative; z-index: 1; margin: 43px 0 0; font-size: 1.72rem; font-weight: 530; line-height: 1.1; letter-spacing: -.042em; }
       .panel-copy { position: relative; z-index: 1; max-width: 350px; margin: 13px 0 31px; color: var(--silver); font-size: .9rem; line-height: 1.62; }
       .actions { position: relative; z-index: 1; display: grid; gap: 10px; }
-      .disclaimer { position: relative; z-index: 1; margin: 0 0 18px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.02); color: var(--silver); font-size: .72rem; line-height: 1.55; }
-      .disclaimer > strong { display: block; margin-bottom: 8px; color: var(--white); font-size: .78rem; font-weight: 600; }
-      .disclaimer ul { margin: 0 0 12px; padding-left: 17px; }
+      .disclaimer-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(4,5,6,.78); backdrop-filter: blur(6px); }
+      .disclaimer-overlay[hidden] { display: none; }
+      body.overlay-open { overflow: hidden; }
+      .disclaimer { width: min(560px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; padding: 26px 26px 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); box-shadow: 0 35px 100px rgba(0,0,0,.5); color: var(--silver); font-size: .78rem; line-height: 1.58; }
+      .disclaimer > strong { display: block; margin-bottom: 12px; color: var(--white); font-size: 1rem; font-weight: 600; }
+      .disclaimer ul { margin: 0 0 16px; padding-left: 18px; }
+      .disclaimer li + li { margin-top: 6px; }
       .disclaimer li:first-child { color: var(--white); }
-      .disclaimer li + li { margin-top: 5px; }
-      .disclaimer-check { display: flex; align-items: flex-start; gap: 10px; color: var(--white); font-size: .75rem; cursor: pointer; }
-      .disclaimer-check input { flex: 0 0 auto; width: 17px; height: 17px; margin: 1px 0 0; accent-color: var(--mint); cursor: pointer; }
+      .disclaimer-check { display: flex; align-items: flex-start; gap: 10px; color: var(--white); font-size: .8rem; cursor: pointer; }
+      .disclaimer-check input { flex: 0 0 auto; width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--mint); cursor: pointer; }
       .disclaimer a { color: var(--white); text-underline-offset: 3px; }
-      .disclaimer-imprint { display: inline-block; margin: 8px 0 0 27px; color: var(--dim) !important; font-size: .68rem; }
+      .disclaimer-actions { display: grid; gap: 10px; margin-top: 18px; }
+      .disclaimer-imprint { display: inline-block; margin-top: 12px; color: var(--dim) !important; font-size: .7rem; }
+      @media (max-width: 560px) { .disclaimer-overlay { align-items: flex-end; padding: 0; } .disclaimer { max-height: 92vh; border-radius: 18px 18px 0 0; padding: 22px 18px 18px; } }
       button { width: 100%; min-height: 54px; padding: 0 19px; border: 1px solid transparent; border-radius: 11px; color: #08090a; background: var(--white); font: 650 .82rem/1 inherit; letter-spacing: -.01em; cursor: pointer; transition: background .18s ease, color .18s ease, border-color .18s ease, transform .18s ease; }
       button:hover { background: #fff; transform: translateY(-1px); }
       button:active { transform: translateY(0); }
@@ -253,19 +258,6 @@
             <h2>Wallet verbinden</h2>
             <p class="panel-copy">Eine Signatur bestätigt die Wallet und öffnet dein persönliches Dashboard.</p>
             <p class="link-account" id="link-account" hidden></p>
-            <div class="disclaimer" id="disclaimer">
-              <strong id="disclaimer-title">Bevor du dich verbindest</strong>
-              <ul>
-                <li id="disclaimer-1">Der Raccoon Agent ist experimentell und befindet sich in Entwicklung. Fehler, Ausfälle und unvollständige oder falsche Daten sind möglich. Wer sich auf Anzeigen oder Erinnerungen verlässt, etwa wenn eine Ablauf-Erinnerung ausbleibt, kann dadurch Nachteile oder Verluste erleiden. DeFi und Onchain-Cover sind mit erheblichen Risiken bis hin zum Totalverlust verbunden.</li>
-                <li id="disclaimer-2">Der Raccoon Agent zeigt Informationen zu deinen Nexus-Mutual-Covers an und erinnert an Abläufe. Er verkauft und vermittelt nichts und ist keine Versicherungs-, Rechts- oder Anlageberatung.</li>
-                <li id="disclaimer-3">Nexus Mutual ist keine Versicherung. Es besteht kein Rechtsanspruch auf eine Auszahlung; maßgeblich sind allein die Bedingungen von Nexus Mutual.</li>
-                <li id="disclaimer-4">Angezeigte Daten werden live aus der Blockchain und von Nexus Mutual gelesen. Wir übernehmen keine Gewähr für Richtigkeit, Vollständigkeit oder Aktualität.</li>
-                <li id="disclaimer-5">Soweit gesetzlich zulässig, ist unsere Haftung für Schäden aus der Nutzung ausgeschlossen, insbesondere für leichte Fahrlässigkeit sowie für Ausfälle oder Fehler von Blockchain, Wallets, Nexus Mutual und anderen Drittdiensten. Unberührt bleibt die Haftung für Vorsatz und grobe Fahrlässigkeit, für Personenschäden und nach zwingenden gesetzlichen Vorschriften.</li>
-                <li id="disclaimer-6">Du bestätigst nur eine Anmelde-Signatur. Der Agent fragt nie nach einer Transaktion, einer Freigabe oder deiner Seed Phrase.</li>
-              </ul>
-              <label class="disclaimer-check"><input type="checkbox" id="disclaimer-ok" /><span id="disclaimer-label"><span data-teil="0">Ich habe die Hinweise gelesen und akzeptiere sie sowie die </span><a href="/datenschutz" data-teil="1">Datenschutzerklärung</a><span data-teil="2">.</span></span></label>
-              <a class="disclaimer-imprint" href="/impressum" id="disclaimer-imprint">Impressum</a>
-            </div>
             <div class="actions">
               <button id="walletconnect">Mit Wallet verbinden</button>
               <button id="injected" class="secondary">Browser-Wallet verwenden</button>
@@ -329,6 +321,25 @@
         </div>
       </footer>
     </div>
-    <script type="module" src="/src/main.js"></script>
+    <div class="disclaimer-overlay" id="disclaimer-overlay" hidden>
+  <div class="disclaimer" role="dialog" aria-modal="true" aria-labelledby="disclaimer-title">
+    <strong id="disclaimer-title">Bevor du dich verbindest</strong>
+    <ul>
+      <li id="disclaimer-1">Der Raccoon Agent ist experimentell und befindet sich in Entwicklung. Fehler, Ausfälle und unvollständige oder falsche Daten sind möglich. Wer sich auf Anzeigen oder Erinnerungen verlässt, etwa wenn eine Ablauf-Erinnerung ausbleibt, kann dadurch Nachteile oder Verluste erleiden. DeFi und Onchain-Cover sind mit erheblichen Risiken bis hin zum Totalverlust verbunden.</li>
+      <li id="disclaimer-2">Der Raccoon Agent zeigt Informationen zu deinen Nexus-Mutual-Covers an und erinnert an Abläufe. Er verkauft und vermittelt nichts und ist keine Versicherungs-, Rechts- oder Anlageberatung.</li>
+      <li id="disclaimer-3">Nexus Mutual ist keine Versicherung. Es besteht kein Rechtsanspruch auf eine Auszahlung; maßgeblich sind allein die Bedingungen von Nexus Mutual.</li>
+      <li id="disclaimer-4">Angezeigte Daten werden live aus der Blockchain und von Nexus Mutual gelesen. Wir übernehmen keine Gewähr für Richtigkeit, Vollständigkeit oder Aktualität.</li>
+      <li id="disclaimer-5">Soweit gesetzlich zulässig, ist unsere Haftung für Schäden aus der Nutzung ausgeschlossen, insbesondere für leichte Fahrlässigkeit sowie für Ausfälle oder Fehler von Blockchain, Wallets, Nexus Mutual und anderen Drittdiensten. Unberührt bleibt die Haftung für Vorsatz und grobe Fahrlässigkeit, für Personenschäden und nach zwingenden gesetzlichen Vorschriften.</li>
+      <li id="disclaimer-6">Du bestätigst nur eine Anmelde-Signatur. Der Agent fragt nie nach einer Transaktion, einer Freigabe oder deiner Seed Phrase.</li>
+    </ul>
+    <label class="disclaimer-check"><input type="checkbox" id="disclaimer-ok" /><span id="disclaimer-label"><span data-teil="0">Ich habe die Hinweise gelesen und akzeptiere sie sowie die </span><a href="/datenschutz" data-teil="1">Datenschutzerklärung</a><span data-teil="2">.</span></span></label>
+    <div class="disclaimer-actions">
+      <button type="button" id="disclaimer-continue" disabled>Weiter zur Wallet</button>
+      <button type="button" id="disclaimer-cancel" class="secondary">Abbrechen</button>
+    </div>
+    <a class="disclaimer-imprint" href="/impressum" id="disclaimer-imprint">Impressum</a>
+  </div>
+</div>
+<script type="module" src="/src/main.js"></script>
   </body>
 </html>
