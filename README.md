@@ -16,7 +16,7 @@ Verlängerungen über den Agent sind derzeit auf Eis (letzter Stand: Tag `renew-
 - konfigurierbare Ablaufwarnungen und Wochenübersicht
 - Supabase-Persistenz mit getrennten serverseitigen Zugriffsrechten
 - Cover-Daten einer Wallet live von der Kette (Alchemy-NFT-Index und Nexus CoverViewer), ohne Datenbank und ohne Nachtlauf
-- zitierbares Nexus-Mutual-Wissen über die geschützte Coverraccoon Knowledge API
+- Produktfakten live von der Nexus-Mutual-API (Produkt, Kapazität, Preisspanne, offizielles Wording), ohne Bewertungen
 - ausschließlich öffentlich sichtbare Basisinformationen; Premium- und interne Inhalte werden server- und clientseitig abgewiesen
 
 ## Lokal starten
@@ -50,7 +50,7 @@ npm audit --omit=dev
 
 - Niemals Seed Phrases, Private Keys, Bot-Tokens oder Service-Role-Keys committen.
 - `SUPABASE_SECRET_KEY`, `TELEGRAM_BOT_TOKEN`, `DASHBOARD_SESSION_SECRET`,
-  `TELEGRAM_WEBHOOK_SECRET`, `CRON_SECRET` und `COVER_AGENT_API_KEY` sind nur
+  `TELEGRAM_WEBHOOK_SECRET`, `CRON_SECRET` und `ALCHEMY_API_KEY` sind nur
   serverseitig erlaubt.
 - `REOWN_PROJECT_ID` ist eine öffentliche App-Kennung, sollte aber pro Umgebung
   getrennt verwaltet werden.
