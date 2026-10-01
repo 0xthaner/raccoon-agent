@@ -15,7 +15,7 @@ Verlängerungen über den Agent sind derzeit auf Eis (letzter Stand: Tag `renew-
 - sicherer Gruppenmodus: Antworten nur bei @Erwähnung oder direkter Antwort; persönliche Daten und Aktionen bleiben im privaten Chat
 - konfigurierbare Ablaufwarnungen und Wochenübersicht
 - Supabase-Persistenz mit getrennten serverseitigen Zugriffsrechten
-- Cover-Daten über die versionierte Coverraccoon Agent API
+- Cover-Daten einer Wallet live von der Kette (Alchemy-NFT-Index und Nexus CoverViewer), ohne Datenbank und ohne Nachtlauf
 - zitierbares Nexus-Mutual-Wissen über die geschützte Coverraccoon Knowledge API
 - ausschließlich öffentlich sichtbare Basisinformationen; Premium- und interne Inhalte werden server- und clientseitig abgewiesen
 

@@ -1,6 +1,5 @@
-const mode = process.env.COVER_DATA_MODE?.trim() || 'mock';
-const baseUrl = (process.env.COVER_DATA_BASE_URL?.trim() || 'https://coverraccoon.com').replace(/\/$/, '');
-const apiKey = process.env.COVER_AGENT_API_KEY?.trim() || '';
+import { ChainCoverError, getChainWalletCovers } from './cover-chain.mjs';
+
 export const DEMO_WALLET = process.env.DEMO_WALLET?.trim().toLowerCase() || null;
 
 function demoCover() {
@@ -24,18 +23,18 @@ export class CoverDataError extends Error {
 	}
 }
 
-export async function getWalletCovers(wallet) {
-	if (mode !== 'api') throw new CoverDataError('mock_mode', 'Cover-Datenquelle steht noch im Testmodus.');
-	if (!apiKey) throw new CoverDataError('not_configured', 'COVER_AGENT_API_KEY fehlt.');
-	const response = await fetch(`${baseUrl}/api/agent/v1/wallets/${encodeURIComponent(wallet)}/covers`, {
-		headers: { authorization: `Bearer ${apiKey}`, accept: 'application/json' },
-		signal: AbortSignal.timeout(15_000)
-	});
-	if (response.status === 404) throw new CoverDataError('unauthorized', 'Coverraccoon-Zugriff wurde abgelehnt.');
-	if (!response.ok) throw new CoverDataError('unavailable', `Coverraccoon ist derzeit nicht verfügbar (HTTP ${response.status}).`);
-	const result = await response.json();
-	if (result.apiVersion !== 'agent.v1' || !Array.isArray(result.covers)) {
-		throw new CoverDataError('invalid_response', 'Coverraccoon lieferte ein unbekanntes Datenformat.');
+/*
+	Seit 01.10.2026 live von der Kette (siehe cover-chain.mjs), nicht mehr ueber
+	CoverRaccoon und dessen Nachtlauf. Ein Fehler bleibt ein Fehler: lieber
+	"gerade nicht verfuegbar" als eine leere oder veraltete Liste.
+*/
+export async function getWalletCovers(wallet, options) {
+	let result;
+	try {
+		result = await getChainWalletCovers(wallet, options);
+	} catch (error) {
+		if (error instanceof ChainCoverError) throw new CoverDataError('unavailable', `Cover-Daten sind gerade nicht verfügbar: ${error.message}`);
+		throw error;
 	}
 	if (DEMO_WALLET && wallet.toLowerCase() === DEMO_WALLET && !result.covers.some((cover) => cover.status === 'active')) {
 		return { ...result, covers: [demoCover(), ...result.covers], demoWallet: true };
@@ -60,14 +59,9 @@ export function formatWalletCovers(result, language = 'de') {
 	const date = new Intl.DateTimeFormat(chinese ? 'zh-CN' : english ? 'en-GB' : 'de-AT', { dateStyle: 'medium', timeZone: 'Europe/Vienna' });
 	const active = result.covers.filter((cover) => cover.status === 'active');
 	if (!result.covers.length) {
-		const incomplete = result.source?.historicalBackfillThroughBlock == null;
-		if (chinese) return incomplete
-			? '尚未找到此钱包的保障。历史数据同步仍在进行中。'
-			: '未找到此钱包的 Nexus Mutual 保障。';
-		if (english) return incomplete
-			? 'No covers have been found for this wallet yet. The historical data sync is still running.'
-			: 'No Nexus Mutual covers were found for this wallet.';
-		return incomplete ? 'Für diese Wallet wurden noch keine Covers gefunden. Der historische Datenabgleich läuft derzeit noch.' : 'Für diese Wallet wurden keine Nexus-Mutual-Covers gefunden.';
+		if (chinese) return '未找到此钱包的 Nexus Mutual 保障。';
+		if (english) return 'No Nexus Mutual covers were found for this wallet.';
+		return 'Für diese Wallet wurden keine Nexus-Mutual-Covers gefunden.';
 	}
 	if (!active.length) return chinese
 		? `未找到有效保障。已登记 ${result.covers.length} 个已到期或已续期的保障。`
@@ -88,6 +82,6 @@ export function formatWalletCovers(result, language = 'de') {
 		lines.push('');
 	}
 	if (result.demoWallet) lines.push(chinese ? '演示：仅适用于此钱包 · 不会执行交易' : english ? 'Demo for this wallet only · no transaction' : 'Demo für diese Wallet · keine Transaktion', '');
-	lines.push(chinese ? '数据来源：Coverraccoon · Nexus Mutual · Ethereum' : english ? 'Source: Coverraccoon · Nexus Mutual · Ethereum' : 'Quelle: Coverraccoon · Nexus Mutual · Ethereum');
+	lines.push(chinese ? '数据来源：Nexus Mutual · Ethereum（实时）' : english ? 'Source: Nexus Mutual · Ethereum (live)' : 'Quelle: Nexus Mutual · Ethereum (live)');
 	return lines.join('\n');
 }

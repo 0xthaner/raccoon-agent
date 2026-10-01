@@ -2,6 +2,19 @@ import { getWalletCovers } from './covers.mjs';
 import { newDashboardAccess } from './linking.mjs';
 import { clearSnooze, getCoverSnapshots, listAlertSubscriptions, listDueSnoozes, recordAlertSent, recordRenewalEvent, recordWeeklySummary, saveCoverSnapshot, wasAlertSent, wasWeeklySummarySent } from './db.mjs';
 
+/*
+	Bis 01.10.2026 kamen Betraege ueber den CoverRaccoon-Nachtlauf, auf vier
+	Nachkommastellen abgeschnitten; seither kommen sie exakt von der Kette. Ein
+	reiner Stringvergleich hielte "1.2345" gegen "1.234567..." fuer eine
+	Aenderung der Deckungssumme und meldete sie. Echte Aenderungen liegen um
+	Groessenordnungen darueber.
+*/
+export function amountsDiffer(previous, current) {
+	const a = Number(previous), b = Number(current);
+	if (previous != null && current != null && Number.isFinite(a) && Number.isFinite(b)) return Math.abs(a - b) >= 0.0001;
+	return String(previous ?? '') !== String(current ?? '');
+}
+
 export const ALERT_THRESHOLDS_DAYS = [0, 1, 3, 7, 14, 30];
 const DAY_MS = 86_400_000;
 
@@ -44,7 +57,7 @@ async function syncCoverLifecycle(subscription, covers, sendMessage, dashboardUr
 		}
 		else if (previous && cover.endsAt && previous.ends_at && Date.parse(cover.endsAt) > Date.parse(previous.ends_at) + DAY_MS) kind = 'renewed';
 		else if (previous && previous.status !== cover.status) kind = 'status';
-		else if (previous && String(previous.amount ?? '') !== String(cover.amount ?? '')) kind = 'coverage';
+		else if (previous && amountsDiffer(previous.amount, cover.amount)) kind = 'coverage';
 		if (kind) {
 			if (kind === 'renewed') {
 				const renewedCoverId = previous?.cover_id ?? snapshots.find((item) => item.product_id === String(cover.productId) && item.ends_at && cover.startsAt && Math.abs(Date.parse(cover.startsAt) - Date.parse(item.ends_at)) <= 7 * DAY_MS)?.cover_id;

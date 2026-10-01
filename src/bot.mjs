@@ -227,7 +227,7 @@ async function askLanguage(chatId) {
 
 async function statusText(chatId, language) {
 	const link = await getWalletLink(chatId);
-	const coverMode = process.env.COVER_DATA_MODE?.trim() === 'api' ? 'Coverraccoon API' : 'Testmodus';
+	const coverMode = process.env.ALCHEMY_API_KEY?.trim() ? 'Nexus Mutual live' : 'Testmodus';
 	if (language === 'zh') return [
 		'状态：Telegram MVP 已启用', '',
 		link ? `钱包：${link.wallet}` : '钱包：尚未绑定',
