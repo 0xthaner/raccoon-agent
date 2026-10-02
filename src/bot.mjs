@@ -6,7 +6,7 @@ import { checkExpiryAlerts } from './alerts.mjs';
 import { authenticPrivateMessage, telegramTimingMetadata } from './telegram-audit.mjs';
 import { classifyAgentIntent } from './agent-intent.mjs';
 import { allowAiRequest } from './ai-budget.mjs';
-import { ANMELDUNG_PAUSIERT, PAUSE_TEXT } from './pause.mjs';
+import { ANMELDUNG_PAUSIERT, PAUSE_TEXT, AGENT_ANTWORTEN_PAUSIERT, ANTWORT_PAUSE_TEXT } from './pause.mjs';
 import { answerGroupQuestion, answerProductQuestion } from './agent-knowledge.mjs';
 import { groupLanguage, groupQuestion, isGroupMessageForBot } from './group-chat.mjs';
 
@@ -142,6 +142,11 @@ async function handleGroupMessage(message) {
 		await sendMessage(message.chat.id,
 			language === 'en' ? 'Let’s do that privately so no personal wallet or cover data appears in the group.' : language === 'zh' ? '让我们在私聊中处理，以免个人钱包或保障数据出现在群组中。' : 'Das machen wir privat, damit keine persönlichen Wallet- oder Coverdaten in der Gruppe landen.',
 			{ reply_to_message_id: message.message_id, reply_markup: privateChatKeyboard(language), _trackDelivery: false, _messageKind: 'group_private_redirect' });
+		return;
+	}
+	if (AGENT_ANTWORTEN_PAUSIERT) {
+		await sendMessage(message.chat.id, ANTWORT_PAUSE_TEXT[language] ?? ANTWORT_PAUSE_TEXT.de,
+			{ reply_to_message_id: message.message_id, reply_markup: privateChatKeyboard(language), _trackDelivery: false, _messageKind: 'group_response' });
 		return;
 	}
 	const answer = await answerGroupQuestion(question || (language === 'en' ? 'Say hello to the group.' : language === 'zh' ? '向群组问好。' : 'Begrüße die Gruppe.'), language);
@@ -346,6 +351,10 @@ async function handleNaturalLanguage(message, language) {
 		case 'open_dashboard': return handleMessage({ ...message, text: '/dashboard', _agentRouted: true });
 		case 'help': return handleMessage({ ...message, text: '/help', _agentRouted: true });
 		case 'explain_product': {
+			if (AGENT_ANTWORTEN_PAUSIERT) {
+				await sendMessage(message.chat.id, ANTWORT_PAUSE_TEXT[language] ?? ANTWORT_PAUSE_TEXT.de, { reply_markup: navigationKeyboard(language) });
+				return;
+			}
 			const previousProductIds = await getChatProductContext(message.chat.id).catch(() => null);
 			const answer = await answerProductQuestion(message.text, language, fetch, {
 				previousProductIds,
