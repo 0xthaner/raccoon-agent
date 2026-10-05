@@ -655,25 +655,43 @@ document.querySelector('#switch-wallet').addEventListener('click', () => endSess
 async function restoreDashboard() {
 	if (code) return;
 	try {
-		// AGENT-SEC-A2: der Code verlaesst die sichtbare URL SOFORT, vor dem
-		// Netzaufruf. Vorher geschah das erst nach der Antwort; in diesem Fenster
-		// stand er in der Adresszeile und haette bei einer Navigation mitgehen
-		// koennen. Er wird nirgends gespeichert.
-		if (access) history.replaceState({}, '', '/');
-		const response = await fetch(access ? `/api/dashboard?access=${encodeURIComponent(access)}` : '/api/dashboard', { signal: AbortSignal.timeout(10000) });
+		if (access) {
+			// AGENT-SEC-A2: der Code verlaesst die sichtbare URL SOFORT, vor dem
+			// Netzaufruf. Er wird nirgends gespeichert.
+			// AGENT-AUTH-002: eingeloest wird der Code per POST (same-origin, JSON),
+			// nicht mehr per GET - ein GET darf keinen Einmalcode verbrauchen. Es
+			// entsteht weiterhin KEINE Session: zurueck kommt nur die erwartete
+			// Wallet, angemeldet wird ueber den bestehenden Signaturflow.
+			history.replaceState({}, '', '/');
+			const response = await fetch('/api/dashboard', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ access }),
+				signal: AbortSignal.timeout(10000)
+			});
+			const handoff = await response.json().catch(() => ({}));
+			if (!response.ok) {
+				show(handoff.error || (language === 'de' ? 'Der Dashboard-Link ist abgelaufen. Öffne /dashboard erneut in Telegram.' : 'The dashboard link has expired. Open /dashboard again in Telegram.'));
+				return;
+			}
+			if (handoff.code === 'WALLET_SIGNATURE_REQUIRED' && typeof handoff.wallet === 'string') {
+				expectedWallet = handoff.wallet.toLowerCase();
+				show(language === 'de'
+					? `Verbinde ${shortWallet(expectedWallet)} und signiere die Anmeldung. Es ist keine Transaktion.`
+					: `Connect ${shortWallet(expectedWallet)} and sign in. This is not a transaction.`);
+			}
+			return;
+		}
+		const response = await fetch('/api/dashboard', { signal: AbortSignal.timeout(10000) });
 		if (!response.ok) {
 			const failure = await response.json().catch(() => ({}));
 			if (failure.code === 'SESSION_REVOKED' || failure.code === 'NO_SESSION') {
 				await withTimeout(clearWalletStorage(), 1500, 'wallet cleanup timeout').catch(() => {});
 			}
-			if (access) show(failure.error || (language === 'de' ? 'Der Dashboard-Link ist abgelaufen. Öffne /dashboard erneut in Telegram.' : 'The dashboard link has expired. Open /dashboard again in Telegram.'));
 			return;
 		}
 		const dashboard = await response.json();
 		if (!dashboard.ok) {
-			// AGENT-SEC-A2: der Zugangslink authentifiziert nicht mehr. Er nennt
-			// nur die erwartete Wallet; angemeldet wird ueber den bestehenden
-			// Signaturflow.
 			if (dashboard.code === 'WALLET_SIGNATURE_REQUIRED' && typeof dashboard.wallet === 'string') {
 				expectedWallet = dashboard.wallet.toLowerCase();
 				show(language === 'de'

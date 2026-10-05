@@ -2,6 +2,7 @@ import { createHmac } from 'node:crypto';
 import { checkRateLimit } from './db.mjs';
 import { dashboardSecretConfigured } from './dashboard-auth.mjs';
 import { siweOrigin } from './siwe-auth.mjs';
+import { recordSecurityEvent, SECURITY_EVENT } from './security-events.mjs';
 
 const JSON_TYPE = /^application\/json(?:\s*;|$)/i;
 
@@ -22,13 +23,43 @@ function rateSecret() {
 	return dashboardSecretConfigured() ? process.env.DASHBOARD_SESSION_SECRET.trim() : '';
 }
 
+/**
+ * Tatsaechliche Groesse des bereits geparsten Bodys, so zuverlaessig wie hier
+ * moeglich: ein String zaehlt als UTF-8-Bytes, ein Buffer direkt, sonst die
+ * serialisierte JSON-Form. Ein nicht serialisierbarer Body (z. B. zyklisch)
+ * gilt als zu gross - fail closed.
+ */
+function serializedBodySize(body) {
+	if (body == null) return 0;
+	if (typeof body === 'string') return Buffer.byteLength(body, 'utf8');
+	if (Buffer.isBuffer(body)) return body.length;
+	try {
+		return Buffer.byteLength(JSON.stringify(body), 'utf8');
+	} catch {
+		return Infinity;
+	}
+}
+
+/**
+ * AGENT-API-001: die Groessengrenze haengt NICHT mehr allein am
+ * `Content-Length`-Header (den ein Client weglassen oder faelschen kann). Der
+ * Header dient nur als Frueh-Abweisung; zusaetzlich wird die tatsaechlich
+ * vorliegende Body-Groesse geprueft. Die Plattform (Vercel) deckelt Bodies
+ * zusaetzlich bei rund 4,5 MB - diese Pruefung ist die anwendungsseitige,
+ * header-unabhaengige Schranke darunter. Fail closed.
+ */
+export function bodyTooLarge(request, maxBytes) {
+	const length = Number(request.headers?.['content-length']);
+	if (Number.isFinite(length) && length > maxBytes) return true; // Frueh-Abweisung
+	return serializedBodySize(request?.body) > maxBytes; // header-unabhaengig
+}
+
 export function requireJson(request, response, maxBytes = 16_384) {
 	if (!JSON_TYPE.test(request.headers['content-type'] ?? '')) {
 		response.status(415).json({ ok: false, error: 'Content-Type application/json erforderlich.' });
 		return false;
 	}
-	const length = Number(request.headers['content-length']);
-	if (Number.isFinite(length) && length > maxBytes) {
+	if (bodyTooLarge(request, maxBytes)) {
 		response.status(413).json({ ok: false, error: 'Request too large.' });
 		return false;
 	}
@@ -93,6 +124,8 @@ export async function enforceRateLimitFor(response, scope, wert, maxRequests, wi
 	}
 	const identity = createHmac('sha256', secret).update(String(wert)).digest('hex');
 	if (await checkRateLimit(`${scope}:${identity}`, maxRequests, windowSeconds)) return true;
+	// AGENT-IR-002: Block als Security-Ereignis festhalten (nur Fingerprint + Scope).
+	await recordSecurityEvent(SECURITY_EVENT.RATE_LIMIT_BLOCKED, { source: 'system', fingerprint: identity.slice(0, 12), scope });
 	response.setHeader('retry-after', String(windowSeconds));
 	response.status(429).json({ ok: false, error: 'Too many requests. Please try again later.' });
 	return false;
@@ -107,6 +140,9 @@ export async function enforceRateLimit(request, response, scope, maxRequests, wi
 	const identity = createHmac('sha256', secret).update(requestIp(request)).digest('hex');
 	const allowed = await checkRateLimit(`${scope}:${identity}`, maxRequests, windowSeconds);
 	if (allowed) return true;
+	// AGENT-IR-002: Block als Security-Ereignis festhalten (nur Fingerprint + Scope,
+	// keine rohe IP). Die Flut-Schranke in recordSecurityEvent verhindert Zeilenflut.
+	await recordSecurityEvent(SECURITY_EVENT.RATE_LIMIT_BLOCKED, { source: 'system', fingerprint: identity.slice(0, 12), scope });
 	response.setHeader('retry-after', String(windowSeconds));
 	response.status(429).json({ ok: false, error: 'Too many requests. Please try again later.' });
 	return false;

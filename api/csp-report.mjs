@@ -11,14 +11,20 @@
 	vollstaendige Seitenadresse noch ein Verweis dorthin im Log: `document-uri`
 	und `referrer` koennen Codes und Adressen aus der Verknuepfung enthalten.
 */
+import { bodyTooLarge, enforceRateLimit } from '../src/http-security.mjs';
+
 const MAX = 8 * 1024;
 
 export default async function handler(request, response) {
 	response.setHeader('cache-control', 'no-store');
 	if (request.method !== 'POST') return response.status(405).end();
 
-	const laenge = Number(request.headers['content-length']);
-	if (Number.isFinite(laenge) && laenge > MAX) return response.status(413).end();
+	// AGENT-API-002: leichtes Limit gegen Log-Flutung. Legitime Reports (selten
+	// pro Browser) bleiben unberuehrt; die bestehende Infrastruktur zaehlt pro IP.
+	if (!await enforceRateLimit(request, response, 'csp-report', 60, 600)) return;
+
+	// AGENT-API-001: Groesse header-unabhaengig pruefen (8 KB).
+	if (bodyTooLarge(request, MAX)) return response.status(413).end();
 
 	try {
 		const roh = request.body;

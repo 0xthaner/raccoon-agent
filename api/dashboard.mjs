@@ -6,6 +6,7 @@ import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChalleng
 import { newTelegramHandoff } from '../src/linking.mjs';
 import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../src/pause.mjs';
 import { enforceRateLimit, requireJson, requireSameOrigin } from '../src/http-security.mjs';
+import { recordSecurityEvent, securityFingerprint, SECURITY_EVENT } from '../src/security-events.mjs';
 
 async function dashboardData(wallet) {
 	const [result, telegramState] = await Promise.all([getWalletCovers(wallet), getWalletLinkStateByWallet(wallet)]);
@@ -49,28 +50,14 @@ export default async function handler(request, response) {
 		const access = typeof request.query.access === 'string' ? request.query.access : '';
 		if (access && ANMELDUNG_PAUSIERT) return pauseAntwort(response);
 		if (access) {
-			// AGENT-SEC-A2, 29.08.2026: der Telegram-Zugangslink hat bis dahin
-			// unmittelbar ein Sessioncookie gesetzt und die Dashboarddaten
-			// ausgeliefert. Damit genuegte die KENNTNIS des Links, um Walletbesitz
-			// zu behaupten. Der Code loest jetzt nur noch die erwartete Wallet auf
-			// und uebergibt an den bestehenden Signaturflow: keine Session, kein
-			// Cookie, keine Cover- und keine Telegramdaten vor der Signatur.
-			//
-			// Der Verbrauch bleibt hier im GET und bleibt atomar. Das ist eine
-			// bewusste Entscheidung: die Telegram-URL zeigt auf die statische
-			// Seite, der Code wird erst durch diesen Aufruf aus dem geladenen
-			// Client eingeloest. Ein Linkscanner ohne JavaScript kann ihn deshalb
-			// nicht verbrauchen, und selbst wenn er es koennte, erhielte er nur
-			// den Handoffzustand.
-			const wallet = await consumeDashboardAccess(access);
-			if (!wallet || !isAddress(wallet)) {
-				// Das Datenmodell unterscheidet ungueltig, abgelaufen und
-				// verbraucht nicht. Es wird keine Information erfunden: nach
-				// aussen genau ein Code.
-				return response.status(410).json({ ok: false, code: 'ACCESS_CODE_INVALID', error: 'Dieser Dashboard-Link ist ungültig oder abgelaufen.' });
-			}
-			await recordAgentEvent({ wallet, eventType: 'dashboard.access_link_consumed', source: 'dashboard' }).catch(() => {});
-			return response.status(200).json({ ok: false, code: 'WALLET_SIGNATURE_REQUIRED', wallet: wallet.toLowerCase() });
+			// AGENT-AUTH-002, 05.10.2026: GET darf den Einmal-Zugangscode NICHT mehr
+			// konsumieren. Zustandsaenderung (used_at) gehoert nicht in ein GET. Das
+			// Einloesen laeuft jetzt ausschliesslich ueber POST (same-origin, JSON);
+			// dieser Zweig bleibt READ-ONLY, fasst die Datenbank nicht an und weist
+			// nur den Weg. Der frueher hier liegende Verbrauch (AGENT-SEC-A2) war
+			// durch den unerratbaren Code gedeckt, blieb aber ein
+			// zustandsaendernder GET.
+			return response.status(405).json({ ok: false, code: 'ACCESS_REDEEM_VIA_POST', error: 'Diesen Dashboard-Link bitte über die Seite öffnen.' });
 		}
 		const wallet = typeof request.query.wallet === 'string' ? request.query.wallet : '';
 		if (wallet && ANMELDUNG_PAUSIERT) return pauseAntwort(response);
@@ -119,8 +106,25 @@ export default async function handler(request, response) {
 	if (request.method !== 'POST') return response.status(405).json({ ok: false, error: 'Method not allowed' });
 	if (!requireSameOrigin(request, response) || !requireJson(request, response)) return;
 	if (ANMELDUNG_PAUSIERT) return pauseAntwort(response);
+	const body = request.body ?? {};
+	// AGENT-AUTH-002, 05.10.2026: der Telegram-Zugangscode wird NUR hier per POST
+	// eingeloest - Same-Origin und JSON sind oben bereits erzwungen. Der Verbrauch
+	// bleibt atomar (consumeDashboardAccess, bedingtes Update, Erfolg nur bei genau
+	// einer Zeile), also weiterhin single-use. Es entsteht KEINE Session und kein
+	// Cookie: zurueck kommt nur die erwartete Wallet, der Login braucht weiter die
+	// Signatur. Fail closed: ein nicht aufloesbarer Code endet in genau einem Code.
+	if (typeof body.access === 'string' && body.access && body.token === undefined && body.signature === undefined) {
+		if (!await enforceRateLimit(request, response, 'dashboard-access', 20, 600)) return;
+		const wallet = await consumeDashboardAccess(body.access);
+		if (!wallet || !isAddress(wallet)) {
+			await recordSecurityEvent(SECURITY_EVENT.ACCESS_CODE_INVALID, { source: 'dashboard', fingerprint: securityFingerprint(body.access) });
+			return response.status(410).json({ ok: false, code: 'ACCESS_CODE_INVALID', error: 'Dieser Dashboard-Link ist ungültig oder abgelaufen.' });
+		}
+		await recordAgentEvent({ wallet, eventType: 'dashboard.access_link_consumed', source: 'dashboard' }).catch(() => {});
+		return response.status(200).json({ ok: false, code: 'WALLET_SIGNATURE_REQUIRED', wallet: wallet.toLowerCase() });
+	}
 	if (!await enforceRateLimit(request, response, 'dashboard-login', 10, 600)) return;
-	const { wallet, token, signature } = request.body ?? {};
+	const { wallet, token, signature } = body;
 	const challenge = verifyDashboardToken(token);
 	if (challenge?.type !== 'challenge' || !isAddress(wallet) || challenge.wallet !== wallet.toLowerCase() || typeof signature !== 'string') return response.status(401).json({ ok: false, error: 'Dashboard-Anmeldung ungültig oder abgelaufen.' });
 	// AGENT-SEC-A3/A4: der SIWE-Text wird serverseitig aus der verifizierten
@@ -133,8 +137,14 @@ export default async function handler(request, response) {
 		signature,
 		expected: dashboardSiweExpectation(challenge, wallet)
 	});
-	if (verified !== 'VALID') return response.status(401).json({ ok: false, error: 'Wallet-Signatur konnte nicht bestätigt werden.' });
-	if (!await consumeDashboardChallenge(challenge.nonce, wallet)) return response.status(409).json({ ok: false, error: 'Diese Login-Anfrage wurde bereits verwendet.' });
+	if (verified !== 'VALID') {
+		await recordSecurityEvent(SECURITY_EVENT.SIWE_SIGNATURE_INVALID, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });
+		return response.status(401).json({ ok: false, error: 'Wallet-Signatur konnte nicht bestätigt werden.' });
+	}
+	if (!await consumeDashboardChallenge(challenge.nonce, wallet)) {
+		await recordSecurityEvent(SECURITY_EVENT.SIWE_REPLAY_BLOCKED, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });
+		return response.status(409).json({ ok: false, error: 'Diese Login-Anfrage wurde bereits verwendet.' });
+	}
 	response.setHeader('set-cookie', sessionCookieHeader(wallet));
 	await recordAgentEvent({ wallet, eventType: 'dashboard.wallet_authenticated', source: 'dashboard' }).catch(() => {});
 	return response.status(200).json(await dashboardData(wallet));

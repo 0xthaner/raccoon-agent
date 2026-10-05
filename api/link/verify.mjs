@@ -3,6 +3,7 @@ import { consumePendingLink, getPendingLink, getLanguage } from '../../src/db.mj
 import { linkSiweExpectation, newDashboardAccess, signingMessage } from '../../src/linking.mjs';
 import { verifyExpectedSiweSignature } from '../../src/siwe-auth.mjs';
 import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin } from '../../src/http-security.mjs';
+import { recordSecurityEvent, securityFingerprint, SECURITY_EVENT } from '../../src/security-events.mjs';
 import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../../src/pause.mjs';
 
 async function notifyLinked(chatId, wallet) {
@@ -61,10 +62,14 @@ export default async function handler(request, response) {
 	const expected = linkSiweExpectation({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code });
 	const message = signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code });
 	if (await verifyExpectedSiweSignature({ message, signature, expected }) !== 'VALID') {
+		await recordSecurityEvent(SECURITY_EVENT.SIWE_SIGNATURE_INVALID, { source: 'telegram', fingerprint: securityFingerprint(wallet) });
 		return response.status(401).json({ ok: false, error: 'Signatur konnte nicht bestätigt werden.' });
 	}
 	const chatId = await consumePendingLink(code, wallet);
-	if (!chatId) return response.status(409).json({ ok: false, error: 'Verbindungscode wurde bereits verwendet.' });
+	if (!chatId) {
+		await recordSecurityEvent(SECURITY_EVENT.SIWE_REPLAY_BLOCKED, { source: 'telegram', fingerprint: securityFingerprint(wallet) });
+		return response.status(409).json({ ok: false, error: 'Verbindungscode wurde bereits verwendet.' });
+	}
 	await notifyLinked(chatId, wallet);
 	// AGENT-SEC-A1, 29.08.2026: hier wurde bis dahin ein Dashboard-Sessioncookie
 	// gesetzt. Die signierte Nachricht autorisiert aber ausschliesslich das

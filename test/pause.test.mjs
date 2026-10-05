@@ -17,9 +17,16 @@ test('jeder Weg zu einer neuen Anmeldung lehnt ab, bevor etwas entsteht', () => 
 	const dashboard = quelle('../api/dashboard.mjs');
 	assert.match(dashboard, /if \(access && ANMELDUNG_PAUSIERT\) return pauseAntwort\(response\);/);
 	assert.match(dashboard, /if \(wallet && ANMELDUNG_PAUSIERT\) return pauseAntwort\(response\);/);
-	// Login (POST) vor jeder Pruefung der Signatur
-	const post = dashboard.indexOf("if (ANMELDUNG_PAUSIERT) return pauseAntwort(response);\n\tif (!await enforceRateLimit(request, response, 'dashboard-login'");
-	assert.ok(post > 0, 'POST-Login pausiert');
+	// Login (POST) wird pausiert, BEVOR der Access-Code verbraucht oder die
+	// Signatur geprueft wird. AGENT-AUTH-002 hat den Access-Consume in den POST
+	// verschoben; der Pause-Check bleibt die erste Schranke des POST und steht
+	// damit vor Access-Consume UND vor dem Login-Zweig.
+	const postStart = dashboard.indexOf("if (request.method !== 'POST')");
+	const pausePost = dashboard.indexOf('if (ANMELDUNG_PAUSIERT) return pauseAntwort(response);', postStart);
+	const accessConsume = dashboard.indexOf('consumeDashboardAccess(body.access)', postStart);
+	const loginLimit = dashboard.indexOf("enforceRateLimit(request, response, 'dashboard-login'", postStart);
+	assert.ok(pausePost > 0, 'POST-Login pausiert');
+	assert.ok(pausePost < accessConsume && pausePost < loginLimit, 'Pause steht vor Access-Consume und Login');
 	for (const pfad of ['../api/link.mjs', '../api/link/verify.mjs']) {
 		assert.match(quelle(pfad), /if \(ANMELDUNG_PAUSIERT\) return pauseAntwort\(response\);/, pfad);
 	}

@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import { checkExpiryAlerts } from '../src/alerts.mjs';
 import { beginTelegramDelivery, finishTelegramDelivery, purgeOldRecords } from '../src/db.mjs';
+import { alertOperatorCronFailure } from '../src/security-events.mjs';
 
 function authorized(header) {
 	const expected = process.env.CRON_SECRET?.trim() ?? '';
@@ -33,9 +34,45 @@ export default async function handler(request, response) {
 	if (request.method !== 'GET') return response.status(405).json({ ok: false });
 	if (!authorized(request.headers.authorization)) return response.status(401).json({ ok: false });
 	const dashboardUrl = (process.env.APP_BASE_URL?.trim() || '').replace(/\/$/, '');
-	const result = await checkExpiryAlerts({ sendMessage, dashboardUrl });
+	// AGENT-IR-001 (ALERT-4): ein echter Reminder-Lauf-Fehler alarmiert den
+	// Operator (generische Kennung, kein roher Fehlertext) und meldet generisch 500.
+	let result;
+	try {
+		result = await checkExpiryAlerts({ sendMessage, dashboardUrl });
+	} catch {
+		console.error('checkExpiryAlerts fehlgeschlagen');
+		await alertOperatorCronFailure('expiry-alert-run');
+		return response.status(500).json({ ok: false });
+	}
 	// Nach den Erinnerungen und unabhaengig davon: scheitert die Bereinigung,
 	// steht es im Ergebnis, aber keine Erinnerung ist verloren.
-	const bereinigt = await purgeOldRecords().catch((error) => ({ fehler: error?.message ?? 'unbekannt' }));
+	//
+	// AGENT-API-003: interne DB-/Postgres-Fehlertexte duerfen NICHT nach aussen
+	// gelangen. purgeOldRecords liefert je Tabelle entweder eine Zahl (Erfolg)
+	// oder eine `fehler: <...>`-Zeichenkette mit der rohen Fehlermeldung. Nach
+	// aussen geht deshalb nur die Zahl oder ein generisches 'fehler'; die
+	// Ursache wird ausschliesslich server-seitig geloggt (nur Tabellenname,
+	// keine Meldung, kein Secret, kein Payload).
+	const roh = await purgeOldRecords().catch(() => null);
+	let bereinigt;
+	let purgeFehler = false;
+	if (!roh || typeof roh !== 'object') {
+		console.error('purgeOldRecords: Lauf fehlgeschlagen');
+		bereinigt = { ok: false };
+		purgeFehler = true;
+	} else {
+		bereinigt = {};
+		for (const [tabelle, wert] of Object.entries(roh)) {
+			if (typeof wert === 'number') {
+				bereinigt[tabelle] = wert;
+			} else {
+				console.error(`purgeOldRecords: ${tabelle} nicht bereinigt`);
+				bereinigt[tabelle] = 'fehler';
+				purgeFehler = true;
+			}
+		}
+	}
+	// ALERT-4: scheiterte die Bereinigung (ganz oder je Tabelle), Operator alarmieren.
+	if (purgeFehler) await alertOperatorCronFailure('purge');
 	return response.status(200).json({ ok: true, ...result, bereinigt });
 }
