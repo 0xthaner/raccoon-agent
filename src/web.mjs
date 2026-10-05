@@ -4,7 +4,7 @@ import { extname, join, normalize } from 'node:path';
 import { isAddress } from 'viem';
 import { consumePendingLink, getPendingLink } from './db.mjs';
 import { linkSiweExpectation, signingMessage } from './linking.mjs';
-import { verifyExpectedSiweSignature } from './siwe-auth.mjs';
+import { verifyWalletSiweSignature } from './contract-signature.mjs';
 
 const publicDir = join(process.cwd(), 'dist-web');
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
@@ -56,9 +56,11 @@ export function startWebServer({ port = 8787, onLinked }) {
 				if (!pending || pending.used_at || pending.expires_at < Date.now()) return json(res, 410, { ok: false, error: 'Verbindungscode ungültig oder abgelaufen.' });
 				if (!isAddress(wallet) || typeof signature !== 'string') return json(res, 400, { ok: false, error: 'Ungültige Signaturdaten.' });
 				// AGENT-SEC-A3: derselbe Vertrag wie im Vercel-Handler.
+				// AGENT-AUTH-001: EOA (offline) oder deployte Contract-Wallet (ERC-1271),
+				// derselbe Orchestrator wie der Vercel-Handler; fail closed bei RPC.
 				const expected = linkSiweExpectation({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code });
 				const message = signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code });
-				if (await verifyExpectedSiweSignature({ message, signature, expected }) !== 'VALID') {
+				if (await verifyWalletSiweSignature({ message, signature, expected }) !== 'VALID') {
 					return json(res, 401, { ok: false, error: 'Signatur konnte nicht bestätigt werden.' });
 				}
 				const chatId = await consumePendingLink(code, wallet);

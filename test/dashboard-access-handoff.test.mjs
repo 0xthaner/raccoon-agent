@@ -188,7 +188,9 @@ test('A2-20 nur der Anmeldepfad stellt ein Cookie aus, hinter Signatur und Nonce
 	const minting = code.split('\n').filter((line) => line.includes('sessionCookieHeader('));
 	assert.equal(minting.length, 1);
 	const mint = code.indexOf('sessionCookieHeader(');
-	assert.ok(code.indexOf('verifyExpectedSiweSignature(') < mint);
+	// AGENT-AUTH-001: der Login verifiziert jetzt ueber den Orchestrator
+	// verifyWalletSiweSignature (EOA + ERC-1271), weiterhin VOR dem Cookie.
+	assert.ok(code.indexOf('verifyWalletSiweSignature(') < mint);
 	assert.ok(code.indexOf('await consumeDashboardChallenge(') < mint);
 });
 
@@ -205,7 +207,7 @@ test('A2-13 der SIWE-Login-Flow des Clients ist unveraendert (Challenge, Signatu
 test('AUTH002-12 der Telegram-Linking-Pfad ist unveraendert', () => {
 	const verify = source('../api/link/verify.mjs');
 	assert.ok(verify.includes('consumePendingLink(code, wallet)'));
-	assert.ok(verify.includes('verifyExpectedSiweSignature('));
+	assert.ok(verify.includes('verifyWalletSiweSignature('));
 	// Die Verknuepfungssignatur erzeugt weiterhin KEINE Dashboard-Session.
 	assert.equal(verify.includes('sessionCookieHeader'), false);
 	assert.equal(verify.includes('createDashboardSession'), false);

@@ -1,7 +1,7 @@
 import { isAddress } from 'viem';
 import { consumePendingLink, getPendingLink, getLanguage } from '../../src/db.mjs';
 import { linkSiweExpectation, newDashboardAccess, signingMessage } from '../../src/linking.mjs';
-import { verifyExpectedSiweSignature } from '../../src/siwe-auth.mjs';
+import { verifyWalletSiweSignature } from '../../src/contract-signature.mjs';
 import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin } from '../../src/http-security.mjs';
 import { recordSecurityEvent, securityFingerprint, SECURITY_EVENT } from '../../src/security-events.mjs';
 import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../../src/pause.mjs';
@@ -61,8 +61,13 @@ export default async function handler(request, response) {
 	// Nachricht, und die interne Ursache verlaesst den Server nicht.
 	const expected = linkSiweExpectation({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code });
 	const message = signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code });
-	if (await verifyExpectedSiweSignature({ message, signature, expected }) !== 'VALID') {
-		await recordSecurityEvent(SECURITY_EVENT.SIWE_SIGNATURE_INVALID, { source: 'telegram', fingerprint: securityFingerprint(wallet) });
+	// EOA (offline) oder deployte Contract-Wallet (ERC-1271). Derselbe Pfad wie beim
+	// Dashboard; eine 1271-Signatur fuer Wallet A verknuepft nie Wallet B.
+	const verified = await verifyWalletSiweSignature({ message, signature, expected });
+	if (verified !== 'VALID') {
+		if (verified !== 'RPC_UNAVAILABLE') {
+			await recordSecurityEvent(SECURITY_EVENT.SIWE_SIGNATURE_INVALID, { source: 'telegram', fingerprint: securityFingerprint(wallet) });
+		}
 		return response.status(401).json({ ok: false, error: 'Signatur konnte nicht bestätigt werden.' });
 	}
 	const chatId = await consumePendingLink(code, wallet);

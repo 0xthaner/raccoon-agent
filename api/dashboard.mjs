@@ -1,7 +1,7 @@
 import { isAddress } from 'viem';
 import { getWalletCovers } from '../src/covers.mjs';
 import { CLEAR_SESSION_COOKIES, createDashboardChallenge, dashboardMessage, dashboardSiweExpectation, readSessionCookie, resolveLogout, sessionCookieHeader, verifyDashboardSession, verifyDashboardToken } from '../src/dashboard-auth.mjs';
-import { verifyExpectedSiweSignature } from '../src/siwe-auth.mjs';
+import { verifyWalletSiweSignature } from '../src/contract-signature.mjs';
 import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, getWalletLinkStateByWallet, isDashboardSessionRevoked, recordAgentEvent, revokeDashboardSessions, storeDashboardChallenge, unlinkWalletByWallet } from '../src/db.mjs';
 import { newTelegramHandoff } from '../src/linking.mjs';
 import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../src/pause.mjs';
@@ -132,13 +132,19 @@ export default async function handler(request, response) {
 	// Grenze. Die interne Ursache bleibt dort, nach aussen geht eine stabile,
 	// allgemeine Meldung.
 	const message = dashboardMessage(challenge, wallet);
-	const verified = await verifyExpectedSiweSignature({
+	// EOA (offline) oder deployte Contract-Wallet (ERC-1271, Chain-Read). Reihenfolge
+	// und Felder unveraendert; der Contract-Pfad greift nur nach bestandener
+	// Feldpruefung. Die Nonce wird erst NACH erfolgreicher Signaturpruefung konsumiert.
+	const verified = await verifyWalletSiweSignature({
 		message,
 		signature,
 		expected: dashboardSiweExpectation(challenge, wallet)
 	});
 	if (verified !== 'VALID') {
-		await recordSecurityEvent(SECURITY_EVENT.SIWE_SIGNATURE_INVALID, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });
+		// RPC-Ausfall (Contract-Status nicht feststellbar) ist kein Angriffssignal.
+		if (verified !== 'RPC_UNAVAILABLE') {
+			await recordSecurityEvent(SECURITY_EVENT.SIWE_SIGNATURE_INVALID, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });
+		}
 		return response.status(401).json({ ok: false, error: 'Wallet-Signatur konnte nicht bestätigt werden.' });
 	}
 	if (!await consumeDashboardChallenge(challenge.nonce, wallet)) {

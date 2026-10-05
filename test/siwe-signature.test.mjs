@@ -201,7 +201,7 @@ test('21 und 22 die Telegram-Verifikation erzeugt weder Session noch Cookie', ()
 	assert.equal(/set-cookie/i.test(code), false);
 	assert.equal(code.includes('createDashboardSession'), false);
 	assert.equal(code.includes('sessionCookieHeader'), false);
-	assert.ok(code.includes('verifyExpectedSiweSignature'));
+	assert.ok(code.includes('verifyWalletSiweSignature'));
 });
 
 /* ------------------------------------------------------------------------- *
@@ -258,12 +258,20 @@ test('27 dieselbe Wallet hebt die Zwecktrennung nicht auf', async () => {
 test('28 bis 30 alle drei Handler nutzen dieselbe eine Verifikationsgrenze', () => {
 	for (const file of ['../api/dashboard.mjs', '../api/link/verify.mjs', '../src/web.mjs']) {
 		const code = source(file);
-		assert.ok(code.includes('verifyExpectedSiweSignature'), file);
-		// Keine zweite Verifikationslogik daneben.
+		// AGENT-AUTH-001: die kanonische Grenze ist jetzt der Orchestrator
+		// verifyWalletSiweSignature (EOA offline + ERC-1271 Contract-Wallet).
+		assert.ok(code.includes('verifyWalletSiweSignature'), file);
+		// Keine zweite Verifikationslogik daneben: kein Handler ruft die
+		// Offline-Grenze, den viem-verifyMessage oder checkSiweMessage direkt.
+		assert.equal(code.includes('verifyExpectedSiweSignature'), false, file);
 		assert.equal(code.includes('verifyMessage'), false, file);
 		assert.equal(code.includes('checkSiweMessage'), false, file);
 	}
-	// Und die Bibliotheksfunktion wird ausschliesslich zentral bezogen.
+	// Der Orchestrator bezieht die Offline-Grenze zentral; der ERC-1271-Pfad
+	// liegt ausschliesslich hier, nicht in den Handlern.
+	assert.ok(source('../src/contract-signature.mjs').includes("import { verifyExpectedSiweSignature } from './siwe-auth.mjs'"));
+	// Und die Bibliotheksfunktion verifyMessage wird ausschliesslich zentral
+	// in siwe-auth.mjs bezogen (der Contract-Pfad nutzt die Public-Client-Action).
 	assert.ok(source('../src/siwe-auth.mjs').includes("import { verifyMessage } from 'viem'"));
 });
 
