@@ -23,8 +23,8 @@ export const AI_LIMITS = Object.freeze({
 
 /**
  * true, wenn die KI fuer diese Nachricht angefragt werden darf. Faellt die
- * Zaehlung aus, gilt privat "ja" (der Nutzer soll antworten koennen) und in
- * Gruppen "nein" (dort entstehen die grossen Mengen).
+ * Zaehlung aus, bleibt die KI privat wie in Gruppen gesperrt. Statische
+ * Befehle und der bestehende private Hinweis benoetigen keine KI.
  */
 export async function allowAiRequest({ chatId, senderId = null, isGroup = false }, { check = checkRateLimit, key = rateKey } = {}) {
 	try {
@@ -47,6 +47,6 @@ export async function allowAiRequest({ chatId, senderId = null, isGroup = false 
 		}
 		return true;
 	} catch {
-		return !isGroup;
+		return false;
 	}
 }

@@ -55,15 +55,23 @@ export async function getCatalog(fetchImpl = fetch, now = Date.now()) {
 		fetchJson(`${API}/v2/product-types`, fetchImpl)
 	]);
 	if (!Array.isArray(products) || !Array.isArray(types)) throw new Error('Nexus-Katalog im unbekannten Format');
+	if (new Set(products.map(p => p?.id)).size !== products.length) throw new Error('Duplicate Nexus product IDs');
 	const typeById = new Map(types.filter((t) => Number.isInteger(t?.id)).map((t) => [t.id, t]));
 	const value = products
-		.filter((p) => Number.isInteger(p?.id) && typeof p?.name === 'string' && !p.isPrivate)
+		.filter((p) => Number.isSafeInteger(p?.id) && p.id >= 0 && typeof p?.name === 'string' && !p.isPrivate)
 		.map((p) => {
 			const type = typeById.get(p.productType);
 			return {
 				id: p.id,
 				name: p.name,
-				keys: [...new Set([normalize(p.name), normalize(p.name.replace(/\([^)]*\)/g, ' '))])].filter((k) => k.length >= 3),
+				productId: p.id,
+				officialName: p.name,
+				normalizedName: normalize(p.name),
+				aliases: [...new Set([normalize(p.name), normalize(p.name.replace(/\([^)]*\)/g, ' '))])].filter(Boolean),
+				familyAlias: normalize(p.name).match(/^(.+?) v\d+(?: |$)/)?.[1] ?? null,
+				status: p.isDeprecated ? 'DEPRECATED' : 'ACTIVE',
+				productType: Number.isInteger(p.productType) ? p.productType : null,
+				catalogFetchedAt: new Date(now).toISOString(),
 				category: typeof p.category === 'string' ? p.category : null,
 				deprecated: Boolean(p.isDeprecated),
 				coverAssets: Array.isArray(p.coverAssets) ? p.coverAssets.map((a) => a?.assetSymbol).filter((s) => typeof s === 'string') : [],
@@ -82,55 +90,79 @@ export async function getCatalog(fetchImpl = fetch, now = Date.now()) {
  * "Aave v3" vor "Aave" gewinnt; ein Treffer, der in einem laengeren Treffer
  * steckt, faellt weg. Eingestellte Produkte nur, wenn sonst nichts passt.
  */
+const AMBIGUOUS_PRODUCT_NAMES = new Set(['current', 'exactly']);
+
+function explicitProductReference(q, key) {
+	if (!AMBIGUOUS_PRODUCT_NAMES.has(key)) return true;
+	return ['cover', 'product', 'produkt'].some((label) =>
+		q.includes(` ${key} ${label} `) || q.includes(` ${label} ${key} `));
+}
+
 export function matchProducts(question, catalog) {
 	const q = ` ${normalize(question)} `;
 	if (q.trim().length < 3) return [];
 	const hits = catalog
-		.map((p) => ({ p, key: p.keys.filter((k) => q.includes(` ${k} `)).sort((a, b) => b.length - a.length)[0] }))
+		.map((p) => ({ p, key: p.aliases.filter((k) => q.includes(` ${k} `) && explicitProductReference(q, k)).sort((a, b) => b.length - a.length)[0] }))
 		.filter((hit) => hit.key)
 		.sort((a, b) => b.key.length - a.key.length);
 	const kept = hits.filter((hit, i) => !hits.slice(0, i).some((longer) => longer.key !== hit.key && longer.key.includes(hit.key))).map((hit) => hit.p);
-	const live = kept.filter((p) => !p.deprecated);
-	if (kept.length) return (live.length ? live : kept).slice(0, MAX_CANDIDATES);
-	/*
-		Rueckfall: "Aave" statt "Aave v3". Passt kein voller Name, aber das erste
-		Wort eines Namens (mindestens vier Zeichen), werden die laufenden
-		Produkte dazu Kandidaten; mit mehreren fragt der Bot nach.
-	*/
-	const words = new Set(q.trim().split(' ').filter((w) => w.length >= 4));
-	return catalog
-		.filter((p) => !p.deprecated && p.keys.some((k) => words.has(k.split(' ')[0])))
+	// A full name must not hide an independently named protocol family.
+	// A specific version still suppresses fallback siblings of that family.
+	const families = catalog.filter((p) => !p.deprecated && p.familyAlias
+		&& q.includes(` ${p.familyAlias} `)
+		&& !kept.some((hit) => hit.familyAlias === p.familyAlias));
+	const candidates = [...new Map([...kept, ...families].map((p) => [p.productId, p])).values()];
+	const live = candidates.filter((p) => !p.deprecated);
+	return (live.length ? live : candidates)
 		.sort((a, b) => a.name.localeCompare(b.name))
 		.slice(0, MAX_CANDIDATES);
 }
 
-async function getCapacity(productId, fetchImpl, now) {
+export function resolveProduct(question, catalog) {
+	const candidates = matchProducts(question, catalog);
+	if (!candidates.length) return { state: 'NO_MATCH' };
+	if (candidates.length > 1) return { state: 'AMBIGUOUS', candidates };
+	return { state: 'UNAMBIGUOUS', productId: candidates[0].productId, product: candidates[0] };
+}
+
+export async function getProductFactsById(productId, fetchImpl = fetch, now = Date.now()) {
+	if (!Number.isSafeInteger(productId) || productId < 0) throw new Error('Invalid product ID');
 	const cached = capacityCache.get(productId);
 	if (cached && now - cached.at < CAPACITY_TTL_MS) return cached.value;
 	const raw = await fetchJson(`${API}/v2/capacity/${productId}`, fetchImpl);
 	if (raw?.productId !== productId || !Array.isArray(raw.availableCapacity)) throw new Error('Nexus-Kapazitaet im unbekannten Format');
 	const value = {
+		productId,
+		fetchedAt: new Date(now).toISOString(),
+		sourceEndpoint: `${API}/v2/capacity/${productId}`,
+		sourceType: 'NEXUS_CAPACITY',
+		rawSnapshot: raw, // Provenance only; never copied into the model context.
 		available: raw.availableCapacity
 			.filter((c) => c?.asset?.symbol && c.asset.symbol !== 'NXM' && Number.isInteger(c.asset.decimals))
 			.map((c) => ({ symbol: c.asset.symbol, amount: units(c.amount, c.asset.decimals) })),
 		minAnnualPricePct: pct(raw.minAnnualPrice),
 		maxAnnualPricePct: pct(raw.maxAnnualPrice)
 	};
+	if (value.minAnnualPricePct == null || value.maxAnnualPricePct == null
+		|| value.minAnnualPricePct < 0 || value.maxAnnualPricePct < value.minAnnualPricePct
+		|| value.available.some((c) => c.amount == null)) throw new Error('Invalid Nexus facts');
 	capacityCache.set(productId, { at: now, value });
 	return value;
 }
 
 function units(raw, decimals) {
 	try {
+		if (!Number.isInteger(decimals) || decimals < 0 || decimals > 36 || !/^\d+$/.test(String(raw))) return null;
 		const big = BigInt(raw);
 		const whole = big / 10n ** BigInt(decimals);
-		return Number(whole);
+		return whole <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(whole) : null;
 	} catch {
 		return null;
 	}
 }
 
 function pct(ratio) {
+	if (ratio == null || ratio === '') return null;
 	const value = Number(ratio);
 	return Number.isFinite(value) ? Math.round(value * 10_000) / 100 : null;
 }
@@ -141,64 +173,60 @@ async function fetchJson(url, fetchImpl) {
 	return response.json();
 }
 
-/**
- * Der Fakten-Block fuer die Antwort auf eine Produktfrage. `null`, wenn die
- * Frage kein Produkt nennt; ein Hinweis, wenn Nexus nicht erreichbar ist.
- */
+/** Structured public context. Only canonical IDs can attach live facts/documents. */
 export async function getNexusProductFacts(question, { fetchImpl = fetch, now = Date.now(), previousProductIds = null, onProducts = null } = {}) {
 	let catalog;
-	try {
-		catalog = await getCatalog(fetchImpl, now);
-	} catch {
-		return 'Nexus Mutual product data is unavailable right now.';
-	}
-	let matches = matchProducts(question, catalog);
-	/*
-		Rueckfrage ohne Produktnamen ("und was ist da versichert?"): war gerade
-		eben von einem Produkt die Rede, gilt die Frage diesem. Der Bot merkt
-		sich dafuer nur die Produkt-IDs, 15 Minuten lang (db.mjs).
-	*/
+	try { catalog = await getCatalog(fetchImpl, now); }
+	catch { return { PRODUCT_RESOLUTION: 'UNAVAILABLE', reason: 'CATALOG_UNAVAILABLE' }; }
+	let resolution = resolveProduct(question, catalog);
 	let fromContext = false;
-	if (!matches.length && Array.isArray(previousProductIds) && previousProductIds.length) {
-		matches = catalog.filter((p) => previousProductIds.includes(p.id)).slice(0, MAX_CANDIDATES);
-		fromContext = matches.length > 0;
-	}
-	if (!matches.length) return null;
-	if (onProducts) await Promise.resolve(onProducts(matches.map((p) => p.id))).catch(() => {});
-	const retrievedAt = new Date(now).toISOString();
-	const blocks = await Promise.all(matches.map(async (p) => {
-		let capacity = null;
-		// Eingestellte Produkte meldet Nexus mit Preis und Kapazitaet 0. Das ist
-		// kein Preis, sondern "nicht kaeuflich"; deshalb wird es gar nicht erst geholt.
-		if (!p.deprecated) {
-			try { capacity = await getCapacity(p.id, fetchImpl, now); } catch { /* Kapazitaet fehlt, der Rest bleibt */ }
+	if (resolution.state === 'NO_MATCH' && Array.isArray(previousProductIds)) {
+		const candidates = catalog.filter((p) => previousProductIds.includes(p.productId)).slice(0, MAX_CANDIDATES);
+		if (candidates.length) {
+			fromContext = true;
+			resolution = candidates.length === 1
+				? { state: 'UNAMBIGUOUS', productId: candidates[0].productId, product: candidates[0] }
+				: { state: 'AMBIGUOUS', candidates };
 		}
-		return [
-			`Product: ${p.name} (Nexus Mutual product ID ${p.id})${p.deprecated ? ' - DEPRECATED, no longer sold' : ''}`,
-			p.typeName ? `Cover type: ${p.typeName}` : null,
-			p.category ? `Category: ${p.category}` : null,
-			p.coverAssets.length ? `Cover can be denominated in: ${p.coverAssets.join(', ')}` : null,
-			p.gracePeriodDays != null ? `Claim grace period after expiry: ${p.gracePeriodDays} days` : null,
-			...(p.deprecated
-				? ['Price and capacity: none, the product is no longer sold. Existing covers keep running until they expire.']
-				: [
-					capacity && capacity.minAnnualPricePct != null && capacity.maxAnnualPricePct != null
-						? `Annual price range quoted by Nexus right now: ${capacity.minAnnualPricePct}% to ${capacity.maxAnnualPricePct}% of the cover amount (the actual price depends on amount and term)`
-						: 'Price: unavailable right now',
-					capacity?.available.length
-						? `Available capacity right now: ${capacity.available.map((c) => `${c.amount?.toLocaleString('en-US') ?? '?'} ${c.symbol}`).join(', ')}`
-						: 'Capacity: unavailable right now'
-				]),
-			p.wordingUrl ? `Official cover wording (authoritative): ${p.wordingUrl}` : 'Official cover wording: no link available',
-			p.annexUrl ? `Official product annex: ${p.annexUrl}` : null
-		].filter(Boolean).join('\n');
-	}));
-	const header = fromContext
-		? `This message names no product, but the conversation was about ${matches.length > 1 ? 'these products' : 'this product'} a moment ago. Treat the question as referring to ${matches.length > 1 ? 'them; if it matters which one, ask' : 'it'}.`
-		: matches.length > 1
-			? `Several Nexus Mutual products match the question. Ask which one is meant before going into detail.`
-			: 'One Nexus Mutual product matches the question.';
-	return `${header}\nSource: api.nexusmutual.io, retrieved ${retrievedAt}\n\n${blocks.join('\n\n')}`;
+	}
+	if (resolution.state === 'NO_MATCH') return { PRODUCT_RESOLUTION: 'NO_MATCH' };
+	const selected = resolution.state === 'AMBIGUOUS' ? resolution.candidates : [resolution.product];
+	if (onProducts) await Promise.resolve(onProducts(selected.map((p) => p.productId))).catch(() => {});
+	if (resolution.state === 'AMBIGUOUS') return {
+		PRODUCT_RESOLUTION: 'AMBIGUOUS',
+		CANDIDATES: selected.map((p) => ({ productId: p.productId, officialName: p.officialName, status: p.status }))
+	};
+	const p = resolution.product;
+	const context = {
+		PRODUCT_RESOLUTION: 'UNAMBIGUOUS',
+		PRODUCT_IDENTITY: {
+			productId: p.productId, officialName: p.officialName, status: p.status,
+			productType: p.productType, typeName: p.typeName, category: p.category,
+			coverAssets: p.coverAssets, gracePeriodDays: p.gracePeriodDays,
+			catalogFetchedAt: p.catalogFetchedAt, sourceEndpoint: `${API}/v2/products`, fromContext
+		},
+		AUTHORITATIVE_WORDING: { productId: p.productId, status: p.wordingUrl ? 'AVAILABLE' : 'UNAVAILABLE', wordingUrl: p.wordingUrl, annexUrl: p.annexUrl, fetchedAt: p.catalogFetchedAt, sourceEndpoints: [`${API}/v2/products`, `${API}/v2/product-types`] },
+		LIVE_FACTS: { productId: p.productId, officialName: p.officialName, status: p.deprecated ? 'NOT_SOLD' : 'UNAVAILABLE' }
+	};
+	if (!p.wordingUrl) return { ...context, verification: 'WORDING_UNAVAILABLE' };
+	if (!p.deprecated) {
+		try {
+			const facts = await getProductFactsById(p.productId, fetchImpl, now);
+			const supportedAssets = new Set(p.coverAssets.map((symbol) => symbol.trim().toUpperCase()));
+			const capacity = facts.available.filter(({ symbol }) => {
+				const normalized = symbol.trim().toUpperCase();
+				return normalized !== 'NXM' && supportedAssets.has(normalized);
+			});
+			context.LIVE_FACTS = {
+				productId: facts.productId, officialName: p.officialName, status: 'AVAILABLE',
+				fetchedAt: facts.fetchedAt, sourceEndpoint: facts.sourceEndpoint, sourceType: facts.sourceType,
+				capacity,
+				capacityStatus: supportedAssets.size ? 'AVAILABLE' : 'UNAVAILABLE',
+				pricing: { minAnnualPricePct: facts.minAnnualPricePct, maxAnnualPricePct: facts.maxAnnualPricePct }
+			};
+		} catch { /* Controlled unavailable state; never substitute another product. */ }
+	}
+	return context;
 }
 
 export const _test = { reset: () => { catalogCache = null; capacityCache.clear(); } };

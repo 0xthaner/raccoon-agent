@@ -71,7 +71,7 @@ test('AGENT-LLM-001 B: Produktfakten stehen im input-Datenkanal', async () => {
 	assert.ok(captured.body.input.includes('USER QUESTION:'));
 	assert.ok(captured.body.input.includes('Was deckt Aave v3?'));
 	assert.ok(captured.body.input.includes('EXTERNAL PRODUCT DATA'));
-	assert.ok(captured.body.input.includes('Product: Aave v3'), 'Faktenblock liegt im input');
+	assert.ok(captured.body.input.includes('"officialName":"Aave v3"'), 'Faktenblock liegt im input');
 });
 
 test('AGENT-LLM-001 C: ein manipulierter externer Fakt bleibt reine Daten (nur im input)', async () => {
@@ -112,7 +112,7 @@ test('AGENT-LLM-001 D: eine normale Produktfrage liefert weiterhin eine Textantw
 	// Kein Produkt in der Frage -> leere EXTERNAL PRODUCT DATA statt Fakten.
 	const captured2 = {};
 	await answerProductQuestion('Wie funktioniert ein Claim?', 'de', fakeFetch(captured2));
-	assert.ok(captured2.body.input.includes('No product named in the question.'));
+	assert.ok(captured2.body.input.includes('"PRODUCT_RESOLUTION":"NO_MATCH"'));
 	assert.equal(captured2.body.instructions.includes('No product named in the question.'), false);
 });
 
@@ -136,7 +136,7 @@ test('AGENT-LLM-001 F: der Output-Filter bleibt vor jeder Antwort', () => {
 	const calls = src.match(/return filterAnswer\(answer, \{ kontext:/g) ?? [];
 	assert.equal(calls.length, 2, 'beide Antwortfunktionen filtern weiterhin');
 	// Der Filter-Kontext enthaelt weiterhin die Fakten (fuer die Link-Allowlist).
-	assert.equal((src.match(/\$\{productFacts \?\? ''\}/g) ?? []).length, 2);
+	assert.equal((src.match(/kontext: productFacts/g) ?? []).length, 2);
 });
 
 /* ------------------------------------------------------------------------- *
@@ -155,4 +155,35 @@ test('AGENT-LLM-001 G: der OpenAI-Request traegt nur Frage + oeffentliche Fakten
 	// Keine konkrete Wallet-Adresse (0x + 40 hex) im Request.
 	assert.equal(/0x[0-9a-fA-F]{40}/.test(whole), false, 'keine Wallet-Adresse im Prompt');
 	assert.equal(captured.body.store, false, 'OpenAI speichert nicht');
+});
+
+test('canonical model context contains a single bound identity, facts and wording', async () => {
+	const captured = {};
+	await answerProductQuestion('Aave v3', 'de', fakeFetch(captured));
+	const context = JSON.parse(captured.body.input.slice(captured.body.input.indexOf('{')));
+	assert.equal(context.PRODUCT_RESOLUTION, 'UNAMBIGUOUS');
+	assert.equal(context.PRODUCT_IDENTITY.productId, 97);
+	assert.equal(context.LIVE_FACTS.productId, 97);
+	assert.equal(context.AUTHORITATIVE_WORDING.productId, 97);
+	assert.equal(context.LIVE_FACTS.status, 'AVAILABLE');
+	assert.match(captured.body.instructions, /never choose or invent product identity/);
+	assert.match(captured.body.instructions, /never combine facts across product IDs/);
+});
+
+test('canonical ambiguous model context carries only candidate identity, no live facts or wording', async () => {
+	const captured = {};
+	const original = fakeFetch(captured);
+	await answerGroupQuestion('Aave', 'en', async (url, options) => {
+		if (String(url).endsWith('/v2/products')) return jsonResponse([
+			{ id: 97, name: 'Aave v3', productType: 0 },
+			{ id: 98, name: 'Aave v4', productType: 0 }
+		]);
+		assert.ok(!String(url).includes('/capacity/'));
+		return original(url, options);
+	});
+	const context = JSON.parse(captured.body.input.slice(captured.body.input.indexOf('{')));
+	assert.deepEqual(context, { PRODUCT_RESOLUTION: 'AMBIGUOUS', CANDIDATES: [
+		{ productId: 97, officialName: 'Aave v3', status: 'ACTIVE' },
+		{ productId: 98, officialName: 'Aave v4', status: 'ACTIVE' }
+	] });
 });

@@ -47,9 +47,9 @@ test('der Kostendeckel ueber alle Chats greift auch, wenn jeder Chat neu ist', a
 	assert.equal(erlaubt, AI_LIMITS.gesamt.max);
 });
 
-test('faellt die Zaehlung aus, bleibt privat offen und die Gruppe zu', async () => {
+test('faellt die Zaehlung aus, bleiben privat und Gruppe zu', async () => {
 	const kaputt = { check: async () => { throw new Error('db weg'); }, key: (s, w) => `${s}:${w}` };
-	assert.equal(await allowAiRequest({ chatId: 1 }, kaputt), true);
+	assert.equal(await allowAiRequest({ chatId: 1 }, kaputt), false);
 	assert.equal(await allowAiRequest({ chatId: -1, senderId: 2, isGroup: true }, kaputt), false);
 	const ohneGeheimnis = { check: async () => true, key: () => null };
 	assert.equal(await allowAiRequest({ chatId: 1 }, ohneGeheimnis), false, 'ohne Geheimnis keine Zaehlung, also keine KI');
@@ -71,4 +71,80 @@ test('die Verknuepfungsseite zeigt das Telegram-Konto, nur als Text', () => {
 	const block = main.slice(main.indexOf('async function zeigeTelegramKonto('), main.indexOf('zeigeTelegramKonto();'));
 	assert.match(block, /fett\.textContent = anzeige/);
 	assert.doesNotMatch(block, /innerHTML|insertAdjacentHTML/);
+});
+
+test('RPC-Fehler an jeder Budgetgrenze sperrt private und Gruppen-Anfragen', async () => {
+	for (const isGroup of [false, true]) {
+		for (const failedScope of isGroup ? ['ai-absender', 'ai-gruppe', 'ai-gesamt'] : ['ai-privat', 'ai-gesamt']) {
+			const calls = [];
+			const allowed = await allowAiRequest({ chatId: 1, senderId: 2, isGroup }, {
+				key: (scope) => scope,
+				check: async (scope) => {
+					calls.push(scope);
+					if (scope === failedScope) throw new Error('private database detail');
+					return true;
+				}
+			});
+			assert.equal(allowed, false);
+			assert.equal(calls.at(-1), failedScope);
+		}
+	}
+});
+
+const botSource = readFileSync(new URL('../src/bot.mjs', import.meta.url), 'utf8');
+function botFunction(name, deps) {
+	const start = botSource.indexOf(`async function ${name}(`);
+	assert.ok(start >= 0);
+	const end = botSource.indexOf('\nasync function ', start + 1);
+	assert.ok(end > start);
+	return new Function(...Object.keys(deps), `${botSource.slice(start, end)}\nreturn ${name};`)(...Object.values(deps));
+}
+
+test('Budgetfehler stoppt echte Bot-Handler vor Klassifikation/Generierung; privater Hinweis bleibt statisch', async () => {
+	for (const isGroup of [false, true]) {
+		const sent = [];
+		let aiCalls = 0;
+		const forbiddenAi = async () => { aiCalls++; throw new Error('AI must not run'); };
+		const handler = botFunction(isGroup ? 'handleGroupMessage' : 'handleNaturalLanguage', {
+			allowAiRequest: (context) => allowAiRequest(context, {
+				key: (scope) => scope,
+				check: async () => { throw new Error('private database detail'); }
+			}),
+			classifyAgentIntent: forbiddenAi,
+			answerProductQuestion: forbiddenAi,
+			answerGroupQuestion: forbiddenAi,
+			isGroupMessageForBot: () => true,
+			configuredUsername: 'RaccoonAgentBot',
+			sendMessage: async (_chat, text) => sent.push(text)
+		});
+		await handler({ chat: { id: isGroup ? -1 : 1 }, from: { id: 2 }, text: 'Explain Aave' }, 'en');
+		assert.equal(aiCalls, 0);
+		if (isGroup) assert.deepEqual(sent, [], 'Gruppen bleiben ohne Spam-Fallback still');
+		else {
+			assert.equal(sent.length, 1);
+			assert.match(sent[0], /commands and buttons keep working/);
+			assert.doesNotMatch(sent[0], /database|private database detail/);
+		}
+	}
+});
+
+test('statisches /help umgeht AI und bleibt bei defektem AI-Budget verfuegbar', async () => {
+	const sent = [];
+	const forbidden = () => { throw new Error('AI budget or model must not run for /help'); };
+	const handler = botFunction('handleMessage', {
+		authenticPrivateMessage: () => true,
+		commandOf: (text) => text,
+		getLanguage: async () => 'en',
+		recordAgentEvent: async () => {},
+		telegramTimingMetadata: () => ({}),
+		getWalletLink: async () => null,
+		dashboardKeyboard: async () => ({}),
+		helpTextEn: 'Static help',
+		sendMessage: async (_chat, text) => sent.push(text),
+		handleNaturalLanguage: forbidden,
+		allowAiRequest: forbidden,
+		classifyAgentIntent: forbidden
+	});
+	await handler({ chat: { id: 1, type: 'private' }, from: { id: 1 }, text: '/help' });
+	assert.deepEqual(sent, ['Static help']);
 });

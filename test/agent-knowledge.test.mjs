@@ -18,3 +18,34 @@ test('product knowledge states the safety boundary and excludes autonomous purch
 	assert.match(productKnowledge, /In Telegram groups, the bot responds only/i);
 	assert.match(productKnowledge, /Personal requests are continued in a private chat/i);
 });
+
+const answerSource = readFileSync(new URL('../src/agent-knowledge.mjs', import.meta.url), 'utf8');
+const answerPrompts = [...answerSource.matchAll(/instructions: `([^`]+)`/g)].map((match) => match[1]);
+for (const question of [
+	'Must Nexus legally pay my loss in Austria?',
+	'Muss Nexus meinen Verlust nach österreichischem Recht bezahlen?',
+	'Kann ich den Verlust steuerlich absetzen?'
+]) {
+	test(`legal policy covers jurisdiction/tax uncertainty: ${question}`, () => {
+		assert.equal(answerPrompts.length, 2);
+		for (const prompt of answerPrompts) {
+			assert.match(prompt, /jurisdiction-specific legal, tax or regulatory questions/);
+			assert.match(prompt, /supplied product information does not establish the local legal position/);
+			assert.match(prompt, /never give a definitive yes\/no legal conclusion/);
+			assert.match(prompt, /Distinguish Nexus Mutual's description/);
+			assert.match(prompt, /qualified legal or tax review/);
+		}
+	});
+}
+
+test('knowledge permits describing discretionary process without deciding statutory rights', async () => {
+	const { nexusBasics } = await import('../src/agent-knowledge.mjs');
+	assert.match(nexusBasics, /describes its own claims process as discretionary/);
+	assert.match(nexusBasics, /does not establish statutory rights, mandatory consumer rights/);
+	assert.match(nexusBasics, /Austrian or any other local law/);
+	assert.doesNotMatch(nexusBasics, /Members do not have a legal right/);
+	for (const prompt of answerPrompts) {
+		assert.match(prompt, /Product-name matches do not establish suitability/);
+		assert.match(prompt, /do not give prices or capacity before selection is unambiguous/);
+	}
+});
