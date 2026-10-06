@@ -6,7 +6,7 @@ import { isDeployedContract } from '../src/contract-detect.mjs';
 import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, getWalletLinkStateByWallet, isDashboardSessionRevoked, recordAgentEvent, revokeDashboardSessions, storeDashboardChallenge, unlinkWalletByWallet } from '../src/db.mjs';
 import { newTelegramHandoff } from '../src/linking.mjs';
 import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../src/pause.mjs';
-import { enforceRateLimit, requireJson, requireSameOrigin } from '../src/http-security.mjs';
+import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin } from '../src/http-security.mjs';
 import { recordSecurityEvent, securityFingerprint, SECURITY_EVENT } from '../src/security-events.mjs';
 
 async function dashboardData(wallet) {
@@ -65,6 +65,10 @@ export default async function handler(request, response) {
 		if (wallet) {
 			if (!isAddress(wallet)) return response.status(400).json({ ok: false, error: 'Ungültige Wallet-Adresse.' });
 			if (!await enforceRateLimit(request, response, 'dashboard-challenge', 20, 600)) return;
+			// AGENT-HARD-001: zusaetzliche Schranke pro Wallet (nur gueltige Adressen
+			// erreichen sie), BEVOR getCode (Alchemy) oder der DB-Insert laufen. Die
+			// IP-Schranke oben allein laesst IP-/IPv6-Rotation gegen EINE Wallet durch.
+			if (!await enforceRateLimitFor(response, 'dashboard-challenge-wallet', wallet.toLowerCase(), 10, 600)) return;
 			// AGENT-SAFE-1: deployte Contract-Wallets (Safe-Multisig) bekommen ein
 			// laengeres Challenge-Fenster, weil mehrere Owner asynchron bestaetigen.
 			// Der SERVER entscheidet ueber Mainnet-getCode; der Client sendet nie
@@ -145,6 +149,10 @@ export default async function handler(request, response) {
 	const { wallet, token, signature } = body;
 	const challenge = verifyDashboardToken(token);
 	if (challenge?.type !== 'challenge' || !isAddress(wallet) || challenge.wallet !== wallet.toLowerCase() || typeof signature !== 'string') return response.status(401).json({ ok: false, error: 'Dashboard-Anmeldung ungültig oder abgelaufen.' });
+	// AGENT-HARD-001: per-Wallet-Schranke NACH der billigen Strukturpruefung (nur
+	// gueltige Adressen, challenge-gebunden) und VOR der teuren Signatur-/ERC-1271-
+	// Verifikation (Alchemy). Malformed Strings erreichen den Wallet-Key nie.
+	if (!await enforceRateLimitFor(response, 'dashboard-login-wallet', wallet.toLowerCase(), 10, 600)) return;
 	// AGENT-SEC-A3/A4: der SIWE-Text wird serverseitig aus der verifizierten
 	// Challenge rekonstruiert; Felder und Signatur prueft die eine gemeinsame
 	// Grenze. Die interne Ursache bleibt dort, nach aussen geht eine stabile,

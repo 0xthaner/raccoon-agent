@@ -21,7 +21,7 @@ const {
 	verifyDashboardToken,
 	SESSION_COOKIE
 } = await import('../src/dashboard-auth.mjs');
-const { isDeployedContract } = await import('../src/contract-detect.mjs');
+const { isDeployedContract, CODE_CACHE_TTL_MS } = await import('../src/contract-detect.mjs');
 
 const WALLET_A = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const WALLET_B = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
@@ -58,19 +58,70 @@ test('TTL wird defensiv begrenzt (nie < EOA, nie > Contract)', () => {
 /* ---- Contract-Detection (injiziert) -------------------------------------- */
 
 test('isDeployedContract: Bytecode -> true, 0x/null -> false', async () => {
-	assert.equal(await isDeployedContract(WALLET_A, { getCode: async () => '0x6080' }), true);
-	assert.equal(await isDeployedContract(WALLET_A, { getCode: async () => '0x' }), false);
-	assert.equal(await isDeployedContract(WALLET_A, { getCode: async () => null }), false);
+	// Jeweils frischer Cache: die reine Klassifikation, nicht der Cache-Treffer.
+	assert.equal(await isDeployedContract(WALLET_A, { getCode: async () => '0x6080', cache: new Map() }), true);
+	assert.equal(await isDeployedContract(WALLET_A, { getCode: async () => '0x', cache: new Map() }), false);
+	assert.equal(await isDeployedContract(WALLET_A, { getCode: async () => null, cache: new Map() }), false);
 });
 
 test('isDeployedContract: ohne Schluessel/Client wirft (Aufrufer faellt fail closed)', async () => {
 	const saved = process.env.ALCHEMY_API_KEY;
 	delete process.env.ALCHEMY_API_KEY;
 	try {
-		await assert.rejects(() => isDeployedContract(WALLET_A));
+		// Frischer Cache erzwingt den RPC-/Konfig-Pfad (kein alter Treffer).
+		await assert.rejects(() => isDeployedContract(WALLET_A, { cache: new Map() }));
 	} finally {
 		if (saved !== undefined) process.env.ALCHEMY_API_KEY = saved;
 	}
+});
+
+/* ---- AGENT-HARD-001: getCode-Cache (60 s, best effort) ------------------- */
+
+test('Cache-Treffer innerhalb TTL: getCode wird nur einmal aufgerufen', async () => {
+	const cache = new Map();
+	const now = 1_000_000;
+	let calls = 0;
+	const getCode = async () => { calls += 1; return '0x6080'; };
+	assert.equal(await isDeployedContract(WALLET_A, { getCode, cache, now }), true);
+	// Zweiter Aufruf innerhalb des Fensters -> Treffer, kein weiterer RPC.
+	assert.equal(await isDeployedContract(WALLET_A, { getCode, cache, now: now + CODE_CACHE_TTL_MS - 1 }), true);
+	assert.equal(calls, 1);
+});
+
+test('Cache-Ablauf nach TTL: getCode wird erneut aufgerufen', async () => {
+	const cache = new Map();
+	const now = 2_000_000;
+	let calls = 0;
+	const getCode = async () => { calls += 1; return '0x6080'; };
+	assert.equal(await isDeployedContract(WALLET_A, { getCode, cache, now }), true);
+	// Nach Ablauf der TTL erneut auswerten.
+	assert.equal(await isDeployedContract(WALLET_A, { getCode, cache, now: now + CODE_CACHE_TTL_MS + 1 }), true);
+	assert.equal(calls, 2);
+});
+
+test('Cache ist pro Wallet getrennt (normalisiert)', async () => {
+	const cache = new Map();
+	const now = 3_000_000;
+	let calls = 0;
+	// Gross-/Kleinschreibung derselben Adresse trifft denselben Key.
+	assert.equal(await isDeployedContract(WALLET_A, { getCode: async () => { calls += 1; return '0x6080'; }, cache, now }), true);
+	assert.equal(await isDeployedContract(WALLET_A.toUpperCase(), { getCode: async () => { calls += 1; return '0x6080'; }, cache, now }), true);
+	assert.equal(calls, 1);
+	// Andere Wallet -> eigener Eintrag, eigener RPC.
+	assert.equal(await isDeployedContract(WALLET_B, { getCode: async () => { calls += 1; return '0x'; }, cache, now }), false);
+	assert.equal(calls, 2);
+});
+
+test('RPC-Fehler wird NICHT gecacht (Klassifikation bleibt offen)', async () => {
+	const cache = new Map();
+	const now = 4_000_000;
+	let calls = 0;
+	const failing = async () => { calls += 1; throw new Error('RPC down'); };
+	await assert.rejects(() => isDeployedContract(WALLET_A, { getCode: failing, cache, now }));
+	// Kein Eintrag entstanden: der naechste Aufruf fragt erneut.
+	assert.equal(cache.size, 0);
+	assert.equal(await isDeployedContract(WALLET_A, { getCode: async () => { calls += 1; return '0x6080'; }, cache, now }), true);
+	assert.equal(calls, 2);
 });
 
 /* ---- Bearer-Parsing ------------------------------------------------------ */
