@@ -691,6 +691,8 @@ async function verbindeWalletConnect() {
 			const signiere = async (message) => {
 				if (abgebrochen) throw new Error(texts.chainChanged);
 				if (Number(modal.getChainId()) !== 1) throw new Error(texts.notMainnet); // finaler Pre-Sign-Check (defense in depth)
+				const current = normalizeAddress(modal.getAddress());
+				if (!current || current !== konto) throw new Error(texts.accountChanged);
 				return withTimeout(provider.request({ method: 'personal_sign', params: [message, konto] }), 60000, 'Die Wallet hat nicht auf die Signaturanfrage reagiert.');
 			};
 			await finish(konto, signiere, () => abgebrochen);
