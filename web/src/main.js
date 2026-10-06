@@ -709,7 +709,14 @@ wcButton.addEventListener('click', () => mitHinweisen(verbindeWalletConnect));
 
 async function endSession({ disconnect = false } = {}) {
 	if (disconnect) show('Wallet-Verbindung wird getrennt …');
-	await authFetch('/api/dashboard', { method: 'DELETE' });
+	try {
+		const response = await authFetch('/api/dashboard', { method: 'DELETE' });
+		const result = await response.json();
+		if (!response.ok || result.ok !== true) throw new Error('Logout failed');
+	} catch {
+		show(language === 'de' ? 'Abmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen.' : 'Sign-out could not be completed. Please retry.');
+		return;
+	}
 	if (disconnect) {
 		if (walletConnectPromise) {
 			try { const modal = await walletConnectPromise; if (modal.getAddress()) await withTimeout(modal.disconnect(), 5000, 'disconnect timeout'); } catch {}

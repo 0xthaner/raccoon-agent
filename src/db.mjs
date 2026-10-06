@@ -231,20 +231,11 @@ export async function unlinkWalletByWallet(wallet) {
 }
 
 export async function revokeDashboardSessions(wallet, now = Date.now()) {
-	const normalized = wallet.toLowerCase();
-	const [oldRevocation, openAccess] = await Promise.all([
-		db.from('pending_links').delete().eq('chat_id', `revoked:${normalized}`),
-		db.from('pending_links').delete().like('chat_id', 'dashboard:%').eq('nonce', normalized)
-	]);
-	value(oldRevocation);
-	value(openAccess);
-	value(await db.from('pending_links').insert({
-		code: `revoked_${randomBytes(18).toString('base64url')}`,
-		chat_id: `revoked:${normalized}`,
-		nonce: String(now),
-		expires_at: new Date(now + 10 * 365 * 24 * 60 * 60_000).toISOString()
+	const cutoff = value(await db.rpc('revoke_dashboard_sessions_atomic', {
+		revoke_wallet: wallet.toLowerCase(), requested_cutoff: now
 	}));
-	return now;
+	if (!Number.isSafeInteger(cutoff) || cutoff < now) throw new Error('Invalid revocation result');
+	return cutoff;
 }
 
 export async function isDashboardSessionRevoked(wallet, issuedAt) {
