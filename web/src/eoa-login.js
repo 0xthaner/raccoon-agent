@@ -81,6 +81,33 @@ export async function ensureMainnetAccount(provider, expectedAccount, { texts, i
  * offline testbar ist. Fuer den WalletConnect-Pfad ist `isAborted` die Vorgabe
  * `() => false`, also laufen die Grenzpruefungen leer - Verhalten unveraendert.
  */
+/**
+ * AGENT-UX-5 (WalletConnect/AppKit): synchronisiert die verbundene Wallet auf
+ * Ethereum Mainnet und liefert den verifizierten aktiven Account zurueck.
+ *
+ * `modal.switchNetwork(network, {throwOnFailure:true})` wird IMMER aufgerufen -
+ * auch wenn `modal.getChainId()` bereits 1 meldet -, weil die installierte
+ * AppKit-Implementierung den Wechsel ohne Chain-Vergleich an die Wallet
+ * weiterreicht (wallet_switchEthereumChain) und so MetaMask wirklich umschaltet.
+ * Ein `if (getChainId() !== 1)` wuerde genau den UX-Bug reproduzieren.
+ *
+ * Danach: AppKit-Chain muss 1 sein, Account erneut lesen, fail closed bei
+ * fehlendem/geaendertem Account. Alles injizierbar fuer Offline-Tests.
+ */
+export async function ensureAppKitMainnetAccount({ modal, network, expectedAddress, texts }) {
+	try {
+		await modal.switchNetwork(network, { throwOnFailure: true });
+	} catch {
+		throw new Error(texts.switchFailed);
+	}
+	if (Number(modal.getChainId()) !== 1) throw new Error(texts.notMainnet);
+	const current = normalizeAddress(modal.getAddress());
+	if (!current) throw new Error(texts.noAccount);
+	const expected = normalizeAddress(expectedAddress);
+	if (expected && current !== expected) throw new Error(texts.accountChanged);
+	return current;
+}
+
 export async function guardedChallengeSignSubmit({ isAborted = () => false, texts, getChallenge, sign, submit }) {
 	const stop = () => { throw new Error(texts.chainChanged); };
 	if (isAborted()) stop();

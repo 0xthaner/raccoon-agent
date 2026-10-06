@@ -31,8 +31,22 @@
 /** Verbinden und Adresse lesen. Ohne diese beiden gibt es keine Sitzung. */
 const BASIS = ['eth_requestAccounts', 'eth_accounts'];
 
-/** Der Anmeldeweg: eine Klartextsignatur, sonst nichts. */
-export const WALLET_METHODEN_ANMELDEN = [...BASIS, 'personal_sign'];
+/*
+	AGENT-UX-5 (WalletConnect): zusaetzlich `wallet_switchEthereumChain`. Grund:
+	`personal_sign` ist chain-agnostisch, MetaMask Mobile zeigt beim Signieren sein
+	eigenes aktives Netz (z. B. Polygon), obwohl die SIWE-Nachricht Chain ID 1
+	traegt. AppKits `modal.switchNetwork(mainnet)` synchronisiert die Wallet - es
+	schickt dafuer ueber die WC-Session `wallet_switchEthereumChain`, das aber nur
+	funktioniert, wenn die Methode in der Session genehmigt ist.
+
+	`wallet_switchEthereumChain` ist NICHT werttragend: es kann KEINE Transaktion
+	senden, KEIN Token freigeben, KEIN Permit erzeugen, KEINE (typisierte oder
+	sonstige) Signatur ausloesen und KEINE Transaktion signieren - es bittet die
+	Wallet ausschliesslich, das aktive Netz zu wechseln (mit Nutzerbestaetigung).
+	`wallet_addEthereumChain` wird bewusst NICHT aufgenommen (Mainnet existiert in
+	jeder Wallet; kein Add noetig).
+*/
+export const WALLET_METHODEN_ANMELDEN = [...BASIS, 'personal_sign', 'wallet_switchEthereumChain'];
 
 /** Die Gesamtmenge. Keine Stelle im Frontend darf darueber hinausgehen. */
 export const WALLET_METHODEN_ALLE = [...WALLET_METHODEN_ANMELDEN];

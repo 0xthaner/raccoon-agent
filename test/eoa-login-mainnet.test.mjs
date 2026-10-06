@@ -9,7 +9,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { WALLET_METHODEN_ANMELDEN } from '../web/src/wallet-methods.js';
-import { ensureMainnetAccount, eoaLoginTexts, normalizeAddress, guardedChallengeSignSubmit } from '../web/src/eoa-login.js';
+import { ensureMainnetAccount, ensureAppKitMainnetAccount, eoaLoginTexts, normalizeAddress, guardedChallengeSignSubmit } from '../web/src/eoa-login.js';
+import { WALLET_METHODEN_ALLE } from '../web/src/wallet-methods.js';
 
 const main = readFileSync(new URL('../web/src/main.js', import.meta.url), 'utf8');
 const eoa = readFileSync(new URL('../web/src/eoa-login.js', import.meta.url), 'utf8');
@@ -120,8 +121,9 @@ test('eoa-login.js schaltet genau auf 0x1 und liest eth_accounts erneut', () => 
 	assert.equal(eoa.includes('wallet_addEthereumChain'), false);
 });
 
-test('WalletConnect-Methodenliste unveraendert (kein switch-Recht in der Session)', () => {
-	assert.deepEqual(WALLET_METHODEN_ANMELDEN, ['eth_requestAccounts', 'eth_accounts', 'personal_sign']);
+test('WalletConnect-Methodenliste: genau vier, inkl. wallet_switchEthereumChain, ohne addEthereumChain', () => {
+	assert.deepEqual(WALLET_METHODEN_ANMELDEN, ['eth_requestAccounts', 'eth_accounts', 'personal_sign', 'wallet_switchEthereumChain']);
+	assert.equal(WALLET_METHODEN_ANMELDEN.includes('wallet_addEthereumChain'), false);
 });
 
 test('nativer Safe-App-Pfad unveraendert (kein chain switch / chainChanged)', () => {
@@ -213,4 +215,105 @@ test('Source: injizierter Signer prueft Abbruch UND eth_chainId vor personal_sig
 	assert.ok(sigDef > 0, 'Signer-Closure vorhanden');
 	assert.ok(abortCheck > sigDef && abortCheck < signCall, 'Abbruch-Check vor der Signatur');
 	assert.ok(chainCheck > sigDef && chainCheck < signCall, 'eth_chainId-Check vor der Signatur');
+});
+
+/* --------------------- WalletConnect Mainnet-Sync ----------------------- */
+
+const NETWORK = { id: 1, chainNamespace: 'eip155' }; // Stellvertreter fuer das mainnet-Objekt
+
+function mockModal({ chainSeq = [1], address = ACC_A, rejectSwitch = false } = {}) {
+	let ci = 0;
+	const calls = { switchNetwork: 0, getChainId: 0, getAddress: 0 };
+	return {
+		calls,
+		switchNetwork: async () => { calls.switchNetwork += 1; if (rejectSwitch) throw new Error('user rejected'); },
+		getChainId: () => { calls.getChainId += 1; return chainSeq[Math.min(ci++, chainSeq.length - 1)]; },
+		getAddress: () => { calls.getAddress += 1; return address; }
+	};
+}
+
+test('WC-A (kritisch): switchNetwork wird AUCH bei AppKit-chain==1 aufgerufen (kein conditional skip)', async () => {
+	const modal = mockModal({ chainSeq: [1], address: ACC_A });
+	const account = await ensureAppKitMainnetAccount({ modal, network: NETWORK, expectedAddress: ACC_A, texts: T });
+	assert.equal(modal.calls.switchNetwork, 1); // trotz chain==1 aufgerufen
+	assert.equal(account, ACC_A);
+});
+
+test('WC-B: switch ok -> chain 1 -> Account gleich -> ok', async () => {
+	const modal = mockModal({ chainSeq: [1], address: ACC_A });
+	assert.equal(await ensureAppKitMainnetAccount({ modal, network: NETWORK, expectedAddress: ACC_A, texts: T }), ACC_A);
+});
+
+test('WC-C: User lehnt switch ab -> STOP (kein getChainId/getAddress)', async () => {
+	const modal = mockModal({ rejectSwitch: true });
+	await assert.rejects(() => ensureAppKitMainnetAccount({ modal, network: NETWORK, expectedAddress: ACC_A, texts: T }), (e) => e.message === T.switchFailed);
+	assert.equal(modal.calls.switchNetwork, 1);
+	assert.equal(modal.calls.getAddress, 0);
+});
+
+test('WC-D: switch ok, aber getChainId != 1 -> fail closed', async () => {
+	const modal = mockModal({ chainSeq: [137], address: ACC_A });
+	await assert.rejects(() => ensureAppKitMainnetAccount({ modal, network: NETWORK, expectedAddress: ACC_A, texts: T }), (e) => e.message === T.notMainnet);
+	assert.equal(modal.calls.getAddress, 0);
+});
+
+test('WC-E: Account fehlt nach switch -> fail closed', async () => {
+	const modal = mockModal({ chainSeq: [1], address: '' });
+	await assert.rejects(() => ensureAppKitMainnetAccount({ modal, network: NETWORK, expectedAddress: ACC_A, texts: T }), (e) => e.message === T.noAccount);
+});
+
+test('WC-F: Account geaendert nach switch -> fail closed', async () => {
+	const modal = mockModal({ chainSeq: [1], address: ACC_B });
+	await assert.rejects(() => ensureAppKitMainnetAccount({ modal, network: NETWORK, expectedAddress: ACC_A, texts: T }), (e) => e.message === T.accountChanged);
+});
+
+test('WC-G/H race: guardedChallengeSignSubmit stoppt vor Sign/POST bei Abbruch', async () => {
+	// G: Abbruch nach Challenge, vor Signatur
+	let abG = false;
+	const signG = rec(async () => '0xsig');
+	const submitG = rec(async () => ({ ok: true }));
+	await assert.rejects(() => guardedChallengeSignSubmit({ texts: T, isAborted: () => abG, getChallenge: async () => { abG = true; return { ok: true, message: 'm', token: 't' }; }, sign: signG, submit: submitG }), (e) => e.message === T.chainChanged);
+	assert.equal(signG.calls, 0); assert.equal(submitG.calls, 0);
+	// H: Abbruch nach Signatur, vor POST
+	let abH = false;
+	const signH = rec(async () => { abH = true; return '0xsig'; });
+	const submitH = rec(async () => ({ ok: true }));
+	await assert.rejects(() => guardedChallengeSignSubmit({ texts: T, isAborted: () => abH, getChallenge: async () => ({ ok: true, message: 'm', token: 't' }), sign: signH, submit: submitH }), (e) => e.message === T.chainChanged);
+	assert.equal(submitH.calls, 0);
+});
+
+test('Source: verbindeWalletConnect synct IMMER (ensureAppKitMainnetAccount, kein getChainId!==1-Skip)', () => {
+	const fn = koerper(main, 'async function verbindeWalletConnect() {');
+	assert.match(fn, /ensureAppKitMainnetAccount\(\{ modal, network: appKitMainnet/);
+	// kein konditionaler Switch, der den Bug reproduzieren wuerde
+	assert.equal(/if \(.*getChainId\(\) !== 1\)[^]*switchNetwork/.test(fn), false);
+	// Race-Subscription + sauberes Entfernen
+	assert.match(fn, /subscribeNetwork\?\.\(/);
+	assert.match(fn, /unsubscribe\?\.\(\)/);
+	// isAborted an finish
+	assert.match(fn, /await finish\(konto, signiere, \(\) => abgebrochen\)/);
+	// finaler Pre-Sign-Chain-Check im Signer, vor personal_sign
+	const signer = fn.indexOf('const signiere = async');
+	const chk = fn.indexOf('getChainId()) !== 1', signer);
+	const sgn = fn.indexOf("method: 'personal_sign'", signer);
+	assert.ok(signer > 0 && chk > signer && chk < sgn, 'getChainId-Check vor personal_sign');
+});
+
+test('Method-Expansion-Security: wallet_switchEthereumChain ist weder werttragend noch signierend', () => {
+	const verboten = [
+		'eth_sendTransaction', 'eth_sendRawTransaction', 'eth_signTransaction', 'eth_sign',
+		'eth_signTypedData', 'eth_signTypedData_v3', 'eth_signTypedData_v4',
+		'wallet_sendCalls', 'wallet_grantPermissions', 'wallet_requestPermissions',
+		'wallet_watchAsset', 'wallet_addEthereumChain'
+	];
+	for (const m of verboten) assert.equal(WALLET_METHODEN_ALLE.includes(m), false, m);
+	// Nur personal_sign signiert; wallet_switchEthereumChain ist reine Netzbitte.
+	assert.deepEqual(WALLET_METHODEN_ALLE.filter((m) => /sign/i.test(m)), ['personal_sign']);
+	assert.ok(WALLET_METHODEN_ALLE.includes('wallet_switchEthereumChain'));
+});
+
+test('kein wallet_addEthereumChain in Code/Config (nur als Doku-Kommentar erlaubt)', () => {
+	assert.equal(main.includes('wallet_addEthereumChain'), false);
+	assert.equal(eoa.includes('wallet_addEthereumChain'), false);
+	assert.equal(WALLET_METHODEN_ALLE.includes('wallet_addEthereumChain'), false);
 });

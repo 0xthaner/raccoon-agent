@@ -69,8 +69,12 @@ const NIEMALS = [
 	'wallet_revokePermissions', 'wallet_watchAsset', 'wallet_addEthereumChain'
 ];
 
-test('W1 die Anmeldung fragt genau eine Signaturmethode an', () => {
-	assert.deepEqual(WALLET_METHODEN_ANMELDEN, ['eth_requestAccounts', 'eth_accounts', 'personal_sign']);
+test('W1 die Anmeldung fragt genau eine Signaturmethode an (+ Netzwechsel)', () => {
+	// AGENT-UX-5: wallet_switchEthereumChain ist KEINE Signatur-/Wertmethode,
+	// sondern nur die Netzwechsel-Bitte fuer den WalletConnect-Mainnet-Sync.
+	assert.deepEqual(WALLET_METHODEN_ANMELDEN, ['eth_requestAccounts', 'eth_accounts', 'personal_sign', 'wallet_switchEthereumChain']);
+	// genau EINE Methode, die ueberhaupt signiert:
+	assert.deepEqual(WALLET_METHODEN_ANMELDEN.filter((m) => /sign/i.test(m)), ['personal_sign']);
 });
 
 test('W1 keine Liste enthaelt eine wertbewegende Methode', () => {
@@ -87,20 +91,23 @@ test('W1 jede erlaubte Methode ist eine, die AppKit ueberhaupt aushandelt', () =
 	}
 });
 
-test('W1 die Begrenzung streicht einundzwanzig der vierundzwanzig Vorgabemethoden', () => {
+test('W1 die Begrenzung streicht zwanzig der vierundzwanzig Vorgabemethoden', () => {
 	const gestrichen = APPKIT_VORGABE.filter((m) => !WALLET_METHODEN_ALLE.includes(m));
 	assert.equal(APPKIT_VORGABE.length, 24);
-	assert.equal(gestrichen.length, 21);
-	assert.equal(WALLET_METHODEN_ALLE.length, 3);
+	assert.equal(gestrichen.length, 20);
+	assert.equal(WALLET_METHODEN_ALLE.length, 4);
 	// Die vier gefaehrlichsten namentlich, damit ihr Wiederauftauchen auffaellt.
 	for (const methode of ['eth_sendTransaction', 'eth_sign', 'wallet_sendCalls', 'wallet_grantPermissions']) {
 		assert.ok(gestrichen.includes(methode), methode);
 	}
+	// wallet_switchEthereumChain ist bewusst erlaubt, wallet_addEthereumChain NICHT.
+	assert.ok(WALLET_METHODEN_ALLE.includes('wallet_switchEthereumChain'));
+	assert.ok(gestrichen.includes('wallet_addEthereumChain'));
 });
 
 test('W1 die Form entspricht dem, was createAppKit erwartet', () => {
 	assert.deepEqual(appKitMethoden(WALLET_METHODEN_ANMELDEN), {
-		methods: { eip155: ['eth_requestAccounts', 'eth_accounts', 'personal_sign'] }
+		methods: { eip155: ['eth_requestAccounts', 'eth_accounts', 'personal_sign', 'wallet_switchEthereumChain'] }
 	});
 	// Eine Kopie, keine geteilte Referenz: der Aufrufer darf die Liste nicht veraendern.
 	const gebaut = appKitMethoden(WALLET_METHODEN_ANMELDEN);

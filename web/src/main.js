@@ -1,5 +1,5 @@
 import { appKitMethoden, WALLET_METHODEN_ANMELDEN } from './wallet-methods.js';
-import { ensureMainnetAccount, eoaLoginTexts, guardedChallengeSignSubmit } from './eoa-login.js';
+import { ensureMainnetAccount, ensureAppKitMainnetAccount, eoaLoginTexts, guardedChallengeSignSubmit, normalizeAddress } from './eoa-login.js';
 import { mountEye } from './eye.js';
 
 const status = document.querySelector('#status');
@@ -426,8 +426,10 @@ async function verbindeBrowserWallet() {
 }
 injectedButton.addEventListener('click', () => mitHinweisen(verbindeBrowserWallet));
 
+let appKitMainnet = null;
 async function setupWalletConnect() {
 	const [{ createAppKit }, { EthersAdapter }, { mainnet }] = await Promise.all([import('@reown/appkit'), import('@reown/appkit-adapter-ethers'), import('@reown/appkit/networks')]);
+	appKitMainnet = mainnet; // fuer switchNetwork im WC-Login (AGENT-UX-5)
 	await configPromise;
 	if (!config.reownProjectId) throw new Error('Mobile Wallet-Verbindung ist nicht konfiguriert.');
 	/*
@@ -676,7 +678,25 @@ async function verbindeWalletConnect() {
 		}
 		const { wallet, provider } = await connectWithModal(modal);
 		debugWallet('Account received', wallet);
-		await finish(wallet, (message) => withTimeout(provider.request({ method: 'personal_sign', params: [message, wallet] }), 60000, 'Die Wallet hat nicht auf die Signaturanfrage reagiert.'));
+		const texts = eoaLoginTexts(language);
+		// AGENT-UX-5: Wallet IMMER auf Ethereum Mainnet synchronisieren (auch wenn
+		// AppKit die Chain schon als 1 meldet - MetaMask kann visuell auf Polygon
+		// stehen). switchNetwork reicht wallet_switchEthereumChain an die Wallet.
+		show(language === 'de' ? 'Bitte Ethereum Mainnet in der Wallet bestätigen …' : 'Please confirm Ethereum Mainnet in your wallet …');
+		const konto = await ensureAppKitMainnetAccount({ modal, network: appKitMainnet, expectedAddress: wallet, texts });
+		// Race: ein Netzwechsel waehrend des laufenden Versuchs entwertet ihn.
+		let abgebrochen = false;
+		const unsubscribe = modal.subscribeNetwork?.((state) => { const id = state?.chainId; if (id !== undefined && Number(id) !== 1) abgebrochen = true; });
+		try {
+			const signiere = async (message) => {
+				if (abgebrochen) throw new Error(texts.chainChanged);
+				if (Number(modal.getChainId()) !== 1) throw new Error(texts.notMainnet); // finaler Pre-Sign-Check (defense in depth)
+				return withTimeout(provider.request({ method: 'personal_sign', params: [message, konto] }), 60000, 'Die Wallet hat nicht auf die Signaturanfrage reagiert.');
+			};
+			await finish(konto, signiere, () => abgebrochen);
+		} finally {
+			unsubscribe?.();
+		}
 	} catch (error) {
 		debugWallet('Connection error', error);
 		show(error.message);
