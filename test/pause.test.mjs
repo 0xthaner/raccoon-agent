@@ -9,8 +9,10 @@ import { ANMELDUNG_PAUSIERT } from '../src/pause.mjs';
 
 const quelle = (pfad) => readFileSync(new URL(pfad, import.meta.url), 'utf8');
 
-test('der Schalter steht auf pausiert', () => {
-	assert.equal(ANMELDUNG_PAUSIERT, true);
+test('der Anmelde-Schalter ist freigeschaltet (Dashboard-Login aktiv)', () => {
+	// Bewusst freigeschaltet (release: enable dashboard authentication).
+	// AGENT_ANTWORTEN_PAUSIERT bleibt unberuehrt pausiert.
+	assert.equal(ANMELDUNG_PAUSIERT, false);
 });
 
 test('jeder Weg zu einer neuen Anmeldung lehnt ab, bevor etwas entsteht', () => {

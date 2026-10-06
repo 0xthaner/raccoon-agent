@@ -10,7 +10,7 @@
 	trennen und die Ablauf-Erinnerungen fuer bereits verbundene Wallets. Wer
 	schon drin ist, soll sich auch wieder abmelden und trennen koennen.
 */
-export const ANMELDUNG_PAUSIERT = true;
+export const ANMELDUNG_PAUSIERT = false;
 
 export const PAUSE_TEXT = Object.freeze({
 	de: 'Neue Anmeldungen und Wallet-Verknüpfungen sind derzeit pausiert. Bereits verbundene Wallets werden weiter überwacht.',
