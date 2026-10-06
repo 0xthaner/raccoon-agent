@@ -69,6 +69,11 @@ export default async function handler(request, response) {
 			// erreichen sie), BEVOR getCode (Alchemy) oder der DB-Insert laufen. Die
 			// IP-Schranke oben allein laesst IP-/IPv6-Rotation gegen EINE Wallet durch.
 			if (!await enforceRateLimitFor(response, 'dashboard-challenge-wallet', wallet.toLowerCase(), 10, 600)) return;
+			// AGENT-HARD-003: globales Abuse-Budget NACH den engeren IP-/Wallet-Schranken,
+			// damit eine einzelne IP/Wallet das geteilte Budget nicht aufbraucht. Konstanter
+			// Diskriminator ('all'), kein Angreifer-Input. Greift VOR getCode (Alchemy) und
+			// dem Challenge-Insert und deckelt so die aggregierte Last verteilter Angreifer.
+			if (!await enforceRateLimitFor(response, 'dashboard-challenge-global', 'all', 600, 600)) return;
 			// AGENT-SAFE-1: deployte Contract-Wallets (Safe-Multisig) bekommen ein
 			// laengeres Challenge-Fenster, weil mehrere Owner asynchron bestaetigen.
 			// Der SERVER entscheidet ueber Mainnet-getCode; der Client sendet nie
@@ -153,6 +158,11 @@ export default async function handler(request, response) {
 	// gueltige Adressen, challenge-gebunden) und VOR der teuren Signatur-/ERC-1271-
 	// Verifikation (Alchemy). Malformed Strings erreichen den Wallet-Key nie.
 	if (!await enforceRateLimitFor(response, 'dashboard-login-wallet', wallet.toLowerCase(), 10, 600)) return;
+	// AGENT-HARD-003: globales Login-Budget NACH der billigen Struktur-/Wallet-Pruefung
+	// (gefaelschte Tokens fallen schon oben bei 401 durch, ohne Budget zu ziehen) und VOR
+	// der teuren Signatur-/ERC-1271-Verifikation, dem Nonce-Consume und der Session-Ausgabe.
+	// Konstanter Diskriminator ('all'), kein Angreifer-Input.
+	if (!await enforceRateLimitFor(response, 'dashboard-login-global', 'all', 200, 600)) return;
 	// AGENT-SEC-A3/A4: der SIWE-Text wird serverseitig aus der verifizierten
 	// Challenge rekonstruiert; Felder und Signatur prueft die eine gemeinsame
 	// Grenze. Die interne Ursache bleibt dort, nach aussen geht eine stabile,
