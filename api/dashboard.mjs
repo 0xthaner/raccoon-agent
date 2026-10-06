@@ -1,7 +1,8 @@
 import { isAddress } from 'viem';
 import { getWalletCovers } from '../src/covers.mjs';
-import { CLEAR_SESSION_COOKIES, createDashboardChallenge, dashboardMessage, dashboardSiweExpectation, readSessionCookie, resolveLogout, sessionCookieHeader, verifyDashboardSession, verifyDashboardToken } from '../src/dashboard-auth.mjs';
+import { CLEAR_SESSION_COOKIES, createDashboardChallenge, createDashboardSession, DASHBOARD_CHALLENGE_TTL_CONTRACT_MS, DASHBOARD_CHALLENGE_TTL_EOA_MS, dashboardMessage, dashboardSiweExpectation, resolveDashboardSession, resolveLogout, sessionCookieHeader, verifyDashboardToken } from '../src/dashboard-auth.mjs';
 import { verifyWalletSiweSignature } from '../src/contract-signature.mjs';
+import { isDeployedContract } from '../src/contract-detect.mjs';
 import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, getWalletLinkStateByWallet, isDashboardSessionRevoked, recordAgentEvent, revokeDashboardSessions, storeDashboardChallenge, unlinkWalletByWallet } from '../src/db.mjs';
 import { newTelegramHandoff } from '../src/linking.mjs';
 import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../src/pause.mjs';
@@ -64,12 +65,28 @@ export default async function handler(request, response) {
 		if (wallet) {
 			if (!isAddress(wallet)) return response.status(400).json({ ok: false, error: 'Ungültige Wallet-Adresse.' });
 			if (!await enforceRateLimit(request, response, 'dashboard-challenge', 20, 600)) return;
-			const challenge = createDashboardChallenge(wallet);
+			// AGENT-SAFE-1: deployte Contract-Wallets (Safe-Multisig) bekommen ein
+			// laengeres Challenge-Fenster, weil mehrere Owner asynchron bestaetigen.
+			// Der SERVER entscheidet ueber Mainnet-getCode; der Client sendet nie
+			// multisig/contract/ttl. Faellt die Erkennung aus (kein Schluessel, RPC-
+			// Fehler): fail closed auf die kurze EOA-TTL.
+			let ttlMs = DASHBOARD_CHALLENGE_TTL_EOA_MS;
+			try {
+				if (await isDeployedContract(wallet)) ttlMs = DASHBOARD_CHALLENGE_TTL_CONTRACT_MS;
+			} catch { /* fail closed: kurze EOA-TTL */ }
+			const challenge = createDashboardChallenge(wallet, Date.now(), ttlMs);
 			const verified = verifyDashboardToken(challenge.token);
 			await storeDashboardChallenge({ nonce: verified.nonce, wallet: verified.wallet, expiresAt: verified.exp });
 			return response.status(200).json({ ok: true, ...challenge });
 		}
-		const saved = verifyDashboardSession(readSessionCookie(request));
+		// AGENT-SAFE-2: Session aus Cookie (normaler Browser) ODER Bearer (Safe-App
+		// iframe). Beide gueltig und verschiedene Wallets -> fail closed.
+		const resolved = resolveDashboardSession(request);
+		if (resolved.conflict) {
+			response.setHeader('set-cookie', CLEAR_SESSION_COOKIES);
+			return response.status(401).json({ ok: false, code: 'NO_SESSION', error: 'Keine aktive Dashboard-Sitzung.' });
+		}
+		const saved = resolved.session;
 		if (!saved) {
 			response.setHeader('set-cookie', CLEAR_SESSION_COOKIES);
 			return response.status(401).json({ ok: false, code: 'NO_SESSION', error: 'Keine aktive Dashboard-Sitzung.' });
@@ -83,7 +100,8 @@ export default async function handler(request, response) {
 	if (request.method === 'DELETE') {
 		if (!requireSameOrigin(request, response)) return;
 		if (!await enforceRateLimit(request, response, 'dashboard-delete', 10, 600)) return;
-		const saved = verifyDashboardSession(readSessionCookie(request));
+		const resolvedDelete = resolveDashboardSession(request);
+		const saved = resolvedDelete.conflict ? null : resolvedDelete.session;
 		if (request.query.telegram === '1') {
 			if (!saved || await isDashboardSessionRevoked(saved.wallet, sessionIssuedAt(saved))) return response.status(401).json({ ok: false, error: 'Keine aktive Dashboard-Sitzung.' });
 			const removed = await unlinkWalletByWallet(saved.wallet);
@@ -153,5 +171,15 @@ export default async function handler(request, response) {
 	}
 	response.setHeader('set-cookie', sessionCookieHeader(wallet));
 	await recordAgentEvent({ wallet, eventType: 'dashboard.wallet_authenticated', source: 'dashboard' }).catch(() => {});
-	return response.status(200).json(await dashboardData(wallet));
+	const data = await dashboardData(wallet);
+	// AGENT-SAFE-3: Safe-App-Pfad (eingebettetes iframe) kann das __Host-Cookie
+	// nicht zuverlaessig setzen. NUR wenn der Client den Bearer-Transport
+	// ausdruecklich anfordert, liegt zusaetzlich das bestehende signierte
+	// Session-Token im Body (gleiche type=session/wallet/iat/exp/HMAC/7-Tage/
+	// Revoke-Semantik). Das Flag steuert NUR den Transport, nie Identity,
+	// Signatur, Chain, Nonce oder ERC-1271. Normaler Browser bekommt es nie.
+	if (String(request.headers['x-dashboard-transport'] ?? '').toLowerCase() === 'bearer') {
+		data.sessionToken = createDashboardSession(wallet);
+	}
+	return response.status(200).json(data);
 }

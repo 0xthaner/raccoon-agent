@@ -23,6 +23,19 @@ const show = (message) => { status.textContent = message; };
 const disable = () => { wcButton.disabled = true; injectedButton.disabled = true; };
 
 /*
+	Safe-App-Pfad: das Dashboard-Session-Token liegt AUSSCHLIESSLICH hier im
+	Modul-Speicher (kein localStorage/sessionStorage/IndexedDB/Cookie/URL, kein
+	postMessage an den Parent). Reload/Tab-Schliessen => weg, das ist akzeptiert.
+	Im normalen Browser bleibt `safeSession` null und es wird das __Host-Cookie
+	verwendet.
+*/
+let safeSession = null;
+function authFetch(url, options = {}) {
+	if (!safeSession) return fetch(url, options);
+	return fetch(url, { ...options, headers: { ...(options.headers || {}), Authorization: `Bearer ${safeSession}` } });
+}
+
+/*
 	Hinweise vor dem Verbinden, als Overlay. Wer "Mit Wallet verbinden" oder
 	"Browser-Wallet verwenden" drueckt, sieht zuerst die Hinweise; "Weiter zur
 	Wallet" ist erst nach dem Haekchen frei und startet dann genau den Weg, der
@@ -630,7 +643,7 @@ wcButton.addEventListener('click', () => mitHinweisen(verbindeWalletConnect));
 
 async function endSession({ disconnect = false } = {}) {
 	if (disconnect) show('Wallet-Verbindung wird getrennt …');
-	await fetch('/api/dashboard', { method: 'DELETE' });
+	await authFetch('/api/dashboard', { method: 'DELETE' });
 	if (disconnect) {
 		if (walletConnectPromise) {
 			try { const modal = await walletConnectPromise; if (modal.getAddress()) await withTimeout(modal.disconnect(), 5000, 'disconnect timeout'); } catch {}
@@ -644,7 +657,7 @@ async function endSession({ disconnect = false } = {}) {
 function enable() { wcButton.disabled = false; injectedButton.disabled = false; }
 async function disconnectTelegram() {
 	if (!confirm(t.confirmDisconnect)) return;
-	const response = await fetch('/api/dashboard?telegram=1', { method: 'DELETE' });
+	const response = await authFetch('/api/dashboard?telegram=1', { method: 'DELETE' });
 	const result = await response.json(); if (!result.ok) return show(result.error);
 	if (window.dashboardData) renderDashboard({ ...window.dashboardData, telegramLinked: false, telegramStartCode: null });
 	await restoreDashboard();
@@ -705,4 +718,62 @@ async function restoreDashboard() {
 	} catch { /* Ohne gespeicherte Sitzung bleibt die Wallet-Auswahl sichtbar. */ }
 }
 
-const dashboardRestorePromise = restoreDashboard();
+/*
+	Safe-App-Pfad. Nur versucht, wenn CoverRaccoon in einem iframe laeuft (Safe
+	Apps laufen eingebettet). Top-Level-Browser laden das Safe-SDK nie. Erkennung
+	ist reine UX/Routing - die Identitaet entscheidet serverseitig ERC-1271.
+*/
+function renderSafeState(state, detail = {}) {
+	const de = language === 'de';
+	const n = detail.threshold;
+	switch (state) {
+		case 'SAFE_CONTEXT_DETECTED': show(de ? 'Safe erkannt.' : 'Safe detected.'); break;
+		case 'CHALLENGE_CREATED': show(de ? 'Anmeldung wird vorbereitet …' : 'Preparing sign-in …'); break;
+		case 'SIGNATURE_PENDING': show(de ? 'Bitte im Safe signieren …' : 'Please sign in your Safe …'); break;
+		case 'WAITING_FOR_OWNERS':
+			show(n ? (de ? `Warte auf Bestätigungen (${n} erforderlich) …` : `Waiting for confirmations (${n} required) …`)
+				: (de ? 'Warte auf weitere Bestätigung …' : 'Waiting for more confirmations …'));
+			break;
+		case 'SIGNATURE_READY': show(de ? 'Signatur vollständig.' : 'Signature complete.'); break;
+		case 'VERIFYING': show(de ? 'Anmeldung wird geprüft …' : 'Verifying sign-in …'); break;
+		case 'AUTHENTICATED': break; // Dashboard wird gerendert
+		case 'EXPIRED': show(de ? 'Das Signaturfenster ist abgelaufen. Bitte neu starten.' : 'The signing window expired. Please restart.'); break;
+		case 'REJECTED':
+			show(detail.reason === 'chain'
+				? (de ? 'CoverRaccoon Safe Login ist derzeit nur auf Ethereum Mainnet verfügbar.' : 'CoverRaccoon Safe login is currently only available on Ethereum Mainnet.')
+				: (de ? 'Anmeldung abgelehnt.' : 'Sign-in rejected.'));
+			break;
+	}
+}
+
+async function runSafeAppLogin(ctx) {
+	const { runSafeLogin } = await import('./safe-app.js');
+	document.body.classList.add('safe-mode');
+	for (const selector of ['.actions', '.security', '.verify', '#link-account']) {
+		const element = document.querySelector(selector);
+		if (element) element.hidden = true;
+	}
+	try {
+		const { sessionToken, dashboard } = await runSafeLogin({ sdk: ctx.sdk, info: ctx.info, fetchFn: fetch, onState: renderSafeState });
+		safeSession = sessionToken; // nur im Speicher
+		await configPromise.catch(() => null);
+		renderDashboard(dashboard);
+	} catch (error) {
+		show(error.message);
+	}
+}
+
+async function bootstrap() {
+	if (code) return restoreDashboard(); // Telegram-Link-Modus: unveraendert
+	const inIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
+	if (inIframe) {
+		try {
+			const { detectSafeContext } = await import('./safe-app.js');
+			const ctx = await detectSafeContext(() => import('@safe-global/safe-apps-sdk').then((module) => module.default));
+			if (ctx) return runSafeAppLogin(ctx);
+		} catch { /* kein Safe-Kontext: normaler Flow */ }
+	}
+	return restoreDashboard();
+}
+
+const dashboardRestorePromise = bootstrap();

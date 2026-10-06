@@ -45,14 +45,25 @@ function sign(payload) {
  * Ein altes Token ohne diese Felder wird von `verifyDashboardToken` abgelehnt;
  * damit endet das alte Nachrichtenschema ohne parallelen Legacy-Pfad.
  */
-export function createDashboardChallenge(wallet, now = Date.now()) {
+/**
+ * Challenge-Lebensdauer. EOA bleibt bei fuenf Minuten. Deployte Contract-Wallets
+ * (Safe-Multisig) duerfen laenger, weil mehrere Owner asynchron bestaetigen; der
+ * SERVER entscheidet ueber `getCode`, der Client setzt die TTL nie.
+ */
+export const DASHBOARD_CHALLENGE_TTL_EOA_MS = 5 * 60_000;
+export const DASHBOARD_CHALLENGE_TTL_CONTRACT_MS = 30 * 60_000;
+
+export function createDashboardChallenge(wallet, now = Date.now(), ttlMs = DASHBOARD_CHALLENGE_TTL_EOA_MS) {
+	// Defensive Grenze: niemals kuerzer als die EOA-TTL, nie laenger als die
+	// Contract-TTL. Schuetzt gegen versehentlich durchgereichte Fremdwerte.
+	const bounded = Math.min(Math.max(Number(ttlMs) || 0, DASHBOARD_CHALLENGE_TTL_EOA_MS), DASHBOARD_CHALLENGE_TTL_CONTRACT_MS);
 	const data = {
 		type: 'challenge',
 		wallet: wallet.toLowerCase(),
 		nonce: randomBytes(16).toString('hex'),
 		iat: now,
 		rid: newRequestId(),
-		exp: now + 5 * 60_000
+		exp: now + bounded
 	};
 	const payload = Buffer.from(JSON.stringify(data)).toString('base64url');
 	return { token: `${payload}.${sign(payload)}`, message: dashboardMessage(data, wallet) };
@@ -130,6 +141,41 @@ function cookieOf(request, name) {
 /** Liest ausschliesslich das `__Host-`-Cookie. Kein Legacy-Rueckfall. */
 export function readSessionCookie(request) {
 	return cookieOf(request, SESSION_COOKIE);
+}
+
+/**
+ * Bearer-Session fuer den Safe-App-Pfad (eingebettetes iframe, in dem ein
+ * Third-Party-Cookie nicht zuverlaessig gesetzt wird). Liest NUR
+ * `Authorization: Bearer <token>`, strikt und laengenbegrenzt. Das Token ist
+ * dasselbe signierte Session-Token wie im Cookie; die Gueltigkeit prueft
+ * ausschliesslich `verifyDashboardSession`. Niemals aus Query/Body/anderen
+ * Headern lesen.
+ */
+export function readBearerToken(request) {
+	const header = request?.headers?.authorization;
+	if (typeof header !== 'string' || header.length > 2300) return null;
+	const match = /^Bearer[ ]([A-Za-z0-9._-]{1,2200})$/i.exec(header);
+	return match ? match[1] : null;
+}
+
+/**
+ * Loest die Dashboard-Session aus Cookie UND/ODER Bearer auf - rein ueber HMAC,
+ * ohne Datenbank (die Revoke-Pruefung bleibt im Handler). Regeln:
+ *  - nur Cookie gueltig  -> Cookie-Session
+ *  - nur Bearer gueltig  -> Bearer-Session
+ *  - beide gueltig, gleiche Wallet -> akzeptieren (Cookie)
+ *  - beide gueltig, verschiedene Wallets -> CONFLICT (Aufrufer: fail closed, 401)
+ *  - sonst -> keine Session
+ * Es wird NIE eine client-behauptete Wallet uebernommen.
+ */
+export function resolveDashboardSession(request) {
+	const cookie = verifyDashboardSession(readSessionCookie(request));
+	const bearer = verifyDashboardSession(readBearerToken(request));
+	if (cookie && bearer) {
+		if (cookie.wallet !== bearer.wallet) return { conflict: true, session: null };
+		return { conflict: false, session: cookie };
+	}
+	return { conflict: false, session: cookie || bearer };
 }
 
 /**

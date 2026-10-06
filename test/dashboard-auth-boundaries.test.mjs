@@ -104,7 +104,14 @@ test('A5 ein Sessioncookie entsteht nur an der einen dafuer zustaendigen Stelle'
 	const auth = source('../src/dashboard-auth.mjs');
 	assert.equal((auth.match(/createDashboardSession\(/g) ?? []).length, 2);
 	assert.equal(source('../api/link/verify.mjs').includes('createDashboardSession'), false);
-	assert.equal(source('../api/dashboard.mjs').includes('createDashboardSession'), false);
+	// AGENT-SAFE-3: der Dashboard-Handler mintet zusaetzlich EINEN Bearer-Session-
+	// Token fuer den Safe-App-Pfad - genau einmal und ausschliesslich im per Header
+	// 'x-dashboard-transport: bearer' bewachten Zweig, NACH ERC-1271 + Nonceverbrauch
+	// und NACH dem Setzen des Cookies. Kein zweiter Mint-Pfad, keine Verknuepfung.
+	const dash = source('../api/dashboard.mjs');
+	assert.equal((dash.match(/createDashboardSession\(/g) ?? []).length, 1);
+	assert.ok(dash.includes('x-dashboard-transport'));
+	assert.ok(dash.indexOf('sessionCookieHeader(') < dash.indexOf('createDashboardSession('));
 });
 
 /* ------------------------------------------------------------------------- *
@@ -275,7 +282,9 @@ test('D29 kein Lesepfad im Handler kennt den alten Namen', () => {
 	const code = source('../api/dashboard.mjs');
 	assert.equal(code.includes(LEGACY_SESSION_COOKIE), false);
 	assert.equal(code.includes('cookieOf('), false);
-	assert.equal((code.match(/readSessionCookie\(request\)/g) ?? []).length, 2);
+	// AGENT-SAFE-2: der Handler liest die Session ausschliesslich ueber die eine
+	// Grenze resolveDashboardSession (Cookie ODER Bearer) - GET und DELETE.
+	assert.equal((code.match(/resolveDashboardSession\(request\)/g) ?? []).length, 2);
 });
 
 test('D30 bis D32 das Sessioncookie bleibt host-only und streng', () => {
