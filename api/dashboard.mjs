@@ -4,7 +4,6 @@ import { CLEAR_SESSION_COOKIES, createDashboardChallenge, createDashboardSession
 import { verifyWalletSiweSignature } from '../src/contract-signature.mjs';
 import { isDeployedContract } from '../src/contract-detect.mjs';
 import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, getWalletLinkStateByWallet, isDashboardSessionRevoked, recordAgentEvent, revokeDashboardSessions, storeDashboardChallenge, unlinkWalletByWallet } from '../src/db.mjs';
-import { newTelegramHandoff } from '../src/linking.mjs';
 import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../src/pause.mjs';
 import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin } from '../src/http-security.mjs';
 import { recordSecurityEvent, securityFingerprint, SECURITY_EVENT } from '../src/security-events.mjs';
@@ -12,12 +11,11 @@ import { recordSecurityEvent, securityFingerprint, SECURITY_EVENT } from '../src
 async function dashboardData(wallet) {
 	const [result, telegramState] = await Promise.all([getWalletCovers(wallet), getWalletLinkStateByWallet(wallet)]);
 	const telegramLink = telegramState.link;
-	const telegramHandoff = telegramState.linked ? null : await newTelegramHandoff(wallet);
 	const covers = result.covers.map((cover) => ({
 		coverId: cover.coverId, productId: cover.productId, productName: cover.productName,
 		status: cover.status, amount: cover.amount, asset: cover.asset, endsAt: cover.endsAt
 	}));
-	return { ok: true, wallet: wallet.toLowerCase(), covers, telegramLinked: telegramState.linked, telegramStartCode: telegramHandoff?.code ?? null, agentSettings: telegramLink ? { label: telegramLink.label, alertThresholds: telegramLink.alert_thresholds, weeklySummary: telegramLink.weekly_summary } : null, checkedAt: new Date().toISOString(), demoWallet: Boolean(result.demoWallet) };
+	return { ok: true, wallet: wallet.toLowerCase(), covers, telegramLinked: telegramState.linked, telegramStartCode: null, agentSettings: telegramLink ? { label: telegramLink.label, alertThresholds: telegramLink.alert_thresholds, weeklySummary: telegramLink.weekly_summary } : null, checkedAt: new Date().toISOString(), demoWallet: Boolean(result.demoWallet) };
 }
 
 function sessionIssuedAt(session) {
@@ -117,6 +115,18 @@ export default async function handler(request, response) {
 			await recordAgentEvent({ wallet: saved.wallet, eventType: 'dashboard.telegram_disconnected', source: 'dashboard', metadata: { linkedChats: removed.length } }).catch(() => {});
 			await notifyTelegramDisconnected(removed.map((row) => row.chat_id));
 			return response.status(200).json({ ok: true, disconnected: removed.length > 0 });
+		}
+		// HARD-004: already-revoked credentials cannot revoke newer sessions.
+		// A request that passed this check can overlap another revoke (in-flight boundary).
+		if (saved) {
+			try {
+				if (await isDashboardSessionRevoked(saved.wallet, sessionIssuedAt(saved))) {
+					response.setHeader('set-cookie', CLEAR_SESSION_COOKIES);
+					return response.status(200).json({ ok: true });
+				}
+			} catch {
+				return response.status(503).json({ ok: false, error: 'Abmeldung konnte nicht abgeschlossen werden.' });
+			}
 		}
 		// AGENT-SEC-A1, 29.08.2026: der Logout loeschte bis dahin nur Browsercookies.
 		// Eine abgegriffene Session blieb damit sieben Tage gueltig. Jetzt wird sie

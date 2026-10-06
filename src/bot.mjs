@@ -1,4 +1,4 @@
-import { beginTelegramDelivery, consumeTelegramHandoff, getChatProductContext, saveChatProductContext, finishTelegramDelivery, forgetRememberedWallet, getLanguage, getMonitoredWallets, getRememberedWallets, getWalletLink, recordAgentEvent, rememberUnlinkedWallet, renameMonitoredWallet, revokeDashboardSessions, setLanguage, setPrimaryWallet, setWalletAlertSettings, snoozeCoverAlert, unlinkWallet } from './db.mjs';
+import { beginTelegramDelivery, getChatProductContext, saveChatProductContext, finishTelegramDelivery, forgetRememberedWallet, getLanguage, getMonitoredWallets, getRememberedWallets, getWalletLink, recordAgentEvent, rememberUnlinkedWallet, renameMonitoredWallet, revokeDashboardSessions, setLanguage, setPrimaryWallet, setWalletAlertSettings, snoozeCoverAlert, unlinkWallet } from './db.mjs';
 import { newDashboardAccess, newLinkRequest } from './linking.mjs';
 import { startWebServer } from './web.mjs';
 import { CoverDataError, formatWalletCovers, getWalletCovers } from './covers.mjs';
@@ -442,18 +442,9 @@ async function handleMessage(message, updateContext = {}) {
 		command: explicitCommand ? command : 'free_text',
 		metadata: telegramTimingMetadata(message, updateContext.updateId, updateContext.receivedAt)
 	}).catch(() => {});
-	const startCode = command === '/start' ? startCodeOf(message.text) : null;
-	/*
-		AGENT-UX-1: der Rueckgabewert wurde bisher verworfen. `consumeTelegramHandoff`
-		verknuepft die Wallet hier tatsaechlich - und `/start` sah gleich darauf eine
-		bestehende Verknuepfung und meldete "bereits aktiv". Wer eben getrennt hatte,
-		bekam also auf seinen Verbindungsversuch die Auskunft, er sei ohnehin schon
-		verbunden. Die Verbindung kam zustande, nur die Meldung war die falsche.
-
-		Deshalb wird jetzt festgehalten, ob DIESER Aufruf verknuepft hat.
-	*/
-	// Waehrend der Pause wird kein Code eingeloest, also keine neue Verknuepfung.
-	const frischVerknuepft = startCode && !ANMELDUNG_PAUSIERT ? Boolean(await consumeTelegramHandoff(startCode, message.chat.id)) : false;
+	const connectRequested = command === '/start' && (message.text.trim().split(/\s+/)[1] === 'connect' || Boolean(startCodeOf(message.text)));
+	// HARD-004: connect payloads, including legacy codes, only request wallet proof.
+	// Never consume a direct-binding handoff here.
 	const language = await getLanguage(message.chat.id);
 	if (!language && command !== '/start' && command !== '/language') {
 		await askLanguage(message.chat.id);
@@ -472,24 +463,19 @@ async function handleMessage(message, updateContext = {}) {
 			}
 			{
 				const existingWallet = await getWalletLink(message.chat.id);
-				if (existingWallet) {
-					const verbunden = language === 'zh'
-						? '已连接 🦝\n\n此钱包的到期提醒现已启用。'
-						: language === 'en'
-							? 'Connected 🦝\n\nExpiry notices for this wallet are active from now on.'
-							: 'Verbunden 🦝\n\nAblaufhinweise für diese Wallet sind ab jetzt aktiv.';
+				if (existingWallet && !connectRequested) {
 					const schonAktiv = language === 'zh' ? 'Raccoon Agent 已启用 🦝' : language === 'en' ? 'Raccoon Agent is already active 🦝' : 'Raccoon Agent ist bereits aktiv 🦝';
 					await sendMessage(message.chat.id,
-						frischVerknuepft ? verbunden : schonAktiv,
+						schonAktiv,
 						{ reply_markup: await dashboardKeyboard(language, existingWallet.wallet, true) }
 					);
 					break;
 				}
 			}
 			await sendMessage(message.chat.id, greeting(message.from?.first_name, language), { reply_markup: navigationKeyboard(language) });
-			if (!await getWalletLink(message.chat.id) && ANMELDUNG_PAUSIERT) {
+			if (ANMELDUNG_PAUSIERT) {
 				await sendMessage(message.chat.id, PAUSE_TEXT[language] ?? PAUSE_TEXT.de);
-			} else if (!await getWalletLink(message.chat.id)) {
+			} else if (connectRequested || !await getWalletLink(message.chat.id)) {
 				const link = await newLinkRequest(message.chat.id);
 				const walletUrl = `${appBaseUrl}/link?code=${link.code}`;
 				await sendMessage(message.chat.id, language === 'zh' ? '绑定钱包（10 分钟内有效）：' : language === 'en' ? 'Connect wallet (valid for 10 minutes):' : 'Wallet verbinden (10 Minuten gültig):', {

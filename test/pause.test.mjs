@@ -45,8 +45,8 @@ test('Abmelden, Telegram trennen und bestehende Sitzungen bleiben moeglich', () 
 test('der Bot erzeugt waehrend der Pause keine Verknuepfungslinks und loest keine Uebergabe ein', () => {
 	const bot = quelle('../src/bot.mjs');
 	assert.match(bot, /if \(ANMELDUNG_PAUSIERT\) return \{ inline_keyboard: rows \};/);
-	assert.match(bot, /startCode && !ANMELDUNG_PAUSIERT \? Boolean\(await consumeTelegramHandoff/);
-	assert.equal((bot.match(/&& ANMELDUNG_PAUSIERT\) \{\n\t*await sendMessage\([^,]+, PAUSE_TEXT/g) ?? []).length, 2);
+	assert.doesNotMatch(bot, /consumeTelegramHandoff\(/);
+	assert.equal((bot.match(/(?:&& ANMELDUNG_PAUSIERT|if \(ANMELDUNG_PAUSIERT)\) \{\n\t*await sendMessage\([^,]+, PAUSE_TEXT/g) ?? []).length, 2);
 });
 
 test('die Seite meldet die Pause statt der Knoepfe', () => {

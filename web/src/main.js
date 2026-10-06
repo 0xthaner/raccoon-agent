@@ -187,7 +187,7 @@ function renderDashboard(data) {
 		telegramAction.hidden = false;
 		telegramAction.href = data.telegramLinked
 			? `https://t.me/${config.telegramUsername}`
-			: `https://t.me/${config.telegramUsername}?start=connect_${data.telegramStartCode}`;
+			: `https://t.me/${config.telegramUsername}?start=connect`;
 		telegramAction.target = '_blank';
 		telegramAction.rel = 'noopener';
 		telegramAction.textContent = data.telegramLinked ? t.openTelegram : t.connectTelegram;
