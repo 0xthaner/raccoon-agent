@@ -78,6 +78,39 @@ export function requireJson(request, response, maxBytes = 16_384) {
  * Ist sie nicht konfiguriert, gibt es keinen Rueckfall, sondern 503 - wie beim
  * fehlenden Rate-Limit-Secret eine Zeile weiter oben.
  */
+/**
+ * AGENT-SAFE-4: zusaetzlich erlaubte App-Origins, AUSSCHLIESSLICH ausserhalb
+ * Production. Gedacht fuer ein Preview, auf dem die native Safe App unter ihrer
+ * eigenen Vercel-Origin laeuft (nicht coverraccoon.com), waehrend die SIWE-Domain
+ * kanonisch coverraccoon.com bleibt.
+ *
+ * HARTE GRENZEN:
+ * - In Production (`VERCEL_ENV === 'production'`) wird `ALLOWED_APP_ORIGINS`
+ *   vollstaendig ignoriert; dort gilt nur die kanonische SIWE-Origin.
+ * - Nur absolute https-Origins, EXAKTER String-Vergleich.
+ * - Keine Wildcards, kein Regex, kein Subdomain-/startsWith/endsWith-Match.
+ * - Keine Ableitung aus Request-Headern (Host/Referer/X-Forwarded-Host).
+ * - Malformed/leere Eintraege werden still ignoriert (kein Crash).
+ */
+function previewAllowedOrigins() {
+	if (process.env.VERCEL_ENV === 'production') return [];
+	const raw = process.env.ALLOWED_APP_ORIGINS;
+	if (typeof raw !== 'string' || !raw) return [];
+	const origins = [];
+	for (const part of raw.split(',')) {
+		const entry = part.trim();
+		if (!entry || entry.includes('*')) continue; // leer oder Wildcard -> ignorieren
+		let url;
+		try { url = new URL(entry); } catch { continue; } // malformed -> ignorieren
+		if (url.protocol !== 'https:') continue; // kein http:// u. a.
+		if (url.username || url.password) continue; // keine Credentials
+		// Exakte Origin: schliesst Pfade, Query, Fragment, trailing slash aus.
+		if (url.origin !== entry) continue;
+		origins.push(url.origin);
+	}
+	return origins;
+}
+
 export function requireSameOrigin(request, response) {
 	const site = String(request.headers['sec-fetch-site'] ?? '').toLowerCase();
 	if (site && !['same-origin', 'none'].includes(site)) {
@@ -93,7 +126,9 @@ export function requireSameOrigin(request, response) {
 		response.status(503).json({ ok: false, error: 'Security configuration missing.' });
 		return false;
 	}
-	if (origin !== expected) {
+	// Kanonische SIWE-Origin immer; zusaetzlich - nur ausserhalb Production - eine
+	// exakt gelistete Preview-Origin aus ALLOWED_APP_ORIGINS.
+	if (origin !== expected && !previewAllowedOrigins().includes(origin)) {
 		response.status(403).json({ ok: false, error: 'Invalid request origin.' });
 		return false;
 	}
