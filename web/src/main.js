@@ -1,4 +1,5 @@
 import { appKitMethoden, WALLET_METHODEN_ANMELDEN } from './wallet-methods.js';
+import { ensureMainnetAccount, eoaLoginTexts, guardedChallengeSignSubmit } from './eoa-login.js';
 import { mountEye } from './eye.js';
 
 const status = document.querySelector('#status');
@@ -227,36 +228,57 @@ function renderDashboard(data) {
  */
 let expectedWallet = null;
 
-async function openDashboard(wallet, sign) {
+async function openDashboard(wallet, sign, isAborted = () => false) {
 	if (expectedWallet && String(wallet).toLowerCase() !== expectedWallet) {
 		throw new Error(language === 'de'
 			? `Diese Wallet passt nicht zum Dashboard-Link. Erwartet wird ${shortWallet(expectedWallet)}. Wechsle die Wallet oder fordere in Telegram einen neuen Link an.`
 			: `This wallet does not match the dashboard link. Expected ${shortWallet(expectedWallet)}. Switch wallet or request a new link in Telegram.`);
 	}
 	show('Persönlicher Bereich wird vorbereitet …');
-	const challenge = await fetch(`/api/dashboard?wallet=${encodeURIComponent(wallet)}`, { signal: AbortSignal.timeout(15000) }).then((res) => res.json());
-	debugWallet('Challenge geholt', { ok: challenge.ok, laenge: challenge.message?.length, fehler: challenge.error });
-	if (!challenge.ok) throw new Error(challenge.error);
-	show('Bitte bestätige die Signatur in deiner Wallet …');
-	debugWallet('Signatur wird angefordert');
-	const signature = await sign(challenge.message);
-	debugWallet('Signatur erhalten', { laenge: signature?.length });
-	show('Cover-Daten werden geladen …');
-	const dashboard = await fetch('/api/dashboard', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ wallet, token: challenge.token, signature }) }).then((res) => res.json());
-	if (!dashboard.ok) throw new Error(dashboard.error);
+	// AGENT-UX-5: an jeder Grenze (vor Challenge, vor Signatur, vor POST) auf
+	// chainChanged-Abbruch pruefen. WalletConnect uebergibt kein isAborted -> no-op.
+	const dashboard = await guardedChallengeSignSubmit({
+		isAborted,
+		texts: eoaLoginTexts(language),
+		getChallenge: async () => {
+			const challenge = await fetch(`/api/dashboard?wallet=${encodeURIComponent(wallet)}`, { signal: AbortSignal.timeout(15000) }).then((res) => res.json());
+			debugWallet('Challenge geholt', { ok: challenge.ok, laenge: challenge.message?.length, fehler: challenge.error });
+			return challenge;
+		},
+		sign: async (message) => {
+			show('Bitte bestätige die Signatur in deiner Wallet …');
+			debugWallet('Signatur wird angefordert');
+			const signature = await sign(message);
+			debugWallet('Signatur erhalten', { laenge: signature?.length });
+			return signature;
+		},
+		submit: async (challenge, signature) => {
+			show('Cover-Daten werden geladen …');
+			const result = await fetch('/api/dashboard', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ wallet, token: challenge.token, signature }) }).then((res) => res.json());
+			if (!result.ok) throw new Error(result.error);
+			return result;
+		}
+	});
 	await configPromise;
 	renderDashboard(dashboard);
 }
 
-async function finish(wallet, sign) {
-	if (!code) return openDashboard(wallet, sign);
+async function finish(wallet, sign, isAborted = () => false) {
+	if (!code) return openDashboard(wallet, sign, isAborted);
 	show('Signaturnachricht wird vorbereitet …');
-	const details = await fetch(`/api/link?code=${encodeURIComponent(code)}&wallet=${encodeURIComponent(wallet)}`).then((res) => res.json());
-	if (!details.ok) throw new Error(details.error);
-	const signature = await sign(details.message);
-	show('Signatur wird geprüft …');
-	const verified = await fetch('/api/link/verify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code, wallet, signature }) }).then((res) => res.json());
-	if (!verified.ok) throw new Error(verified.error);
+	// AGENT-UX-5: dieselbe abbrechbare Sequenz fuer den Telegram-Link-Flow.
+	await guardedChallengeSignSubmit({
+		isAborted,
+		texts: eoaLoginTexts(language),
+		getChallenge: () => fetch(`/api/link?code=${encodeURIComponent(code)}&wallet=${encodeURIComponent(wallet)}`).then((res) => res.json()),
+		sign,
+		submit: async (details, signature) => {
+			show('Signatur wird geprüft …');
+			const verified = await fetch('/api/link/verify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code, wallet, signature }) }).then((res) => res.json());
+			if (!verified.ok) throw new Error(verified.error);
+			return verified;
+		}
+	});
 	await configPromise.catch(() => null);
 	/*
 		AGENT-SEC-F1: vorher eine zusammengebaute HTML-Zeichenkette. Der Aufbau ist
@@ -365,16 +387,40 @@ async function trenneBrowserWallet() {
 	}
 }
 
+/*
+	AGENT-UX-5: der EOA-Login ist an Chain ID 1 gebunden (SIWE), aber eine
+	Browser-Erweiterung zeigt beim `personal_sign` das gerade gewaehlte Netz an
+	(z. B. Polygon). Deshalb VOR der Challenge auf Ethereum Mainnet stellen und
+	den aktiven Account danach erneut lesen (ensureMainnetAccount). Nur der
+	injizierte Pfad: WalletConnect ist ueber AppKit `networks:[mainnet]` ohnehin
+	auf eip155:1 ausgehandelt, der native Safe-App-Pfad laeuft nicht hierueber.
+	Ein chainChanged auf Nicht-Mainnet waehrend des Versuchs entwertet ihn; der
+	Listener gilt nur fuer diesen Versuch und wird im finally entfernt.
+*/
 async function verbindeBrowserWallet() {
 	if (!hinweiseAkzeptiert) return;
 	let verbunden = false;
+	let abgebrochen = false;
+	const beiChainChanged = (cid) => { if (cid !== '0x1') abgebrochen = true; };
 	try {
 		if (!window.ethereum) throw new Error('Keine Browser-Wallet gefunden. Nutze „Connect mobile wallet“.');
 		show('Browser-Wallet wird verbunden …');
 		const [wallet] = await window.ethereum.request({ method: 'eth_requestAccounts' });
 		verbunden = true;
-		await finish(wallet, (message) => window.ethereum.request({ method: 'personal_sign', params: [message, wallet] }));
+		window.ethereum.on?.('chainChanged', beiChainChanged);
+		const texts = eoaLoginTexts(language);
+		const konto = await ensureMainnetAccount(window.ethereum, wallet, { texts, isAborted: () => abgebrochen });
+		// Signer faellt fail closed: kein personal_sign bei Abbruch, und unmittelbar
+		// vor dem Signieren noch einmal eth_chainId === 0x1 verlangen.
+		const signiere = async (message) => {
+			if (abgebrochen) throw new Error(texts.chainChanged);
+			const cid = await window.ethereum.request({ method: 'eth_chainId' }).catch(() => null);
+			if (cid !== '0x1') throw new Error(texts.notMainnet);
+			return window.ethereum.request({ method: 'personal_sign', params: [message, konto] });
+		};
+		await finish(konto, signiere, () => abgebrochen);
 	} catch (error) { show(error.message); } finally {
+		window.ethereum?.removeListener?.('chainChanged', beiChainChanged);
 		if (verbunden) await trenneBrowserWallet();
 	}
 }
