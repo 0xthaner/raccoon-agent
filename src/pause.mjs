@@ -36,7 +36,7 @@ export function pauseAntwort(response) {
 	Wallets (Covers, Ablauf, Erinnerungen, Dashboard, Abmelden/Trennen) sowie
 	alle Knoepfe und /-Befehle. Es entfaellt nur die frei formulierte Auskunft.
 */
-export const AGENT_ANTWORTEN_PAUSIERT = true;
+export const AGENT_ANTWORTEN_PAUSIERT = false;
 
 export const ANTWORT_PAUSE_TEXT = Object.freeze({
 	de: 'Inhaltliche Fragen zu Produkten und Versicherung beantworte ich derzeit nicht. Verbindliche Angaben stehen in der offiziellen Nexus-Mutual-Doku und im jeweiligen Bedingungstext. Covers, Ablaufdaten und Erinnerungen für verbundene Wallets funktionieren weiterhin.',
