@@ -1,3 +1,5 @@
+import { isCatalogDiscovery } from './nexus-facts.mjs';
+
 const ALLOWED_INTENTS = [
 	'show_covers',
 	'show_next_expiry',
@@ -53,6 +55,8 @@ function intentFromResponse(result) {
 }
 
 export async function classifyAgentIntent(text, language = 'de', fetchImpl = fetch) {
+	// Broad public catalogue questions must not be routed to personal cover data.
+	if (isCatalogDiscovery(text)) return { intent: 'explain_product', source: 'local' };
 	const fallback = localIntent(text);
 	if (!apiKey) return { intent: fallback, source: 'local' };
 	try {

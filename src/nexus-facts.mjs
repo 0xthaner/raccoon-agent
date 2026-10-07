@@ -125,6 +125,40 @@ export function resolveProduct(question, catalog) {
 	return { state: 'UNAMBIGUOUS', productId: candidates[0].productId, product: candidates[0] };
 }
 
+/** Narrow catalogue requests; product resolution always takes precedence. */
+export function isCatalogDiscovery(question) {
+	const q = normalize(question);
+	if (/\b(mein\w*|my|unser\w*|our|habe ich|hab ich|do i have)\b/.test(q)) return false;
+	return /\bwelche (?:produkte|covers)\b/.test(q)
+		|| /\bwas kann (?:ich|man|nexus)(?: bei nexus)? (?:versichern|absichern|abdecken)\b/.test(q)
+		|| /\bwhat (?:products|covers) (?:are available|does nexus offer)\b/.test(q)
+		|| /\b(?:show|list)(?: me)?(?: the)?(?: available)? nexus products\b/.test(q)
+		|| /\bwhat can (?:i|nexus) cover\b/.test(q);
+}
+
+export function classifyNexusQuery(question, catalog) {
+	const resolution = resolveProduct(question, catalog);
+	if (resolution.state === 'AMBIGUOUS') return 'PRODUCT_FAMILY';
+	if (resolution.state === 'UNAMBIGUOUS') return isCatalogDiscovery(question) ? 'PRODUCT_FAMILY' : 'PRODUCT_DETAIL';
+	return isCatalogDiscovery(question) ? 'CATALOG_DISCOVERY' : 'GENERAL';
+}
+
+function catalogDiscoveryContext(catalog) {
+	const active = catalog.filter(p => p.status === 'ACTIVE')
+		.sort((a, b) => a.officialName.localeCompare(b.officialName) || a.productId - b.productId);
+	const products = active.slice(0, 12).map(p => ({
+		productId: p.productId, officialName: p.officialName, status: p.status,
+		productType: p.productType, typeName: p.typeName, category: p.category
+	}));
+	return {
+		QUERY_MODE: 'CATALOG_DISCOVERY', PRODUCT_RESOLUTION: 'NO_MATCH',
+		CATALOG: {
+			products, totalActive: active.length, additionalProducts: active.length - products.length,
+			fetchedAt: catalog[0]?.catalogFetchedAt ?? null, sourceEndpoint: `${API}/v2/products`
+		}
+	};
+}
+
 export async function getProductFactsById(productId, fetchImpl = fetch, now = Date.now()) {
 	if (!Number.isSafeInteger(productId) || productId < 0) throw new Error('Invalid product ID');
 	const cached = capacityCache.get(productId);
@@ -179,6 +213,15 @@ export async function getNexusProductFacts(question, { fetchImpl = fetch, now = 
 	try { catalog = await getCatalog(fetchImpl, now); }
 	catch { return { PRODUCT_RESOLUTION: 'UNAVAILABLE', reason: 'CATALOG_UNAVAILABLE' }; }
 	let resolution = resolveProduct(question, catalog);
+	if (isCatalogDiscovery(question)) {
+		if (resolution.state === 'NO_MATCH') return catalogDiscoveryContext(catalog);
+		const candidates = resolution.state === 'AMBIGUOUS' ? resolution.candidates : [resolution.product];
+		if (onProducts) await Promise.resolve(onProducts(candidates.map(p => p.productId))).catch(() => {});
+		return {
+			QUERY_MODE: 'PRODUCT_FAMILY', PRODUCT_RESOLUTION: 'AMBIGUOUS',
+			CANDIDATES: candidates.map(p => ({ productId: p.productId, officialName: p.officialName, status: p.status }))
+		};
+	}
 	let fromContext = false;
 	if (resolution.state === 'NO_MATCH' && Array.isArray(previousProductIds)) {
 		const candidates = catalog.filter((p) => previousProductIds.includes(p.productId)).slice(0, MAX_CANDIDATES);
