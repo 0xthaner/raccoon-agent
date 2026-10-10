@@ -13,13 +13,17 @@
 	  - api.nexusmutual.io/v2/capacity/{id}  freie Kapazitaet, Jahrespreis-Spanne
 
 	Das Wording verweist auf api.nexusmutual.io/ipfs/<CID>, die offizielle
-	Ablage von Nexus. Es wird verlinkt, nicht ausgelesen oder zusammengefasst:
-	massgeblich ist der Text selbst, keine Lesart davon.
+	Ablage von Nexus. Es wird immer verlinkt. Seit 09.10.2026 liest der Agent
+	fuer Deckungsfragen zu genau einem aufgeloesten Produkt zusaetzlich
+	passende Abschnitte aus Wording und Annex (nexus-documents.mjs); das Modell
+	erklaert diese Abschnitte, massgeblich bleibt der Text selbst.
 
 	Kein personenbezogenes Datum verlaesst den Agenten; angefragt wird nur ein
 	Produkt. Faellt Nexus aus, gibt es keinen Fakten-Block, und der Bot sagt,
 	dass er die Daten gerade nicht hat.
 */
+
+import { getWordingPassages } from './nexus-documents.mjs';
 
 const API = 'https://api.nexusmutual.io';
 const CATALOG_TTL_MS = 6 * 60 * 60 * 1000;
@@ -46,6 +50,23 @@ function annexCid(metadata) {
 	if (typeof metadata === 'string') return metadata || null;
 	if (metadata && typeof metadata === 'object' && typeof metadata.annex === 'string') return metadata.annex;
 	return null;
+}
+
+/**
+ * Wie die produktspezifischen Bedingungen vorliegen. Alles ausser "kein Annex"
+ * oder "ein Annex als CID" (etwa eine Ausschlussliste direkt in den Metadaten,
+ * ein Schedule oder ein Upload-Fehler) liest der Agent nicht; dann darf auch
+ * das Wording nicht allein erklaert werden.
+ */
+function productTerms(metadata) {
+	if (metadata == null || metadata === '') return 'NONE';
+	if (typeof metadata === 'string') return ipfsUrl(metadata) ? 'ANNEX' : 'UNSUPPORTED';
+	if (typeof metadata === 'object' && !Array.isArray(metadata)
+		&& Object.keys(metadata).every((key) => key === 'annex' || key === 'version')) {
+		if (!('annex' in metadata)) return 'NONE';
+		return ipfsUrl(metadata.annex) ? 'ANNEX' : 'UNSUPPORTED';
+	}
+	return 'UNSUPPORTED';
 }
 
 export async function getCatalog(fetchImpl = fetch, now = Date.now()) {
@@ -78,7 +99,8 @@ export async function getCatalog(fetchImpl = fetch, now = Date.now()) {
 				typeName: typeof type?.name === 'string' ? type.name : null,
 				gracePeriodDays: Number.isFinite(Number(type?.gracePeriod)) ? Math.round(Number(type.gracePeriod) / 86_400) : null,
 				wordingUrl: ipfsUrl(type?.metadata),
-				annexUrl: ipfsUrl(annexCid(p.metadata))
+				annexUrl: ipfsUrl(annexCid(p.metadata)),
+				productTerms: productTerms(p.metadata)
 			};
 		});
 	catalogCache = { at: now, value };
@@ -208,7 +230,7 @@ async function fetchJson(url, fetchImpl) {
 }
 
 /** Structured public context. Only canonical IDs can attach live facts/documents. */
-export async function getNexusProductFacts(question, { fetchImpl = fetch, now = Date.now(), previousProductIds = null, onProducts = null } = {}) {
+export async function getNexusProductFacts(question, { fetchImpl = fetch, now = Date.now(), previousProductIds = null, onProducts = null, documents = false } = {}) {
 	let catalog;
 	try { catalog = await getCatalog(fetchImpl, now); }
 	catch { return { PRODUCT_RESOLUTION: 'UNAVAILABLE', reason: 'CATALOG_UNAVAILABLE' }; }
@@ -252,6 +274,8 @@ export async function getNexusProductFacts(question, { fetchImpl = fetch, now = 
 		LIVE_FACTS: { productId: p.productId, officialName: p.officialName, status: p.deprecated ? 'NOT_SOLD' : 'UNAVAILABLE' }
 	};
 	if (!p.wordingUrl) return { ...context, verification: 'WORDING_UNAVAILABLE' };
+	// Nur fuer genau dieses Produkt und nur seine Katalog-Adressen; laeuft parallel zur Kapazitaet.
+	const passages = documents ? getWordingPassages(p, question, { fetchImpl, now }) : null;
 	if (!p.deprecated) {
 		try {
 			const facts = await getProductFactsById(p.productId, fetchImpl, now);
@@ -269,6 +293,8 @@ export async function getNexusProductFacts(question, { fetchImpl = fetch, now = 
 			};
 		} catch { /* Controlled unavailable state; never substitute another product. */ }
 	}
+	const wording = await passages;
+	if (wording) context.WORDING_PASSAGES = wording;
 	return context;
 }
 

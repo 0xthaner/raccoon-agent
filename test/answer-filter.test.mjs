@@ -109,3 +109,64 @@ test('canonical product labels remain readable without granting contact permissi
 	assert.ok(!result.text.includes('@foreign_bot'));
 	assert.ok(!result.text.includes('tg://'));
 });
+
+/* Keine Deckungs- oder Leistungszusagen (10.10.2026). */
+
+const GUARANTEES = [
+	'Das ist gedeckt.', 'Ja, das ist gedeckt.', 'Du bist gedeckt.', 'Der Schaden ist gedeckt.', 'Der Claim wird angenommen.',
+	'Der Claim wird genehmigt.', 'Nexus zahlt.', 'Du bekommst eine Auszahlung.', 'Das ist versichert.', 'Das fällt sicher unter das Cover.',
+	'This is covered.', 'Your claim will be paid.', 'Your claim will be approved.', 'Wenn die Voraussetzungen erfüllt sind, bist du gedeckt.',
+	'If the oracle is manipulated, you are covered.', 'Ja, das ist gedeckt, aber ob Nexus zahlt, entscheidet das Assessment.',
+	"You're fully covered for that.", 'Nexus Mutual will pay you.', 'Dein Claim wird sicher bezahlt.', 'Der Hack wäre damit gedeckt.',
+	'Du bist dann voll abgesichert.', 'It is covered under clause 2.2.', 'You will get a payout.', 'Guaranteed payout within 30 days.',
+	// Luecke aus dem Offline-Dry-Run W1-W14 (10.10.2026): Possessiv und Verstaerker vor dem Objekt.
+	'Nexus wird deinen Schaden sicher bezahlen.', 'Nexus wird den Schaden sicher bezahlen.', 'Nexus wird deinen Verlust bezahlen.',
+	'Nexus wird dir den Schaden erstatten.', 'Nexus Mutual wird deinen Schaden auszahlen.', 'Nexus wird dir sicher eine Auszahlung leisten.'
+];
+const LEGITIMATE = [
+	'the wording lists Oracle Manipulation as a Covered Event',
+	'The wording lists Oracle Manipulation as a Covered Event.',
+	'Oracle Manipulation is listed as a Covered Event, subject to the conditions in clause 2.2.',
+	'Das Wording nennt Oracle Manipulation als Covered Event, wenn die dort genannten Voraussetzungen erfüllt sind.',
+	'Der Wortlaut beschreibt dieses Ereignis grundsätzlich als möglichen Covered Event.',
+	'Die Bedingungen enthalten hierfür folgende Voraussetzungen: ein Fehler von mehr als 2,5 %.',
+	'Ob dein konkreter Vorfall diese Voraussetzungen erfüllt und ein Claim anerkannt wird, entscheidet der Nexus Mutual Claims-Prozess.',
+	'Eine Leistungs- oder Deckungszusage kann der Raccoon Agent nicht geben.',
+	'Whether you are covered depends on the claims assessment.', 'Das ist nicht automatisch gedeckt.',
+	'Das heißt nicht, dass jeder Verlust gedeckt ist.', 'Gedeckte Ereignisse sind laut Wording Smart-Contract-Bugs und Oracle Failure.',
+	'Ausgeschlossen sind unter anderem Verluste durch Phishing.', 'The Claim Amount is the loss minus the 5% deductible.',
+	'Nexus Mutual describes its claims process as discretionary.', 'This cover is a Single Protocol Cover.',
+	'Der Claim muss innerhalb der Grace Period eingereicht werden.', 'Ob Nexus zahlt, entscheidet das Claims-Assessment.',
+	'It is not covered if the event occurred before the cover period.', 'Nexus Mutual may pay the Claim Amount subject to the following conditions.',
+	'Ob Nexus deinen Schaden bezahlt, entscheidet das Claims-Assessment.', 'Nexus zahlt nicht automatisch.',
+	'Das Wording nennt Oracle Manipulation als Covered Event.', 'Ob ein Claim anerkannt oder bezahlt wird, entscheidet das Assessment.',
+	'Eine Auszahlung kann nicht zugesagt werden.', 'Ob Nexus deinen Schaden bezahlen wird, entscheidet das Assessment.',
+	'Nexus wird deinen Schaden nicht automatisch bezahlen.'
+];
+
+test('Deckungs- und Zahlungszusagen werden durch den Entscheidungshinweis ersetzt', () => {
+	for (const text of GUARANTEES) {
+		const result = filterAnswer(text);
+		assert.equal(result.zusagenErsetzt, 1, text);
+		assert.match(result.text, /entscheidet das Claims-Assessment von Nexus Mutual|determined by Nexus Mutual’s claims assessment/, text);
+		assert.doesNotMatch(result.text, /\b(?:ist gedeckt|bist gedeckt|wird angenommen|wird genehmigt|Nexus zahlt\.|is covered|will be paid|will be approved)\b/i, text);
+	}
+});
+
+test('Beschreibungen des Wordings und eingeschraenkte Aussagen bleiben unveraendert', () => {
+	for (const text of LEGITIMATE) {
+		const result = filterAnswer(text);
+		assert.equal(result.text, text, text);
+		assert.equal(result.zusagenErsetzt, 0, text);
+	}
+});
+
+test('nur der Zusage-Satz wird ersetzt, Rest und Quellen bleiben', () => {
+	const url = 'https://api.nexusmutual.io/ipfs/QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY';
+	const result = filterAnswer(`Das Wording nennt Oracle Manipulation als Covered Event. Ja, das ist gedeckt. Nexus zahlt dann.\n${url}`);
+	assert.equal(result.zusagenErsetzt, 2);
+	assert.equal(result.text.split('entscheidet das Claims-Assessment').length - 1, 1, 'Hinweis nur einmal');
+	assert.ok(result.text.startsWith('Das Wording nennt Oracle Manipulation als Covered Event. '));
+	assert.ok(result.text.endsWith(`\n${url}`));
+	assert.doesNotMatch(result.text, /[ \t]$/m);
+});

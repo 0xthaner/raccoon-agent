@@ -63,9 +63,10 @@ test('catalogue errors stay controlled and personal requests are not discovery',
  assert.equal((await classifyAgentIntent('show my covers')).intent, 'show_covers');
  assert.equal((await getNexusProductFacts('Welche Produkte gibt es?', { fetchImpl: async () => { throw new Error('offline'); } })).PRODUCT_RESOLUTION, 'UNAVAILABLE');
 });
-test('both answer prompts explicitly authorize only bounded catalogue identities', () => {
+test('the answer prompt explicitly authorizes only bounded catalogue identities', () => {
  const source = readFileSync(new URL('../src/agent-knowledge.mjs', import.meta.url), 'utf8');
- assert.equal(source.split('For QUERY_MODE CATALOG_DISCOVERY').length - 1, 2);
- assert.equal(source.split('Never give pricing, capacity, wording or annex for catalogue discovery').length - 1, 2);
+ // Seit 10.10.2026 gibt es nur noch den privaten Antwort-Prompt.
+ assert.equal(source.split('For QUERY_MODE CATALOG_DISCOVERY').length - 1, 1);
+ assert.equal(source.split('Never give pricing, capacity, wording or annex for catalogue discovery').length - 1, 1);
  assert.match(source, /application\/project behind Raccoon Agent/);
 });

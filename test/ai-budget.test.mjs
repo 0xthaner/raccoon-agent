@@ -59,8 +59,8 @@ test('der Bot prueft die Grenze, bevor die KI gefragt wird', () => {
 	const bot = readFileSync(new URL('../src/bot.mjs', import.meta.url), 'utf8');
 	const privat = bot.slice(bot.indexOf('async function handleNaturalLanguage('));
 	assert.ok(privat.indexOf('allowAiRequest(') < privat.indexOf('classifyAgentIntent('));
-	const gruppe = bot.slice(bot.indexOf('async function handleGroupMessage('));
-	assert.ok(gruppe.indexOf('allowAiRequest(') < gruppe.indexOf('classifyAgentIntent('));
+	// Seit 10.10.2026 gibt es keinen Gruppen-Handler mehr, also auch keinen ungeprueften KI-Pfad.
+	assert.equal(bot.includes('handleGroupMessage'), false);
 });
 
 test('die Verknuepfungsseite zeigt das Telegram-Konto, nur als Text', () => {
@@ -101,19 +101,18 @@ function botFunction(name, deps) {
 }
 
 test('Budgetfehler stoppt echte Bot-Handler vor Klassifikation/Generierung; privater Hinweis bleibt statisch', async () => {
-	for (const isGroup of [false, true]) {
+	// Seit 10.10.2026 gibt es nur noch den privaten Handler; Gruppen erreichen ihn nie.
+	for (const isGroup of [false]) {
 		const sent = [];
 		let aiCalls = 0;
 		const forbiddenAi = async () => { aiCalls++; throw new Error('AI must not run'); };
-		const handler = botFunction(isGroup ? 'handleGroupMessage' : 'handleNaturalLanguage', {
+		const handler = botFunction('handleNaturalLanguage', {
 			allowAiRequest: (context) => allowAiRequest(context, {
 				key: (scope) => scope,
 				check: async () => { throw new Error('private database detail'); }
 			}),
 			classifyAgentIntent: forbiddenAi,
 			answerProductQuestion: forbiddenAi,
-			answerGroupQuestion: forbiddenAi,
-			isGroupMessageForBot: () => true,
 			configuredUsername: 'RaccoonAgentBot',
 			sendMessage: async (_chat, text) => sent.push(text)
 		});

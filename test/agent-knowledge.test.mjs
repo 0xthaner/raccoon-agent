@@ -11,12 +11,14 @@ test('product knowledge states the safety boundary and excludes autonomous purch
 	assert.match(productKnowledge, /read live from the Ethereum blockchain/i);
 	// Telegram zeigt Markdown als Rohtext (kein parse_mode); die Anweisung muss reinen Text verlangen.
 	const quelle = readFileSync(new URL('../src/agent-knowledge.mjs', import.meta.url), 'utf8');
-	assert.equal(quelle.split('Write plain text only: no Markdown').length - 1, 2, 'privat und Gruppe');
+	assert.equal(quelle.split('Write plain text only: no Markdown').length - 1, 1, 'nur der private Antwortpfad');
 	assert.doesNotMatch(productKnowledge, /Coverraccoon Agent API/i);
 	assert.match(productKnowledge, /public Nexus Mutual product data/i);
 	assert.match(productKnowledge, /no wallet address, personal cover data, or Telegram chat ID/i);
-	assert.match(productKnowledge, /In Telegram groups, the bot responds only/i);
-	assert.match(productKnowledge, /Personal requests are continued in a private chat/i);
+	// Seit 10.10.2026 nur private Chats; das Wissen darf keine Gruppenfunktion mehr behaupten.
+	assert.match(productKnowledge, /works only in private one-to-one Telegram chats/i);
+	assert.match(productKnowledge, /does not operate in Telegram groups, supergroups or channels/i);
+	assert.doesNotMatch(productKnowledge, /responds only when it is mentioned/i);
 });
 
 const answerSource = readFileSync(new URL('../src/agent-knowledge.mjs', import.meta.url), 'utf8');
@@ -27,7 +29,7 @@ for (const question of [
 	'Kann ich den Verlust steuerlich absetzen?'
 ]) {
 	test(`legal policy covers jurisdiction/tax uncertainty: ${question}`, () => {
-		assert.equal(answerPrompts.length, 2);
+		assert.equal(answerPrompts.length, 1);
 		for (const prompt of answerPrompts) {
 			assert.match(prompt, /jurisdiction-specific legal, tax or regulatory questions/);
 			assert.match(prompt, /supplied product information does not establish the local legal position/);

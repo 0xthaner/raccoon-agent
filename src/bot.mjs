@@ -3,12 +3,11 @@ import { newDashboardAccess, newLinkRequest } from './linking.mjs';
 import { startWebServer } from './web.mjs';
 import { CoverDataError, formatWalletCovers, getWalletCovers } from './covers.mjs';
 import { checkExpiryAlerts } from './alerts.mjs';
-import { authenticPrivateMessage, telegramTimingMetadata } from './telegram-audit.mjs';
+import { authenticPrivateMessage, isPrivateChatUpdate, telegramTimingMetadata } from './telegram-audit.mjs';
 import { classifyAgentIntent } from './agent-intent.mjs';
 import { allowAiRequest } from './ai-budget.mjs';
 import { ANMELDUNG_PAUSIERT, PAUSE_TEXT, AGENT_ANTWORTEN_PAUSIERT, ANTWORT_PAUSE_TEXT } from './pause.mjs';
-import { answerGroupQuestion, answerProductQuestion } from './agent-knowledge.mjs';
-import { groupLanguage, groupQuestion, isGroupMessageForBot } from './group-chat.mjs';
+import { answerProductQuestion } from './agent-knowledge.mjs';
 
 const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
 const configuredUsername = process.env.TELEGRAM_BOT_USERNAME?.trim().replace(/^@/, '');
@@ -119,40 +118,6 @@ async function sendMessage(chatId, text, options = {}) {
 		if (deliveryId) await finishTelegramDelivery(deliveryId, { errorCode: 'TELEGRAM_SEND_FAILED', errorMessage: error.message }).catch(() => {});
 		throw error;
 	}
-}
-
-function privateChatKeyboard(language) {
-	const username = configuredUsername;
-	const privateUrl = username ? `https://t.me/${username}?start=group` : appBaseUrl;
-	return { inline_keyboard: [[
-		{ text: language === 'en' ? '🔒 Open private chat' : language === 'zh' ? '🔒 打开私聊' : '🔒 Privaten Chat öffnen', url: privateUrl },
-		{ text: language === 'en' ? 'Guide' : language === 'zh' ? '使用指南' : 'Anleitung', url: `${appBaseUrl}/anleitung` }
-	]] };
-}
-
-async function handleGroupMessage(message) {
-	if (!isGroupMessageForBot(message, configuredUsername)) return;
-	// Ueber der Grenze schweigt der Bot in Gruppen: eine Hinweisnachricht je Spam-Nachricht waere selbst Spam.
-	if (!await allowAiRequest({ chatId: message.chat.id, senderId: message.from?.id, isGroup: true })) return;
-	const language = groupLanguage(message);
-	const question = groupQuestion(message, configuredUsername);
-	const decision = await classifyAgentIntent(question || 'hello', language);
-	const personalIntents = new Set(['show_covers', 'show_next_expiry', 'prepare_renewal', 'snooze_tomorrow', 'show_reminders', 'open_dashboard']);
-	if (personalIntents.has(decision.intent)) {
-		await sendMessage(message.chat.id,
-			language === 'en' ? 'Let’s do that privately so no personal wallet or cover data appears in the group.' : language === 'zh' ? '让我们在私聊中处理，以免个人钱包或保障数据出现在群组中。' : 'Das machen wir privat, damit keine persönlichen Wallet- oder Coverdaten in der Gruppe landen.',
-			{ reply_to_message_id: message.message_id, reply_markup: privateChatKeyboard(language), _trackDelivery: false, _messageKind: 'group_private_redirect' });
-		return;
-	}
-	if (AGENT_ANTWORTEN_PAUSIERT) {
-		await sendMessage(message.chat.id, ANTWORT_PAUSE_TEXT[language] ?? ANTWORT_PAUSE_TEXT.de,
-			{ reply_to_message_id: message.message_id, reply_markup: privateChatKeyboard(language), _trackDelivery: false, _messageKind: 'group_response' });
-		return;
-	}
-	const answer = await answerGroupQuestion(question || (language === 'en' ? 'Say hello to the group.' : language === 'zh' ? '向群组问好。' : 'Begrüße die Gruppe.'), language);
-	await sendMessage(message.chat.id,
-		answer ?? (language === 'en' ? 'Hey! 🦝 Ask me something about Raccoon Agent—or open the private chat for personal cover questions.' : language === 'zh' ? '你好！🦝 可以问我有关 Raccoon Agent 的问题；个人保障问题请在私聊中进行。' : 'Servus! 🦝 Frag mich gern etwas zum Raccoon Agent – persönliche Coverfragen klären wir im privaten Chat.'),
-		{ reply_to_message_id: message.message_id, reply_markup: privateChatKeyboard(language), _trackDelivery: false, _messageKind: 'group_response' });
 }
 
 function greeting(firstName, language) {
@@ -429,7 +394,7 @@ async function confirmWalletUnlink(chatId, language) {
 
 async function handleMessage(message, updateContext = {}) {
 	if (!message?.chat?.id) return;
-	if (message.chat.type !== 'private') return handleGroupMessage(message);
+	if (message.chat.type !== 'private') return;
 	if (!authenticPrivateMessage(message)) return;
 	if (typeof message.text !== 'string' || !message.text.trim()) return;
 	const command = commandOf(message.text);
@@ -650,7 +615,9 @@ async function handleCallbackQuery(query) {
 }
 
 export async function handleUpdate(update) {
-	if (update?.callback_query) await handleCallbackQuery(update.callback_query);
+	// Zweite Sperre fuer jeden Eingang (Webhook und lokales Polling): nur private Chats.
+	if (!isPrivateChatUpdate(update)) return;
+	if (update.callback_query) await handleCallbackQuery(update.callback_query);
 	else await handleMessage(update?.message, { updateId: update?.update_id, receivedAt: Date.now() });
 }
 

@@ -119,6 +119,6 @@ for (const scenario of ['new-connect','legacy-connect','wrong-sender','group']) 
   const handle=new Function(...Object.keys(deps),`${source}\nreturn handleMessage;`)(...Object.values(deps));
   await handle({chat:{id:123,type:scenario==='group'?'group':'private'},from:{id:scenario==='wrong-sender'?456:123},text:scenario==='legacy-connect'?'/start connect_'+'a'.repeat(24):'/start connect'});
   assert.equal(pending,['new-connect','legacy-connect'].includes(scenario)?1:0);
-  assert.equal(groups,scenario==='group'?1:0);
+  assert.equal(groups,0,'kein Gruppenpfad mehr');
  });
 }
