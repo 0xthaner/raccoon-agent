@@ -29,9 +29,13 @@ const defaultCodeCache = new Map();
 function defaultClient() {
 	const apiKey = process.env.ALCHEMY_API_KEY?.trim();
 	if (!apiKey) return null;
+	// retryCount 0 (11.10.2026): der Browser gibt die Challenge-Anfrage nach 15 s
+	// auf, viem wiederholte aber bis zu dreimal (zusammen rund 41 s) - Lesearbeit
+	// im Hintergrund fuer eine Antwort, die niemand mehr abholt. Ein Fehler faellt
+	// ohnehin geschlossen auf die kurze EOA-TTL zurueck.
 	return createPublicClient({
 		chain: mainnet,
-		transport: http(`https://eth-mainnet.g.alchemy.com/v2/${apiKey}`, { timeout: 10_000 })
+		transport: http(`https://eth-mainnet.g.alchemy.com/v2/${apiKey}`, { timeout: 10_000, retryCount: 0 })
 	});
 }
 

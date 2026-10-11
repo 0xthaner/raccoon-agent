@@ -5,7 +5,9 @@ export const DEMO_WALLET = process.env.DEMO_WALLET?.trim().toLowerCase() || null
 function demoCover() {
 	return {
 		coverId: 424242,
-		productId: 1,
+		// Kanonische Nexus-Produkt-ID von "Aave v3" ist 97. Bis 11.10.2026 stand
+		// hier 1 - das ist "1Inch" - unter dem Namen "Aave v3".
+		productId: 97,
 		productName: 'Aave v3',
 		status: 'active',
 		amount: '15000',

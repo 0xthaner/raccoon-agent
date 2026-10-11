@@ -11,12 +11,38 @@ const access = searchParams.get('access');
 const walletDebug = searchParams.get('debug') === 'wallet';
 const translations = {
 	de: {
-		online: ['Private Cover-Überwachung · ', 'online'], kicker: 'Unabhängige DeFi-Cover-Überwachung', title: ['Schutz, ', 'immer im Blick.'], lead: 'Öffne dein persönliches Dashboard und aktiviere auf Wunsch Telegram-Erinnerungen.', walletUntouched: 'Wallet bleibt unberührt', signature: 'Nur eine Signatur', alerts: 'Hinweise über Telegram', step: '01 · Identität', connectTitle: 'Wallet verbinden', connectCopy: 'Eine Signatur bestätigt die Wallet und öffnet dein persönliches Dashboard.', connect: 'Mit Wallet verbinden', injected: 'Browser-Wallet verwenden', security: 'Keine Transaktion, keine Freigabe und keine Gasgebühr.', dashKicker: 'Persönliches Dashboard', dashTitle: ['Dein Cover,', 'immer im Blick.'], switchWallet: 'Wallet wechseln', logout: 'Abmelden', activeLabel: 'Aktive Covers', expiryLabel: 'Nächster Ablauf', telegramLabel: 'Telegram-Überwachung', telegramTitle: 'Telegram-Benachrichtigungen', protection: 'Dein Schutz', footer: 'Daten: Nexus Mutual · Ethereum', footerExplainer: 'Covers live von der Blockchain, ohne Bewertung und ohne Verkauf.', active: 'aktiv', noCover: 'Kein aktives Cover', days: 'Tage', telegramActive: 'Aktiv', notConnected: 'Nicht verbunden', tgConnected: '● Telegram verbunden', tgDisconnected: 'Telegram nicht verbunden', tgOnCopy: 'Ablaufhinweise sind aktiv. Öffne Telegram, um mit deinem Agenten zu sprechen.', tgOffCopy: 'Erhalte Ablaufhinweise, ohne laufend das Dashboard prüfen zu müssen.', openTelegram: 'Telegram öffnen', connectTelegram: 'Telegram aktivieren', updated: 'Aktualisiert', empty: 'Für diese Wallet wurde kein aktives Nexus-Mutual-Cover gefunden.', product: 'Produkt', protectionAmount: 'Schutz', expiry: 'Ablauf', status: 'Status', linkTitle: 'Telegram mit deiner Wallet verbinden', linkCopy: 'Einmal signieren, um Erinnerungen für diese Wallet zu aktivieren.', linkStep: '01 · Telegram einrichten', linkSecurity: 'Eine Signatur. Keine Transaktion, Gasgebühr oder Tokenfreigabe. Der Link ist zehn Minuten gültig.', success: 'Alles eingerichtet.', successCopy: 'Deine Telegram-Erinnerungen sind aktiv. Du kannst jetzt zum Raccoon Agent zurückkehren.', backTelegram: 'Zurück zum Raccoon Agent', openDashboard: 'Dashboard öffnen', disconnectTelegram: 'Telegram trennen', confirmDisconnect: 'Telegram-Benachrichtigungen für diese Wallet wirklich trennen?', disclaimerTitle: 'Bevor du dich verbindest', disclaimer: ['Der Raccoon Agent ist experimentell und befindet sich in Entwicklung. Fehler, Ausfälle und unvollständige oder falsche Daten sind möglich. Wer sich auf Anzeigen oder Erinnerungen verlässt, etwa wenn eine Ablauf-Erinnerung ausbleibt, kann dadurch Nachteile oder Verluste erleiden. DeFi und Onchain-Cover sind mit erheblichen Risiken bis hin zum Totalverlust verbunden.', 'Der Raccoon Agent zeigt Informationen zu deinen Nexus-Mutual-Covers an und erinnert an Abläufe. Er verkauft und vermittelt nichts und ist keine Versicherungs-, Rechts- oder Anlageberatung.', 'Nexus Mutual ist keine Versicherung. Es besteht kein Rechtsanspruch auf eine Auszahlung; maßgeblich sind allein die Bedingungen von Nexus Mutual.', 'Angezeigte Daten werden live aus der Blockchain und von Nexus Mutual gelesen. Wir übernehmen keine Gewähr für Richtigkeit, Vollständigkeit oder Aktualität.', 'Soweit gesetzlich zulässig, ist unsere Haftung für Schäden aus der Nutzung ausgeschlossen, insbesondere für leichte Fahrlässigkeit sowie für Ausfälle oder Fehler von Blockchain, Wallets, Nexus Mutual und anderen Drittdiensten. Unberührt bleibt die Haftung für Vorsatz und grobe Fahrlässigkeit, für Personenschäden und nach zwingenden gesetzlichen Vorschriften.', 'Du bestätigst nur eine Anmelde-Signatur. Der Agent fragt nie nach einer Transaktion, einer Freigabe oder deiner Seed Phrase.'], disclaimerLabel: ['Ich habe die Hinweise gelesen und akzeptiere sie sowie die ', 'Datenschutzerklärung', '.'], disclaimerImprint: 'Impressum', disclaimerContinue: 'Weiter zur Wallet', disclaimerCancel: 'Abbrechen', verifyTitle: 'Woran erkenne ich eine echte Anfrage?', verify: ['Es ist eine Signatur, keine Transaktion: kein Betrag, keine Gasgebühr.', 'Die Nachricht beginnt mit „coverraccoon.com wants you to sign in“, und die Adresszeile zeigt coverraccoon.com.', 'Kein „Permit“, kein „Approve“, kein Token-Betrag und kein unlesbarer Hex-Text. Siehst du so etwas, brich ab.', 'Links zum Verbinden einer Wallet kommen nur aus deinem privaten Chat mit dem Raccoon-Agent-Bot.']
+		online: ['Private Cover-Überwachung · ', 'online'], kicker: 'Unabhängige DeFi-Cover-Überwachung', title: ['Covers, ', 'immer im Blick.'], lead: 'Öffne dein persönliches Dashboard und aktiviere auf Wunsch Telegram-Erinnerungen.', walletUntouched: 'Wallet bleibt unberührt', signature: 'Nur eine Signatur', alerts: 'Hinweise über Telegram', step: '01 · Identität', connectTitle: 'Wallet verbinden', connectCopy: 'Eine Signatur bestätigt die Wallet und öffnet dein persönliches Dashboard.', connect: 'Mit Wallet verbinden', injected: 'Browser-Wallet verwenden', security: 'Keine Transaktion, keine Freigabe und keine Gasgebühr.', dashKicker: 'Persönliches Dashboard', dashTitle: ['Dein Cover,', 'immer im Blick.'], switchWallet: 'Wallet wechseln', logout: 'Abmelden', activeLabel: 'Aktive Covers', expiryLabel: 'Nächster Ablauf', telegramLabel: 'Telegram-Überwachung', telegramTitle: 'Telegram-Benachrichtigungen', protection: 'Deine Covers', footer: 'Daten: Nexus Mutual · Ethereum', footerExplainer: 'Covers live von der Blockchain, ohne Bewertung und ohne Verkauf.', active: 'aktiv', noCover: 'Kein aktives Cover', days: 'Tage', telegramActive: 'Aktiv', notConnected: 'Nicht verbunden', tgConnected: '● Telegram verbunden', tgDisconnected: 'Telegram nicht verbunden', tgOnCopy: 'Ablaufhinweise sind aktiv. Öffne Telegram, um mit deinem Agenten zu sprechen.', tgOffCopy: 'Erhalte Ablaufhinweise, ohne laufend das Dashboard prüfen zu müssen.', openTelegram: 'Telegram öffnen', connectTelegram: 'Telegram aktivieren', updated: 'Aktualisiert', empty: 'Für diese Wallet wurde kein aktives Nexus-Mutual-Cover gefunden.', product: 'Produkt', protectionAmount: 'Cover-Betrag', expiry: 'Ablauf', status: 'Status', linkTitle: 'Telegram mit deiner Wallet verbinden', linkCopy: 'Einmal signieren, um Erinnerungen für diese Wallet zu aktivieren.', linkStep: '01 · Telegram einrichten', linkSecurity: 'Eine Signatur. Keine Transaktion, Gasgebühr oder Tokenfreigabe. Der Link ist zehn Minuten gültig.', success: 'Alles eingerichtet.', successCopy: 'Deine Telegram-Erinnerungen sind aktiv. Du kannst jetzt zum Raccoon Agent zurückkehren.', backTelegram: 'Zurück zum Raccoon Agent', openDashboard: 'Dashboard öffnen', disconnectTelegram: 'Telegram trennen', confirmDisconnect: 'Telegram-Benachrichtigungen für diese Wallet wirklich trennen?', disclaimerTitle: 'Bevor du dich verbindest', disclaimer: ['Der Raccoon Agent ist experimentell und befindet sich in Entwicklung. Fehler, Ausfälle und unvollständige oder falsche Daten sind möglich. Wer sich auf Anzeigen oder Erinnerungen verlässt, etwa wenn eine Ablauf-Erinnerung ausbleibt, kann dadurch Nachteile oder Verluste erleiden. DeFi und Onchain-Cover sind mit erheblichen Risiken bis hin zum Totalverlust verbunden.', 'Der Raccoon Agent zeigt Informationen zu deinen Nexus-Mutual-Covers an und erinnert an Abläufe. Er verkauft und vermittelt nichts und ist keine Versicherungs-, Rechts- oder Anlageberatung.', 'Nexus Mutual ist keine Versicherung. Es besteht kein Rechtsanspruch auf eine Auszahlung; maßgeblich sind allein die Bedingungen von Nexus Mutual.', 'Angezeigte Daten werden live aus der Blockchain und von Nexus Mutual gelesen. Wir übernehmen keine Gewähr für Richtigkeit, Vollständigkeit oder Aktualität.', 'Soweit gesetzlich zulässig, ist unsere Haftung für Schäden aus der Nutzung ausgeschlossen, insbesondere für leichte Fahrlässigkeit sowie für Ausfälle oder Fehler von Blockchain, Wallets, Nexus Mutual und anderen Drittdiensten. Unberührt bleibt die Haftung für Vorsatz und grobe Fahrlässigkeit, für Personenschäden und nach zwingenden gesetzlichen Vorschriften.', 'Du bestätigst nur eine Anmelde-Signatur. Der Agent fragt nie nach einer Transaktion, einer Freigabe oder deiner Seed Phrase.'], disclaimerLabel: ['Ich habe die Hinweise gelesen und akzeptiere sie sowie die ', 'Datenschutzerklärung', '.'], disclaimerImprint: 'Impressum', disclaimerContinue: 'Weiter zur Wallet', disclaimerCancel: 'Abbrechen', verifyTitle: 'Woran erkenne ich eine echte Anfrage?', verify: ['Es ist eine Signatur, keine Transaktion: kein Betrag, keine Gasgebühr.', 'Die Nachricht beginnt mit „coverraccoon.com wants you to sign in“, und die Adresszeile zeigt coverraccoon.com.', 'Kein „Permit“, kein „Approve“, kein Token-Betrag und kein unlesbarer Hex-Text. Siehst du so etwas, brich ab.', 'Links zum Verbinden einer Wallet kommen nur aus deinem privaten Chat mit dem Raccoon-Agent-Bot.']
 	},
 	en: {
-		online: ['Private cover monitoring · ', 'online'], kicker: 'Independent DeFi cover monitor', title: ['Protection, ', 'kept in sight.'], lead: 'Open your personal dashboard and optionally activate Telegram reminders.', walletUntouched: 'Wallet stays untouched', signature: 'Signature only', alerts: 'Alerts via Telegram', step: '01 · Identity', connectTitle: 'Connect your wallet', connectCopy: 'A signature confirms the wallet and opens your personal dashboard.', connect: 'Connect wallet', injected: 'Use browser wallet', security: 'No transaction, approval or gas fee.', dashKicker: 'Personal dashboard', dashTitle: ['Your cover,', 'under watch.'], switchWallet: 'Switch wallet', logout: 'Sign out', activeLabel: 'Active covers', expiryLabel: 'Next expiry', telegramLabel: 'Telegram monitoring', telegramTitle: 'Telegram notifications', protection: 'Your protection', footer: 'Data: Nexus Mutual · Ethereum', footerExplainer: 'Covers read live from the blockchain, no ratings and no sales.', active: 'active', noCover: 'No active cover', days: 'days', telegramActive: 'Active', notConnected: 'Not connected', tgConnected: '● Telegram connected', tgDisconnected: 'Telegram not connected', tgOnCopy: 'Expiry notices are active. Open Telegram to talk to your agent.', tgOffCopy: 'Get expiry notices without having to check the dashboard.', openTelegram: 'Open Telegram', connectTelegram: 'Connect Telegram', updated: 'Updated', empty: 'No active Nexus Mutual cover was found for this wallet.', product: 'Product', protectionAmount: 'Protection', expiry: 'Expiry', status: 'Status', linkTitle: 'Connect Telegram to your wallet', linkCopy: 'Sign once to activate reminders for this wallet.', linkStep: '01 · Telegram setup', linkSecurity: 'One signature. No transaction, gas fee or token approval. The link is valid for ten minutes.', success: 'Everything is set up.', successCopy: 'Your Telegram reminders are active. You can now return to Raccoon Agent.', backTelegram: 'Return to Raccoon Agent', openDashboard: 'Open dashboard', disconnectTelegram: 'Disconnect Telegram', confirmDisconnect: 'Disconnect Telegram notifications for this wallet?', disclaimerTitle: 'Before you connect', disclaimer: ['Raccoon Agent is experimental and under development. Errors, outages and incomplete or wrong data are possible. Relying on what it shows or on its reminders, for example if an expiry reminder does not arrive, can lead to disadvantages or losses. DeFi and onchain cover carry significant risks, up to total loss.', 'Raccoon Agent shows information about your Nexus Mutual covers and reminds you of expiries. It does not sell or arrange anything and is not insurance, legal or investment advice.', 'Nexus Mutual is not insurance. There is no legal right to a payout; only the terms of Nexus Mutual apply.', 'Data shown is read live from the blockchain and from Nexus Mutual. We give no warranty for accuracy, completeness or timeliness.', 'To the extent permitted by law, our liability for damage arising from use is excluded, in particular for slight negligence and for outages or errors of the blockchain, wallets, Nexus Mutual and other third-party services. Liability for intent and gross negligence, for personal injury and under mandatory statutory provisions remains unaffected.', 'You only confirm a sign-in signature. The agent never asks for a transaction, an approval or your seed phrase.'], disclaimerLabel: ['I have read and accept these notes and the ', 'privacy policy', '.'], disclaimerImprint: 'Imprint', disclaimerContinue: 'Continue to wallet', disclaimerCancel: 'Cancel', verifyTitle: 'How do I recognise a genuine request?', verify: ['It is a signature, not a transaction: no amount, no gas fee.', 'The message starts with “coverraccoon.com wants you to sign in”, and the address bar shows coverraccoon.com.', 'No “Permit”, no “Approve”, no token amount and no unreadable hex text. If you see any of that, cancel.', 'Links to connect a wallet only come from your private chat with the Raccoon Agent bot.']
+		online: ['Private cover monitoring · ', 'online'], kicker: 'Independent DeFi cover monitor', title: ['Covers, ', 'kept in sight.'], lead: 'Open your personal dashboard and optionally activate Telegram reminders.', walletUntouched: 'Wallet stays untouched', signature: 'Signature only', alerts: 'Alerts via Telegram', step: '01 · Identity', connectTitle: 'Connect your wallet', connectCopy: 'A signature confirms the wallet and opens your personal dashboard.', connect: 'Connect wallet', injected: 'Use browser wallet', security: 'No transaction, approval or gas fee.', dashKicker: 'Personal dashboard', dashTitle: ['Your cover,', 'under watch.'], switchWallet: 'Switch wallet', logout: 'Sign out', activeLabel: 'Active covers', expiryLabel: 'Next expiry', telegramLabel: 'Telegram monitoring', telegramTitle: 'Telegram notifications', protection: 'Your covers', footer: 'Data: Nexus Mutual · Ethereum', footerExplainer: 'Covers read live from the blockchain, no ratings and no sales.', active: 'active', noCover: 'No active cover', days: 'days', telegramActive: 'Active', notConnected: 'Not connected', tgConnected: '● Telegram connected', tgDisconnected: 'Telegram not connected', tgOnCopy: 'Expiry notices are active. Open Telegram to talk to your agent.', tgOffCopy: 'Get expiry notices without having to check the dashboard.', openTelegram: 'Open Telegram', connectTelegram: 'Connect Telegram', updated: 'Updated', empty: 'No active Nexus Mutual cover was found for this wallet.', product: 'Product', protectionAmount: 'Cover amount', expiry: 'Expiry', status: 'Status', linkTitle: 'Connect Telegram to your wallet', linkCopy: 'Sign once to activate reminders for this wallet.', linkStep: '01 · Telegram setup', linkSecurity: 'One signature. No transaction, gas fee or token approval. The link is valid for ten minutes.', success: 'Everything is set up.', successCopy: 'Your Telegram reminders are active. You can now return to Raccoon Agent.', backTelegram: 'Return to Raccoon Agent', openDashboard: 'Open dashboard', disconnectTelegram: 'Disconnect Telegram', confirmDisconnect: 'Disconnect Telegram notifications for this wallet?', disclaimerTitle: 'Before you connect', disclaimer: ['Raccoon Agent is experimental and under development. Errors, outages and incomplete or wrong data are possible. Relying on what it shows or on its reminders, for example if an expiry reminder does not arrive, can lead to disadvantages or losses. DeFi and onchain cover carry significant risks, up to total loss.', 'Raccoon Agent shows information about your Nexus Mutual covers and reminds you of expiries. It does not sell or arrange anything and is not insurance, legal or investment advice.', 'Nexus Mutual is not insurance. There is no legal right to a payout; only the terms of Nexus Mutual apply.', 'Data shown is read live from the blockchain and from Nexus Mutual. We give no warranty for accuracy, completeness or timeliness.', 'To the extent permitted by law, our liability for damage arising from use is excluded, in particular for slight negligence and for outages or errors of the blockchain, wallets, Nexus Mutual and other third-party services. Liability for intent and gross negligence, for personal injury and under mandatory statutory provisions remains unaffected.', 'You only confirm a sign-in signature. The agent never asks for a transaction, an approval or your seed phrase.'], disclaimerLabel: ['I have read and accept these notes and the ', 'privacy policy', '.'], disclaimerImprint: 'Imprint', disclaimerContinue: 'Continue to wallet', disclaimerCancel: 'Cancel', verifyTitle: 'How do I recognise a genuine request?', verify: ['It is a signature, not a transaction: no amount, no gas fee.', 'The message starts with “coverraccoon.com wants you to sign in”, and the address bar shows coverraccoon.com.', 'No “Permit”, no “Approve”, no token amount and no unreadable hex text. If you see any of that, cancel.', 'Links to connect a wallet only come from your private chat with the Raccoon Agent bot.']
 	}
 };
+/*
+	DeFi-Positionen (Phase 1: Aave v3, Ethereum). Drei Bloecke bleiben getrennt:
+	erkannte Position, passendes Nexus-Produkt, vorhandene Covers dieser Wallet.
+	Keine Wortwahl, die Deckung, Schutz oder einen Anspruch nahelegt, und keine
+	Rechnung "Position minus Cover".
+*/
+Object.assign(translations.de, {
+	positionsTitle: 'DeFi-Positionen', positionsLoading: 'DeFi-Positionen werden gelesen …', positionsError: 'DeFi-Positionen konnten gerade nicht geladen werden.',
+	positionsNone: 'Keine Aave-v3-Positionen auf Ethereum gefunden.', positionsChecked: 'Geprüft: Aave v3 auf Ethereum', positionsMarketUnavailable: 'Daten konnten nicht vollständig gelesen werden. Dieser Markt wird deshalb nicht angezeigt.',
+	positionsSource: 'Quelle: Aave v3 · Ethereum (live), bewertet über das Aave-Preisorakel', detectedPosition: 'Erkannte DeFi-Position', supplied: 'Eingezahlt', borrowed: 'Geliehen',
+	netPosition: 'Nettoposition', healthFactor: 'Health Factor', noDebt: 'keine Schulden', collateral: 'als Sicherheit', notCollateral: 'nicht als Sicherheit', none: 'keine',
+	matchingProduct: 'Passendes Nexus-Produkt', productAvailable: 'Passendes Nexus-Produkt verfügbar', productDeprecated: 'Nexus-Produkt eingestellt', productNone: 'Kein passendes Nexus-Produkt im aktuellen Katalog',
+	productUnavailable: 'Nexus-Katalog gerade nicht prüfbar', productUnsupported: 'Für diesen Markt nicht zugeordnet', productWord: 'Produkt', walletCovers: 'Vorhandene Covers dieser Wallet',
+	noWalletCovers: 'Keine passenden Covers in dieser Wallet gefunden', notComparable: 'Positionswert und Cover-Betrag sind nicht direkt vergleichbar. Ein Cover in dieser Wallet bezieht sich nicht zwingend auf diese Position.',
+	positionsNote: 'Ein passendes Nexus-Produkt bedeutet nicht, dass ein konkreter Verlust gedeckt oder ein bestimmter Betrag erstattungsfähig ist. Maßgeblich sind die Produktbedingungen und der Claims-Prozess von Nexus Mutual.'
+});
+Object.assign(translations.en, {
+	positionsTitle: 'DeFi Positions', positionsLoading: 'Reading DeFi positions …', positionsError: 'DeFi positions could not be loaded right now.',
+	positionsNone: 'No Aave v3 positions found on Ethereum.', positionsChecked: 'Checked: Aave v3 on Ethereum', positionsMarketUnavailable: 'Data could not be read completely, so this market is not shown.',
+	positionsSource: 'Source: Aave v3 · Ethereum (live), valued with the Aave price oracle', detectedPosition: 'Detected DeFi position', supplied: 'Supplied', borrowed: 'Borrowed',
+	netPosition: 'Net position', healthFactor: 'Health factor', noDebt: 'no debt', collateral: 'as collateral', notCollateral: 'not as collateral', none: 'none',
+	matchingProduct: 'Matching Nexus product', productAvailable: 'Matching Nexus product available', productDeprecated: 'Nexus product discontinued', productNone: 'No matching Nexus product in the current catalogue',
+	productUnavailable: 'Nexus catalogue cannot be checked right now', productUnsupported: 'Not mapped for this market', productWord: 'Product', walletCovers: 'Existing covers in this wallet',
+	noWalletCovers: 'No matching covers found in this wallet', notComparable: 'Position value and cover amount are not directly comparable. A cover in this wallet does not necessarily relate to this position.',
+	positionsNote: 'A matching Nexus product does not mean that a specific loss is covered or that a particular amount is reimbursable. Only the product terms and the Nexus Mutual claims process apply.'
+});
 let language = localStorage.getItem('raccoon_language') || (navigator.language?.toLowerCase().startsWith('de') ? 'de' : 'en');
 let t = translations[language] || translations.en;
 if (code) document.body.classList.add('link-mode');
@@ -162,6 +188,101 @@ function addTextElement(parent, tag, value, className = '') {
 	return element;
 }
 
+/*
+	Positionen kommen aus /api/positions, getrennt vom Dashboard: faellt die
+	Abfrage aus, bleibt der Rest stehen. Gehalten nur im Modul-Speicher, nie in
+	localStorage. Alle Werte gehen als Text in den Baum (addTextElement).
+*/
+let positionsState = { wallet: null, status: 'idle', data: null };
+
+async function loadPositions(wallet) {
+	positionsState = { wallet, status: 'loading', data: null };
+	renderPositions();
+	try {
+		const response = await authFetch('/api/positions', { signal: AbortSignal.timeout(25000) });
+		const body = await response.json().catch(() => null);
+		if (positionsState.wallet !== wallet) return;
+		positionsState = response.ok && body?.ok && String(body.wallet).toLowerCase() === wallet
+			? { wallet, status: 'ok', data: body }
+			: { wallet, status: 'error', data: null };
+	} catch {
+		if (positionsState.wallet !== wallet) return;
+		positionsState = { wallet, status: 'error', data: null };
+	}
+	renderPositions();
+}
+
+function formatAmount(value) {
+	const number = Number(value);
+	return Number.isFinite(number) ? number.toLocaleString(language === 'de' ? 'de-AT' : 'en-GB', { maximumFractionDigits: 6 }) : '—';
+}
+function formatUsd(value) {
+	const number = Number(value);
+	return Number.isFinite(number) ? new Intl.NumberFormat(language === 'de' ? 'de-AT' : 'en-GB', { style: 'currency', currency: 'USD' }).format(number) : '—';
+}
+
+function assetLines(parent, assets, withCollateral) {
+	if (!assets.length) { addTextElement(parent, 'span', t.none, 'position-muted'); return; }
+	for (const asset of assets) {
+		const flag = withCollateral ? ` · ${asset.isCollateral ? t.collateral : t.notCollateral}` : '';
+		addTextElement(parent, 'span', `${formatAmount(asset.amount)} ${asset.symbol} (${formatUsd(asset.usdValue)})${flag}`, 'position-asset');
+	}
+}
+
+function productText(nexus) {
+	if (nexus?.state === 'MATCHED') return t.productAvailable;
+	if (nexus?.state === 'PRODUCT_DEPRECATED') return t.productDeprecated;
+	if (nexus?.state === 'NO_PRODUCT') return t.productNone;
+	if (nexus?.state === 'UNSUPPORTED') return t.productUnsupported;
+	return t.productUnavailable;
+}
+
+function renderPositions() {
+	const list = document.querySelector('#position-list');
+	if (!list) return;
+	document.querySelector('#positions-title').textContent = t.positionsTitle;
+	document.querySelector('#positions-note').textContent = t.positionsNote;
+	document.querySelector('#positions-checked').textContent = positionsState.status === 'ok' ? t.positionsChecked : '';
+	list.replaceChildren();
+	if (positionsState.status === 'loading' || positionsState.status === 'idle') { addTextElement(list, 'div', t.positionsLoading, 'dash-empty'); return; }
+	if (positionsState.status !== 'ok') { addTextElement(list, 'div', t.positionsError, 'dash-empty position-error'); return; }
+	const { positions = [], checkedDeployments = [] } = positionsState.data;
+	const covers = window.dashboardData?.covers ?? [];
+	for (const position of positions) {
+		const card = document.createElement('article'); card.className = 'position-card';
+		addTextElement(card, 'h3', `Aave v3 · ${position.label}`, 'position-title');
+		const detected = document.createElement('section'); detected.className = 'position-block';
+		addTextElement(detected, 'small', t.detectedPosition);
+		const supply = document.createElement('div'); addTextElement(supply, 'strong', t.supplied); assetLines(supply, position.supplied, true); detected.appendChild(supply);
+		const debt = document.createElement('div'); addTextElement(debt, 'strong', t.borrowed); assetLines(debt, position.borrowed, false); detected.appendChild(debt);
+		addTextElement(detected, 'span', `${t.netPosition}: ${formatUsd(position.totals.netUsd)}`, 'position-figure');
+		addTextElement(detected, 'span', `${t.healthFactor}: ${position.totals.healthFactor == null ? t.noDebt : formatAmount(position.totals.healthFactor)}`, 'position-figure');
+		card.appendChild(detected);
+		const product = document.createElement('section'); product.className = 'position-block';
+		addTextElement(product, 'small', t.matchingProduct);
+		addTextElement(product, 'strong', productText(position.nexus), position.nexus?.state === 'MATCHED' ? 'position-match' : 'position-muted');
+		if (position.nexus?.productId != null && position.nexus.productName) addTextElement(product, 'span', `${position.nexus.productName} · ${t.productWord} #${position.nexus.productId}`);
+		card.appendChild(product);
+		const held = document.createElement('section'); held.className = 'position-block';
+		addTextElement(held, 'small', t.walletCovers);
+		const matching = position.nexus?.state === 'MATCHED'
+			? covers.filter((cover) => cover.productId === position.nexus.productId && cover.status === 'active')
+			: [];
+		if (!matching.length) addTextElement(held, 'span', t.noWalletCovers, 'position-muted');
+		for (const cover of matching) {
+			addTextElement(held, 'span', `Cover #${cover.coverId} · ${formatAmount(cover.amount)} ${cover.asset?.symbol ?? ''} · ${t.expiry} ${formatDate(cover.endsAt)}`.trim(), 'position-asset');
+		}
+		if (matching.length) addTextElement(held, 'span', t.notComparable, 'position-muted');
+		card.appendChild(held);
+		list.appendChild(card);
+	}
+	for (const market of checkedDeployments.filter((entry) => entry.status !== 'OK')) {
+		addTextElement(list, 'div', `Aave v3 · ${market.label}: ${t.positionsMarketUnavailable}`, 'dash-empty position-error');
+	}
+	if (!positions.length && checkedDeployments.every((entry) => entry.status === 'OK')) addTextElement(list, 'div', t.positionsNone, 'dash-empty');
+	addTextElement(list, 'p', t.positionsSource, 'position-source');
+}
+
 function renderDashboard(data) {
 	window.dashboardData = data;
 	document.body.classList.add('dashboard-mode');
@@ -214,6 +335,8 @@ function renderDashboard(data) {
 		card.appendChild(document.createElement('span'));
 		list.appendChild(card);
 	}
+	const owner = String(data.wallet).toLowerCase();
+	if (positionsState.wallet !== owner) loadPositions(owner); else renderPositions();
 	const actions = document.querySelector('#dash-actions'); actions.replaceChildren();
 	if (data.telegramLinked) { const unlink = document.createElement('button'); unlink.className = 'text-action'; unlink.textContent = t.disconnectTelegram; unlink.addEventListener('click', disconnectTelegram); actions.appendChild(unlink); }
 }
@@ -727,7 +850,7 @@ async function endSession({ disconnect = false } = {}) {
 		location.reload();
 		return;
 	}
-	window.dashboardData = null; document.body.classList.remove('dashboard-mode'); status.textContent = ''; enable(); applyLanguage(language);
+	window.dashboardData = null; positionsState = { wallet: null, status: 'idle', data: null }; document.body.classList.remove('dashboard-mode'); status.textContent = ''; enable(); applyLanguage(language);
 }
 function enable() { wcButton.disabled = false; injectedButton.disabled = false; }
 async function disconnectTelegram() {
