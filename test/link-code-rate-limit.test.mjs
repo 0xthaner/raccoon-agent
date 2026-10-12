@@ -49,10 +49,11 @@ test('5 die Code-Schranke greift, bevor der Code nachgeschlagen oder verbraucht 
 });
 
 test('6 ein unbrauchbarer Code faellt vor jeder Datenbankberuehrung durch', () => {
-	const pruefung = verify.indexOf("typeof code !== 'string'");
-	assert.ok(pruefung > -1, 'die Typpruefung fehlt');
+	// AUDIT-2026-10-12 F1: statt "String bis 128 Zeichen" jetzt das exakte
+	// Format aus newLinkRequest (Typ- und Laengenpruefung inklusive).
+	const pruefung = verify.indexOf('!isTelegramLinkCode(code)');
+	assert.ok(pruefung > -1, 'die Formatpruefung fehlt');
 	assert.ok(pruefung < verify.indexOf('getPendingLink(code)'));
-	assert.match(verify, /code\.length > 128/);
 });
 
 test('7 die Code-Schranke ist enger als die IP-Schranke', () => {

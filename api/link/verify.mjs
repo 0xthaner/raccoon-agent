@@ -1,6 +1,6 @@
 import { isAddress } from 'viem';
 import { consumePendingLink, getPendingLink, getLanguage } from '../../src/db.mjs';
-import { linkSiweExpectation, newDashboardAccess, signingMessage } from '../../src/linking.mjs';
+import { isTelegramLinkCode, isTelegramLinkRow, linkSiweExpectation, newDashboardAccess, signingMessage } from '../../src/linking.mjs';
 import { verifyWalletSiweSignature } from '../../src/contract-signature.mjs';
 import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin } from '../../src/http-security.mjs';
 import { recordSecurityEvent, securityFingerprint, SECURITY_EVENT } from '../../src/security-events.mjs';
@@ -38,7 +38,8 @@ export default async function handler(request, response) {
 	if (!requireSameOrigin(request, response) || !requireJson(request, response)) return;
 	if (!await enforceRateLimit(request, response, 'wallet-link-verify', 10, 600)) return;
 	const { code, wallet, signature } = request.body ?? {};
-	if (typeof code !== 'string' || code.length > 128) {
+	// AUDIT-2026-10-12 F1: nur das Format aus newLinkRequest, siehe linking.mjs.
+	if (!isTelegramLinkCode(code)) {
 		return response.status(410).json({ ok: false, error: 'Verbindungscode ungültig oder abgelaufen.' });
 	}
 	/*
@@ -49,7 +50,7 @@ export default async function handler(request, response) {
 	*/
 	if (!await enforceRateLimitFor(response, 'wallet-link-code', code, 5, 600)) return;
 	const pending = await getPendingLink(code);
-	if (!pending || pending.used_at || pending.expires_at < Date.now()) {
+	if (!pending || !isTelegramLinkRow(pending) || pending.used_at || pending.expires_at < Date.now()) {
 		return response.status(410).json({ ok: false, error: 'Verbindungscode ungültig oder abgelaufen.' });
 	}
 	if (!isAddress(wallet) || typeof signature !== 'string') {

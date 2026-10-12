@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { isAddress } from 'viem';
 import { consumePendingLink, getPendingLink } from './db.mjs';
-import { linkSiweExpectation, signingMessage } from './linking.mjs';
+import { isTelegramLinkCode, isTelegramLinkRow, linkSiweExpectation, signingMessage } from './linking.mjs';
 import { verifyWalletSiweSignature } from './contract-signature.mjs';
 
 const publicDir = join(process.cwd(), 'dist-web');
@@ -45,15 +45,16 @@ export function startWebServer({ port = 8787, onLinked }) {
 			if (req.method === 'GET' && url.pathname === '/api/link') {
 				const code = url.searchParams.get('code');
 				const wallet = url.searchParams.get('wallet');
-				const pending = code && await getPendingLink(code);
-				if (!pending || pending.used_at || pending.expires_at < Date.now()) return json(res, 410, { ok: false, error: 'Verbindungscode ungültig oder abgelaufen.' });
+				// AUDIT-2026-10-12 F1: dieselben zwei Schranken wie api/link.mjs.
+				const pending = isTelegramLinkCode(code) ? await getPendingLink(code) : null;
+				if (!pending || !isTelegramLinkRow(pending) || pending.used_at || pending.expires_at < Date.now()) return json(res, 410, { ok: false, error: 'Verbindungscode ungültig oder abgelaufen.' });
 				if (!wallet || !isAddress(wallet)) return json(res, 400, { ok: false, error: 'Ungültige Wallet-Adresse.' });
 				return json(res, 200, { ok: true, message: signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code }) });
 			}
 			if (req.method === 'POST' && url.pathname === '/api/link/verify') {
 				const { code, wallet, signature } = await bodyOf(req);
-				const pending = code && await getPendingLink(code);
-				if (!pending || pending.used_at || pending.expires_at < Date.now()) return json(res, 410, { ok: false, error: 'Verbindungscode ungültig oder abgelaufen.' });
+				const pending = isTelegramLinkCode(code) ? await getPendingLink(code) : null;
+				if (!pending || !isTelegramLinkRow(pending) || pending.used_at || pending.expires_at < Date.now()) return json(res, 410, { ok: false, error: 'Verbindungscode ungültig oder abgelaufen.' });
 				if (!isAddress(wallet) || typeof signature !== 'string') return json(res, 400, { ok: false, error: 'Ungültige Signaturdaten.' });
 				// AGENT-SEC-A3: derselbe Vertrag wie im Vercel-Handler.
 				// AGENT-AUTH-001: EOA (offline) oder deployte Contract-Wallet (ERC-1271),

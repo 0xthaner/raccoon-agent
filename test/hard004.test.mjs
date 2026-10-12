@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { privateKeyToAccount } from 'viem/accounts';
 import { telegramSiweMessage, telegramExpectation, verifyExpectedSiweSignature } from '../src/siwe-auth.mjs';
+import { isTelegramLinkCode, isTelegramLinkRow } from '../src/linking.mjs';
 const read = (p) => readFileSync(p, 'utf8');
 const dashboard = read('api/dashboard.mjs');
 const bot = read('src/bot.mjs');
@@ -72,11 +73,11 @@ for(const mode of ['valid','wrong-wallet','wrong-chat','expired','replay','unsig
   const signer=privateKeyToAccount('0x'+'01'.repeat(32));
   const expiresAt=Date.now()+599000;
   const nonce='ab'.repeat(16);
-  const original={wallet:signer.address,nonce,expiresAt,issuedAt:expiresAt-600000,code:'pending'};
+  const original={wallet:signer.address,nonce,expiresAt,issuedAt:expiresAt-600000,code:'PendingLinkCode_0123456-'};
   const signature=await signer.signMessage({message:telegramSiweMessage(original)});
   const handler=loadHandler(verify,{
    ANMELDUNG_PAUSIERT:false,requireSameOrigin:()=>true,requireJson:()=>true,
-   enforceRateLimit:async()=>true,enforceRateLimitFor:async()=>true,
+   enforceRateLimit:async()=>true,enforceRateLimitFor:async()=>true,isTelegramLinkCode,isTelegramLinkRow,
    getPendingLink:async()=>({chat_id:mode==='wrong-chat'?'456':'123',nonce:mode==='wrong-chat'?'cd'.repeat(16):nonce,expires_at:mode==='expired'?1:expiresAt}),
    isAddress:()=>true,linkSiweExpectation:(p)=>telegramExpectation({...p,issuedAt:p.expiresAt-600000}),
    signingMessage:(p)=>telegramSiweMessage({...p,issuedAt:p.expiresAt-600000}),
@@ -86,7 +87,7 @@ for(const mode of ['valid','wrong-wallet','wrong-chat','expired','replay','unsig
    getLanguage:async()=> 'en',process:{env:{TELEGRAM_BOT_TOKEN:'offline-placeholder'}},fetch:async()=>({ok:true})
   });
   const res=response();
-  await handler({method:'POST',body:{code:'pending',wallet:mode==='wrong-wallet'?'0x2222222222222222222222222222222222222222':signer.address,signature:mode==='unsigned'?'0x':signature},headers:{}},res);
+  await handler({method:'POST',body:{code:'PendingLinkCode_0123456-',wallet:mode==='wrong-wallet'?'0x2222222222222222222222222222222222222222':signer.address,signature:mode==='unsigned'?'0x':signature},headers:{}},res);
   if(mode==='valid') assert.equal(res.code,200);
   assert.equal(bound,mode==='valid'?1:0);
   assert.equal(res.headers['set-cookie'],undefined);

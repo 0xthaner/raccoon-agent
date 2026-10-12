@@ -848,3 +848,52 @@ test('SEC amplification: a joiner of a refused lookup gets busy, never a hanging
 	assert.equal(positionsCache.activeLookups(), 0);
 	assert.equal(positionsCache.cacheSize(), 0, 'eine Ablehnung wird nicht gecacht');
 });
+
+/* ======================================================================== *
+ * Audit 12.10.2026: die zwei noch fehlenden Szenarien aus dem Auftrag.
+ * ======================================================================== */
+
+test('AUDIT revoked A, valid B: A gets 401 and no data, B gets only B', async () => {
+	const { h, seen } = handler({ isRevoked: async (wallet) => wallet === WALLET });
+	const ra = res();
+	await h({ method: 'GET', headers: cookie(WALLET), query: {} }, ra);
+	assert.equal(ra.statusCode, 401);
+	assert.equal(ra.body.code, 'SESSION_REVOKED');
+	const rb = res();
+	await h({ method: 'GET', headers: cookie(OTHER), query: {} }, rb);
+	assert.equal(rb.statusCode, 200);
+	assert.equal(rb.body.wallet, OTHER);
+	assert.deepEqual(seen.wallets, [OTHER], 'fuer die widerrufene Wallet wurde nie gelesen');
+	// Cookie der widerrufenen A plus Bearer der gueltigen B: Konflikt, kein Rueckfall auf B.
+	const mixed = res();
+	await h({ method: 'GET', headers: { ...cookie(WALLET), authorization: `Bearer ${createDashboardSession(OTHER)}` }, query: {} }, mixed);
+	assert.equal(mixed.statusCode, 401);
+	assert.deepEqual(seen.wallets, [OTHER]);
+});
+
+test('AUDIT stale in-flight A while B logs in: B never joins or receives A', async () => {
+	positionsCache.reset();
+	let releaseA;
+	const gate = new Promise((resolve) => { releaseA = resolve; });
+	const real = walletClient();
+	const slowForA = {
+		calls: real.calls,
+		getBlockNumber: real.getBlockNumber,
+		async multicall(args) {
+			const user = args.contracts.find((c) => c.functionName === 'getUserAccountData' || c.functionName === 'getUserReserveData')?.args.at(-1);
+			if (user === getAddress(WALLET)) await gate;
+			return real.multicall(args);
+		}
+	};
+	const options = { client: slowForA, catalogLoader: async () => CATALOG };
+	const pendingA = getWalletPositions(WALLET, options);
+	const b = await getWalletPositions(OTHER, options);
+	assert.equal(b.wallet, OTHER);
+	assert.equal(usdcOf(b), '2', 'B ist fertig, waehrend A noch haengt');
+	releaseA();
+	const a = await pendingA;
+	assert.equal(a.wallet, WALLET);
+	assert.equal(usdcOf(a), '1');
+	assert.equal(await getWalletPositions(OTHER, options), b, 'B behaelt den eigenen Cache-Eintrag');
+	assert.equal(positionsCache.activeLookups(), 0);
+});

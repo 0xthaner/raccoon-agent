@@ -24,7 +24,22 @@ import { mainnet } from 'viem/chains';
 
 /** Best-Effort-Cache: normalisierte Adresse -> { isContract, expires }. */
 export const CODE_CACHE_TTL_MS = 60_000;
+/*
+	AUDIT-2026-10-12 F3: der Cache hatte keine Obergrenze. Eintraege verfielen nur,
+	wenn dieselbe Adresse erneut abgefragt wurde; jede neue Adresse blieb fuer die
+	Lebensdauer der warmen Instanz liegen. Jetzt hoechstens CODE_CACHE_MAX_ENTRIES:
+	abgelaufene zuerst, dann die aeltesten.
+*/
+export const CODE_CACHE_MAX_ENTRIES = 1_000;
 const defaultCodeCache = new Map();
+
+function remember(cache, key, entry, now) {
+	cache.delete(key);
+	cache.set(key, entry);
+	if (cache.size <= CODE_CACHE_MAX_ENTRIES) return;
+	for (const [k, v] of cache) if (!(v.expires > now)) cache.delete(k);
+	while (cache.size > CODE_CACHE_MAX_ENTRIES) cache.delete(cache.keys().next().value);
+}
 
 function defaultClient() {
 	const apiKey = process.env.ALCHEMY_API_KEY?.trim();
@@ -59,6 +74,6 @@ export async function isDeployedContract(address, { getCode = null, client, cach
 	// Wirft bei RPC-Fehler -> propagiert (wird NICHT gecacht).
 	const code = await codeOf(address);
 	const isContract = Boolean(code && code !== '0x');
-	if (key) cache.set(key, { isContract, expires: now + CODE_CACHE_TTL_MS });
+	if (key) remember(cache, key, { isContract, expires: now + CODE_CACHE_TTL_MS }, now);
 	return isContract;
 }

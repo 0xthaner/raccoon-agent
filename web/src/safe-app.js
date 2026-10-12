@@ -85,7 +85,15 @@ export async function runSafeLogin({
 	onState('CHALLENGE_CREATED', { threshold: info.threshold });
 
 	// Off-chain-Signing aktivieren, sonst wuerde Safe on-chain signieren (Transaktion).
-	await sdk.eth.setSafeSettings([{ offChainSigning: true }]);
+	// AUDIT-2026-10-12 F2: das Ergebnis pruefen (laut SDK "Returns the new
+	// SafeSettings"). Bestaetigt die Safe-Oberflaeche das Off-chain-Signieren nicht,
+	// gibt es KEINE Signaturanfrage - sonst schlaegt Safe statt einer Nachricht eine
+	// On-chain-Transaktion (SignMessageLib) in der Warteschlange vor.
+	const settings = await sdk.eth.setSafeSettings([{ offChainSigning: true }]);
+	if (settings?.offChainSigning !== true) {
+		onState('REJECTED', { reason: 'offchain-signing-unavailable' });
+		throw new Error('Diese Safe-Oberfläche bestätigt kein Off-chain-Signieren. Es wird keine Signatur angefragt.');
+	}
 	onState('SIGNATURE_PENDING', { threshold: info.threshold });
 
 	// Exakt die serverseitige SIWE-Nachricht. Keine eigene Hash-/Typed-Data-Logik.

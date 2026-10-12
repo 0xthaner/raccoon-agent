@@ -11,12 +11,12 @@ const SAFE = '0x5afe000000000000000000000000000000005afe';
 const OWNER = '0x1111111111111111111111111111111111111111';
 const SIWE = 'coverraccoon.com wants you to sign in ...';
 
-function makeSdk({ offchainSeq = ['0xFINALSIG'], threshold = 2, signMessageResult = { messageHash: '0xhash' } } = {}) {
+function makeSdk({ offchainSeq = ['0xFINALSIG'], threshold = 2, signMessageResult = { messageHash: '0xhash' }, settingsResult } = {}) {
 	let i = 0;
 	const calls = { setSafeSettings: [], signMessage: [], getOffChainSignature: [] };
 	return {
 		calls,
-		eth: { setSafeSettings: async (p) => { calls.setSafeSettings.push(p); return p?.[0]; } },
+		eth: { setSafeSettings: async (p) => { calls.setSafeSettings.push(p); return settingsResult === undefined ? p?.[0] : settingsResult; } },
 		txs: { signMessage: async (m) => { calls.signMessage.push(m); return signMessageResult; } },
 		safe: { getOffChainSignature: async (h) => { calls.getOffChainSignature.push(h); return offchainSeq[Math.min(i++, offchainSeq.length - 1)]; } }
 	};
@@ -122,3 +122,18 @@ test('detectSafeContext: getInfo liefert Safe -> ctx; Timeout/Fehler -> null', a
 });
 
 test('SAFE_LOGIN_CHAIN_ID ist Mainnet', () => { assert.equal(SAFE_LOGIN_CHAIN_ID, 1); });
+
+// AUDIT-2026-10-12 F2: bestaetigt die Safe-Oberflaeche das Off-chain-Signieren
+// nicht, darf keine Signaturanfrage (und damit kein On-chain-Vorschlag) entstehen.
+for (const [name, settingsResult] of [['false', { offChainSigning: false }], ['leer', {}], ['null', null], ['String', { offChainSigning: 'true' }]]) {
+	test(`F2 kein Off-chain-Signieren bestaetigt (${name}): keine Signaturanfrage, kein Login`, async () => {
+		const sdk = makeSdk({ settingsResult });
+		const fetchFn = makeFetch(okRoutes());
+		const states = [];
+		await assert.rejects(runSafeLogin({ sdk, info: info2of2, fetchFn, onState: (s, d) => states.push([s, d]), pollIntervalMs: 0, waitFn: async () => {} }), /Off-chain/);
+		assert.equal(sdk.calls.signMessage.length, 0, 'signMessage nie aufgerufen');
+		assert.equal(sdk.calls.getOffChainSignature.length, 0);
+		assert.equal(fetchFn.calls.filter((c) => c.options.method === 'POST').length, 0, 'kein Login-POST');
+		assert.deepEqual(states.at(-1), ['REJECTED', { reason: 'offchain-signing-unavailable' }]);
+	});
+}

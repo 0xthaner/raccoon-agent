@@ -319,3 +319,36 @@ test('23: Exporte vorhanden und erwartet', () => {
 	assert.ok(Object.isFrozen(WALLET_SIG_RESULTS));
 	assert.equal(MAX_CONTRACT_SIGNATURE_BYTES, 4096);
 });
+
+// AUDIT-2026-10-12 F3: der Contract-Erkennungs-Cache waechst nicht unbegrenzt.
+test('F3 contract-detect cache stays bounded: expired first, then oldest', async () => {
+	const { isDeployedContract, CODE_CACHE_MAX_ENTRIES, CODE_CACHE_TTL_MS } = await import('../src/contract-detect.mjs');
+	const cache = new Map();
+	const addr = (i) => `0x${i.toString(16).padStart(40, '0')}`;
+	const getCode = async () => '0x';
+	for (let i = 0; i < CODE_CACHE_MAX_ENTRIES + 250; i++) await isDeployedContract(addr(i), { getCode, cache, now: 1_000 });
+	assert.equal(cache.size, CODE_CACHE_MAX_ENTRIES);
+	assert.equal(cache.has(addr(0)), false, 'aeltester Eintrag verdraengt');
+	assert.equal(cache.has(addr(CODE_CACHE_MAX_ENTRIES + 249)), true, 'neuester bleibt');
+	// Spaeter: alles Alte ist abgelaufen. Der naechste Ueberlauf raeumt alle
+	// abgelaufenen Eintraege auf einmal, nicht nur einen.
+	const later = 1_000 + CODE_CACHE_TTL_MS + 1;
+	await isDeployedContract(addr(20_000), { getCode, cache, now: later });
+	assert.equal(cache.size, 1, 'nur der frische Eintrag bleibt');
+	// Unter der Grenze wird nichts geraeumt: frische Eintraege bleiben alle.
+	for (let i = 0; i < 5; i++) await isDeployedContract(addr(30_000 + i), { getCode, cache, now: later + 1 });
+	assert.equal(cache.size, 6);
+	// Ein Treffer liefert weiter das gecachte Ergebnis ohne RPC.
+	let calls = 0;
+	assert.equal(await isDeployedContract(addr(20_000), { getCode: async () => { calls++; return '0x60'; }, cache, now: later + 2 }), false);
+	assert.equal(calls, 0);
+});
+
+// AUDIT-2026-10-12: nur ein echtes `true` authentifiziert; ein "truthy" Rueckgabewert nicht.
+test('AUDIT 1271 verify result must be exactly true', async () => {
+	const { verifyContractSiweSignature } = await import('../src/contract-signature.mjs');
+	const sig = `0x${'ab'.repeat(65)}`;
+	for (const value of [1, 'true', 'VALID', {}, [], '0x1626ba7e']) {
+		assert.equal(await verifyContractSiweSignature({ address: '0x5afe000000000000000000000000000000005afe', message: 'm', signature: sig }, { getCode: async () => '0x6080', verify: async () => value }), 'INVALID_SIGNATURE', JSON.stringify(value));
+	}
+});

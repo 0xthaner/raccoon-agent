@@ -12,6 +12,30 @@ export async function newLinkRequest(chatId) {
 	return { code, expiresAt };
 }
 
+/*
+	AUDIT-2026-10-12 F1: `pending_links` traegt neben den Verknuepfungen auch
+	Dashboard-Zugangscodes (`dashboard:<code>`), gemerkte getrennte Wallets
+	(`unlinked:...`) und Widerrufsmarken (`revoked:<wallet>` mit dem
+	VORHERSAGBAREN Code `revoked_wallet_<wallet>`). Die Verknuepfungsendpunkte
+	schlugen jeden Code nach, ohne die Art zu pruefen; eine Widerrufsmarke verriet
+	so ohne Anmeldung, ob und wann sich eine fremde Wallet abgemeldet hatte.
+
+	Deshalb zwei Schranken: nur das exakte Format aus newLinkRequest (18 Byte,
+	base64url, also genau 24 Zeichen) erreicht ueberhaupt die Datenbank, und nur
+	eine Zeile mit privater Telegram-Chat-ID (positive Ganzzahl) gilt als
+	Verknuepfung.
+*/
+const TELEGRAM_LINK_CODE = /^[A-Za-z0-9_-]{24}$/;
+const PRIVATE_CHAT_ID = /^[1-9][0-9]{0,19}$/;
+
+export function isTelegramLinkCode(code) {
+	return typeof code === 'string' && TELEGRAM_LINK_CODE.test(code);
+}
+
+export function isTelegramLinkRow(row) {
+	return typeof row?.chat_id === 'string' && PRIVATE_CHAT_ID.test(row.chat_id);
+}
+
 export async function newTelegramHandoff(wallet) {
 	const code = randomBytes(18).toString('base64url');
 	const expiresAt = Date.now() + LINK_LIFETIME_MS;

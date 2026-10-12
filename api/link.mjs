@@ -1,6 +1,6 @@
 import { isAddress } from 'viem';
 import { getPendingLink } from '../src/db.mjs';
-import { signingMessage } from '../src/linking.mjs';
+import { isTelegramLinkCode, isTelegramLinkRow, signingMessage } from '../src/linking.mjs';
 import { enforceRateLimit } from '../src/http-security.mjs';
 import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../src/pause.mjs';
 
@@ -27,8 +27,9 @@ export default async function handler(request, response) {
 	if (!await enforceRateLimit(request, response, 'wallet-link-read', 30, 600)) return;
 	const code = typeof request.query.code === 'string' ? request.query.code : '';
 	const wallet = typeof request.query.wallet === 'string' ? request.query.wallet : '';
-	const pending = code && await getPendingLink(code);
-	if (!pending || pending.used_at || pending.expires_at < Date.now()) {
+	// AUDIT-2026-10-12 F1: nur echte Verknuepfungscodes und -zeilen, siehe linking.mjs.
+	const pending = isTelegramLinkCode(code) ? await getPendingLink(code) : null;
+	if (!pending || !isTelegramLinkRow(pending) || pending.used_at || pending.expires_at < Date.now()) {
 		return response.status(410).json({ ok: false, error: 'Verbindungscode ungültig oder abgelaufen.' });
 	}
 	/*
