@@ -190,9 +190,10 @@ test('helper parity: 5000 deterministic random query strings from the critical c
 });
 
 test('known quirk: raw non-ASCII plus "%+xx" may decode differently, but no decision changes', async () => {
-	// querystring.parse('é%+Fa') -> 'é% Fa', URLSearchParams -> '�% Fa'. Rohe Nicht-ASCII-Bytes sind im
-	// Request-Target ungueltig (Clients kodieren sie); jede Entscheidung haengt an ASCII-Pruefungen.
-	assert.equal(queryKeys(queryParams({ url: '/api/x?é%+Fa' }))[0], '�% Fa');
+	// querystring.parse('é%+Fa') -> 'é% Fa'. URLSearchParams liefert in aelteren Node-24-Versionen
+	// (z. B. 24.19.0) '�% Fa', in neueren (24.21.0, CI) ebenfalls 'é% Fa'. Rohe Nicht-ASCII-Bytes
+	// sind im Request-Target ungueltig (Clients kodieren sie); jede Entscheidung haengt an ASCII-Pruefungen.
+	assert.ok(['é% Fa', '�% Fa'].includes(queryKeys(queryParams({ url: '/api/x?é%+Fa' }))[0]));
 	const handler = createPositionsHandler({ getPositions: async (wallet) => ({ ok: true, wallet, positions: [] }), isRevoked: async () => false, rateLimit: async () => true, rateLimitFor: async () => true });
 	for (const [url, code] of [['/api/positions?é%+Fa', 'QUERY_NOT_ALLOWED'], ['/api/positions?é%+Fawallet=1', 'WALLET_PARAMETER_NOT_ALLOWED']]) {
 		const r = res();
