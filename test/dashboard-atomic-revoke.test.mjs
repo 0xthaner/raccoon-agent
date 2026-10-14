@@ -128,6 +128,7 @@ test('logout failure leaves UI intact and successful logout follows existing res
 		const logout = vm.runInNewContext(`(${code.trim()})`, {
 			authFetch: async () => { if (mode === 'network') throw new Error(); return { ok: mode !== 'http', json: async () => ({ ok: mode !== 'body' }) }; },
 			show: () => calls.push('show'), language: 'en', walletConnectPromise: null,
+			frischeBestaetigung: async () => null, debugWallet: () => {}, // EOA: keine frische Bestaetigung (AUDIT SA-L1)
 			clearWalletStorage: async () => calls.push('clear'), location: { reload: () => calls.push('reload') }
 		});
 		await logout({ disconnect: true });

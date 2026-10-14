@@ -1306,10 +1306,62 @@ async function verbindeWalletConnect() {
 }
 wcButton.addEventListener('click', () => mitHinweisen(verbindeWalletConnect));
 
+/*
+	AUDIT SA-L1, 14.10.2026: frische Bestaetigung fuer destruktive Aktionen einer
+	Contract-Wallet (Safe). Der SERVER sagt, ob sie noetig ist (Sitzungsart); fuer
+	EOA-Sitzungen kommt "nicht noetig" zurueck und es gibt keine neue Signatur.
+	Sonst: sichtbare Rueckfrage, dann signiert die Safe den serverseitigen Text -
+	in der Safe App off-chain (signSafeMessage), sonst ueber WalletConnect mit
+	personal_sign. Keine Transaktion, kein Typed Data, keine weitere Methode.
+	Rueckgabe: null = nicht noetig, false = abgelehnt, sonst { token, signature }.
+*/
+let safeContext = null;
+async function frischeBestaetigung(purpose) {
+	const de = language === 'de';
+	const response = await authFetch('/api/dashboard', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: purpose }) });
+	const challenge = await response.json().catch(() => null);
+	if (!response.ok || !challenge?.ok) throw new Error(challenge?.error || (de ? 'Die Bestätigung konnte nicht vorbereitet werden.' : 'The confirmation could not be prepared.'));
+	if (challenge.freshSignatureRequired !== true) return null;
+	const was = purpose === 'session-revoke'
+		? (de ? 'die Abmeldung auf allen Geräten' : 'signing out on all devices')
+		: (de ? 'das Trennen der Telegram-Benachrichtigungen' : 'disconnecting Telegram notifications');
+	if (!confirm(de
+		? `Bitte bestätige ${was} mit deiner Safe. Das ist nur eine Signatur, keine Transaktion: keine Übertragung, keine Token-Freigabe, keine Gasgebühr.`
+		: `Please confirm ${was} with your Safe. This is only a signature, not a transaction: no transfer, no token approval, no gas fee.`)) return false;
+	const signature = safeContext
+		? await (await import('./safe-app.js')).signSafeMessage({ sdk: safeContext.sdk, message: challenge.message, threshold: safeContext.info?.threshold, onState: renderSafeState, pollTimeoutMs: 5 * 60_000 })
+		: await signiereMitWalletConnect(window.dashboardData?.wallet, challenge.message);
+	return { token: challenge.token, signature };
+}
+
+/** Eine einzelne Signatur ueber WalletConnect fuer genau die angemeldete Wallet; danach wird getrennt. */
+async function signiereMitWalletConnect(expectedWallet, message) {
+	const texts = eoaLoginTexts(language);
+	const expected = normalizeAddress(expectedWallet);
+	if (!expected) throw new Error(texts.accountChanged);
+	let modal;
+	try {
+		modal = await getWalletConnectModal();
+		if (modal.getAddress()) await resetRestoredConnection(modal);
+		const { wallet, provider } = await connectWithModal(modal);
+		const konto = await ensureAppKitMainnetAccount({ modal, network: appKitMainnet, expectedAddress: wallet, texts });
+		// Nur die angemeldete Wallet, nur Mainnet - sonst keine Signaturanfrage.
+		if (konto !== expected || normalizeAddress(modal.getAddress()) !== expected) throw new Error(texts.accountChanged);
+		if (Number(modal.getChainId()) !== 1) throw new Error(texts.notMainnet);
+		return await withTimeout(provider.request({ method: 'personal_sign', params: [message, konto] }), 5 * 60_000, language === 'de' ? 'Die Wallet hat nicht auf die Signaturanfrage reagiert.' : 'The wallet did not respond to the signature request.');
+	} finally {
+		await trenneWalletConnect(modal);
+	}
+}
+
 async function endSession({ disconnect = false } = {}) {
 	if (disconnect) show('Wallet-Verbindung wird getrennt …');
+	// AUDIT SA-L1: Safe -> "ueberall abmelden" nur mit frischer Bestaetigung. Lehnt
+	// jemand ab oder scheitert sie, wird nur DIESES Geraet abgemeldet.
+	let authorization = null;
+	try { authorization = await frischeBestaetigung('session-revoke'); } catch (error) { debugWallet('Frische Bestaetigung nicht erhalten', error?.message ?? error); authorization = false; }
 	try {
-		const response = await authFetch('/api/dashboard', { method: 'DELETE' });
+		const response = await authFetch('/api/dashboard', authorization ? { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify(authorization) } : { method: 'DELETE' });
 		const result = await response.json();
 		if (!response.ok || result.ok !== true) throw new Error('Logout failed');
 	} catch {
@@ -1329,7 +1381,11 @@ async function endSession({ disconnect = false } = {}) {
 function enable() { wcButton.disabled = false; injectedButton.disabled = false; }
 async function disconnectTelegram() {
 	if (!confirm(t.confirmDisconnect)) return;
-	const response = await authFetch('/api/dashboard?telegram=1', { method: 'DELETE' });
+	// AUDIT SA-L1: Safe -> nur mit frischer Bestaetigung fuer genau diese Aktion.
+	let authorization;
+	try { authorization = await frischeBestaetigung('telegram-disconnect'); } catch (error) { return show(error.message); }
+	if (authorization === false) return;
+	const response = await authFetch('/api/dashboard?telegram=1', authorization ? { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify(authorization) } : { method: 'DELETE' });
 	const result = await response.json(); if (!result.ok) return show(result.error);
 	if (window.dashboardData) renderDashboard({ ...window.dashboardData, telegramLinked: false, telegramStartCode: null });
 	await restoreDashboard();
@@ -1428,6 +1484,7 @@ async function runSafeAppLogin(ctx) {
 	try {
 		const { sessionToken, dashboard } = await runSafeLogin({ sdk: ctx.sdk, info: ctx.info, fetchFn: fetch, onState: renderSafeState });
 		safeSession = sessionToken; // nur im Speicher
+		safeContext = ctx; // fuer frische Bestaetigungen (AUDIT SA-L1), ebenfalls nur im Speicher
 		await configPromise.catch(() => null);
 		renderDashboard(dashboard);
 	} catch (error) {

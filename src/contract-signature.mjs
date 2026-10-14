@@ -112,13 +112,28 @@ export async function verifyContractSiweSignature({ address, message, signature 
  * Feld-Mismatch (Domain/URI/Chain/Nonce/…) wird unverändert durchgereicht und
  * führt NIE zu einem RPC.
  */
-export async function verifyWalletSiweSignature({ message, signature, expected, now = Date.now() }, deps = {}) {
+export async function verifyWalletSiweSignature(params, deps = {}) {
+	return (await verifyWalletSiweAuthority(params, deps)).result;
+}
+
+/**
+ * Wie verifyWalletSiweSignature, nennt aber zusaetzlich, WORAUF die Gueltigkeit
+ * beruht (AUDIT SA-L1, 14.10.2026):
+ *   authority 'eoa'      - Schluessel der Adresse, offline per ECDSA bewiesen
+ *   authority 'contract' - ERC-1271 des deployten Contracts (z. B. Safe), live gelesen
+ *   authority null       - nicht gueltig
+ * Der Dashboard-Login leitet daraus die Sitzungsart ab: eine Contract-Autoritaet
+ * kann sich spaeter aendern (Owner entfernt), ein Schluessel nicht. Kein
+ * Request-Wert, kein SDK-Wert und kein Header fliesst ein.
+ */
+export async function verifyWalletSiweAuthority({ message, signature, expected, now = Date.now() }, deps = {}) {
 	const { verifyOffline = verifyExpectedSiweSignature, ...contractDeps } = deps;
 	const offline = await verifyOffline({ message, signature, expected, now });
-	if (offline === 'VALID') return 'VALID';
+	if (offline === 'VALID') return { result: 'VALID', authority: 'eoa' };
 	// Nur signaturbezogene Fehlschläge (nach bestandener Feldprüfung) kommen für
 	// den Contract-Pfad in Frage. Feldfehler (DOMAIN_MISMATCH, NONCE_MISMATCH, …)
 	// werden unverändert zurückgegeben.
-	if (offline !== 'INVALID_SIGNATURE' && offline !== 'INVALID_SIGNATURE_FORMAT') return offline;
-	return verifyContractSiweSignature({ address: expected.wallet, message, signature }, contractDeps);
+	if (offline !== 'INVALID_SIGNATURE' && offline !== 'INVALID_SIGNATURE_FORMAT') return { result: offline, authority: null };
+	const result = await verifyContractSiweSignature({ address: expected.wallet, message, signature }, contractDeps);
+	return { result, authority: result === 'VALID' ? 'contract' : null };
 }

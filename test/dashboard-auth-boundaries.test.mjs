@@ -283,8 +283,9 @@ test('D29 kein Lesepfad im Handler kennt den alten Namen', () => {
 	assert.equal(code.includes(LEGACY_SESSION_COOKIE), false);
 	assert.equal(code.includes('cookieOf('), false);
 	// AGENT-SAFE-2: der Handler liest die Session ausschliesslich ueber die eine
-	// Grenze resolveDashboardSession (Cookie ODER Bearer) - GET und DELETE.
-	assert.equal((code.match(/resolveDashboardSession\(request\)/g) ?? []).length, 2);
+	// Grenze resolveDashboardSession (Cookie ODER Bearer) - GET, DELETE und (AUDIT
+	// SA-L1) die Anforderung einer frischen Bestaetigung per POST.
+	assert.equal((code.match(/resolveDashboardSession\(request\)/g) ?? []).length, 3);
 });
 
 test('D30 bis D32 das Sessioncookie bleibt host-only und streng', () => {
@@ -364,11 +365,11 @@ test('R37 der Login setzt das Host-Cookie an genau einer Stelle', () => {
 	// Ausstellung gehoerte zum unsignierten Telegram-Zugangslink und ist in A2
 	// aus Sicherheitsgruenden entfernt. Steigt die Zahl wieder, ist ein zweiter
 	// Sessionpfad zurueck und dieser Test faellt.
-	assert.equal((code.match(/sessionCookieHeader\(wallet\)/g) ?? []).length, 1);
+	assert.equal((code.match(/sessionCookieHeader\(wallet[,)]/g) ?? []).length, 1);
 	assert.equal(/set-cookie['"],\s*`__Host-/.test(code), false);
 
 	// Die eine Ausstellung liegt hinter Signaturpruefung und Nonceverbrauch.
-	const mint = code.indexOf('sessionCookieHeader(wallet)');
+	const mint = code.indexOf('sessionCookieHeader(wallet,');
 	assert.ok(mint > 0);
 	assert.ok(code.indexOf('await verifyMessage(') < mint);
 	assert.ok(code.indexOf('await consumeDashboardChallenge(') < mint);

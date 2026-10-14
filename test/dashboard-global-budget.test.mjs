@@ -22,6 +22,10 @@ const dashboard = readFileSync('api/dashboard.mjs', 'utf8');
 const sicherheit = readFileSync('src/http-security.mjs', 'utf8');
 
 const idx = (s) => dashboard.indexOf(s);
+// AUDIT SA-L1: verifyFreshAuthority (weiter oben) prueft und verbraucht ebenfalls - die
+// Login-Reihenfolge wird deshalb im Login-Abschnitt gemessen.
+const LOGIN_START = "if (!await enforceRateLimit(request, response, 'dashboard-login',";
+const loginIdx = (s) => { const start = dashboard.indexOf(LOGIN_START); const at = dashboard.indexOf(s, start); return start < 0 || at < 0 ? -1 : at; };
 const CHAL_GLOBAL = "enforceRateLimitFor(response, 'dashboard-challenge-global', 'all', 600, 600)";
 const LOGIN_GLOBAL = "enforceRateLimitFor(response, 'dashboard-login-global', 'all', 200, 600)";
 
@@ -86,8 +90,8 @@ test('J/K globales Login-Budget steht NACH IP- und Wallet-Schranke', () => {
 
 test('L/M/N/O globales Login-Budget steht VOR Signatur/ERC-1271, Nonce-Consume und Session', () => {
 	const global = idx(LOGIN_GLOBAL);
-	const verify = idx('verifyWalletSiweSignature({');
-	const consume = idx('consumeDashboardChallenge(');
+	const verify = loginIdx('verifyWalletSiweAuthority({');
+	const consume = loginIdx('consumeDashboardChallenge(');
 	const session = idx('createDashboardSession(');
 	assert.ok(global > -1 && verify > -1, 'globales Budget und Signaturpruefung muessen existieren');
 	assert.ok(global < verify, 'globales Budget muss vor der Signatur-/ERC-1271-Pruefung stehen');
@@ -95,7 +99,7 @@ test('L/M/N/O globales Login-Budget steht VOR Signatur/ERC-1271, Nonce-Consume u
 	// also zwangslaeufig hinter dem globalen Budget.
 	assert.ok(consume > -1 && global < consume, 'globales Budget muss vor dem Nonce-Consume stehen');
 	assert.ok(session > -1 && global < session, 'globales Budget muss vor der Bearer-Session stehen');
-	assert.ok(global < idx('sessionCookieHeader(wallet)'), 'globales Budget muss vor der Cookie-Session stehen');
+	assert.ok(global < idx('sessionCookieHeader(wallet,'), 'globales Budget muss vor der Cookie-Session stehen');
 });
 
 test('L/M/N/O ein Block bricht mit return ab (keine Verifikation/Session)', () => {
@@ -152,11 +156,12 @@ test('kein neuer Ad-hoc-Zaehler, kein Sharding, keine Env-Variable fuer die Gren
 test('vollstaendige Challenge- und Login-Reihenfolge bleibt erhalten', () => {
 	for (const steps of [
 		["if (!isAddress(wallet)) return response.status(400)", "enforceRateLimit(request, response, 'dashboard-challenge',", "enforceRateLimitFor(response, 'dashboard-challenge-wallet',", CHAL_GLOBAL, 'isDeployedContract(wallet)', 'createDashboardChallenge(wallet', 'storeDashboardChallenge('],
-		["enforceRateLimit(request, response, 'dashboard-login',", 'const challenge = verifyDashboardToken(token)', "if (challenge?.type !== 'challenge'", "enforceRateLimitFor(response, 'dashboard-login-wallet',", LOGIN_GLOBAL, 'verifyWalletSiweSignature({', 'consumeDashboardChallenge(', 'sessionCookieHeader(wallet)']
+		["enforceRateLimit(request, response, 'dashboard-login',", 'const challenge = verifyDashboardToken(token)', "if (challenge?.type !== 'challenge'", "enforceRateLimitFor(response, 'dashboard-login-wallet',", LOGIN_GLOBAL, 'verifyWalletSiweAuthority({', 'consumeDashboardChallenge(', 'sessionCookieHeader(wallet,']
 	]) {
 		let previous = -1;
+		const find = steps[0].startsWith("enforceRateLimit(request, response, 'dashboard-login'") ? loginIdx : idx;
 		for (const step of steps) {
-			const current = idx(step);
+			const current = find(step);
 			assert.ok(current > previous, `Missing or out-of-order step: ${step}`);
 			previous = current;
 		}
@@ -184,7 +189,7 @@ function handlerWith(calls, blocked) {
 		createDashboardChallenge: () => { step('create'); return { token: 'valid' }; },
 		storeDashboardChallenge: async () => step('store'),
 		dashboardMessage: () => 'test message', dashboardSiweExpectation: () => ({}),
-		verifyWalletSiweSignature: async () => { step('verify'); return 'VALID'; },
+		verifyWalletSiweAuthority: async () => { step('verify'); return { result: 'VALID', authority: 'eoa' }; },
 		consumeDashboardChallenge: async () => step('consume'),
 		sessionCookieHeader: () => { step('cookie'); return 'test cookie'; },
 		createDashboardSession: () => { step('bearer'); return 'test token'; },

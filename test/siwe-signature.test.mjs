@@ -205,7 +205,7 @@ test('21 und 22 die Telegram-Verifikation erzeugt weder Session noch Cookie', ()
 	assert.equal(/set-cookie/i.test(code), false);
 	assert.equal(code.includes('createDashboardSession'), false);
 	assert.equal(code.includes('sessionCookieHeader'), false);
-	assert.ok(code.includes('verifyWalletSiweSignature'));
+	assert.ok(/verifyWalletSiwe(?:Signature|Authority)\(/.test(code)); // AUDIT SA-L1: Dashboard nutzt die Variante mit Autoritaet
 });
 
 /* ------------------------------------------------------------------------- *
@@ -264,7 +264,7 @@ test('28 bis 30 alle drei Handler nutzen dieselbe eine Verifikationsgrenze', () 
 		const code = source(file);
 		// AGENT-AUTH-001: die kanonische Grenze ist jetzt der Orchestrator
 		// verifyWalletSiweSignature (EOA offline + ERC-1271 Contract-Wallet).
-		assert.ok(code.includes('verifyWalletSiweSignature'), file);
+		assert.ok(/verifyWalletSiwe(?:Signature|Authority)\(/.test(code), file);
 		// Keine zweite Verifikationslogik daneben: kein Handler ruft die
 		// Offline-Grenze, den viem-verifyMessage oder checkSiweMessage direkt.
 		assert.equal(code.includes('verifyExpectedSiweSignature'), false, file);

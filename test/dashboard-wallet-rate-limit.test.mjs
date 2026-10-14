@@ -42,7 +42,8 @@ test('4 Login-Verifikation begrenzt pro IP UND pro Wallet', () => {
 
 test('5 die Login-Wallet-Schranke greift VOR der teuren Signatur-/ERC-1271-Pruefung', () => {
 	const schranke = dashboard.indexOf("enforceRateLimitFor(response, 'dashboard-login-wallet'");
-	const verify = dashboard.indexOf('verifyWalletSiweSignature({');
+	// Die Login-Pruefung (nicht die spaetere frische Bestaetigung, AUDIT SA-L1).
+	const verify = dashboard.indexOf('const { result: verified, authority } = await verifyWalletSiweAuthority({');
 	assert.ok(schranke > -1 && verify > -1);
 	assert.ok(schranke < verify, 'die Schranke steht hinter der Signaturpruefung');
 });

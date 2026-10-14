@@ -65,6 +65,30 @@ export function telegramStatement(target) {
 export const DASHBOARD_RESOURCE_PATH = '/dashboard';
 export const TELEGRAM_RESOURCE_PATH = '/telegram-link';
 
+/*
+	AUDIT SA-L1, 14.10.2026: frische Bestaetigung fuer destruktive Aktionen einer
+	Contract-Wallet (Safe). Jeder Zweck hat ein EIGENES Statement und eine EIGENE
+	Resource; eine Signatur fuer den einen Zweck passt deshalb nie auf den anderen,
+	nie auf den Dashboard-Login und nie auf die Telegram-Verknuepfung. Beide Texte
+	sagen ausdruecklich, dass es keine Transaktion ist.
+*/
+export const ACTION_PURPOSES = Object.freeze({
+	'session-revoke': Object.freeze({
+		resourcePath: '/session-revoke',
+		statement: 'Sign out all CoverRaccoon dashboard sessions of this wallet on every device. This is not a transaction and does not authorize transfers, token approvals or purchases.'
+	}),
+	'telegram-disconnect': Object.freeze({
+		resourcePath: '/telegram-disconnect',
+		statement: 'Disconnect Raccoon Agent Telegram cover notifications from this wallet. This is not a transaction and does not authorize transfers, token approvals or purchases.'
+	})
+});
+
+function actionPurpose(purpose) {
+	const entry = Object.prototype.hasOwnProperty.call(ACTION_PURPOSES, purpose) ? ACTION_PURPOSES[purpose] : null;
+	if (!entry) throw new Error('Unbekannter Bestaetigungszweck.');
+	return entry;
+}
+
 /**
  * Toleranz fuer eine vorlaufende Serveruhr.
  *
@@ -192,6 +216,12 @@ export function dashboardSiweMessage({ wallet, nonce, issuedAt, expiresAt, reque
 		statement: DASHBOARD_STATEMENT,
 		resourcePath: DASHBOARD_RESOURCE_PATH
 	});
+}
+
+/** SIWE-Text einer frischen Bestaetigung fuer genau einen Zweck (ACTION_PURPOSES). */
+export function actionSiweMessage({ wallet, nonce, issuedAt, expiresAt, requestId, purpose }) {
+	const { statement, resourcePath } = actionPurpose(purpose);
+	return buildMessage({ wallet, nonce, issuedAt, expiresAt, requestId, statement, resourcePath });
 }
 
 export function telegramSiweMessage({ wallet, nonce, issuedAt, expiresAt, code, target }) {
@@ -347,6 +377,13 @@ export function dashboardExpectation({ wallet, nonce, issuedAt, expiresAt, reque
 		statement: DASHBOARD_STATEMENT,
 		resource: `${uri}${DASHBOARD_RESOURCE_PATH}`
 	};
+}
+
+/** Erwartungsobjekt fuer eine frische Bestaetigung (Zweck aus der signierten Challenge). */
+export function actionExpectation({ wallet, nonce, issuedAt, expiresAt, requestId, purpose }) {
+	const { statement, resourcePath } = actionPurpose(purpose);
+	const { domain, uri } = siweOrigin();
+	return { domain, uri, wallet, nonce, issuedAt, expiresAt, requestId, statement, resource: `${uri}${resourcePath}` };
 }
 
 /** Erwartungsobjekt fuer die Telegram-Verknuepfung aus dem Pending-Link. */

@@ -17,7 +17,7 @@ process.env.DASHBOARD_SESSION_SECRET = 'audit-test-secret-0123456789abcdef-01234
 delete process.env.ALCHEMY_API_KEY; // Contract-Pfad: kein RPC, fail closed
 
 const auth = await import('../src/dashboard-auth.mjs');
-const { verifyWalletSiweSignature } = await import('../src/contract-signature.mjs');
+const { verifyWalletSiweAuthority } = await import('../src/contract-signature.mjs');
 
 // Oeffentliche, unbefuellte Offline-Schluessel; nie von Anwendungscode importiert.
 const OWNER = privateKeyToAccount(`0x${'03'.repeat(32)}`);
@@ -37,7 +37,7 @@ function setup({ consumeResult = true, storedWallet = OWNER.address } = {}) {
 	const handler = loadHandler({
 		isAddress, getWalletCovers: async () => ({ covers: [] }), queryParams, singleQueryValue,
 		...auth,
-		verifyWalletSiweSignature, isDeployedContract: async () => false,
+		verifyWalletSiweAuthority, isDeployedContract: async () => false,
 		beginTelegramDelivery: async () => null, finishTelegramDelivery: async () => {},
 		consumeDashboardAccess: async () => null,
 		// Wie die echte Tabelle: verbraucht nur, wenn die gespeicherte Wallet passt (src/db.mjs).

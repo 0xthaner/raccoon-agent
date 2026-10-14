@@ -1,7 +1,7 @@
 import { isAddress } from 'viem';
 import { getWalletCovers } from '../src/covers.mjs';
-import { CLEAR_SESSION_COOKIES, createDashboardChallenge, createDashboardSession, DASHBOARD_CHALLENGE_TTL_CONTRACT_MS, DASHBOARD_CHALLENGE_TTL_EOA_MS, dashboardMessage, dashboardSiweExpectation, resolveDashboardSession, resolveLogout, sessionCookieHeader, verifyDashboardToken } from '../src/dashboard-auth.mjs';
-import { verifyWalletSiweSignature } from '../src/contract-signature.mjs';
+import { actionMessage, actionSiweExpectation, CLEAR_SESSION_COOKIES, createActionChallenge, createDashboardChallenge, createDashboardSession, DASHBOARD_CHALLENGE_TTL_CONTRACT_MS, DASHBOARD_CHALLENGE_TTL_EOA_MS, dashboardMessage, dashboardSiweExpectation, resolveDashboardSession, resolveLogout, sessionCookieHeader, verifyActionChallenge, verifyDashboardToken } from '../src/dashboard-auth.mjs';
+import { verifyWalletSiweAuthority } from '../src/contract-signature.mjs';
 import { isDeployedContract } from '../src/contract-detect.mjs';
 import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, getWalletLinkStateByWallet, isDashboardSessionRevoked, recordAgentEvent, revokeDashboardSessions, storeDashboardChallenge, unlinkWalletByWallet } from '../src/db.mjs';
 import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../src/pause.mjs';
@@ -21,6 +21,58 @@ async function dashboardData(wallet) {
 
 function sessionIssuedAt(session) {
 	return Number.isFinite(session?.iat) ? session.iat : session?.exp - 7 * 24 * 60 * 60_000;
+}
+
+/*
+	AUDIT SA-L1, 14.10.2026: destruktive Aktionen einer Contract-Wallet (Safe)
+	brauchen eine FRISCHE Bestaetigung - eine 24-h-Sitzung allein genuegt nicht,
+	denn ihr Owner kann inzwischen entfernt worden sein. Betroffen sind nur
+	"Telegram trennen" und "ueberall abmelden"; Lesen bleibt unveraendert.
+
+	Ob eine Bestaetigung noetig ist, entscheidet der Server: aus der HMAC-
+	geschuetzten Sitzungsart, bei alten Tokens ohne Art per getCode. Faellt
+	getCode aus, wird sie verlangt (fail closed). EOA-Sitzungen bleiben wie bisher.
+*/
+async function freshAuthorityRequired(session) {
+	if (session.kind === 'eoa') return false;
+	if (session.kind === 'contract') return true;
+	try { return await isDeployedContract(session.wallet); } catch { return true; }
+}
+
+/**
+ * Prueft die frische Bestaetigung `{ token, signature }` fuer genau diesen Zweck
+ * und genau diese Sitzungs-Wallet und verbraucht ihre Nonce atomar. Schreibt bei
+ * jedem Fehlschlag die Antwort selbst und liefert dann false.
+ */
+async function verifyFreshAuthority(request, response, wallet, purpose) {
+	const body = request.body && typeof request.body === 'object' && !Array.isArray(request.body) ? request.body : {};
+	const challenge = verifyActionChallenge(body.token, purpose);
+	if (!challenge || challenge.wallet !== wallet.toLowerCase() || typeof body.signature !== 'string') {
+		response.status(403).json({ ok: false, code: 'FRESH_SIGNATURE_REQUIRED', error: 'Diese Aktion braucht eine frische Bestätigung deiner Wallet.' });
+		return false;
+	}
+	if (!await enforceRateLimitFor(response, 'dashboard-action-verify', wallet.toLowerCase(), 10, 600)) return false;
+	const verified = await verifyWalletSiweAuthority({ message: actionMessage(challenge), signature: body.signature, expected: actionSiweExpectation(challenge) });
+	if (verified.result === 'RPC_UNAVAILABLE') {
+		response.status(503).json({ ok: false, code: 'SIGNATURE_CHECK_UNAVAILABLE', error: 'Die Bestätigung konnte gerade nicht geprüft werden. Bitte gleich erneut versuchen.' });
+		return false;
+	}
+	if (verified.result !== 'VALID') {
+		await recordSecurityEvent(SECURITY_EVENT.SIWE_SIGNATURE_INVALID, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });
+		response.status(401).json({ ok: false, code: 'FRESH_SIGNATURE_INVALID', error: 'Die Bestätigung konnte nicht geprüft werden.' });
+		return false;
+	}
+	if (!await consumeDashboardChallenge(challenge.nonce, wallet)) {
+		await recordSecurityEvent(SECURITY_EVENT.SIWE_REPLAY_BLOCKED, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });
+		response.status(409).json({ ok: false, code: 'FRESH_SIGNATURE_USED', error: 'Diese Bestätigung wurde bereits verwendet oder ist abgelaufen.' });
+		return false;
+	}
+	return true;
+}
+
+/** Ein JSON-Body bei DELETE ist optional; ist er da, gelten dieselben Grenzen wie sonst. */
+function optionalJson(request, response) {
+	return request.headers['content-type'] ? requireJson(request, response) : true;
 }
 
 async function notifyTelegramDisconnected(chatIds) {
@@ -100,19 +152,28 @@ export default async function handler(request, response) {
 			response.setHeader('set-cookie', CLEAR_SESSION_COOKIES);
 			return response.status(401).json({ ok: false, code: 'NO_SESSION', error: 'Keine aktive Dashboard-Sitzung.' });
 		}
-		if (await isDashboardSessionRevoked(saved.wallet, sessionIssuedAt(saved))) {
+		let revoked;
+		try {
+			revoked = await isDashboardSessionRevoked(saved.wallet, sessionIssuedAt(saved));
+		} catch {
+			// AUDIT SA-L2: Widerruf nicht pruefbar -> keine Daten (fail closed), kein Absturz.
+			return response.status(503).json({ ok: false, code: 'SESSION_CHECK_UNAVAILABLE', error: 'Sitzung konnte gerade nicht geprüft werden.' });
+		}
+		if (revoked) {
 			response.setHeader('set-cookie', CLEAR_SESSION_COOKIES);
 			return response.status(401).json({ ok: false, code: 'SESSION_REVOKED', error: 'Die Wallet-Verbindung wurde vollständig zurückgesetzt.' });
 		}
 		return response.status(200).json(await dashboardData(saved.wallet));
 	}
 	if (request.method === 'DELETE') {
-		if (!requireSameOrigin(request, response)) return;
+		if (!requireSameOrigin(request, response) || !optionalJson(request, response)) return;
 		if (!await enforceRateLimit(request, response, 'dashboard-delete', 10, 600)) return;
 		const resolvedDelete = resolveDashboardSession(request);
 		const saved = resolvedDelete.conflict ? null : resolvedDelete.session;
 		if (singleQueryValue(queryParams(request), 'telegram') === '1') {
 			if (!saved || await isDashboardSessionRevoked(saved.wallet, sessionIssuedAt(saved))) return response.status(401).json({ ok: false, error: 'Keine aktive Dashboard-Sitzung.' });
+			// AUDIT SA-L1: Contract-Wallet -> nur mit frischer Bestaetigung fuer genau "telegram-disconnect".
+			if (await freshAuthorityRequired(saved) && !await verifyFreshAuthority(request, response, saved.wallet, 'telegram-disconnect')) return;
 			const removed = await unlinkWalletByWallet(saved.wallet);
 			await recordAgentEvent({ wallet: saved.wallet, eventType: 'dashboard.telegram_disconnected', source: 'dashboard', metadata: { linkedChats: removed.length } }).catch(() => {});
 			await notifyTelegramDisconnected(removed.map((row) => row.chat_id));
@@ -130,6 +191,18 @@ export default async function handler(request, response) {
 				return response.status(503).json({ ok: false, error: 'Abmeldung konnte nicht abgeschlossen werden.' });
 			}
 		}
+		// AUDIT SA-L1: Contract-Wallet -> der wallet-weite Widerruf braucht eine frische
+		// Bestaetigung fuer genau "session-revoke". Ohne sie wird nur DIESES Geraet
+		// abgemeldet (Cookie weg), niemand sonst. Eine mitgeschickte, aber ungueltige
+		// Bestaetigung aendert nichts und wird gemeldet.
+		if (saved && await freshAuthorityRequired(saved)) {
+			const body = request.body && typeof request.body === 'object' ? request.body : {};
+			if (body.token === undefined && body.signature === undefined) {
+				response.setHeader('set-cookie', CLEAR_SESSION_COOKIES);
+				return response.status(200).json({ ok: true, revoked: false, freshSignatureRequired: true });
+			}
+			if (!await verifyFreshAuthority(request, response, saved.wallet, 'session-revoke')) return;
+		}
 		// AGENT-SEC-A1, 29.08.2026: der Logout loeschte bis dahin nur Browsercookies.
 		// Eine abgegriffene Session blieb damit sieben Tage gueltig. Jetzt wird sie
 		// serverseitig widerrufen. Die Cookies verschwinden in JEDEM Fall, auch
@@ -144,8 +217,30 @@ export default async function handler(request, response) {
 	}
 	if (request.method !== 'POST') return response.status(405).json({ ok: false, error: 'Method not allowed' });
 	if (!requireSameOrigin(request, response) || !requireJson(request, response)) return;
-	if (ANMELDUNG_PAUSIERT) return pauseAntwort(response);
 	const body = request.body ?? {};
+	/*
+		AUDIT SA-L1: Challenge fuer eine frische Bestaetigung anfordern. Nur mit
+		gueltiger, nicht widerrufener Sitzung; die Wallet kommt aus der Sitzung, der
+		Zweck aus einer festen Liste. Fuer EOA-Sitzungen gibt es keine Challenge
+		("nicht noetig") - deren Ablauf bleibt unveraendert. Absichtlich VOR der
+		Anmeldepause: wer angemeldet ist, kann sich immer abmelden.
+	*/
+	if (typeof body.action === 'string' && body.token === undefined && body.signature === undefined && body.access === undefined) {
+		if (!await enforceRateLimit(request, response, 'dashboard-action', 20, 600)) return;
+		if (!['session-revoke', 'telegram-disconnect'].includes(body.action)) return response.status(400).json({ ok: false, error: 'Unbekannte Aktion.' });
+		const resolvedAction = resolveDashboardSession(request);
+		const session = resolvedAction.conflict ? null : resolvedAction.session;
+		if (!session) return response.status(401).json({ ok: false, code: 'NO_SESSION', error: 'Keine aktive Dashboard-Sitzung.' });
+		let revoked;
+		try { revoked = await isDashboardSessionRevoked(session.wallet, sessionIssuedAt(session)); } catch { return response.status(503).json({ ok: false, code: 'SESSION_CHECK_UNAVAILABLE', error: 'Sitzung konnte gerade nicht geprüft werden.' }); }
+		if (revoked) return response.status(401).json({ ok: false, code: 'SESSION_REVOKED', error: 'Die Wallet-Verbindung wurde vollständig zurückgesetzt.' });
+		if (!await freshAuthorityRequired(session)) return response.status(200).json({ ok: true, freshSignatureRequired: false });
+		if (!await enforceRateLimitFor(response, 'dashboard-action-wallet', session.wallet, 10, 600)) return;
+		const action = createActionChallenge(session.wallet, body.action);
+		await storeDashboardChallenge({ nonce: action.data.nonce, wallet: action.data.wallet, expiresAt: action.data.exp });
+		return response.status(200).json({ ok: true, freshSignatureRequired: true, action: body.action, token: action.token, message: action.message });
+	}
+	if (ANMELDUNG_PAUSIERT) return pauseAntwort(response);
 	// AGENT-AUTH-002, 05.10.2026: der Telegram-Zugangscode wird NUR hier per POST
 	// eingeloest - Same-Origin und JSON sind oben bereits erzwungen. Der Verbrauch
 	// bleibt atomar (consumeDashboardAccess, bedingtes Update, Erfolg nur bei genau
@@ -183,7 +278,9 @@ export default async function handler(request, response) {
 	// EOA (offline) oder deployte Contract-Wallet (ERC-1271, Chain-Read). Reihenfolge
 	// und Felder unveraendert; der Contract-Pfad greift nur nach bestandener
 	// Feldpruefung. Die Nonce wird erst NACH erfolgreicher Signaturpruefung konsumiert.
-	const verified = await verifyWalletSiweSignature({
+	// AUDIT SA-L1: das Ergebnis nennt auch die Autoritaet ('eoa' | 'contract');
+	// daraus - und nur daraus - folgt die Sitzungsart und damit die Laufzeit.
+	const { result: verified, authority } = await verifyWalletSiweAuthority({
 		message,
 		signature,
 		expected: dashboardSiweExpectation(challenge, wallet)
@@ -199,7 +296,8 @@ export default async function handler(request, response) {
 		await recordSecurityEvent(SECURITY_EVENT.SIWE_REPLAY_BLOCKED, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });
 		return response.status(409).json({ ok: false, error: 'Diese Login-Anfrage wurde bereits verwendet.' });
 	}
-	response.setHeader('set-cookie', sessionCookieHeader(wallet));
+	const kind = authority === 'contract' ? 'contract' : 'eoa';
+	response.setHeader('set-cookie', sessionCookieHeader(wallet, Date.now(), kind));
 	await recordAgentEvent({ wallet, eventType: 'dashboard.wallet_authenticated', source: 'dashboard' }).catch(() => {});
 	const data = await dashboardData(wallet);
 	// AGENT-SAFE-3: Safe-App-Pfad (eingebettetes iframe) kann das __Host-Cookie
@@ -209,7 +307,7 @@ export default async function handler(request, response) {
 	// Revoke-Semantik). Das Flag steuert NUR den Transport, nie Identity,
 	// Signatur, Chain, Nonce oder ERC-1271. Normaler Browser bekommt es nie.
 	if (String(request.headers['x-dashboard-transport'] ?? '').toLowerCase() === 'bearer') {
-		data.sessionToken = createDashboardSession(wallet);
+		data.sessionToken = createDashboardSession(wallet, Date.now(), kind);
 	}
 	return response.status(200).json(data);
 }

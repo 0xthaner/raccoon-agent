@@ -1,5 +1,5 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
-import { dashboardExpectation, dashboardSiweMessage, newRequestId } from './siwe-auth.mjs';
+import { ACTION_PURPOSES, actionExpectation, actionSiweMessage, dashboardExpectation, dashboardSiweMessage, newRequestId } from './siwe-auth.mjs';
 
 /**
  * Mindestlaenge des Dashboard-Secrets.
@@ -69,8 +69,29 @@ export function createDashboardChallenge(wallet, now = Date.now(), ttlMs = DASHB
 	return { token: `${payload}.${sign(payload)}`, message: dashboardMessage(data, wallet) };
 }
 
-export function createDashboardSession(wallet, now = Date.now()) {
-	const data = { type: 'session', wallet: wallet.toLowerCase(), iat: now, exp: now + 7 * 24 * 60 * 60_000 };
+/*
+	AUDIT SA-L1, 14.10.2026: Sitzungsart und Laufzeit.
+
+	Eine EOA-Sitzung beruht auf dem Schluessel der Adresse - der laesst sich
+	nicht "entziehen"; sie bleibt bei 7 Tagen. Eine Contract-Sitzung (Safe)
+	beruht auf der ERC-1271-Antwort zum Anmeldezeitpunkt; danach kann ein Owner
+	entfernt werden. Sie gilt deshalb nur 24 Stunden. Die Art (`kind`) bestimmt
+	ausschliesslich der Server aus dem tatsaechlich erfolgreichen Pruefpfad
+	(verifyWalletSiweAuthority) und schreibt sie HMAC-geschuetzt ins Token.
+	Kein Request-, SDK- oder Header-Wert waehlt sie.
+
+	Tokens von vor dieser Aenderung tragen kein `kind`; sie gelten bis zu ihrem
+	alten Ablauf weiter (hoechstens 7 Tage). Fuer destruktive Aktionen entscheidet
+	bei ihnen der Server per getCode (api/dashboard.mjs).
+*/
+export const SESSION_TTL_EOA_MS = 7 * 24 * 60 * 60_000;
+export const SESSION_TTL_CONTRACT_MS = 24 * 60 * 60_000;
+export const SESSION_KINDS = Object.freeze(['eoa', 'contract']);
+const sessionTtl = (kind) => (kind === 'contract' ? SESSION_TTL_CONTRACT_MS : SESSION_TTL_EOA_MS);
+
+export function createDashboardSession(wallet, now = Date.now(), kind = 'eoa') {
+	if (!SESSION_KINDS.includes(kind)) throw new Error('Unbekannte Sitzungsart.');
+	const data = { type: 'session', wallet: wallet.toLowerCase(), kind, iat: now, exp: now + sessionTtl(kind) };
 	const payload = Buffer.from(JSON.stringify(data)).toString('base64url');
 	return `${payload}.${sign(payload)}`;
 }
@@ -85,7 +106,7 @@ export function verifyDashboardToken(token) {
 	if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return null;
 	try {
 		const data = JSON.parse(Buffer.from(payload, 'base64url').toString());
-		if (!data || !['challenge', 'session'].includes(data.type) || !/^0x[a-f0-9]{40}$/.test(data.wallet ?? '') || !Number.isFinite(data.exp) || Date.now() > data.exp) return null;
+		if (!data || !['challenge', 'session', 'action'].includes(data.type) || !/^0x[a-f0-9]{40}$/.test(data.wallet ?? '') || !Number.isFinite(data.exp) || Date.now() > data.exp) return null;
 		if (data.type === 'challenge' && !/^[a-f0-9]{32}$/.test(data.nonce ?? '')) return null;
 		if (data.type === 'challenge' && !/^[a-f0-9]{32}$/.test(data.rid ?? '')) return null;
 			// AGENT-SEC-A3, 29.08.2026: eine Challenge ohne die serverseitigen
@@ -93,8 +114,42 @@ export function verifyDashboardToken(token) {
 			// endet das alte Nachrichtenformat ohne parallelen Legacy-Pfad.
 			if (data.type === 'challenge' && !Number.isFinite(data.iat)) return null;
 			if (data.type === 'session' && !Number.isFinite(data.iat)) return null;
+			// AUDIT SA-L1: eine Sitzungsart, falls vorhanden, muss bekannt sein und zur
+			// Laufzeit passen - eine Contract-Sitzung kann nie laenger als 24 h gelten.
+			if (data.type === 'session' && data.kind !== undefined && (!SESSION_KINDS.includes(data.kind) || data.exp - data.iat > sessionTtl(data.kind))) return null;
+			// Frische Bestaetigung: bekannter Zweck, Nonce, Request-ID, hoechstens ACTION_CHALLENGE_TTL_MS.
+			if (data.type === 'action' && (!Object.prototype.hasOwnProperty.call(ACTION_PURPOSES, data.purpose) || !/^[a-f0-9]{32}$/.test(data.nonce ?? '') || !/^[a-f0-9]{32}$/.test(data.rid ?? '') || !Number.isFinite(data.iat) || data.exp - data.iat > ACTION_CHALLENGE_TTL_MS)) return null;
 		return data;
 	} catch { return null; }
+}
+
+/*
+	AUDIT SA-L1: Challenge fuer eine frische Bestaetigung (Telegram trennen,
+	ueberall abmelden). Eigener Typ `action` mit Zweck; derselbe Nonce-Speicher
+	und derselbe atomare Verbrauch wie beim Login (dashboard_challenges). Ein
+	Login-Token ist nie eine Aktions-Challenge und umgekehrt.
+*/
+export const ACTION_CHALLENGE_TTL_MS = 5 * 60_000;
+
+export function createActionChallenge(wallet, purpose, now = Date.now()) {
+	if (!Object.prototype.hasOwnProperty.call(ACTION_PURPOSES, purpose)) throw new Error('Unbekannter Bestaetigungszweck.');
+	const data = { type: 'action', purpose, wallet: wallet.toLowerCase(), nonce: randomBytes(16).toString('hex'), iat: now, rid: newRequestId(), exp: now + ACTION_CHALLENGE_TTL_MS };
+	const payload = Buffer.from(JSON.stringify(data)).toString('base64url');
+	return { token: `${payload}.${sign(payload)}`, message: actionMessage(data), data };
+}
+
+export function verifyActionChallenge(token, purpose) {
+	const data = verifyDashboardToken(token);
+	return data?.type === 'action' && data.purpose === purpose ? data : null;
+}
+
+/** Der Signaturtext einer frischen Bestaetigung, immer serverseitig aus der Challenge. */
+export function actionMessage(data) {
+	return actionSiweMessage({ wallet: data.wallet, nonce: data.nonce, issuedAt: data.iat, expiresAt: data.exp, requestId: data.rid, purpose: data.purpose });
+}
+
+export function actionSiweExpectation(data) {
+	return actionExpectation({ wallet: data.wallet, nonce: data.nonce, issuedAt: data.iat, expiresAt: data.exp, requestId: data.rid, purpose: data.purpose });
 }
 
 export function verifyDashboardSession(token) {
@@ -127,8 +182,11 @@ export const CLEAR_SESSION_COOKIES = [
 ];
 
 /** Die EINZIGE Stelle, die ein Dashboard-Sessioncookie ausstellt. */
-export function sessionCookieHeader(wallet, now = Date.now()) {
-	return `${SESSION_COOKIE}=${encodeURIComponent(createDashboardSession(wallet, now))}; ${SESSION_COOKIE_OPTIONS}`;
+export function sessionCookieHeader(wallet, now = Date.now(), kind = 'eoa') {
+	const token = createDashboardSession(wallet, now, kind);
+	// Das Cookie lebt nie laenger als das Token (Contract: 24 h).
+	const options = kind === 'contract' ? SESSION_COOKIE_OPTIONS.replace('Max-Age=604800', `Max-Age=${SESSION_TTL_CONTRACT_MS / 1000}`) : SESSION_COOKIE_OPTIONS;
+	return `${SESSION_COOKIE}=${encodeURIComponent(token)}; ${options}`;
 }
 
 function cookieOf(request, name) {
