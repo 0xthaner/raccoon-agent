@@ -53,7 +53,7 @@ for (const mode of ['active','lookup-error','telegram']) {
    queryParams,singleQueryValue,
    resolveDashboardSession:()=>({session:{wallet:'0x1111111111111111111111111111111111111111',iat:100}}),
    isDashboardSessionRevoked:async()=>{if(mode==='lookup-error')throw Error('offline');return false;},
-   requireSameOrigin:()=>true,enforceRateLimit:async()=>true,CLEAR_SESSION_COOKIES,resolveLogout,isDeployedContract:async()=>false,
+   requireSameOrigin:()=>true,enforceRateLimit:async()=>true,CLEAR_SESSION_COOKIES,resolveLogout,isDeployedContract:async()=>false,noContractCodeByQuorum:async()=>true,
    revokeDashboardSessions:async()=>{writes++;},recordAgentEvent:async()=>{},
    unlinkWalletByWallet:async()=>{unlinks++;return [];}
   });

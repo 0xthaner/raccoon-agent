@@ -18,16 +18,22 @@ import { join } from 'node:path';
 
 Object.assign(process.env, {
 	ALCHEMY_API_KEY: 'test-alchemy-key',
+	INFURA_API_KEY: 'test-infura-key',
 	SUPABASE_URL: process.env.SUPABASE_URL || 'https://supabase.test.invalid',
 	SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY || 'test-secret-key'
 });
 
 const attempts = [];
+const infuraAttempts = [];
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (url, init) => {
 	const u = String(url);
 	if (u.startsWith('https://eth-mainnet.g.alchemy.com/v2/')) {
 		attempts.push(JSON.parse(init.body).method);
+		return new Response('unavailable', { status: 503 });
+	}
+	if (u.startsWith('https://mainnet.infura.io/v3/')) {
+		infuraAttempts.push(JSON.parse(init.body).method);
 		return new Response('unavailable', { status: 503 });
 	}
 	return realFetch(url, init);
@@ -54,11 +60,18 @@ test('positions: one attempt per call, market UNAVAILABLE', async () => {
 	assert.deepEqual(attempts, ['eth_blockNumber']);
 });
 
-test('ERC-1271 login keeps viem retries on purpose: a single 503 must not fail a Safe sign-in', async () => {
+test('ERC-1271 login keeps viem retries on purpose: a single 503 must not fail a Safe sign-in - at BOTH providers', async () => {
 	attempts.length = 0;
+	infuraAttempts.length = 0;
 	const result = await verifyContractSiweSignature({ address: WALLET, message: 'coverraccoon.com wants you to sign in', signature: `0x${'ab'.repeat(65)}` });
 	assert.equal(result, 'RPC_UNAVAILABLE', 'nach allen Versuchen weiterhin fail closed');
-	assert.deepEqual(attempts, ['eth_getCode', 'eth_getCode', 'eth_getCode', 'eth_getCode'], 'awaited in the request: 1 + 3 retries');
+	// Dual-RPC: der erste Schritt (Kette + Kopf) laeuft bei beiden Providern, je 1 + 3 Versuche.
+	const count = (list, method) => list.filter((m) => m === method).length;
+	for (const [name, list] of [['alchemy', attempts], ['infura', infuraAttempts]]) {
+		assert.equal(count(list, 'eth_chainId'), 4, `${name}: awaited in the request: 1 + 3 retries`);
+		assert.equal(count(list, 'eth_blockNumber'), 4, name);
+		assert.equal(count(list, 'eth_getCode') + count(list, 'eth_call'), 0, `${name}: ohne gemeinsamen Block kein Zustandslesen`);
+	}
 });
 
 test('cover reads keep viem retries on purpose: a lost read can cost an expiry-day reminder', async () => {

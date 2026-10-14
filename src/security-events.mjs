@@ -27,7 +27,9 @@ export const SECURITY_EVENT = Object.freeze({
 	SIWE_REPLAY_BLOCKED: 'security.siwe_replay_blocked',
 	WEBHOOK_AUTH_FAILED: 'security.webhook_auth_failed',
 	RATE_LIMIT_BLOCKED: 'security.rate_limit_blocked',
-	ACCESS_CODE_INVALID: 'security.access_code_invalid'
+	ACCESS_CODE_INVALID: 'security.access_code_invalid',
+	// Zwei ERC-1271-Provider widersprechen sich (Fork, veralteter Knoten oder Luege).
+	ERC1271_RPC_DISAGREEMENT: 'security.erc1271_rpc_disagreement'
 });
 
 const RECORD_MAX_PER_WINDOW = 30;
@@ -50,7 +52,9 @@ const ALERT_RULES = Object.freeze({
 	[/* SIWE_SIGNATURE_INVALID */ 'security.siwe_signature_invalid']: { group: 'login', label: 'SIWE/Login-Fehlversuche', threshold: 5, window: 600 },
 	[/* SIWE_REPLAY_BLOCKED */ 'security.siwe_replay_blocked']: { group: 'login', label: 'SIWE/Login-Fehlversuche', threshold: 5, window: 600 },
 	[/* WEBHOOK_AUTH_FAILED */ 'security.webhook_auth_failed']: { group: 'webhook', label: 'Webhook-Authentifizierung fehlgeschlagen', threshold: 3, window: 600 },
-	[/* RATE_LIMIT_BLOCKED */ 'security.rate_limit_blocked']: { group: 'ratelimit', label: 'Rate-Limit-Blocks', threshold: 20, window: 600 }
+	[/* RATE_LIMIT_BLOCKED */ 'security.rate_limit_blocked']: { group: 'ratelimit', label: 'Rate-Limit-Blocks', threshold: 20, window: 600 },
+	// Ehrliche Provider widersprechen sich am selben Block praktisch nie: schon EIN Fall meldet sich (Cooldown 1 h).
+	[/* ERC1271_RPC_DISAGREEMENT */ 'security.erc1271_rpc_disagreement']: { group: 'rpc', label: 'ERC-1271-Provider uneinig', threshold: 1, window: 3600 }
 });
 const ALERT_COOLDOWN_SECONDS = 3600;
 

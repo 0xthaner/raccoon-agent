@@ -71,7 +71,7 @@ export default async function handler(request, response) {
 	const verified = await verifyWalletSiweSignature({ message, signature, expected });
 	if (verified !== 'VALID') {
 		if (verified !== 'RPC_UNAVAILABLE') {
-			await recordSecurityEvent(SECURITY_EVENT.SIWE_SIGNATURE_INVALID, { source: 'telegram', fingerprint: securityFingerprint(wallet) });
+			await recordSecurityEvent(verified === 'RPC_DISAGREEMENT' ? SECURITY_EVENT.ERC1271_RPC_DISAGREEMENT : SECURITY_EVENT.SIWE_SIGNATURE_INVALID, { source: 'telegram', fingerprint: securityFingerprint(wallet) });
 		}
 		return response.status(401).json({ ok: false, error: 'Signatur konnte nicht bestätigt werden.' });
 	}

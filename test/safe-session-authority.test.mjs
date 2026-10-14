@@ -28,39 +28,46 @@ delete process.env.TELEGRAM_BOT_TOKEN;
 
 const auth = await import('../src/dashboard-auth.mjs');
 const linking = await import('../src/linking.mjs');
-const { verifyWalletSiweAuthority } = await import('../src/contract-signature.mjs');
+const { noContractCodeByQuorum, verifyWalletSiweAuthority } = await import('../src/contract-signature.mjs');
 
 const SAFE = '0x5afe00000000000000000000000000000000a00a';
 const OTHER_SAFE = '0x5afe00000000000000000000000000000000b00b';
 const SAFE_CODE = '0x608060405273ffffffffffffffffffffffffffffffffffffffff600054167fa619486e';
 const SIG_OWNER_A = `0x${'a1'.repeat(65)}`;
 const SIG_OWNER_B = `0x${'b2'.repeat(65)}`;
-const TRUE = `0x${'0'.repeat(63)}1`;
-const FALSE = `0x${'0'.repeat(64)}`;
+const MAGIC = `0x1626ba7e${'0'.repeat(56)}`;
+const NOT_MAGIC = `0xffffffff${'0'.repeat(56)}`;
 const EOA = privateKeyToAccount(generatePrivateKey());
 const DAY = 24 * 60 * 60_000;
 
 /* ---------------------------------------------------------------- Welt */
 
-function world({ owners = ['A', 'B'], codeError = null, callError = null } = {}) {
-	const state = { owners: new Set(owners), challenges: new Map(), revokedAt: new Map(), revokes: 0, unlinks: 0, covers: 0, linkStates: 0, revokedLookupError: false, deployed: new Set([SAFE, OTHER_SAFE]), contractCheckError: false, rpc: [] };
+function world({ owners = ['A', 'B'], codeError = null, callError = null, forge = null } = {}) {
+	const state = { owners: new Set(owners), challenges: new Map(), revokedAt: new Map(), revokes: 0, unlinks: 0, covers: 0, linkStates: 0, revokedLookupError: false, deployed: new Set([SAFE, OTHER_SAFE]), contractCheckError: false, rpc: [], events: [] };
 	// Die simulierte Safe akzeptiert nur Signaturen ihrer AKTUELLEN Owner (wie isValidSignature).
-	const client = createPublicClient({ chain: mainnet, transport: custom({ async request({ method, params }) {
+	// Zwei getrennte, ehrliche Provider (Alchemy, Infura) auf derselben Kette: ERC-1271
+	// verlangt seit dem Dual-RPC-Konsens beide.
+	const provider = (name) => createPublicClient({ chain: mainnet, transport: custom({ async request({ method, params }) {
 		state.rpc.push(method);
 		if (method === 'eth_chainId') return '0x1';
-		if (method === 'eth_getCode') { if (codeError) throw codeError; return state.deployed.has(params[0].toLowerCase()) ? SAFE_CODE : '0x'; }
+		if (method === 'eth_blockNumber') return '0x1312d00';
+		if (method === 'eth_getBlockByNumber') return { number: params[0], hash: `0x${BigInt(params[0]).toString(16).padStart(64, '0')}` };
+		if (method === 'eth_getCode') { if (codeError || state.contractCheckError) throw codeError ?? new Error('rpc'); return state.deployed.has(params[0].toLowerCase()) ? SAFE_CODE : '0x'; }
 		if (method === 'eth_call') {
 			if (callError) throw callError;
 			const data = String(params[0].data).toLowerCase();
 			const accepted = (state.owners.has('A') && data.includes(SIG_OWNER_A.slice(2))) || (state.owners.has('B') && data.includes(SIG_OWNER_B.slice(2)));
-			return accepted ? TRUE : FALSE;
+			// `forge`: genau dieser eine Provider ist kompromittiert und meldet immer "gueltig".
+			return accepted || forge === name ? MAGIC : NOT_MAGIC;
 		}
 		throw new Error(`unexpected ${method}`);
 	} }, { retryCount: 0 }) });
+	const providers = { alchemy: provider('alchemy'), infura: provider('infura') };
 	const source = readFileSync(new URL('../api/dashboard.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace('export default async function handler', 'async function handler');
 	const deps = {
 		isAddress, queryParams, singleQueryValue, ...auth,
-		verifyWalletSiweAuthority: (params) => verifyWalletSiweAuthority(params, { client }),
+		verifyWalletSiweAuthority: (params) => verifyWalletSiweAuthority(params, { providers }),
+		noContractCodeByQuorum: (wallet) => noContractCodeByQuorum(wallet, { providers }),
 		isDeployedContract: async (wallet) => { if (state.contractCheckError) throw new Error('rpc'); return state.deployed.has(wallet.toLowerCase()); },
 		getWalletCovers: async () => { state.covers++; return { covers: [] }; },
 		getWalletLinkStateByWallet: async () => { state.linkStates++; return { linked: true, link: null }; },
@@ -73,7 +80,7 @@ function world({ owners = ['A', 'B'], codeError = null, callError = null } = {})
 		beginTelegramDelivery: async () => null, finishTelegramDelivery: async () => {},
 		ANMELDUNG_PAUSIERT: false, pauseAntwort: () => {},
 		enforceRateLimit: async () => true, enforceRateLimitFor: async () => true, requireSameOrigin: () => true,
-		requireJson: () => true, recordSecurityEvent: async () => {}, securityFingerprint: () => 'fp', SECURITY_EVENT: {}
+		requireJson: () => true, recordSecurityEvent: async (type) => { state.events.push(type); }, securityFingerprint: () => 'fp', SECURITY_EVENT: { ERC1271_RPC_DISAGREEMENT: 'security.erc1271_rpc_disagreement', SIWE_SIGNATURE_INVALID: 'security.siwe_signature_invalid', SIWE_REPLAY_BLOCKED: 'security.siwe_replay_blocked' }
 	};
 	const handler = new Function(...Object.keys(deps), `${source}\nreturn handler;`)(...Object.values(deps));
 	return { state, handler };
@@ -422,4 +429,26 @@ test('SA-L1 client: Safe App confirmation uses only off-chain signing; WalletCon
 	assert.match(block, /not a transaction: no transfer, no token approval/);
 	assert.match(block, /if \(konto !== expected \|\| normalizeAddress\(modal\.getAddress\(\)\) !== expected\)/, 'nur die angemeldete Wallet');
 	assert.match(block, /if \(!confirm\(/, 'nie still im Hintergrund');
+});
+
+/* ===================================================== DUAL-RPC (14.10.2026) */
+
+test('DUAL-RPC: ONE compromised provider can neither log in a removed owner nor authorize a destructive action', async () => {
+	for (const forge of ['alchemy', 'infura']) {
+		const h = world({ owners: ['B'], forge }); // A ist kein Owner; ein Provider luegt "gueltig"
+		const login = await safeLogin(h, { sig: SIG_OWNER_A });
+		assert.equal(login.statusCode, 401, `${forge}: Login`);
+		assert.equal(login.headers['set-cookie'], undefined);
+		const session = auth.createDashboardSession(SAFE, Date.now(), 'contract');
+		for (const [url, purpose] of [['/api/dashboard?telegram=1', 'telegram-disconnect'], ['/api/dashboard', 'session-revoke']]) {
+			const challenge = await freshAuth(h, session, purpose);
+			const r = await call(h.handler, { method: 'DELETE', url, headers: cookie(session), body: { token: challenge.token, signature: SIG_OWNER_A } });
+			assert.equal(r.statusCode, 401, `${forge}: ${purpose}`);
+		}
+		assert.equal(h.state.unlinks + h.state.revokes, 0);
+		assert.ok(h.state.events.includes('security.erc1271_rpc_disagreement'), `${forge}: Widerspruch gemeldet`);
+		assert.ok(!h.state.events.includes('security.siwe_signature_invalid'), 'nicht als gewoehnlicher Fehlversuch verbucht');
+		// Ein echter Owner (B) kommt trotz luegendem Provider durch - beide sagen "gueltig".
+		assert.equal((await safeLogin(h, { sig: SIG_OWNER_B })).statusCode, 200);
+	}
 });

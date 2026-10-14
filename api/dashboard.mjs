@@ -1,7 +1,7 @@
 import { isAddress } from 'viem';
 import { getWalletCovers } from '../src/covers.mjs';
 import { actionMessage, actionSiweExpectation, CLEAR_SESSION_COOKIES, createActionChallenge, createDashboardChallenge, createDashboardSession, DASHBOARD_CHALLENGE_TTL_CONTRACT_MS, DASHBOARD_CHALLENGE_TTL_EOA_MS, dashboardMessage, dashboardSiweExpectation, resolveDashboardSession, resolveLogout, sessionCookieHeader, verifyActionChallenge, verifyDashboardToken } from '../src/dashboard-auth.mjs';
-import { verifyWalletSiweAuthority } from '../src/contract-signature.mjs';
+import { noContractCodeByQuorum, verifyWalletSiweAuthority } from '../src/contract-signature.mjs';
 import { isDeployedContract } from '../src/contract-detect.mjs';
 import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, getWalletLinkStateByWallet, isDashboardSessionRevoked, recordAgentEvent, revokeDashboardSessions, storeDashboardChallenge, unlinkWalletByWallet } from '../src/db.mjs';
 import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../src/pause.mjs';
@@ -36,7 +36,8 @@ function sessionIssuedAt(session) {
 async function freshAuthorityRequired(session) {
 	if (session.kind === 'eoa') return false;
 	if (session.kind === 'contract') return true;
-	try { return await isDeployedContract(session.wallet); } catch { return true; }
+	// Ohne Bestaetigung nur, wenn BEIDE Provider keinen Code melden; jeder Zweifel -> noetig.
+	try { return !await noContractCodeByQuorum(session.wallet); } catch { return true; }
 }
 
 /**
@@ -58,7 +59,7 @@ async function verifyFreshAuthority(request, response, wallet, purpose) {
 		return false;
 	}
 	if (verified.result !== 'VALID') {
-		await recordSecurityEvent(SECURITY_EVENT.SIWE_SIGNATURE_INVALID, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });
+		await recordSecurityEvent(verified.result === 'RPC_DISAGREEMENT' ? SECURITY_EVENT.ERC1271_RPC_DISAGREEMENT : SECURITY_EVENT.SIWE_SIGNATURE_INVALID, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });
 		response.status(401).json({ ok: false, code: 'FRESH_SIGNATURE_INVALID', error: 'Die Bestätigung konnte nicht geprüft werden.' });
 		return false;
 	}
@@ -286,9 +287,10 @@ export default async function handler(request, response) {
 		expected: dashboardSiweExpectation(challenge, wallet)
 	});
 	if (verified !== 'VALID') {
-		// RPC-Ausfall (Contract-Status nicht feststellbar) ist kein Angriffssignal.
+		// RPC-Ausfall (Contract-Status nicht feststellbar) ist kein Angriffssignal;
+		// ein Widerspruch der beiden ERC-1271-Provider schon (eigenes Ereignis).
 		if (verified !== 'RPC_UNAVAILABLE') {
-			await recordSecurityEvent(SECURITY_EVENT.SIWE_SIGNATURE_INVALID, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });
+			await recordSecurityEvent(verified === 'RPC_DISAGREEMENT' ? SECURITY_EVENT.ERC1271_RPC_DISAGREEMENT : SECURITY_EVENT.SIWE_SIGNATURE_INVALID, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });
 		}
 		return response.status(401).json({ ok: false, error: 'Wallet-Signatur konnte nicht bestätigt werden.' });
 	}
