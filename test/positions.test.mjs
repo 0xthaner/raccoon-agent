@@ -418,7 +418,7 @@ test('A: revoked session is 401; a failing revocation check is 503, not a pass',
 test('A: a ?wallet= parameter is rejected; positions come only from the session wallet', async () => {
 	const { h, seen } = handler();
 	const r = res();
-	await h({ method: 'GET', headers: cookie(WALLET), query: { wallet: OTHER } }, r);
+	await h({ method: 'GET', url: `/api/positions?wallet=${OTHER}`, headers: cookie(WALLET) }, r);
 	assert.deepEqual([r.statusCode, r.body.code], [400, 'WALLET_PARAMETER_NOT_ALLOWED']);
 	assert.deepEqual(seen.wallets, []);
 	const ok = res();
@@ -895,7 +895,7 @@ test('SEC api: strict GET without parameters; rate-limit or DB failure is a clea
 	const { h, seen } = handler();
 	for (const query of [{ Wallet: OTHER }, { 'wallet[]': OTHER }, { foo: 'bar' }, { x: 'y'.repeat(10_000) }]) {
 		const r = res();
-		await h({ method: 'GET', headers: cookie(WALLET), query }, r);
+		await h({ method: 'GET', url: `/api/positions?${new URLSearchParams(query)}`, headers: cookie(WALLET) }, r);
 		assert.equal(r.statusCode, 400, JSON.stringify(Object.keys(query)));
 	}
 	for (const method of ['HEAD', 'OPTIONS', 'PUT', 'DELETE']) {

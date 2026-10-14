@@ -15,6 +15,7 @@ import { resolveDashboardSession } from '../src/dashboard-auth.mjs';
 import { isDashboardSessionRevoked } from '../src/db.mjs';
 import { enforceRateLimit, enforceRateLimitFor } from '../src/http-security.mjs';
 import { getWalletPositions, LookupNotAdmittedError, PositionsBusyError } from '../src/positions/index.mjs';
+import { queryKeys, queryParams } from '../src/request-query.mjs';
 
 function sessionIssuedAt(session) {
 	return Number.isFinite(session?.iat) ? session.iat : session?.exp - 7 * 24 * 60 * 60_000;
@@ -40,8 +41,9 @@ function createInnerHandler({ getPositions, isRevoked, rateLimit = enforceRateLi
 		response.setHeader('cache-control', 'no-store');
 		if (request.method !== 'GET') return response.status(405).json({ ok: false, error: 'Method not allowed' });
 		// Kein Parameter veraendert diese Abfrage; insbesondere keine Wallet.
-		if (request.query && Object.keys(request.query).length) {
-			const walletParameter = Object.keys(request.query).some((key) => /wallet/i.test(key));
+		const queryNames = queryKeys(queryParams(request));
+		if (queryNames.length) {
+			const walletParameter = queryNames.some((key) => /wallet/i.test(key));
 			return response.status(400).json(walletParameter
 				? { ok: false, code: 'WALLET_PARAMETER_NOT_ALLOWED', error: 'Positionen gibt es nur für die angemeldete Wallet.' }
 				: { ok: false, code: 'QUERY_NOT_ALLOWED', error: 'Diese Abfrage nimmt keine Parameter an.' });

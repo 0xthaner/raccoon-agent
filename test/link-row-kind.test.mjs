@@ -21,6 +21,9 @@ import { readFileSync } from 'node:fs';
 import { privateKeyToAccount } from 'viem/accounts';
 import { telegramExpectation, telegramSiweMessage, verifyExpectedSiweSignature } from '../src/siwe-auth.mjs';
 import * as linking from '../src/linking.mjs';
+import * as requestQuery from '../src/request-query.mjs';
+
+const urlOf = (path, query = {}) => { const qs = new URLSearchParams(query).toString(); return qs ? `${path}?${qs}` : path; };
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 function loadHandler(source, deps) {
@@ -52,6 +55,7 @@ function linkDeps(lookups) {
 		enforceRateLimit: async () => true,
 		ANMELDUNG_PAUSIERT: false, pauseAntwort: () => {},
 		isTelegramLinkCode: linking.isTelegramLinkCode, isTelegramLinkRow: linking.isTelegramLinkRow,
+		queryParams: requestQuery.queryParams, singleQueryValue: requestQuery.singleQueryValue,
 		process: { env: {} }, fetch: async () => { throw new Error('no network'); }
 	};
 }
@@ -61,7 +65,7 @@ test('F1 GET /api/link: a predictable revocation code is no oracle for another w
 	const handler = loadHandler(read('api/link.mjs'), linkDeps(lookups));
 	for (const query of [{ code: `revoked_wallet_${VICTIM}` }, { code: `revoked_wallet_${VICTIM}`, wallet: '0x2222222222222222222222222222222222222222' }]) {
 		const res = response();
-		await handler({ method: 'GET', query, headers: {} }, res);
+		await handler({ method: 'GET', url: urlOf('/api/link', query), headers: {} }, res);
 		assert.equal(res.code, 410, JSON.stringify(query));
 		assert.doesNotMatch(JSON.stringify(res.body), /1760000000000|telegram|message/);
 	}
@@ -72,12 +76,12 @@ test('F1 GET /api/link: only private-chat link rows are links, whatever the code
 	const handler = loadHandler(read('api/link.mjs'), linkDeps([]));
 	for (const code of ['DashboardAccessCodeXYZ12', 'RevokedMarkerShapedCode1', 'UnlinkedShapedCode000001', 'NegativeChatIdCode000001']) {
 		const res = response();
-		await handler({ method: 'GET', query: { code, wallet: '0x2222222222222222222222222222222222222222' }, headers: {} }, res);
+		await handler({ method: 'GET', url: urlOf('/api/link', { code, wallet: '0x2222222222222222222222222222222222222222' }), headers: {} }, res);
 		assert.equal(res.code, 410, code);
 		assert.equal(res.body.message, undefined, code);
 	}
 	const ok = response();
-	await handler({ method: 'GET', query: { code: LINK_CODE, wallet: '0x2222222222222222222222222222222222222222' }, headers: {} }, ok);
+	await handler({ method: 'GET', url: urlOf('/api/link', { code: LINK_CODE, wallet: '0x2222222222222222222222222222222222222222' }), headers: {} }, ok);
 	assert.equal(ok.code, 200);
 	assert.match(ok.body.message, /nonce=abab/);
 });

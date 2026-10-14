@@ -197,7 +197,7 @@ test('B16 die Telegram-Trennung widerruft keine Dashboard-Session', () => {
 	// Der Zweig fuer `?telegram=1` endet mit seinem eigenen `return`, bevor der
 	// Logoutblock beginnt. Er beruehrt `revokeDashboardSessions` nicht.
 	const code = source('../api/dashboard.mjs');
-	const branch = code.slice(code.indexOf("request.query.telegram === '1'"), code.indexOf('AGENT-SEC-A1'));
+	const branch = code.slice(code.indexOf("singleQueryValue(queryParams(request), 'telegram') === '1'"), code.indexOf('AGENT-SEC-A1'));
 	assert.ok(branch.includes('unlinkWalletByWallet'));
 	assert.equal(branch.includes('revokeDashboardSessions'), false);
 	assert.equal(branch.includes('resolveLogout'), false);
@@ -374,8 +374,8 @@ test('R37 der Login setzt das Host-Cookie an genau einer Stelle', () => {
 	assert.ok(code.indexOf('await consumeDashboardChallenge(') < mint);
 
 	// Und sie liegt nicht im Zugangscodezweig.
-	const accessStart = code.indexOf('const access = typeof request.query.access');
-	const accessEnd = code.indexOf('const wallet = typeof request.query.wallet');
+	const accessStart = code.indexOf("const access = singleQueryValue(query, 'access');");
+	const accessEnd = code.indexOf("const wallet = singleQueryValue(query, 'wallet');");
 	assert.ok(accessStart > 0 && accessEnd > accessStart);
 	assert.ok(mint > accessEnd, 'die Ausstellung darf nicht im Zugangszweig liegen');
 

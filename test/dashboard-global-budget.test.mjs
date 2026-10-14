@@ -16,6 +16,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { createHmac } from 'node:crypto';
+import { queryParams, singleQueryValue } from '../src/request-query.mjs';
 
 const dashboard = readFileSync('api/dashboard.mjs', 'utf8');
 const sicherheit = readFileSync('src/http-security.mjs', 'utf8');
@@ -172,7 +173,7 @@ function handlerWith(calls, blocked) {
 	const step = (name) => { calls.push(name); return name !== blocked; };
 	const handler = dashboard.slice(dashboard.indexOf('export default async function handler')).replace('export default ', '');
 	return vm.runInNewContext(`(${handler})`, {
-		ANMELDUNG_PAUSIERT: false,
+		ANMELDUNG_PAUSIERT: false, queryParams, singleQueryValue,
 		isAddress: (value) => /^0x[0-9a-f]{40}$/.test(value ?? ''),
 		enforceRateLimit: async (_req, _res, scope) => step(scope),
 		enforceRateLimitFor: async (_res, scope) => step(scope),
@@ -196,7 +197,7 @@ test('offline handler: malformed challenge and narrower/global blocks stop later
 	for (const blocked of [null, 'malformed', ...stages.slice(1, 4)]) {
 		const calls = [];
 		const response = responseMock();
-		await handlerWith(calls, blocked)({ method: 'GET', query: { wallet: blocked === 'malformed' ? 'bad' : wallet } }, response);
+		await handlerWith(calls, blocked)({ method: 'GET', url: `/api/dashboard?wallet=${blocked === 'malformed' ? 'bad' : wallet}` }, response);
 		const expected = blocked === 'malformed' ? stages.slice(0, 1) : blocked ? stages.slice(0, stages.indexOf(blocked) + 1) : stages;
 		assert.deepEqual(calls, expected);
 		if (blocked === 'malformed') assert.equal(response.code, 400);

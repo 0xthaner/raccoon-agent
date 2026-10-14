@@ -2,6 +2,7 @@ import { isAddress } from 'viem';
 import { getPendingLink } from '../src/db.mjs';
 import { isTelegramLinkCode, isTelegramLinkRow, signingMessage } from '../src/linking.mjs';
 import { enforceRateLimit } from '../src/http-security.mjs';
+import { queryParams, singleQueryValue } from '../src/request-query.mjs';
 import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../src/pause.mjs';
 
 async function telegramAccount(chatId) {
@@ -25,8 +26,9 @@ export default async function handler(request, response) {
 	if (request.method !== 'GET') return response.status(405).json({ ok: false, error: 'Method not allowed' });
 	if (ANMELDUNG_PAUSIERT) return pauseAntwort(response);
 	if (!await enforceRateLimit(request, response, 'wallet-link-read', 30, 600)) return;
-	const code = typeof request.query.code === 'string' ? request.query.code : '';
-	const wallet = typeof request.query.wallet === 'string' ? request.query.wallet : '';
+	const query = queryParams(request);
+	const code = singleQueryValue(query, 'code');
+	const wallet = singleQueryValue(query, 'wallet');
 	// AUDIT-2026-10-12 F1: nur echte Verknuepfungscodes und -zeilen, siehe linking.mjs.
 	const pending = isTelegramLinkCode(code) ? await getPendingLink(code) : null;
 	if (!pending || !isTelegramLinkRow(pending) || pending.used_at || pending.expires_at < Date.now()) {

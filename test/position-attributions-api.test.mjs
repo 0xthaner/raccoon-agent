@@ -76,7 +76,8 @@ function res() {
 async function call(handler, { method = 'GET', wallet = A, body, headers = {}, query = {} } = {}) {
 	const r = res();
 	const h = { ...(wallet ? { cookie: cookie(wallet) } : {}), ...(method === 'GET' ? {} : { 'content-type': 'application/json' }), ...headers };
-	await handler({ method, headers: h, query, body }, r);
+	const qs = new URLSearchParams(query).toString();
+	await handler({ method, url: qs ? `/api/position-attributions?${qs}` : '/api/position-attributions', headers: h, body }, r);
 	return r;
 }
 const rowsOf = (state, wallet) => state.rows.filter((r) => r.wallet === wallet).map((r) => [r.deployment_key, r.cover_id, r.source]);

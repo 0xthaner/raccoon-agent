@@ -24,6 +24,7 @@ import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin }
 import { getWalletPositions, LookupNotAdmittedError } from '../src/positions/index.mjs';
 import { getWalletCovers } from '../src/covers.mjs';
 import { checkRelation, parseRelationBody, publicAttribution, reconcile } from '../src/position-attributions.mjs';
+import { queryKeys, queryParams } from '../src/request-query.mjs';
 
 const MAX_BODY_BYTES = 1_024;
 const RETRYABLE = new Set(['POSITION_LOOKUP_UNAVAILABLE', 'PRODUCT_LOOKUP_UNAVAILABLE', 'COVER_LOOKUP_UNAVAILABLE', 'LOOKUP_WALLET_MISMATCH']);
@@ -90,7 +91,7 @@ function createInnerHandler({
 		response.setHeader('cache-control', 'no-store');
 		if (!['GET', 'POST', 'DELETE'].includes(request.method)) return response.status(405).json({ ok: false, error: 'Method not allowed' });
 		// Kein Parameter veraendert diese Anfrage; insbesondere keine Wallet.
-		if (request.query && Object.keys(request.query).length) {
+		if (queryKeys(queryParams(request)).length) {
 			return response.status(400).json({ ok: false, code: 'QUERY_NOT_ALLOWED', error: 'Diese Anfrage nimmt keine Parameter an.' });
 		}
 

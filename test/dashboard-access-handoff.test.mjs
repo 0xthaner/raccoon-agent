@@ -27,8 +27,8 @@ function source(relative) {
 /** Der GET-Zugangszweig, von seinem Beginn bis zum Wallet-Zweig. */
 function getAccessBranch() {
 	const code = source('../api/dashboard.mjs');
-	const start = code.indexOf('const access = typeof request.query.access');
-	const end = code.indexOf('const wallet = typeof request.query.wallet');
+	const start = code.indexOf("const access = singleQueryValue(query, 'access');");
+	const end = code.indexOf("const wallet = singleQueryValue(query, 'wallet');");
 	assert.ok(start > 0 && end > start, 'GET-Zugangszweig nicht gefunden');
 	return code.slice(start, end);
 }

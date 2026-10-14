@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { isAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
+import { queryParams, singleQueryValue } from '../src/request-query.mjs';
 
 process.env.APP_BASE_URL = 'https://coverraccoon.com';
 process.env.DASHBOARD_SESSION_SECRET = 'audit-test-secret-0123456789abcdef-0123456789';
@@ -34,7 +35,7 @@ function response() {
 function setup({ consumeResult = true, storedWallet = OWNER.address } = {}) {
 	const effects = { consumed: [], events: [] };
 	const handler = loadHandler({
-		isAddress, getWalletCovers: async () => ({ covers: [] }),
+		isAddress, getWalletCovers: async () => ({ covers: [] }), queryParams, singleQueryValue,
 		...auth,
 		verifyWalletSiweSignature, isDeployedContract: async () => false,
 		beginTelegramDelivery: async () => null, finishTelegramDelivery: async () => {},

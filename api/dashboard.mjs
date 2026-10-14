@@ -7,6 +7,7 @@ import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChalleng
 import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../src/pause.mjs';
 import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin } from '../src/http-security.mjs';
 import { recordSecurityEvent, securityFingerprint, SECURITY_EVENT } from '../src/security-events.mjs';
+import { queryParams, singleQueryValue } from '../src/request-query.mjs';
 
 async function dashboardData(wallet) {
 	const [result, telegramState] = await Promise.all([getWalletCovers(wallet), getWalletLinkStateByWallet(wallet)]);
@@ -46,7 +47,8 @@ export default async function handler(request, response) {
 	response.setHeader('cache-control', 'no-store');
 	if (request.method === 'GET') {
 		if (!await enforceRateLimit(request, response, 'dashboard-read', 120, 600)) return;
-		const access = typeof request.query.access === 'string' ? request.query.access : '';
+		const query = queryParams(request);
+		const access = singleQueryValue(query, 'access');
 		if (access && ANMELDUNG_PAUSIERT) return pauseAntwort(response);
 		if (access) {
 			// AGENT-AUTH-002, 05.10.2026: GET darf den Einmal-Zugangscode NICHT mehr
@@ -58,7 +60,7 @@ export default async function handler(request, response) {
 			// zustandsaendernder GET.
 			return response.status(405).json({ ok: false, code: 'ACCESS_REDEEM_VIA_POST', error: 'Diesen Dashboard-Link bitte über die Seite öffnen.' });
 		}
-		const wallet = typeof request.query.wallet === 'string' ? request.query.wallet : '';
+		const wallet = singleQueryValue(query, 'wallet');
 		if (wallet && ANMELDUNG_PAUSIERT) return pauseAntwort(response);
 		if (wallet) {
 			if (!isAddress(wallet)) return response.status(400).json({ ok: false, error: 'Ungültige Wallet-Adresse.' });
@@ -109,7 +111,7 @@ export default async function handler(request, response) {
 		if (!await enforceRateLimit(request, response, 'dashboard-delete', 10, 600)) return;
 		const resolvedDelete = resolveDashboardSession(request);
 		const saved = resolvedDelete.conflict ? null : resolvedDelete.session;
-		if (request.query.telegram === '1') {
+		if (singleQueryValue(queryParams(request), 'telegram') === '1') {
 			if (!saved || await isDashboardSessionRevoked(saved.wallet, sessionIssuedAt(saved))) return response.status(401).json({ ok: false, error: 'Keine aktive Dashboard-Sitzung.' });
 			const removed = await unlinkWalletByWallet(saved.wallet);
 			await recordAgentEvent({ wallet: saved.wallet, eventType: 'dashboard.telegram_disconnected', source: 'dashboard', metadata: { linkedChats: removed.length } }).catch(() => {});
