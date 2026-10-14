@@ -12,13 +12,16 @@
 	eine offensichtliche Platzhalter-Adresse, keine echte Wallet.
 
 	Varianten (Wert von VITE_POSITIONS_FIXTURE):
-	  true      Core mit vorhandenem Cover (productId 97), Lido/Prime, EtherFi nicht lesbar
-	  no-cover  dieselben Positionen, aber keine Covers in der Wallet
+	  true         Core + Lido/Prime, ein Cover (productId 97), EtherFi nicht lesbar
+	               -> Bestaetigung erforderlich (mehrere Positionen)
+	  no-cover     dieselben Positionen, aber keine Covers in der Wallet
+	  one-to-one   nur Core, alle Maerkte gelesen, ein Cover -> eindeutig 1:1
+	  multi-cover  nur Core, alle Maerkte gelesen, zwei Covers -> Bestaetigung erforderlich
 */
 
 export const FIXTURE_WALLET = '0x000000000000000000000000000000000000f1c5';
 
-const VARIANTS = new Set(['true', 'no-cover']);
+const VARIANTS = new Set(['true', 'no-cover', 'one-to-one', 'multi-cover']);
 
 /** Gueltige Variante oder null; alles andere schaltet die Fixture nicht ein. */
 export function fixtureVariant(value) {
@@ -27,15 +30,9 @@ export function fixtureVariant(value) {
 
 /** Antwort wie GET /api/dashboard fuer die Platzhalter-Wallet. */
 export function dashboardFixture(variant, now = Date.now()) {
-	const covers = variant === 'no-cover' ? [] : [{
-		coverId: 900001,
-		productId: 97,
-		productName: 'Aave v3',
-		status: 'active',
-		amount: '10000',
-		asset: { id: 6, symbol: 'USDC' },
-		endsAt: new Date(now + 45 * 86_400_000).toISOString()
-	}];
+	const first = { coverId: 900001, productId: 97, productName: 'Aave v3', status: 'active', amount: '10000', asset: { id: 6, symbol: 'USDC' }, endsAt: new Date(now + 45 * 86_400_000).toISOString() };
+	const second = { coverId: 900002, productId: 97, productName: 'Aave v3', status: 'active', amount: '3', asset: { id: 0, symbol: 'ETH' }, endsAt: new Date(now + 120 * 86_400_000).toISOString() };
+	const covers = variant === 'no-cover' ? [] : variant === 'multi-cover' ? [first, second] : [first];
 	return {
 		ok: true,
 		wallet: FIXTURE_WALLET,
@@ -54,16 +51,20 @@ export function positionsFixture(variant, wallet, now = Date.now()) {
 	const detectedAt = new Date(now).toISOString();
 	const base = { wallet: FIXTURE_WALLET, chainId: 1, protocolKey: 'aave', protocolVersion: 'v3', valueKind: 'DERIVED_FROM_AAVE_ORACLE', blockNumber: '21000000', detectedAt, status: 'OK' };
 	const nexus = { state: 'MATCHED', productId: 97, productName: 'Aave v3' };
-	return {
+	// one-to-one / multi-cover: nur Core haelt etwas, alle drei Maerkte sind gelesen.
+	const coreOnly = variant === 'one-to-one' || variant === 'multi-cover';
+	const result = {
 		ok: true,
 		wallet: FIXTURE_WALLET,
 		chainId: 1,
 		scope: { protocol: 'aave', version: 'v3', chain: 'eip155:1' },
-		complete: false,
+		complete: coreOnly,
 		checkedDeployments: [
 			{ deploymentKey: 'aave-v3-ethereum-core', protocolKey: 'aave', protocolVersion: 'v3', label: 'Core', status: 'OK' },
 			{ deploymentKey: 'aave-v3-ethereum-lido', protocolKey: 'aave', protocolVersion: 'v3', label: 'Lido / Prime', status: 'OK' },
-			{ deploymentKey: 'aave-v3-ethereum-etherfi', protocolKey: 'aave', protocolVersion: 'v3', label: 'EtherFi', status: 'UNAVAILABLE', reason: 'RPC_TIMEOUT' }
+			coreOnly
+				? { deploymentKey: 'aave-v3-ethereum-etherfi', protocolKey: 'aave', protocolVersion: 'v3', label: 'EtherFi', status: 'OK' }
+				: { deploymentKey: 'aave-v3-ethereum-etherfi', protocolKey: 'aave', protocolVersion: 'v3', label: 'EtherFi', status: 'UNAVAILABLE', reason: 'RPC_TIMEOUT' }
 		],
 		positions: [
 			{
@@ -100,5 +101,27 @@ export function positionsFixture(variant, wallet, now = Date.now()) {
 		],
 		blockNumber: '21000000',
 		fetchedAt: detectedAt
+	};
+	if (coreOnly) result.positions = result.positions.filter((position) => position.deploymentKey === 'aave-v3-ethereum-core');
+	return result;
+}
+
+/*
+	Ersatz fuer /api/position-attributions im Vite-Entwicklungsserver (kein Backend).
+	Haelt bestaetigte Zuordnungen nur im Arbeitsspeicher dieser Seite und antwortet
+	in derselben Form wie der Server. Neu laden leert ihn. Nur DEV, nur Fixture.
+*/
+export function fixtureAttributionApi() {
+	const store = new Map();
+	const reply = (body, status = 200) => Promise.resolve({ ok: status >= 200 && status < 300, status, json: async () => body });
+	const key = ({ deploymentKey, coverId }) => `${deploymentKey}|${coverId}`;
+	return {
+		list: () => reply({ ok: true, attributions: [...store.values()], pending: 0 }),
+		save: (relation) => {
+			const attribution = { deploymentKey: relation.deploymentKey, coverId: relation.coverId, productId: 97, source: 'user_confirmed', confirmedAt: new Date().toISOString() };
+			store.set(key(relation), attribution);
+			return reply({ ok: true, attribution });
+		},
+		remove: (relation) => reply({ ok: true, deleted: store.delete(key(relation)) })
 	};
 }

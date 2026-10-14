@@ -1,6 +1,8 @@
 import { getWalletCovers } from './covers.mjs';
 import { newDashboardAccess } from './linking.mjs';
-import { clearSnooze, getCoverSnapshots, listAlertSubscriptions, listDueSnoozes, recordAlertSent, recordRenewalEvent, recordWeeklySummary, saveCoverSnapshot, wasAlertSent, wasWeeklySummarySent } from './db.mjs';
+import { clearSnooze, getCoverSnapshots, listAlertSubscriptions, listDueSnoozes, listPositionAttributions, recordAlertSent, recordRenewalEvent, recordWeeklySummary, saveCoverSnapshot, wasAlertSent, wasWeeklySummarySent } from './db.mjs';
+import { getWalletPositions } from './positions/index.mjs';
+import { reconcile } from './position-attributions.mjs';
 
 /*
 	Bis 01.10.2026 kamen Betraege ueber den CoverRaccoon-Nachtlauf, auf vier
@@ -120,7 +122,25 @@ function formatAmount(cover, language) {
 	return `${amount} ${cover.asset?.symbol ?? ''}`.trim();
 }
 
-export function formatExpiryAlert(cover, thresholdDays, language = 'de') {
+/*
+	Vom Nutzer bestaetigte Zuordnung als OPTIONALER Kontext (14.10.2026): nur wenn
+	sie gerade gueltig ist (Quelle user_confirmed, Cover aktiv und in dieser Wallet,
+	gleiche productId, Position im sicher gelesenen Markt vorhanden). Sonst bleibt
+	es beim allgemeinen Satz. Nie "versichert", "gedeckt" oder "geschuetzt".
+*/
+function expirySentence(thresholdDays, language, context) {
+	const labels = context?.positions ?? [];
+	if (!labels.length) {
+		if (language === 'zh') return thresholdDays === 0 ? '你的保障将在今天到期。' : `你的保障将在 ${thresholdDays} 天内到期。`;
+		if (language === 'en') return thresholdDays === 0 ? 'Your cover expires today.' : `Your cover expires within ${thresholdDays} days.`;
+		return thresholdDays === 0 ? 'Dein Cover läuft heute aus.' : `Dein Cover läuft innerhalb der nächsten ${thresholdDays} Tage aus.`;
+	}
+	if (language === 'zh') return `你分配给 Aave v3 仓位 ${labels.join('、')} 的保障将${thresholdDays === 0 ? '在今天到期' : `在 ${thresholdDays} 天内到期`}。`;
+	if (language === 'en') return `The cover you assigned to your Aave v3 position${labels.length > 1 ? 's' : ''} ${labels.join(' and ')} expires ${thresholdDays === 0 ? 'today' : `within ${thresholdDays} days`}.`;
+	return `Das Cover, das du ${labels.length > 1 ? 'deinen Aave-v3-Positionen' : 'deiner Aave-v3-Position'} ${labels.join(' und ')} zugeordnet hast, läuft ${thresholdDays === 0 ? 'heute' : `innerhalb der nächsten ${thresholdDays} Tage`} aus.`;
+}
+
+export function formatExpiryAlert(cover, thresholdDays, language = 'de', context = null) {
 	const locale = language === 'zh' ? 'zh-CN' : language === 'en' ? 'en-GB' : 'de-AT';
 	const expiry = new Intl.DateTimeFormat(locale, {
 		dateStyle: 'long',
@@ -133,7 +153,7 @@ export function formatExpiryAlert(cover, thresholdDays, language = 'de') {
 
 	if (language === 'zh') return [
 		'⚠️ 保障即将到期', '',
-		thresholdDays === 0 ? '你的保障将在今天到期。' : `你的保障将在 ${thresholdDays} 天内到期。`, '',
+		expirySentence(thresholdDays, language, context), '',
 		`产品：${product}`,
 		`保障编号：#${cover.coverId}`,
 		`保障金额：${formatAmount(cover, language)}`,
@@ -143,7 +163,7 @@ export function formatExpiryAlert(cover, thresholdDays, language = 'de') {
 
 	if (language === 'en') return [
 		'⚠️ Cover expiry reminder', '',
-		thresholdDays === 0 ? 'Your cover expires today.' : `Your cover expires within ${thresholdDays} days.`, '',
+		expirySentence(thresholdDays, language, context), '',
 		`Product: ${product}`,
 		`Cover: #${cover.coverId}`,
 		`Cover amount: ${formatAmount(cover, language)}`,
@@ -153,16 +173,35 @@ export function formatExpiryAlert(cover, thresholdDays, language = 'de') {
 
 	return [
 		'⚠️ Cover-Ablaufwarnung', '',
-		thresholdDays === 0 ? 'Dein Cover läuft heute aus.' : `Dein Cover läuft innerhalb der nächsten ${thresholdDays} Tage aus.`, '',
+		expirySentence(thresholdDays, language, context), '',
 		`Produkt: ${product}`,
 		`Cover: #${cover.coverId}`,
-		`Versicherungssumme: ${formatAmount(cover, language)}`,
+		`Cover-Betrag: ${formatAmount(cover, language)}`,
 		`Ablauf: ${expiry}`, '', ...(demo ? [demo, ''] : []),
 		'Quelle: Coverraccoon · Nexus Mutual · Ethereum'
 	].join('\n');
 }
 
-export async function checkExpiryAlerts({ sendMessage, dashboardUrl, now = Date.now(), logger = console }) {
+/**
+ * Kontext fuer eine Ablaufwarnung aus vom Nutzer bestaetigten Zuordnungen - oder
+ * null. Ein Fehler beim Lesen ergibt null; die Erinnerung geht trotzdem raus.
+ */
+export async function attributionContext(wallet, cover, coversResult, cache, { loadAttributions, loadPositions }) {
+	try {
+		const normalized = String(wallet).toLowerCase();
+		if (!cache.rows) cache.rows = await loadAttributions(normalized);
+		const rows = cache.rows.filter((row) => Number(row.cover_id) === cover.coverId);
+		if (!rows.length) return null;
+		if (!('positions' in cache)) cache.positions = await Promise.resolve().then(() => loadPositions(normalized)).catch(() => null);
+		const { valid } = reconcile(rows, { wallet: normalized, positions: cache.positions, covers: coversResult });
+		const labels = [...new Set(valid.filter((entry) => entry.coverId === cover.coverId && entry.productId === cover.productId).map((entry) => entry.label))];
+		return labels.length ? { positions: labels } : null;
+	} catch {
+		return null;
+	}
+}
+
+export async function checkExpiryAlerts({ sendMessage, dashboardUrl, now = Date.now(), logger = console, loadAttributions = listPositionAttributions, loadPositions = (wallet) => getWalletPositions(wallet) }) {
 	const subscriptions = await listAlertSubscriptions();
 	let sent = 0;
 	let failed = 0;
@@ -172,6 +211,7 @@ export async function checkExpiryAlerts({ sendMessage, dashboardUrl, now = Date.
 		try {
 			const result = await getWalletCovers(subscription.wallet);
 			results.set(`${subscription.chat_id}:${subscription.wallet}`, result);
+			const attributionCache = {};
 			await syncCoverLifecycle(subscription, result.covers, sendMessage, dashboardUrl);
 			for (const cover of result.covers) {
 				if (cover.status !== 'active' || !cover.endsAt) continue;
@@ -185,7 +225,8 @@ export async function checkExpiryAlerts({ sendMessage, dashboardUrl, now = Date.
 					const access = await newDashboardAccess(subscription.wallet);
 					rows.push([{ text: subscription.language === 'zh' ? '打开仪表板' : subscription.language === 'en' ? 'Open dashboard' : 'Dashboard öffnen', url: `${dashboardUrl}/?access=${encodeURIComponent(access.code)}` }]);
 				}
-				await sendMessage(subscription.chat_id, formatExpiryAlert(cover, threshold, subscription.language), { ...(rows.length ? { reply_markup: { inline_keyboard: rows } } : {}), _messageKind: 'expiry_alert' });
+				const context = await attributionContext(subscription.wallet, cover, result, attributionCache, { loadAttributions, loadPositions });
+				await sendMessage(subscription.chat_id, formatExpiryAlert(cover, threshold, subscription.language, context), { ...(rows.length ? { reply_markup: { inline_keyboard: rows } } : {}), _messageKind: 'expiry_alert' });
 				await recordAlertSent(subscription.chat_id, cover.coverId, cover.endsAt, threshold);
 				sent++;
 			}

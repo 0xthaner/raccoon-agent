@@ -32,9 +32,19 @@ Object.assign(translations.de, {
 	totalsIncompleteMany: '{markets} konnten derzeit nicht gelesen werden. Die Summen enthalten nur verfügbare Märkte.', listAnd: 'und',
 	totalSupplied: 'Gesamt eingezahlt', totalBorrowed: 'Gesamt geliehen', netHelp: 'Eingezahlter Wert minus geliehener Wert', positionsHeading: 'Positionen',
 	nexusLabel: 'Nexus Mutual', cardNexusLabel: 'Nexus', productAvailableShort: 'Passendes Produkt verfügbar', walletCoverStatusLabel: 'Wallet-Cover-Status', walletCoverLabel: 'Wallet-Cover',
-	activeCoverFound: 'Aktives Aave-v3-Cover gefunden', coversFoundOne: '1 aktives Cover gefunden', coversFoundMany: '{n} aktive Covers gefunden', noActiveCover: 'Kein aktives passendes Cover erkannt',
-	associationLabel: 'Positionszuordnung', associationUnverified: 'Nicht verifiziert', associationNone: '—',
+	activeCoverFound: 'Aktives Aave-v3-Cover gefunden', activeCoversFound: '{n} aktive Aave-v3-Covers gefunden', coversFoundOne: '1 aktives Cover gefunden', coversFoundMany: '{n} aktive Covers gefunden', noActiveCover: 'Kein aktives passendes Cover erkannt',
+	attributionLabel: 'Cover-Zuordnung', attributionAuto: 'Eindeutig · 1:1', attributionRequired: 'Bestätigung erforderlich', attributionConfirmed: 'Vom Nutzer bestätigt', attributionNone: '—',
+	attributionAutoHelp: 'Eine aktive passende Position und ein aktives passendes Nexus Cover wurden erkannt.',
+	attributionAutoNote: 'Diese Zuordnung ergibt sich aus einer eindeutigen 1:1-Konstellation der öffentlich verfügbaren Daten. Sie ist keine Aussage über die Berechtigung eines Claims oder eine Auszahlung.',
+	attributionConfirmedHelp: 'Diese Zuordnung wurde von dir bestätigt und basiert nicht auf privaten Nexus-Metadaten.',
+	attributionConfirmedNote: 'Diese Zuordnung wurde von dir bestätigt. CoverRaccoon hat keine privaten Proof-of-Loss-Daten eingesehen.',
 	summaryCoverNote: 'Ein aktives Cover für das passende Nexus-Produkt bedeutet nicht automatisch, dass jede erkannte Aave-Position diesem Cover zugeordnet ist.',
+	attributionRequiredNote: 'Die öffentlichen Daten ergeben keine eindeutige 1:1-Zuordnung. Ordne das Cover bei der passenden Position selbst zu; CoverRaccoon legt das nicht fest.',
+	attributionIncompleteNote: 'Nicht alle unterstützten Märkte konnten gelesen werden; eine eindeutige Zuordnung ist deshalb nicht möglich.',
+	assignAction: 'Cover zuordnen', changeAssignment: 'Zuordnung ändern', removeAssignment: 'Zuordnung entfernen', assignThisCover: 'Dieser Position zuordnen', assignCancel: 'Abbrechen',
+	assignIntro: 'Wähle das aktive Nexus Cover (Produkt #{id}), das du dieser Position zuordnest. CoverRaccoon speichert nur diese Zuordnung für deine Wallet, bis du sie entfernst oder das Cover nicht mehr aktiv ist.', assignedCover: 'zugeordnet', daysLeft: 'noch {n} Tage',
+	attributionSaving: 'Wird gespeichert …', attributionSaveError: 'Die Zuordnung konnte nicht gespeichert werden. Bitte erneut versuchen.', attributionRemoveError: 'Die Zuordnung konnte nicht entfernt werden. Bitte erneut versuchen.',
+	attributionLoadError: 'Gespeicherte Cover-Zuordnungen konnten gerade nicht geladen werden.',
 	viewCoverAction: 'Cover bei Nexus ansehen', viewProductAction: 'Produkt bei Nexus ansehen',
 	positionsSource: 'Quelle: Aave v3 · Ethereum (live), bewertet über das Aave-Preisorakel', detectedPosition: 'Erkannte DeFi-Position', supplied: 'Eingezahlt', borrowed: 'Geliehen',
 	netPosition: 'Nettoposition', healthFactor: 'Health Factor', noDebt: 'keine Schulden', collateral: 'als Sicherheit', notCollateral: 'nicht als Sicherheit', none: 'keine',
@@ -51,9 +61,19 @@ Object.assign(translations.en, {
 	totalsIncompleteMany: '{markets} could not be read right now. The totals include only available markets.', listAnd: 'and',
 	totalSupplied: 'Total supplied', totalBorrowed: 'Total borrowed', netHelp: 'Supplied value minus borrowed value', positionsHeading: 'Positions',
 	nexusLabel: 'Nexus Mutual', cardNexusLabel: 'Nexus', productAvailableShort: 'Matching product available', walletCoverStatusLabel: 'Wallet cover status', walletCoverLabel: 'Wallet cover',
-	activeCoverFound: 'Active Aave v3 cover found', coversFoundOne: '1 active cover found', coversFoundMany: '{n} active covers found', noActiveCover: 'No active matching cover detected',
-	associationLabel: 'Position attribution', associationUnverified: 'Not verified', associationNone: '—',
+	activeCoverFound: 'Active Aave v3 cover found', activeCoversFound: '{n} active Aave v3 covers found', coversFoundOne: '1 active cover found', coversFoundMany: '{n} active covers found', noActiveCover: 'No active matching cover detected',
+	attributionLabel: 'Cover attribution', attributionAuto: 'Unambiguous · 1:1', attributionRequired: 'Confirmation required', attributionConfirmed: 'Confirmed by you', attributionNone: '—',
+	attributionAutoHelp: 'One active matching position and one active matching Nexus cover were detected.',
+	attributionAutoNote: 'This attribution follows from an unambiguous 1:1 constellation in the publicly available data. It is not a statement about claim eligibility or a payout.',
+	attributionConfirmedHelp: 'You confirmed this attribution; it is not based on private Nexus metadata.',
+	attributionConfirmedNote: 'You confirmed this attribution. CoverRaccoon has not seen any private proof-of-loss data.',
 	summaryCoverNote: 'An active cover for the matching Nexus product does not automatically mean that every detected Aave position is attributed to that cover.',
+	attributionRequiredNote: 'The public data does not give an unambiguous 1:1 attribution. Assign the cover at the matching position yourself; CoverRaccoon does not decide this.',
+	attributionIncompleteNote: 'Not all supported markets could be read, so an unambiguous attribution is not possible.',
+	assignAction: 'Assign cover', changeAssignment: 'Change attribution', removeAssignment: 'Remove attribution', assignThisCover: 'Assign to this position', assignCancel: 'Cancel',
+	assignIntro: 'Choose the active Nexus cover (product #{id}) you want to assign to this position. CoverRaccoon stores only this attribution for your wallet until you remove it or the cover is no longer active.', assignedCover: 'assigned', daysLeft: '{n} days left',
+	attributionSaving: 'Saving …', attributionSaveError: 'The attribution could not be saved. Please try again.', attributionRemoveError: 'The attribution could not be removed. Please try again.',
+	attributionLoadError: 'Saved cover attributions could not be loaded right now.',
 	viewCoverAction: 'View cover on Nexus', viewProductAction: 'View product on Nexus',
 	positionsSource: 'Source: Aave v3 · Ethereum (live), valued with the Aave price oracle', detectedPosition: 'Detected DeFi position', supplied: 'Supplied', borrowed: 'Borrowed',
 	netPosition: 'Net position', healthFactor: 'Health factor', noDebt: 'no debt', collateral: 'as collateral', notCollateral: 'not as collateral', none: 'none',
@@ -212,12 +232,17 @@ function addTextElement(parent, tag, value, className = '') {
 	Aave-v3-Zusammenfassung mit Produkt, Wallet-Cover-Status und der einen
 	Erklaerung, die einzelnen Markt-Positionen (nur kurze Statuszeilen) und die
 	Covers selbst - die stehen genau einmal, oben unter "Deine Covers". Eine
-	Position wird nie einem bestimmten Cover zugeordnet. Gehalten nur im Modul-Speicher, nie in
+	Cover-Zuordnung entsteht nur auf zwei Wegen: automatisch 1:1, wenn die
+	oeffentlichen Daten eindeutig sind, oder durch Bestaetigung des
+	Wallet-Inhabers. Beides ist keine Pruefung durch Nexus und kein Nachweis einer
+	Deckung. Gehalten nur im Modul-Speicher, nie in
 	localStorage. Alle Werte gehen als Text in den Baum (addTextElement).
 */
 let positionsState = { wallet: null, status: 'idle', data: null };
 
 async function loadPositions(wallet) {
+	// Jede Positionsabfrage beginnt ohne Cover-Zuordnungen; die gespeicherten kommen frisch vom Server.
+	resetAttributionState();
 	positionsState = { wallet, status: 'loading', data: null };
 	renderPositions();
 	// Lokale Dev-Fixture: nur im Vite-Entwicklungsserver (import.meta.env.DEV) und nur
@@ -227,8 +252,10 @@ async function loadPositions(wallet) {
 		const fixture = await import('./fixtures/positions-fixture.js');
 		const data = fixture.positionsFixture(import.meta.env.VITE_POSITIONS_FIXTURE, wallet);
 		if (data) {
+			attributionApi = fixture.fixtureAttributionApi();
 			positionsState = { wallet, status: 'ok', data };
 			renderPositions();
+			loadAttributions(wallet);
 			return;
 		}
 	}
@@ -239,6 +266,7 @@ async function loadPositions(wallet) {
 		positionsState = response.ok && body?.ok && String(body.wallet).toLowerCase() === wallet
 			? { wallet, status: 'ok', data: body }
 			: { wallet, status: 'error', data: null };
+		if (positionsState.status === 'ok') loadAttributions(wallet);
 	} catch {
 		if (positionsState.wallet !== wallet) return;
 		positionsState = { wallet, status: 'error', data: null };
@@ -328,15 +356,194 @@ function activeProductCovers(product) {
 }
 
 /*
-	Zuordnung Cover -> konkrete Position. VERIFIED gibt es erst, wenn eine
-	massgebliche Quelle die Position nennt. Heute liegt die "Proof of Loss"
-	(abgedeckte Adressen/Positionen) nur privat und off-chain bei Nexus; die
-	Cover-Daten auf der Kette nennen sie nicht. Gleiche Wallet, gleiche
-	productId, aehnlicher Betrag, gleiches Asset oder Marktname beweisen nichts.
+	Cover-Zuordnung (14.10.2026, nach Rueckmeldung von Nexus Mutual): die Proof of
+	Loss bleibt privat; es gibt keinen Lesezugriff fuer Dritte und es wird keiner
+	gebraucht. Zugeordnet wird nur aus oeffentlichen Daten und - wo die nicht
+	eindeutig sind - durch den Nutzer selbst.
+
+	Einheit ist die erkannte Markt-Position (deploymentKey), nie ein einzelnes
+	Asset. Kandidaten sind ausschliesslich: erkannte Positionen, die auf GENAU
+	diese productId zeigen, und aktive Covers dieser Wallet mit GENAU dieser
+	(numerischen) productId. Nie Name, Betrag, Asset oder Wert.
+
+	  keine aktiven Covers                         -> NO_ACTIVE_COVER
+	  1 Position, 1 Cover, alle Maerkte gelesen    -> AUTO_UNAMBIGUOUS
+	  sonst (mind. 1 Cover)                        -> USER_CONFIRMATION_REQUIRED
+	  vom Nutzer gewaehlt                          -> USER_CONFIRMED
+
+	Ist ein unterstuetzter Markt nicht lesbar, koennte dort eine weitere Position
+	liegen: dann nie "eindeutig". Einen von CoverRaccoon bestaetigten Zustand
+	gibt es nicht, weil CoverRaccoon die privaten Nexus-Daten nicht kennt.
+
+	Vom Nutzer bestaetigte Zuordnungen speichert der Server (/api/position-attributions),
+	gebunden an die Wallet der Sitzung, und liefert nur aktuell gueltige zurueck.
+	Hier im Browser liegen davon nur eine Kopie fuer die Anzeige und rein
+	vergaengliche Zustaende (Auswahl offen, Anfrage laeuft, Fehler). Abmelden, eine
+	andere Wallet oder neu laden setzen die Kopie zurueck. Automatische
+	1:1-Zuordnungen werden nie gespeichert.
 */
-function positionCoverAssociation(product) {
-	if (product?.state !== 'MATCHED' || !Array.isArray(window.dashboardData?.covers)) return 'UNKNOWN';
-	return activeProductCovers(product).length ? 'UNVERIFIED' : 'NONE';
+const ATTRIBUTION = Object.freeze({ AUTO: 'AUTO_UNAMBIGUOUS', REQUIRED: 'USER_CONFIRMATION_REQUIRED', CONFIRMED: 'USER_CONFIRMED', NONE: 'NO_ACTIVE_COVER' });
+
+let attributionStore = { wallet: null, status: 'idle', links: new Map() };
+let attributionChooser = null;
+let attributionPending = null;
+let attributionError = null;
+
+function resetAttributionState() {
+	attributionStore = { wallet: null, status: 'idle', links: new Map() };
+	attributionChooser = null;
+	attributionPending = null;
+	attributionError = null;
+}
+
+/** Gespeicherte Zuordnungen GENAU dieser Wallet; jede andere Wallet bekommt keine. */
+function persistedLinksFor(wallet) {
+	return wallet && attributionStore.wallet === wallet && attributionStore.status === 'ok' ? attributionStore.links : new Map();
+}
+
+/* Server-Zugriff; die DEV-Fixture ersetzt ihn durch einen Speicher im Arbeitsspeicher. */
+let attributionApi = {
+	list: () => authFetch('/api/position-attributions', { signal: AbortSignal.timeout(25000) }),
+	save: (relation) => authFetch('/api/position-attributions', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(relation), signal: AbortSignal.timeout(25000) }),
+	remove: (relation) => authFetch('/api/position-attributions', { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify(relation), signal: AbortSignal.timeout(25000) })
+};
+
+async function loadAttributions(wallet) {
+	attributionStore = { wallet, status: 'loading', links: new Map() };
+	let body = null;
+	let ok = false;
+	try {
+		const response = await attributionApi.list();
+		body = await response.json().catch(() => null);
+		ok = response.ok && body?.ok === true && Array.isArray(body.attributions);
+	} catch { ok = false; }
+	if (attributionStore.wallet !== wallet) return;
+	const links = new Map();
+	if (ok) {
+		for (const entry of body.attributions) {
+			if (typeof entry?.deploymentKey !== 'string' || !Number.isSafeInteger(entry.coverId) || entry.source !== 'user_confirmed') continue;
+			if (!links.has(entry.deploymentKey)) links.set(entry.deploymentKey, new Set());
+			links.get(entry.deploymentKey).add(entry.coverId);
+		}
+	}
+	attributionStore = { wallet, status: ok ? 'ok' : 'error', links };
+	renderPositions();
+}
+
+function attributionCandidates(product, positions, covers) {
+	if (product?.state !== 'MATCHED' || !Number.isSafeInteger(product.productId) || !Array.isArray(covers)) return null;
+	const candidatePositions = positions.filter((position) => position.nexus?.state === 'MATCHED' && position.nexus.productId === product.productId
+		&& typeof position.deploymentKey === 'string' && (position.supplied?.length || position.borrowed?.length));
+	const candidateCovers = covers.filter((cover) => cover.status === 'active' && cover.demo !== true && Number.isSafeInteger(cover.productId) && cover.productId === product.productId && Number.isSafeInteger(cover.coverId));
+	return candidatePositions.length ? { candidatePositions, candidateCovers } : null;
+}
+
+/** Zustand je Position fuer genau diese Wallet; null, wenn es nichts zuzuordnen gibt. */
+function resolveAttribution({ product, positions, covers, complete, wallet, links = new Map() }) {
+	const candidates = attributionCandidates(product, positions, covers);
+	if (!candidates || !wallet) return null;
+	const { candidatePositions, candidateCovers } = candidates;
+	const byPosition = new Map();
+	if (!candidateCovers.length) {
+		for (const position of candidatePositions) byPosition.set(position.deploymentKey, { state: ATTRIBUTION.NONE, covers: [] });
+	} else if (candidatePositions.length === 1 && candidateCovers.length === 1 && complete === true) {
+		// Live aus oeffentlichen Daten; gespeicherte Bestaetigungen aendern daran nichts.
+		byPosition.set(candidatePositions[0].deploymentKey, { state: ATTRIBUTION.AUTO, covers: [candidateCovers[0]] });
+	} else {
+		for (const position of candidatePositions) {
+			const chosen = links.get(position.deploymentKey);
+			const confirmed = chosen ? candidateCovers.filter((cover) => chosen.has(cover.coverId)) : [];
+			byPosition.set(position.deploymentKey, { state: confirmed.length ? ATTRIBUTION.CONFIRMED : ATTRIBUTION.REQUIRED, covers: confirmed });
+		}
+	}
+	return { candidatePositions, candidateCovers, byPosition, wallet };
+}
+
+/** Die aktuelle Zuordnung aus dem Seitenzustand; nur wenn Dashboard und Positionen zur selben Wallet gehoeren. */
+function currentAttribution() {
+	if (positionsState.status !== 'ok') return null;
+	const wallet = String(window.dashboardData?.wallet ?? '').toLowerCase();
+	if (!wallet || wallet !== String(positionsState.wallet ?? '').toLowerCase() || String(positionsState.data?.wallet ?? '').toLowerCase() !== wallet) return null;
+	const positions = positionsState.data.positions ?? [];
+	return resolveAttribution({ product: protocolProduct(positions), positions, covers: window.dashboardData?.covers, complete: positionsState.data.complete, wallet, links: persistedLinksFor(wallet) });
+}
+
+/** Ob eine Bestaetigung fuer diese Position gerade angefragt werden darf. */
+function assignableEntry(attribution, deploymentKey, coverId) {
+	const entry = attribution?.byPosition.get(deploymentKey);
+	if (!entry || (entry.state !== ATTRIBUTION.REQUIRED && entry.state !== ATTRIBUTION.CONFIRMED)) return null;
+	if (!attribution.candidateCovers.some((cover) => cover.coverId === coverId)) return null;
+	if (attributionStore.status !== 'ok' || attributionStore.wallet !== attribution.wallet || attributionPending) return null;
+	return entry;
+}
+
+/** Nutzer bestaetigt: erst nach erfolgreicher Antwort des Servers gilt sie als bestaetigt. */
+async function assignCover(deploymentKey, coverId) {
+	const attribution = currentAttribution();
+	if (!assignableEntry(attribution, deploymentKey, coverId)) return false;
+	const wallet = attribution.wallet;
+	attributionPending = deploymentKey;
+	attributionError = null;
+	renderPositions();
+	let saved = false;
+	try {
+		const response = await attributionApi.save({ deploymentKey, coverId });
+		const body = await response.json().catch(() => null);
+		saved = response.ok && body?.ok === true && body.attribution?.deploymentKey === deploymentKey && body.attribution?.coverId === coverId && body.attribution?.source === 'user_confirmed';
+	} catch { saved = false; }
+	if (attributionStore.wallet !== wallet) return false;
+	attributionPending = null;
+	if (saved) {
+		if (!attributionStore.links.has(deploymentKey)) attributionStore.links.set(deploymentKey, new Set());
+		attributionStore.links.get(deploymentKey).add(coverId);
+		attributionChooser = null;
+	} else {
+		attributionError = { deploymentKey, text: t.attributionSaveError };
+	}
+	renderPositions();
+	return saved;
+}
+
+/** Eine eigene, gespeicherte Bestaetigung entfernen. */
+async function removeCoverAssignment(deploymentKey, coverId) {
+	const attribution = currentAttribution();
+	const entry = attribution?.byPosition.get(deploymentKey);
+	if (entry?.state !== ATTRIBUTION.CONFIRMED || !entry.covers.some((cover) => cover.coverId === coverId) || attributionPending) return false;
+	const wallet = attribution.wallet;
+	attributionPending = deploymentKey;
+	attributionError = null;
+	renderPositions();
+	let removed = false;
+	try {
+		const response = await attributionApi.remove({ deploymentKey, coverId });
+		const body = await response.json().catch(() => null);
+		removed = response.ok && body?.ok === true;
+	} catch { removed = false; }
+	if (attributionStore.wallet !== wallet) return false;
+	attributionPending = null;
+	if (removed) {
+		attributionStore.links.get(deploymentKey)?.delete(coverId);
+		if (!attributionStore.links.get(deploymentKey)?.size) attributionStore.links.delete(deploymentKey);
+	} else {
+		attributionError = { deploymentKey, text: t.attributionRemoveError };
+	}
+	renderPositions();
+	return removed;
+}
+
+function coverDaysLeft(iso) {
+	const ms = Date.parse(iso) - Date.now();
+	return Number.isFinite(ms) ? Math.max(0, Math.ceil(ms / 86_400_000)) : null;
+}
+
+function actionButton(parent, label, onClick, className = 'attribution-action') {
+	const button = document.createElement('button');
+	button.type = 'button';
+	button.className = className;
+	button.textContent = label;
+	button.addEventListener('click', onClick);
+	parent.appendChild(button);
+	return button;
 }
 
 /* Genau eine Nexus-Aktion, auf Protokollebene: ohne aktives Cover hervorgehoben, sonst leise. */
@@ -360,7 +567,7 @@ function protocolProduct(positions) {
 	return results.find((nexus) => nexus.state !== 'MATCHED' || nexus.productId !== results[0].productId) ?? results[0];
 }
 
-function renderSummary(list, positions, unavailableLabels, product) {
+function renderSummary(list, positions, unavailableLabels, product, attribution) {
 	const card = element(list, 'section', 'protocol-summary');
 	const head = element(card, 'div', 'summary-head');
 	addTextElement(head, 'h3', 'Aave v3', 'summary-title');
@@ -393,7 +600,13 @@ function renderSummary(list, positions, unavailableLabels, product) {
 			// Die eine Nexus-Aktion: ohne aktives Cover hervorgehoben, mit Cover leise.
 			nexusLink(card, product, count === 0);
 			// Die Zuordnungs-Erklaerung steht nur hier, nicht in jeder Karte.
-			if (count) addTextElement(card, 'p', t.summaryCoverNote, 'summary-note');
+			const states = attribution ? [...attribution.byPosition.values()].map((entry) => entry.state) : [];
+			if (states.includes(ATTRIBUTION.AUTO)) addTextElement(card, 'p', t.attributionAutoNote, 'summary-note');
+			if (states.includes(ATTRIBUTION.REQUIRED)) {
+				addTextElement(card, 'p', `${t.summaryCoverNote} ${t.attributionRequiredNote}`, 'summary-note');
+				if (attribution.candidatePositions.length === 1 && attribution.candidateCovers.length === 1) addTextElement(card, 'p', t.attributionIncompleteNote, 'summary-note');
+			}
+			if (states.includes(ATTRIBUTION.CONFIRMED)) addTextElement(card, 'p', t.attributionConfirmedNote, 'summary-note');
 		}
 		addTextElement(card, 'p', t.positionsNote, 'summary-note');
 	}
@@ -401,27 +614,64 @@ function renderSummary(list, positions, unavailableLabels, product) {
 
 /*
 	Status je Markt, immer dieselben drei Zeilen: Produkt -> Cover in dieser Wallet
-	-> Zuordnung. Keine Cover-Nummer, kein Betrag, kein Ablauf (die stehen einmal
-	oben unter "Deine Covers"), keine Aktion und kein Erklaerungsabsatz (beides
-	einmal in der Zusammenfassung). Eine Position wird nie als einem Cover
-	zugeordnet dargestellt.
+	-> Cover-Zuordnung. Betrag und Ablauf stehen nur oben unter "Deine Covers" und
+	in der Auswahl; die Karte nennt hoechstens die Nummer des zugeordneten Covers.
 */
-function renderMarketStatus(card, product) {
+function renderMarketStatus(card, position, attribution) {
+	const product = position.nexus;
 	if (!product) return;
 	const box = element(card, 'div', 'market-status');
 	figureRow(box, t.cardNexusLabel, product.state === 'MATCHED' ? t.productAvailableShort : productText(product));
-	if (product.state !== 'MATCHED') return;
-	const association = positionCoverAssociation(product);
-	if (association === 'UNVERIFIED') {
-		figureRow(box, t.walletCoverLabel, t.activeCoverFound);
-		figureRow(box, t.associationLabel, t.associationUnverified).className += ' association-unverified';
-	} else if (association === 'NONE') {
-		figureRow(box, t.walletCoverLabel, t.noActiveCover);
-		figureRow(box, t.associationLabel, t.associationNone);
+	const entry = attribution?.byPosition.get(position.deploymentKey);
+	if (product.state !== 'MATCHED' || !entry) return;
+	const count = attribution.candidateCovers.length;
+	figureRow(box, t.walletCoverLabel, count === 0 ? t.noActiveCover : count === 1 ? t.activeCoverFound : t.activeCoversFound.replace('{n}', String(count)));
+	if (entry.state === ATTRIBUTION.NONE) {
+		figureRow(box, t.attributionLabel, t.attributionNone);
+	} else if (entry.state === ATTRIBUTION.AUTO) {
+		figureRow(box, t.attributionLabel, t.attributionAuto, t.attributionAutoHelp).className += ' attribution-auto';
+	} else if (entry.state === ATTRIBUTION.CONFIRMED) {
+		figureRow(box, t.attributionLabel, `${t.attributionConfirmed} · ${entry.covers.map((cover) => `Cover #${cover.coverId}`).join(', ')}`, t.attributionConfirmedHelp).className += ' attribution-confirmed';
+		const actions = element(box, 'div', 'attribution-actions');
+		actionButton(actions, t.changeAssignment, () => { attributionChooser = position.deploymentKey; attributionError = null; renderPositions(); }).disabled = Boolean(attributionPending);
+		if (entry.covers.length === 1) actionButton(actions, t.removeAssignment, () => removeCoverAssignment(position.deploymentKey, entry.covers[0].coverId)).disabled = Boolean(attributionPending);
+	} else {
+		figureRow(box, t.attributionLabel, t.attributionRequired).className += ' attribution-required';
+		if (attributionChooser !== position.deploymentKey) {
+			const open = actionButton(box, t.assignAction, () => { attributionChooser = position.deploymentKey; attributionError = null; renderPositions(); });
+			open.ariaExpanded = 'false';
+			open.disabled = attributionStore.status !== 'ok' || Boolean(attributionPending);
+		}
+		if (attributionStore.status === 'error') addTextElement(box, 'p', t.attributionLoadError, 'attribution-error');
 	}
+	if (attributionError?.deploymentKey === position.deploymentKey) addTextElement(box, 'p', attributionError.text, 'attribution-error');
+	if (attributionChooser === position.deploymentKey && (entry.state === ATTRIBUTION.REQUIRED || entry.state === ATTRIBUTION.CONFIRMED)) renderCoverChooser(box, position, attribution, entry);
 }
 
-function renderMarketCard(parent, position) {
+/** Nur die Kandidaten-Covers (exakte productId, aktiv) mit ihren oeffentlichen Daten. */
+function renderCoverChooser(parent, position, attribution, entry) {
+	const chooser = element(parent, 'div', 'attribution-chooser');
+	addTextElement(chooser, 'p', t.assignIntro.replace('{id}', String(position.nexus.productId)), 'attribution-intro');
+	for (const cover of attribution.candidateCovers) {
+		const option = element(chooser, 'div', 'attribution-option');
+		addTextElement(option, 'strong', `Cover #${cover.coverId}`, 'attribution-option-id');
+		addTextElement(option, 'span', `${cover.productName ?? t.productWord} · ${t.productWord} #${cover.productId}`, 'attribution-option-product');
+		addTextElement(option, 'span', `${formatAmount(cover.amount)} ${cover.asset?.symbol ?? ''}`.trim(), 'attribution-option-amount');
+		const days = coverDaysLeft(cover.endsAt);
+		addTextElement(option, 'span', `${t.expiry} ${formatDate(cover.endsAt)}${days == null ? '' : ` · ${t.daysLeft.replace('{n}', String(days))}`}`, 'attribution-option-expiry');
+		const busy = Boolean(attributionPending) || attributionStore.status !== 'ok';
+		if (entry.covers.some((chosen) => chosen.coverId === cover.coverId)) {
+			addTextElement(option, 'small', t.assignedCover, 'attribution-option-current');
+			actionButton(option, t.removeAssignment, () => removeCoverAssignment(position.deploymentKey, cover.coverId)).disabled = busy;
+		} else {
+			actionButton(option, t.assignThisCover, () => assignCover(position.deploymentKey, cover.coverId)).disabled = busy;
+		}
+	}
+	if (attributionPending === position.deploymentKey) addTextElement(chooser, 'p', t.attributionSaving, 'attribution-intro');
+	actionButton(chooser, t.assignCancel, () => { attributionChooser = null; renderPositions(); }, 'attribution-action quiet');
+}
+
+function renderMarketCard(parent, position, attribution) {
 	const card = element(parent, 'article', 'position-card');
 	addTextElement(card, 'h3', `Aave v3 · ${position.label}`, 'position-title');
 	addTextElement(card, 'small', t.detectedPosition, 'position-kicker');
@@ -430,7 +680,7 @@ function renderMarketCard(parent, position) {
 	const figures = element(card, 'div', 'position-figures');
 	figureRow(figures, t.netPosition, formatUsd(position.totals.netUsd), t.netHelp);
 	figureRow(figures, t.healthFactor, position.totals.healthFactor == null ? t.noDebt : formatAmount(position.totals.healthFactor));
-	renderMarketStatus(card, position.nexus);
+	renderMarketStatus(card, position, attribution);
 }
 
 function renderUnavailableCard(parent, market) {
@@ -443,20 +693,28 @@ function renderUnavailableCard(parent, market) {
 
 /*
 	"Deine Covers" (oben) ist die einzige Cover-Liste. Jede aktive Cover-Karte dort
-	hat einen leeren Platz fuer die Positionszuordnung; gefuellt wird er erst, wenn
-	Positionen fuer GENAU dieses Produkt (productId) erkannt sind - und dann nur mit
-	"Nicht verifiziert", weil die oeffentlichen Daten keine Position nennen.
+	hat einen leeren Platz fuer die Cover-Zuordnung; gefuellt wird er nur fuer
+	Kandidaten-Covers (exakte productId, aktiv) und nur, wenn Positionen dafuer
+	erkannt sind.
 */
 let coverAttributionSlots = [];
 
-function renderCoverAttributions(product) {
+function renderCoverAttributions(attribution) {
 	for (const { cover, slot } of coverAttributionSlots) {
 		slot.replaceChildren();
-		const applies = product?.state === 'MATCHED' && cover.status === 'active' && cover.productId === product.productId;
-		slot.hidden = !applies;
-		if (!applies) continue;
-		addTextElement(slot, 'small', t.associationLabel);
-		addTextElement(slot, 'strong', t.associationUnverified, 'association-unverified');
+		const candidate = attribution?.candidateCovers.find((entry) => entry.coverId === cover.coverId && entry.productId === cover.productId);
+		slot.hidden = !candidate;
+		if (!candidate) continue;
+		const entries = [...attribution.byPosition.entries()].filter(([, entry]) => entry.covers.some((chosen) => chosen.coverId === cover.coverId));
+		const label = (key) => attribution.candidatePositions.find((position) => position.deploymentKey === key)?.label ?? '';
+		addTextElement(slot, 'small', t.attributionLabel);
+		if (entries.some(([, entry]) => entry.state === ATTRIBUTION.AUTO)) {
+			addTextElement(slot, 'strong', `${t.attributionAuto} · Aave v3 · ${label(entries[0][0])}`, 'attribution-auto');
+		} else if (entries.length) {
+			addTextElement(slot, 'strong', `${t.attributionConfirmed} · ${entries.map(([key]) => label(key)).join(', ')}`, 'attribution-confirmed');
+		} else {
+			addTextElement(slot, 'strong', t.attributionRequired, 'attribution-required');
+		}
 	}
 }
 
@@ -479,14 +737,15 @@ function renderPositions() {
 		addTextElement(list, 'div', t.positionsNone, 'dash-empty');
 	} else {
 		const product = protocolProduct(positions);
-		if (positions.length) renderSummary(list, positions, unavailable.map((entry) => entry.label), product);
+		const attribution = currentAttribution();
+		if (positions.length) renderSummary(list, positions, unavailable.map((entry) => entry.label), product, attribution);
 		// Eyebrow, keine Ueberschrift: die Marktkarten (h3) stehen direkt unter "DeFi-Positionen" (h2).
 		addTextElement(list, 'p', t.positionsHeading, 'positions-subheading');
 		const grid = element(list, 'div', 'position-grid');
-		for (const position of positions) renderMarketCard(grid, position);
+		for (const position of positions) renderMarketCard(grid, position, attribution);
 		for (const market of unavailable) renderUnavailableCard(grid, market);
 		if (!positions.length) addTextElement(list, 'p', t.positionsNone, 'position-muted');
-		if (positions.length) renderCoverAttributions(product);
+		if (positions.length) renderCoverAttributions(attribution);
 	}
 	addTextElement(list, 'p', t.positionsSource, 'position-source');
 }
@@ -541,7 +800,7 @@ function renderDashboard(data) {
 		const expiry = document.createElement('div'); addTextElement(expiry, 'small', t.expiry); addTextElement(expiry, 'strong', formatDate(cover.endsAt)); card.appendChild(expiry);
 		const state = document.createElement('div'); addTextElement(state, 'small', t.status); addTextElement(state, 'strong', `● ${t.active}`, 'active-state'); card.appendChild(state);
 		card.appendChild(document.createElement('span'));
-		// Positionszuordnung: gefuellt von renderCoverAttributions, sobald Positionen da sind.
+		// Cover-Zuordnung: gefuellt von renderCoverAttributions, sobald Positionen da sind.
 		const attribution = document.createElement('div'); attribution.className = 'cover-attribution'; attribution.hidden = true; card.appendChild(attribution);
 		coverAttributionSlots.push({ cover, slot: attribution });
 		list.appendChild(card);
@@ -1061,7 +1320,7 @@ async function endSession({ disconnect = false } = {}) {
 		location.reload();
 		return;
 	}
-	window.dashboardData = null; positionsState = { wallet: null, status: 'idle', data: null }; document.body.classList.remove('dashboard-mode'); status.textContent = ''; enable(); applyLanguage(language);
+	window.dashboardData = null; positionsState = { wallet: null, status: 'idle', data: null }; resetAttributionState(); document.body.classList.remove('dashboard-mode'); status.textContent = ''; enable(); applyLanguage(language);
 }
 function enable() { wcButton.disabled = false; injectedButton.disabled = false; }
 async function disconnectTelegram() {

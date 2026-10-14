@@ -406,6 +406,36 @@ export async function saveChatProductContext(chatId, productIds) {
 }
 
 /*
+	Vom Nutzer bestaetigte Cover-Zuordnungen (14.10.2026). Die Wallet kommt in
+	jedem Aufruf aus der verifizierten Sitzung bzw. der Ueberwachung - nie aus einer
+	Anfrage. Jede Abfrage und jede Loeschung ist auf genau diese Wallet beschraenkt.
+	Gespeichert wird nur die Relation, nie Betraege, Nexus-Metadaten oder Signaturen.
+*/
+const ATTRIBUTION_COLUMNS = 'deployment_key,product_id,cover_id,source,confirmed_at';
+export const MAX_ATTRIBUTIONS_PER_WALLET = 60;
+
+export async function listPositionAttributions(wallet) {
+	return value(await db.from('position_cover_attributions').select(`wallet,${ATTRIBUTION_COLUMNS}`)
+		.eq('wallet', wallet.toLowerCase()).order('confirmed_at').limit(MAX_ATTRIBUTIONS_PER_WALLET));
+}
+
+export async function upsertPositionAttribution({ wallet, protocolKey, protocolVersion, deploymentKey, productId, coverId, now = Date.now() }) {
+	const at = new Date(now).toISOString();
+	const rows = value(await db.from('position_cover_attributions').upsert({
+		wallet: wallet.toLowerCase(), protocol_key: protocolKey, protocol_version: protocolVersion,
+		deployment_key: deploymentKey, product_id: productId, cover_id: coverId,
+		source: 'user_confirmed', confirmed_at: at, updated_at: at
+	}, { onConflict: 'wallet,deployment_key,cover_id' }).select(ATTRIBUTION_COLUMNS));
+	return rows[0] ?? null;
+}
+
+export async function deletePositionAttribution(wallet, deploymentKey, coverId) {
+	const rows = value(await db.from('position_cover_attributions').delete()
+		.match({ wallet: wallet.toLowerCase(), deployment_key: deploymentKey, cover_id: coverId }).select('cover_id'));
+	return rows.length;
+}
+
+/*
 	Taegliche Bereinigung, angestossen vom Lauf um 8 Uhr (api/alerts.mjs).
 
 	Bis 01.10.2026 wurden Protokolle nie geloescht, obwohl die
@@ -416,6 +446,8 @@ export async function saveChatProductContext(chatId, productIds) {
 	trennt; sie sind keine Protokolle, sondern der Dienst selbst.
 */
 export const RETENTION_DAYS = 90;
+/** Cover laufen hoechstens 365 Tage plus Grace Period; danach ist keine Zuordnung mehr aktuell. */
+export const ATTRIBUTION_RETENTION_DAYS = 400;
 
 export async function purgeOldRecords({ client = db, now = Date.now() } = {}) {
 	const cutoff = new Date(now - RETENTION_DAYS * 86_400_000).toISOString();
@@ -425,7 +457,8 @@ export async function purgeOldRecords({ client = db, now = Date.now() } = {}) {
 		['telegram_deliveries', 'attempted_at', cutoff],
 		['sent_alerts', 'ends_at', cutoff],
 		['weekly_summary_log', 'sent_at', cutoff],
-		['dashboard_challenges', 'expires_at', jetzt]
+		['dashboard_challenges', 'expires_at', jetzt],
+		['position_cover_attributions', 'confirmed_at', new Date(now - ATTRIBUTION_RETENTION_DAYS * 86_400_000).toISOString()]
 	];
 	const result = {};
 	for (const [table, column, before] of rules) {

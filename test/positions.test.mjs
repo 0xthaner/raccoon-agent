@@ -498,7 +498,8 @@ function fakeDom() {
 	const make = (tag) => ({
 		tag, className: '', children: [], _text: '',
 		set textContent(v) { this._text = String(v); this.children = []; }, get textContent() { return this._text + this.children.map((c) => c.textContent).join(' | '); },
-		appendChild(c) { this.children.push(c); return c; }, replaceChildren() { this.children = []; this._text = ''; }
+		appendChild(c) { this.children.push(c); return c; }, replaceChildren() { this.children = []; this._text = ''; },
+		addEventListener(type, fn) { (this.listeners ??= {})[type] = fn; }, click() { this.listeners?.click?.(); }
 	});
 	for (const id of ['#position-list', '#positions-title', '#positions-note', '#positions-checked']) nodes.set(id, make('div'));
 	return { document: { createElement: make, querySelector: (s) => nodes.get(s) ?? null }, nodes };
@@ -522,7 +523,7 @@ function renderWith(state, dashboardData, lang = 'de', nextState = null) {
 		// Optional ein zweiter Durchlauf mit neuem Zustand, wie beim Wallet-Wechsel.
 		if (nextState) { positionsState = nextState; renderPositions(); }
 		return coverAttributionSlots;`;
-	const slots = new Function('document', 'window', 'lang', 'state', 'language', 'nextState', source)(document, { dashboardData }, lang, state, lang, nextState);
+	const slots = new Function('document', 'window', 'lang', 'state', 'language', 'nextState', source)(document, { dashboardData: dashboardData && !('wallet' in dashboardData) ? { wallet: state?.wallet, ...dashboardData } : dashboardData }, lang, state, lang, nextState);
 	const list = nodes.get('#position-list');
 	list.attributionSlots = slots;
 	return list;
@@ -575,17 +576,17 @@ test('UI 1/5: the Nexus product appears once, at protocol level', () => {
 test('UI 2/3/4: covers are listed only once, in "Deine Covers"; the positions area repeats no cover details', () => {
 	const list = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: COVERS });
 	assert.equal(byClass(list, 'nexus-covers').length, 0, 'keine zweite Cover-Liste unter den Positionen');
-	assert.doesNotMatch(list.textContent, /Cover #|Cover-Betrag|Ablauf|10\.000 USDC|2026-11-25|Vorhandene Nexus Covers/);
+	assert.doesNotMatch(list.textContent, /Cover-Betrag|10\.000 USDC|2026-11-25|Vorhandene Nexus Covers/);
+	assert.doesNotMatch(list.textContent, /Cover #/, 'ohne geoeffnete Auswahl keine Cover-Nummer im Positionsbereich');
 	const cards = byClass(list, 'position-card');
 	assert.equal(cards.length, 3);
-	assert.doesNotMatch(main, /renderProductCovers|coversHeading|noProductCovers|coverNote/, 'der doppelte Abschnitt ist vollstaendig entfernt');
+	assert.doesNotMatch(main, /renderProductCovers|coversHeading|noProductCovers|coverNote|associationUnverified/, 'der doppelte Abschnitt und "Nicht verifiziert" sind entfernt');
 	// Oben: die eine Cover-Liste bekommt die Zuordnung nur fuer das passende, aktive Produkt.
 	const slots = list.attributionSlots;
 	assert.deepEqual(slots.map(({ cover }) => cover.coverId), [7, 8], 'nur aktive Covers haben einen Platz');
 	const [p97, p1] = slots;
 	assert.equal(p97.slot.hidden, false);
-	assert.equal(p97.slot.textContent, 'Positionszuordnung | Nicht verifiziert');
-	assert.equal(byClass(p97.slot, 'association-unverified').length, 1);
+	assert.equal(p97.slot.textContent, 'Cover-Zuordnung | Bestätigung erforderlich', 'zwei Positionen, ein Cover, EtherFi unlesbar');
 	assert.equal(p1.slot.hidden, true, 'anderes Produkt (gleicher Name) bekommt keine Zuordnung');
 	assert.equal(p1.slot.textContent, '');
 });
@@ -644,7 +645,7 @@ test('UI 9: without a matching active cover the summary says so once, neutrally'
 	const deprecated = renderWith({ wallet: WALLET, status: 'ok', data: { ...SAMPLE, positions: SAMPLE.positions.map((p) => ({ ...p, nexus: { state: 'PRODUCT_DEPRECATED', productId: 97, productName: 'Aave v3' } })) } }, { covers: COVERS });
 	assert.equal(countText(byClass(deprecated, 'protocol-summary')[0], /^Nexus-Produkt eingestellt$/), 1, 'einmal in der Zusammenfassung');
 	assert.equal(countText(deprecated, /^Nexus-Produkt eingestellt$/), 3, 'plus der kompakte Nexus-Status je lesbarem Markt');
-	assert.doesNotMatch(deprecated.textContent, /Wallet-Cover|Positionszuordnung/);
+	assert.doesNotMatch(deprecated.textContent, /Wallet-Cover|Positionszuordnung|Cover-Zuordnung|Cover zuordnen/);
 });
 
 test('UI 12: each asset is its own row with separate symbol, amount and value', () => {
@@ -962,7 +963,7 @@ test('SEC amplification: a joiner of a refused lookup gets busy, never a hanging
 const links = (node) => allNodes(node).filter((n) => n.tag === 'a');
 const NEXUS_97 = 'https://app.nexusmutual.io/cover/product/97';
 
-test('FLOW 1/2/3/4/12: with an active #97 cover each card shows the same three short status rows', () => {
+test('FLOW 1/2/3/4/12: with an active #97 cover and two positions each card asks for confirmation', () => {
 	const list = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: COVERS });
 	const [summary] = byClass(list, 'protocol-summary');
 	assert.match(summary.textContent, /Nexus Mutual \| Passendes Nexus-Produkt verfügbar \| Aave v3 · Produkt #97/);
@@ -973,20 +974,19 @@ test('FLOW 1/2/3/4/12: with an active #97 cover each card shows the same three s
 	for (const card of cards) {
 		const [status] = byClass(card, 'market-status');
 		assert.ok(status, card.children[0].textContent);
-		assert.equal(status.textContent, 'Nexus | Passendes Produkt verfügbar | Wallet-Cover | Aktives Aave-v3-Cover gefunden | Positionszuordnung | Nicht verifiziert');
-		assert.ok(byClass(status, 'association-unverified').length === 1);
+		assert.equal(status.textContent, 'Nexus | Passendes Produkt verfügbar | Wallet-Cover | Aktives Aave-v3-Cover gefunden | Cover-Zuordnung | Bestätigung erforderlich | Cover zuordnen');
+		assert.equal(byClass(status, 'attribution-required').length, 1);
 		assert.doesNotMatch(card.textContent, /Cover #7|10\.000 USDC/, 'Cover nicht als dieser Position zugeordnet dargestellt');
 	}
 	assert.equal(byClass(list, 'position-unavailable')[0].children.length, 3, 'nicht lesbarer Markt ohne Nexus-Statusblock');
 });
 
 test('FLOW 4: the attribution explanation appears exactly once, in the summary', () => {
-	const NOTE = 'Ein aktives Cover für das passende Nexus-Produkt bedeutet nicht automatisch, dass jede erkannte Aave-Position diesem Cover zugeordnet ist.';
 	const list = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: COVERS });
-	assert.equal(countText(list, new RegExp(`^${NOTE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`)), 1);
-	assert.equal(countText(byClass(list, 'protocol-summary')[0], /bedeutet nicht automatisch/), 1);
-	for (const card of byClass(list, 'position-card')) assert.doesNotMatch(card.textContent, /bedeutet nicht|lässt sich nicht sicher bestimmen/);
-	assert.equal(countText(renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: [] }), /bedeutet nicht automatisch/), 0, 'ohne Cover keine Zuordnungs-Erklaerung');
+	assert.equal(countText(list, /bedeutet nicht automatisch/), 1);
+	assert.equal(countText(byClass(list, 'protocol-summary')[0], /Ordne das Cover bei der passenden Position selbst zu/), 1);
+	for (const card of byClass(list, 'position-card')) assert.doesNotMatch(card.textContent, /bedeutet nicht|lässt sich nicht sicher bestimmen|1:1-Konstellation/);
+	assert.equal(countText(renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: [] }), /bedeutet nicht automatisch|1:1-Konstellation|von dir bestätigt/), 0, 'ohne Cover keine Zuordnungs-Erklaerung');
 });
 
 test('FLOW 6/7/8: one Nexus action at protocol level - prominent without a cover, quiet with one - and none in cards', () => {
@@ -998,7 +998,7 @@ test('FLOW 6/7/8: one Nexus action at protocol level - prominent without a cover
 	assert.equal(primary.textContent, 'Cover bei Nexus ansehen');
 	assert.equal(primary.className, 'nexus-action primary');
 	for (const card of byClass(none, 'position-card').filter((c) => !String(c.className).includes('position-unavailable'))) {
-		assert.equal(byClass(card, 'market-status')[0].textContent, 'Nexus | Passendes Produkt verfügbar | Wallet-Cover | Kein aktives passendes Cover erkannt | Positionszuordnung | —');
+		assert.equal(byClass(card, 'market-status')[0].textContent, 'Nexus | Passendes Produkt verfügbar | Wallet-Cover | Kein aktives passendes Cover erkannt | Cover-Zuordnung | —');
 		assert.deepEqual(links(card), [], 'keine Aktion in den Karten');
 	}
 	const withCover = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: COVERS });
@@ -1033,7 +1033,7 @@ test('FLOW 10: no link and no wallet-cover status when the product is not availa
 	for (const state of ['PRODUCT_DEPRECATED', 'NO_PRODUCT', 'UNAVAILABLE', 'UNSUPPORTED']) {
 		const list = renderWith({ wallet: WALLET, status: 'ok', data: { ...SAMPLE, positions: SAMPLE.positions.map((p) => ({ ...p, nexus: { state, productId: state === 'UNSUPPORTED' ? null : 97, productName: 'Aave v3' } })) } }, { covers: COVERS });
 		assert.deepEqual(links(list), [], state);
-		assert.doesNotMatch(list.textContent, /Wallet-Cover|Positionszuordnung|Vorhandene Nexus Covers/, state);
+		assert.doesNotMatch(list.textContent, /Wallet-Cover|Positionszuordnung|Cover-Zuordnung|Cover zuordnen|Vorhandene Nexus Covers/, state);
 	}
 });
 
@@ -1041,12 +1041,12 @@ test('FLOW 5/11/13: no coverage claim, no gap logic, never a VERIFIED attributio
 	for (const covers of [[], COVERS]) {
 		const text = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers }).textContent
 			.replace('Ein passendes Nexus-Produkt bedeutet nicht, dass ein konkreter Verlust gedeckt oder ein bestimmter Betrag erstattungsfähig ist.', '');
-		assert.doesNotMatch(text, /gedeckt|versichert|abgesichert|geschützt|Schutz|covered|insured|protected|uncovered|Lücke|gap|Verifiziert(?!\w)|\bverifiziert\b(?<!Nicht verifiziert)/);
+		assert.doesNotMatch(text, /gedeckt|versichert|abgesichert|geschützt|Schutz|covered|insured|protected|uncovered|Lücke|gap|verifiziert|verified/i);
 		assert.doesNotMatch(text, /Core ist|Lido \/ Prime ist|EtherFi ist/);
 	}
 	const flow = main.slice(main.indexOf('const NEXUS_PRODUCT_PAGES'), main.indexOf('function renderDashboard('));
-	assert.doesNotMatch(flow, /'VERIFIED'/, 'VERIFIED wird nirgends gesetzt');
-	assert.match(flow, /return activeProductCovers\(product\)\.length \? 'UNVERIFIED' : 'NONE';/);
+	assert.doesNotMatch(flow, /'VERIFIED'|verifiziert|verified/i, 'es gibt keinen "verifiziert"-Zustand');
+	assert.match(flow, /const ATTRIBUTION = Object\.freeze\(\{ AUTO: 'AUTO_UNAMBIGUOUS', REQUIRED: 'USER_CONFIRMATION_REQUIRED', CONFIRMED: 'USER_CONFIRMED', NONE: 'NO_ACTIVE_COVER' \}\);/);
 	assert.doesNotMatch(flow, /cover\.amount\s*[-+*/<>]|[-+*/<>]\s*cover\.amount|usdValue\s*[<>]|netUsd\s*[<>]/, 'kein Vergleich Cover-Betrag gegen Position');
 });
 

@@ -38,7 +38,9 @@ test('Protokolle nach 90 Tagen, Login-Codes nach Ablauf', async () => {
 		telegram_deliveries: ['attempted_at', grenze],
 		sent_alerts: ['ends_at', grenze],
 		weekly_summary_log: ['sent_at', grenze],
-		dashboard_challenges: ['expires_at', new Date(NOW).toISOString()]
+		dashboard_challenges: ['expires_at', new Date(NOW).toISOString()],
+		// Vom Nutzer bestaetigte Cover-Zuordnungen: spaetestens 400 Tage nach der letzten Bestaetigung.
+		position_cover_attributions: ['confirmed_at', new Date(NOW - 400 * 86_400_000).toISOString()]
 	};
 	assert.deepEqual(Object.fromEntries(c.aufrufe.map((a) => [a.table, [a.column, a.before]])), erwartet);
 	assert.ok(c.aufrufe.every((a) => a.options?.count === 'exact'));
@@ -58,5 +60,5 @@ test('eine gesperrte Tabelle haelt die anderen nicht auf', async () => {
 	const r = await purgeOldRecords({ client: c, now: NOW });
 	assert.match(String(r.agent_events), /fehler: gesperrt/);
 	assert.equal(r.dashboard_challenges, 3);
-	assert.equal(c.aufrufe.length, 5);
+	assert.equal(c.aufrufe.length, 6);
 });
