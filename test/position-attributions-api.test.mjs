@@ -387,10 +387,20 @@ test('37: a stale or unverifiable confirmation falls back to the generic sentenc
 });
 
 test('38: the reminder is still sent when the attribution lookup fails', async () => {
-	const { checkExpiryAlerts } = await import('../src/alerts.mjs');
+	const { checkExpiryAlerts, sendExpiryAlertsFor } = await import('../src/alerts.mjs');
 	const source = readFileSync(new URL('../src/alerts.mjs', import.meta.url), 'utf8');
-	const loop = source.slice(source.indexOf('export async function checkExpiryAlerts('));
-	assert.ok(loop.indexOf('attributionContext(') < loop.indexOf("_messageKind: 'expiry_alert'"));
+	// Die Schleife je Abo liegt seit AUDIT E-L3 in sendExpiryAlertsFor; checkExpiryAlerts ruft sie auf.
+	assert.ok(source.slice(source.indexOf('export async function checkExpiryAlerts(')).includes('sendExpiryAlertsFor(subscription, result,'));
+	const sentTexts = [];
+	const counts = await sendExpiryAlertsFor({ chat_id: '777', wallet: A, language: 'de', alert_thresholds: [7] }, coversOf(A, [alertCover]), {
+		sendMessage: async (chatId, text) => { sentTexts.push([chatId, text]); },
+		now: Date.parse('2026-10-14T10:00:00Z'), logger: { error() {} },
+		loadAttributions: async () => { throw new Error('db down'); }, loadPositions: async () => positionsOf(A),
+		wasSent: async () => false, recordSent: async () => {}, newAccess: async () => ({ code: 'x' })
+	});
+	assert.deepEqual(counts, { sent: 1, failed: 0 });
+	assert.equal(sentTexts[0][0], '777');
+	assert.match(sentTexts[0][1], /Dein Cover läuft innerhalb der nächsten 7 Tage aus/, 'allgemeiner Satz trotz Datenbankfehler');
 	assert.match(source, /export async function attributionContext\([^)]*\) \{\n\ttry \{/, 'jeder Fehler endet im catch');
 	assert.match(source, /\} catch \{\n\t\treturn null;\n\t\}\n\}/);
 	const context = await attributionContext(A, alertCover, coversOf(A, [alertCover]), {}, { loadAttributions: async () => { throw new Error('db down'); }, loadPositions: async () => positionsOf(A) });

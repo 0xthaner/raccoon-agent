@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { isAddress } from 'viem';
 import { consumePendingLink, getPendingLink } from './db.mjs';
-import { isTelegramLinkCode, isTelegramLinkRow, linkSiweExpectation, signingMessage } from './linking.mjs';
+import { isTelegramLinkCode, isTelegramLinkRow, linkSiweExpectation, signingMessage, telegramTarget } from './linking.mjs';
 import { verifyWalletSiweSignature } from './contract-signature.mjs';
 
 const publicDir = join(process.cwd(), 'dist-web');
@@ -48,8 +48,12 @@ export function startWebServer({ port = 8787, onLinked }) {
 				// AUDIT-2026-10-12 F1: dieselben zwei Schranken wie api/link.mjs.
 				const pending = isTelegramLinkCode(code) ? await getPendingLink(code) : null;
 				if (!pending || !isTelegramLinkRow(pending) || pending.used_at || pending.expires_at < Date.now()) return json(res, 410, { ok: false, error: 'Verbindungscode ungültig oder abgelaufen.' });
-				if (!wallet || !isAddress(wallet)) return json(res, 400, { ok: false, error: 'Ungültige Wallet-Adresse.' });
-				return json(res, 200, { ok: true, message: signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code }) });
+				// AUDIT E-L2: wie api/link.mjs - Ziel aus der gebundenen Chat-ID, sonst kein Text.
+				const target = await telegramTarget(pending.chat_id);
+				if (!wallet) return json(res, 200, { ok: true, telegram: target });
+				if (!isAddress(wallet)) return json(res, 400, { ok: false, error: 'Ungültige Wallet-Adresse.' });
+				if (!target) return json(res, 503, { ok: false, code: 'TELEGRAM_TARGET_UNAVAILABLE', error: 'Das Telegram-Konto zu diesem Link konnte gerade nicht bestätigt werden.' });
+				return json(res, 200, { ok: true, telegram: target, message: signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code, target: target.target }) });
 			}
 			if (req.method === 'POST' && url.pathname === '/api/link/verify') {
 				const { code, wallet, signature } = await bodyOf(req);
@@ -59,8 +63,10 @@ export function startWebServer({ port = 8787, onLinked }) {
 				// AGENT-SEC-A3: derselbe Vertrag wie im Vercel-Handler.
 				// AGENT-AUTH-001: EOA (offline) oder deployte Contract-Wallet (ERC-1271),
 				// derselbe Orchestrator wie der Vercel-Handler; fail closed bei RPC.
-				const expected = linkSiweExpectation({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code });
-				const message = signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code });
+				const target = await telegramTarget(pending.chat_id);
+				if (!target) return json(res, 503, { ok: false, code: 'TELEGRAM_TARGET_UNAVAILABLE', error: 'Das Telegram-Konto zu diesem Link konnte gerade nicht bestätigt werden.' });
+				const expected = linkSiweExpectation({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code, target: target.target });
+				const message = signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code, target: target.target });
 				if (await verifyWalletSiweSignature({ message, signature, expected }) !== 'VALID') {
 					return json(res, 401, { ok: false, error: 'Signatur konnte nicht bestätigt werden.' });
 				}

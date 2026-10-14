@@ -1,6 +1,6 @@
 import { isAddress } from 'viem';
 import { consumePendingLink, getPendingLink, getLanguage } from '../../src/db.mjs';
-import { isTelegramLinkCode, isTelegramLinkRow, linkSiweExpectation, newDashboardAccess, signingMessage } from '../../src/linking.mjs';
+import { isTelegramLinkCode, isTelegramLinkRow, linkSiweExpectation, newDashboardAccess, signingMessage, telegramTarget } from '../../src/linking.mjs';
 import { verifyWalletSiweSignature } from '../../src/contract-signature.mjs';
 import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin } from '../../src/http-security.mjs';
 import { recordSecurityEvent, securityFingerprint, SECURITY_EVENT } from '../../src/security-events.mjs';
@@ -60,8 +60,12 @@ export default async function handler(request, response) {
 	// Pending-Link rekonstruiert; Felder und Signatur prueft dieselbe
 	// gemeinsame Grenze wie beim Dashboard. Der Client schickt keine eigene
 	// Nachricht, und die interne Ursache verlaesst den Server nicht.
-	const expected = linkSiweExpectation({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code });
-	const message = signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code });
+	// AUDIT E-L2: das Ziel kommt wie beim Ausstellen aus der gebundenen Chat-ID,
+	// nie aus dem Request. Ohne bestaetigtes Ziel wird nichts geprueft und nichts verbraucht.
+	const target = await telegramTarget(pending.chat_id);
+	if (!target) return response.status(503).json({ ok: false, code: 'TELEGRAM_TARGET_UNAVAILABLE', error: 'Das Telegram-Konto zu diesem Link konnte gerade nicht bestätigt werden. Bitte gleich erneut versuchen.' });
+	const expected = linkSiweExpectation({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code, target: target.target });
+	const message = signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code, target: target.target });
 	// EOA (offline) oder deployte Contract-Wallet (ERC-1271). Derselbe Pfad wie beim
 	// Dashboard; eine 1271-Signatur fuer Wallet A verknuepft nie Wallet B.
 	const verified = await verifyWalletSiweSignature({ message, signature, expected });

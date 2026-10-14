@@ -84,7 +84,9 @@ test('AGENT-API-002 csp-report ist rate-limitiert und loggt keinen rohen Payload
 	const csp = src('../api/csp-report.mjs');
 	assert.ok(csp.includes("enforceRateLimit(request, response, 'csp-report'"));
 	// Nur Direktive + normalisierter Origin werden geloggt, nicht der ganze Body.
-	assert.ok(csp.includes('console.log(`csp-report richtlinie=${richtlinie} blockiert=${host}`)'));
+	assert.ok(csp.includes('console.log(`csp-report richtlinie=${richtlinie} blockiert=${blockiert}`)'));
+	// AUDIT E-L4: beide Felder stammen aus cspLogFields (Allowlist), nie roh aus der Meldung.
+	assert.ok(csp.includes('const { richtlinie, blockiert } = cspLogFields(meldung);'));
 	assert.equal(/console\.log\([^)]*\broh\b/.test(csp), false, 'kein Log des Rohbodys');
 	assert.equal(/console\.log\([^)]*JSON\.stringify/.test(csp), false);
 });

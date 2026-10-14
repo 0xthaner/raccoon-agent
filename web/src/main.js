@@ -932,11 +932,15 @@ async function zeigeTelegramKonto() {
 		feld.hidden = false;
 		return;
 	}
-	const anzeige = konto.username ? `@${konto.username}${konto.name ? ` (${konto.name})` : ''}` : konto.name;
+	// AUDIT E-L2: genau die Kennung, die auch im signierten Text steht ("for Telegram ...").
+	const kennung = typeof konto.target === 'string' ? konto.target : '';
+	const anzeige = konto.username && konto.name ? `${kennung} (${konto.name})` : kennung;
 	feld.append(document.createTextNode(de ? 'Deine Wallet wird mit diesem Telegram-Konto verknüpft: ' : 'Your wallet will be linked to this Telegram account: '));
 	const fett = document.createElement('strong');
 	fett.textContent = anzeige;
-	feld.append(fett, document.createTextNode(de ? '. Ist das nicht dein eigenes Konto, brich hier ab.' : '. If this is not your own account, stop here.'));
+	feld.append(fett, document.createTextNode(de
+		? `. Dieselbe Angabe („for Telegram ${kennung}“) steht in der Nachricht, die deine Wallet zum Signieren zeigt. Ist das nicht dein eigenes Konto, brich hier ab.`
+		: `. The same detail ("for Telegram ${kennung}") appears in the message your wallet asks you to sign. If this is not your own account, stop here.`));
 	feld.hidden = false;
 }
 zeigeTelegramKonto();

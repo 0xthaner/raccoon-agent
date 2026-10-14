@@ -55,6 +55,7 @@ function linkDeps(lookups) {
 		enforceRateLimit: async () => true,
 		ANMELDUNG_PAUSIERT: false, pauseAntwort: () => {},
 		isTelegramLinkCode: linking.isTelegramLinkCode, isTelegramLinkRow: linking.isTelegramLinkRow,
+		telegramTarget: async (chatId) => linking.telegramTargetOf({ id: Number(chatId), type: 'private', username: 'raccoon_user' }, chatId),
 		queryParams: requestQuery.queryParams, singleQueryValue: requestQuery.singleQueryValue,
 		process: { env: {} }, fetch: async () => { throw new Error('no network'); }
 	};
@@ -93,7 +94,7 @@ async function verifyAttempt(code, rows = ROWS) {
 		// Oeffentliche, unbefuellte Offline-Testadresse; nie von Anwendungscode importiert.
 		const attacker = privateKeyToAccount(`0x${'02'.repeat(32)}`);
 		const row = rows[code];
-		const params = { wallet: attacker.address, nonce: row?.nonce ?? 'ab'.repeat(16), expiresAt: row?.expires_at ?? now, issuedAt: (row?.expires_at ?? now) - 600_000, code };
+		const params = { wallet: attacker.address, nonce: row?.nonce ?? 'ab'.repeat(16), expiresAt: row?.expires_at ?? now, issuedAt: (row?.expires_at ?? now) - 600_000, code, target: '@raccoon_user' };
 		let signature = '0x';
 		try { signature = await attacker.signMessage({ message: telegramSiweMessage(params) }); } catch { /* Nonce ungeeignet: Signatur bleibt leer */ }
 		const consumed = [];
@@ -102,6 +103,7 @@ async function verifyAttempt(code, rows = ROWS) {
 			enforceRateLimit: async () => true, enforceRateLimitFor: async () => true,
 			getPendingLink: async (c) => rows[c] ?? null,
 			isTelegramLinkCode: linking.isTelegramLinkCode, isTelegramLinkRow: linking.isTelegramLinkRow,
+			telegramTarget: async (chatId) => linking.telegramTargetOf({ id: Number(chatId), type: 'private', username: 'raccoon_user' }, chatId),
 			isAddress: (v) => /^0x[0-9a-fA-F]{40}$/.test(v),
 			linkSiweExpectation: (p) => telegramExpectation({ ...p, issuedAt: p.expiresAt - 600_000 }),
 			signingMessage: (p) => telegramSiweMessage({ ...p, issuedAt: p.expiresAt - 600_000 }),

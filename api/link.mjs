@@ -1,25 +1,9 @@
 import { isAddress } from 'viem';
 import { getPendingLink } from '../src/db.mjs';
-import { isTelegramLinkCode, isTelegramLinkRow, signingMessage } from '../src/linking.mjs';
+import { isTelegramLinkCode, isTelegramLinkRow, signingMessage, telegramTarget } from '../src/linking.mjs';
 import { enforceRateLimit } from '../src/http-security.mjs';
 import { queryParams, singleQueryValue } from '../src/request-query.mjs';
 import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../src/pause.mjs';
-
-async function telegramAccount(chatId) {
-	const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
-	if (!token || !/^\d{1,20}$/.test(String(chatId))) return null;
-	try {
-		const result = await fetch(`https://api.telegram.org/bot${token}/getChat?chat_id=${encodeURIComponent(chatId)}`, { signal: AbortSignal.timeout(4_000) })
-			.then((r) => r.json());
-		if (!result?.ok || result.result?.type !== 'private') return null;
-		const chat = result.result;
-		const username = typeof chat.username === 'string' && /^[A-Za-z0-9_]{5,32}$/.test(chat.username) ? chat.username : null;
-		const name = [chat.first_name, chat.last_name].filter((t) => typeof t === 'string').join(' ').slice(0, 64) || null;
-		return username || name ? { username, name } : null;
-	} catch {
-		return null;
-	}
-}
 
 export default async function handler(request, response) {
 	response.setHeader('cache-control', 'no-store');
@@ -39,13 +23,18 @@ export default async function handler(request, response) {
 		Sonst kann jemand einem anderen seinen eigenen Verknuepfungslink schicken
 		("bitte kurz bestaetigen"), und dessen Wallet haengt danach an fremdem
 		Chat. Der Name kommt live von Telegram und wird nicht gespeichert.
+		AUDIT E-L2: dieselbe Zielbeschreibung steht auch im Signaturtext; ohne sie
+		gibt es keinen Text zum Signieren.
 	*/
+	const target = await telegramTarget(pending.chat_id);
 	if (!wallet) {
-		return response.status(200).json({ ok: true, telegram: await telegramAccount(pending.chat_id) });
+		return response.status(200).json({ ok: true, telegram: target });
 	}
 	if (!isAddress(wallet)) return response.status(400).json({ ok: false, error: 'Ungültige Wallet-Adresse.' });
+	if (!target) return response.status(503).json({ ok: false, code: 'TELEGRAM_TARGET_UNAVAILABLE', error: 'Das Telegram-Konto zu diesem Link konnte gerade nicht bestätigt werden. Bitte gleich erneut versuchen.' });
 	return response.status(200).json({
 		ok: true,
-		message: signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code })
+		telegram: target,
+		message: signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code, target: target.target })
 	});
 }

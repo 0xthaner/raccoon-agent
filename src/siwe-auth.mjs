@@ -37,8 +37,30 @@ export const PRODUCTION_ORIGIN = 'https://coverraccoon.com';
 export const DASHBOARD_STATEMENT =
 	'Open your personal CoverRaccoon dashboard. This does not authorize transactions, token approvals, transfers or purchases.';
 
-export const TELEGRAM_STATEMENT =
-	'Connect this wallet to Raccoon Agent Telegram cover notifications. This does not authorize dashboard access, transactions, token approvals, transfers or purchases.';
+/*
+	AUDIT E-L2, 14.10.2026: der Telegram-Text nennt jetzt das ZIEL der Verknuepfung.
+	Vorher stand dort nur "Raccoon Agent Telegram cover notifications"; wer einem
+	anderen seinen eigenen Verknuepfungslink schickte ("bitte kurz bestaetigen"),
+	bekam dessen Wallet in den eigenen Chat, ohne dass der signierte Text das
+	verriet. Die Zielbeschreibung bildet ausschliesslich der Server aus der
+	serverseitig gebundenen Chat-ID (siehe `telegramTarget` in linking.mjs); der
+	Browser liefert sie nie.
+
+	Erlaubt sind nur drei Formen, alle im ERC-4361-Zeichensatz (ASCII, keine
+	Anfuehrungszeichen, kein Zeilenumbruch), damit Wallets den Text weiter als
+	SIWE erkennen und ihre Domain-Warnung zeigen:
+	  @username                          - von Telegram vergeben, eindeutig
+	  [Vorname] (no username)            - frei waehlbar, deshalb ausdruecklich markiert
+	  account ending 1234 (no username)  - kein darstellbarer Name
+	Ein `@` erscheint nur bei einem echten Benutzernamen: ein Vorname kann ihn
+	nicht vortaeuschen.
+*/
+export const TELEGRAM_TARGET = /^(?:@[A-Za-z0-9_]{5,32}|\[[A-Za-z0-9][A-Za-z0-9 .-]{0,31}\] \(no username\)|account ending [0-9]{4} \(no username\))$/;
+
+export function telegramStatement(target) {
+	if (typeof target !== 'string' || !TELEGRAM_TARGET.test(target)) throw new Error('Telegram-Ziel fehlt oder ist ungueltig.');
+	return `Connect this wallet to Raccoon Agent Telegram cover notifications for Telegram ${target}. This does not authorize dashboard access, transactions, token approvals, transfers or purchases.`;
+}
 
 export const DASHBOARD_RESOURCE_PATH = '/dashboard';
 export const TELEGRAM_RESOURCE_PATH = '/telegram-link';
@@ -172,11 +194,11 @@ export function dashboardSiweMessage({ wallet, nonce, issuedAt, expiresAt, reque
 	});
 }
 
-export function telegramSiweMessage({ wallet, nonce, issuedAt, expiresAt, code }) {
+export function telegramSiweMessage({ wallet, nonce, issuedAt, expiresAt, code, target }) {
 	return buildMessage({
 		wallet, nonce, issuedAt, expiresAt,
 		requestId: telegramRequestId(code),
-		statement: TELEGRAM_STATEMENT,
+		statement: telegramStatement(target),
 		resourcePath: TELEGRAM_RESOURCE_PATH
 	});
 }
@@ -328,7 +350,7 @@ export function dashboardExpectation({ wallet, nonce, issuedAt, expiresAt, reque
 }
 
 /** Erwartungsobjekt fuer die Telegram-Verknuepfung aus dem Pending-Link. */
-export function telegramExpectation({ wallet, nonce, issuedAt, expiresAt, code }) {
+export function telegramExpectation({ wallet, nonce, issuedAt, expiresAt, code, target }) {
 	const { domain, uri } = siweOrigin();
 	return {
 		domain,
@@ -338,7 +360,7 @@ export function telegramExpectation({ wallet, nonce, issuedAt, expiresAt, code }
 		issuedAt,
 		expiresAt,
 		requestId: telegramRequestId(code),
-		statement: TELEGRAM_STATEMENT,
+		statement: telegramStatement(target),
 		resource: `${uri}${TELEGRAM_RESOURCE_PATH}`
 	};
 }

@@ -19,7 +19,7 @@ import {
 	PRODUCTION_ORIGIN,
 	SIWE_VERIFICATION_RESULTS,
 	TELEGRAM_RESOURCE_PATH,
-	TELEGRAM_STATEMENT,
+	telegramStatement,
 	dashboardExpectation,
 	dashboardSiweMessage,
 	telegramExpectation,
@@ -27,6 +27,10 @@ import {
 	telegramSiweMessage,
 	verifyExpectedSiweSignature
 } from '../src/siwe-auth.mjs';
+
+// AUDIT E-L2: das Telegram-Statement nennt jetzt das Ziel; die Tests nutzen ein festes.
+const TELEGRAM_TARGET_FIXTURE = '@raccoon_user';
+const TELEGRAM_STATEMENT = telegramStatement(TELEGRAM_TARGET_FIXTURE);
 
 /*
  * OEFFENTLICHE TESTFIXTUREN, KEINE GEHEIMNISSE.
@@ -81,7 +85,7 @@ function dashboardPair(overrides = {}) {
 
 function telegramPair(overrides = {}) {
 	return inProduction(() => {
-		const build = { wallet: signer.address, nonce: NONCE, issuedAt: ISSUED_AT, expiresAt: EXPIRES_AT, code: CODE, ...overrides };
+		const build = { wallet: signer.address, nonce: NONCE, issuedAt: ISSUED_AT, expiresAt: EXPIRES_AT, code: CODE, target: TELEGRAM_TARGET_FIXTURE, ...overrides };
 		return { message: telegramSiweMessage(build), expected: telegramExpectation(build) };
 	});
 }

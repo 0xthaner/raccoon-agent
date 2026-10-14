@@ -75,12 +75,13 @@ for(const mode of ['valid','wrong-wallet','wrong-chat','expired','replay','unsig
   const signer=privateKeyToAccount('0x'+'01'.repeat(32));
   const expiresAt=Date.now()+599000;
   const nonce='ab'.repeat(16);
-  const original={wallet:signer.address,nonce,expiresAt,issuedAt:expiresAt-600000,code:'PendingLinkCode_0123456-'};
+  const original={wallet:signer.address,nonce,expiresAt,issuedAt:expiresAt-600000,code:'PendingLinkCode_0123456-',target:'@raccoon_user'};
   const signature=await signer.signMessage({message:telegramSiweMessage(original)});
   const handler=loadHandler(verify,{
    ANMELDUNG_PAUSIERT:false,requireSameOrigin:()=>true,requireJson:()=>true,
    enforceRateLimit:async()=>true,enforceRateLimitFor:async()=>true,isTelegramLinkCode,isTelegramLinkRow,
    getPendingLink:async()=>({chat_id:mode==='wrong-chat'?'456':'123',nonce:mode==='wrong-chat'?'cd'.repeat(16):nonce,expires_at:mode==='expired'?1:expiresAt}),
+   telegramTarget:async(chatId)=>({target:chatId==='123'?'@raccoon_user':'@other_user'}),
    isAddress:()=>true,linkSiweExpectation:(p)=>telegramExpectation({...p,issuedAt:p.expiresAt-600000}),
    signingMessage:(p)=>telegramSiweMessage({...p,issuedAt:p.expiresAt-600000}),
    verifyWalletSiweSignature:verifyExpectedSiweSignature,

@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { checkExpiryAlerts } from '../src/alerts.mjs';
 import { beginTelegramDelivery, finishTelegramDelivery, purgeOldRecords } from '../src/db.mjs';
 import { alertOperatorCronFailure } from '../src/security-events.mjs';
+import { telegramText } from '../src/display-text.mjs';
 
 function authorized(header) {
 	const expected = process.env.CRON_SECRET?.trim() ?? '';
@@ -19,7 +20,8 @@ async function sendMessage(chatId, text, options = {}) {
 	const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
 		method: 'POST',
 		headers: { 'content-type': 'application/json' },
-		body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true, ...telegramOptions })
+		// AUDIT E-L3: keine Nachricht ueber Telegrams 4096-Zeichen-Grenze (Klartext, kein parse_mode).
+		body: JSON.stringify({ chat_id: chatId, text: telegramText(text), disable_web_page_preview: true, ...telegramOptions })
 	});
 	const result = await response.json().catch(() => null);
 	if (!response.ok || !result?.ok) {

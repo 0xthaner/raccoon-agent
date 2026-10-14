@@ -1,5 +1,6 @@
 import { getWalletCovers } from './covers.mjs';
 import { newDashboardAccess } from './linking.mjs';
+import { boundedDisplayText } from './display-text.mjs';
 import { clearSnooze, getCoverSnapshots, listAlertSubscriptions, listDueSnoozes, listPositionAttributions, recordAlertSent, recordRenewalEvent, recordWeeklySummary, saveCoverSnapshot, wasAlertSent, wasWeeklySummarySent } from './db.mjs';
 import { getWalletPositions } from './positions/index.mjs';
 import { reconcile } from './position-attributions.mjs';
@@ -27,7 +28,7 @@ export function dueThreshold(endsAt, now = Date.now(), thresholds = ALERT_THRESH
 }
 
 function lifecycleText(kind, cover, previous, language) {
-	const product = cover.productName ?? `Cover #${cover.coverId}`;
+	const product = boundedDisplayText(cover.productName) ?? `Cover #${cover.coverId}`;
 	if (language === 'en') {
 		if (kind === 'renewed') return `✅ Renewal confirmed\n\n${product} · Cover #${cover.coverId}\nNew expiry: ${new Intl.DateTimeFormat('en-GB', { dateStyle: 'long' }).format(new Date(cover.endsAt))}\n\nYour monitoring continues automatically.`;
 		if (kind === 'new') return `🛡 New cover detected\n\n${product} · Cover #${cover.coverId}\nMonitoring and expiry reminders are active.`;
@@ -147,7 +148,7 @@ export function formatExpiryAlert(cover, thresholdDays, language = 'de', context
 		timeStyle: 'short',
 		timeZone: 'Europe/Vienna'
 	}).format(new Date(cover.endsAt));
-	const product = cover.productName ?? (language === 'zh' ? `Nexus 产品 #${cover.productId}` : language === 'en' ? `Nexus product #${cover.productId}` : `Nexus-Produkt #${cover.productId}`);
+	const product = boundedDisplayText(cover.productName) ?? (language === 'zh' ? `Nexus 产品 #${cover.productId}` : language === 'en' ? `Nexus product #${cover.productId}` : `Nexus-Produkt #${cover.productId}`);
 
 	const demo = cover.demo ? (language === 'zh' ? '演示：仅适用于此钱包 · 不会执行交易' : language === 'en' ? 'Demo for this wallet only · no transaction' : 'Demo für diese Wallet · keine Transaktion') : null;
 
@@ -201,6 +202,45 @@ export async function attributionContext(wallet, cover, coversResult, cache, { l
 	}
 }
 
+/**
+ * Ablaufwarnungen fuer EIN Abo (Chat + Wallet).
+ *
+ * AUDIT E-L3, 14.10.2026: jedes Cover fuer sich. Vorher brach ein einziger
+ * gescheiterter Versand (etwa eine zu lange Nachricht) die Schleife ab, und alle
+ * weiteren faelligen Covers dieses Abos blieben ohne Warnung - jeden Tag wieder.
+ * Jetzt wird der Fehler protokolliert und gezaehlt, das naechste Cover kommt
+ * trotzdem dran. Als gesendet vermerkt wird ein Cover ausschliesslich NACH
+ * erfolgreichem Versand; ein gescheitertes wird beim naechsten Lauf erneut versucht.
+ */
+export async function sendExpiryAlertsFor(subscription, result, { sendMessage, dashboardUrl, now = Date.now(), logger = console, loadAttributions = listPositionAttributions, loadPositions = (wallet) => getWalletPositions(wallet), wasSent = wasAlertSent, recordSent = recordAlertSent, newAccess = newDashboardAccess }) {
+	let sent = 0;
+	let failed = 0;
+	const attributionCache = {};
+	for (const cover of result.covers) {
+		try {
+			if (cover.status !== 'active' || !cover.endsAt) continue;
+			const threshold = dueThreshold(cover.endsAt, now, subscription.alert_thresholds);
+			if (threshold == null || await wasSent(subscription.chat_id, cover.coverId, cover.endsAt, threshold)) continue;
+			// Der Callback heisst aus Kompatibilitaet mit bereits verschickten Knoepfen weiter `renew_later`.
+			const rows = [[
+				{ text: subscription.language === 'zh' ? '明天提醒' : subscription.language === 'en' ? 'Remind tomorrow' : 'Morgen erinnern', callback_data: `renew_later:${cover.coverId}:${subscription.wallet}` }
+			]];
+			if (dashboardUrl) {
+				const access = await newAccess(subscription.wallet);
+				rows.push([{ text: subscription.language === 'zh' ? '打开仪表板' : subscription.language === 'en' ? 'Open dashboard' : 'Dashboard öffnen', url: `${dashboardUrl}/?access=${encodeURIComponent(access.code)}` }]);
+			}
+			const context = await attributionContext(subscription.wallet, cover, result, attributionCache, { loadAttributions, loadPositions });
+			await sendMessage(subscription.chat_id, formatExpiryAlert(cover, threshold, subscription.language, context), { ...(rows.length ? { reply_markup: { inline_keyboard: rows } } : {}), _messageKind: 'expiry_alert' });
+			await recordSent(subscription.chat_id, cover.coverId, cover.endsAt, threshold);
+			sent++;
+		} catch (error) {
+			failed++;
+			logger.error(`Ablaufwarnung für Cover ${cover?.coverId} (Wallet ${subscription.wallet}) fehlgeschlagen:`, error?.message);
+		}
+	}
+	return { sent, failed };
+}
+
 export async function checkExpiryAlerts({ sendMessage, dashboardUrl, now = Date.now(), logger = console, loadAttributions = listPositionAttributions, loadPositions = (wallet) => getWalletPositions(wallet) }) {
 	const subscriptions = await listAlertSubscriptions();
 	let sent = 0;
@@ -211,25 +251,10 @@ export async function checkExpiryAlerts({ sendMessage, dashboardUrl, now = Date.
 		try {
 			const result = await getWalletCovers(subscription.wallet);
 			results.set(`${subscription.chat_id}:${subscription.wallet}`, result);
-			const attributionCache = {};
 			await syncCoverLifecycle(subscription, result.covers, sendMessage, dashboardUrl);
-			for (const cover of result.covers) {
-				if (cover.status !== 'active' || !cover.endsAt) continue;
-				const threshold = dueThreshold(cover.endsAt, now, subscription.alert_thresholds);
-				if (threshold == null || await wasAlertSent(subscription.chat_id, cover.coverId, cover.endsAt, threshold)) continue;
-				// Der Callback heisst aus Kompatibilitaet mit bereits verschickten Knoepfen weiter `renew_later`.
-				const rows = [[
-					{ text: subscription.language === 'zh' ? '明天提醒' : subscription.language === 'en' ? 'Remind tomorrow' : 'Morgen erinnern', callback_data: `renew_later:${cover.coverId}:${subscription.wallet}` }
-				]];
-				if (dashboardUrl) {
-					const access = await newDashboardAccess(subscription.wallet);
-					rows.push([{ text: subscription.language === 'zh' ? '打开仪表板' : subscription.language === 'en' ? 'Open dashboard' : 'Dashboard öffnen', url: `${dashboardUrl}/?access=${encodeURIComponent(access.code)}` }]);
-				}
-				const context = await attributionContext(subscription.wallet, cover, result, attributionCache, { loadAttributions, loadPositions });
-				await sendMessage(subscription.chat_id, formatExpiryAlert(cover, threshold, subscription.language, context), { ...(rows.length ? { reply_markup: { inline_keyboard: rows } } : {}), _messageKind: 'expiry_alert' });
-				await recordAlertSent(subscription.chat_id, cover.coverId, cover.endsAt, threshold);
-				sent++;
-			}
+			const counts = await sendExpiryAlertsFor(subscription, result, { sendMessage, dashboardUrl, now, logger, loadAttributions, loadPositions });
+			sent += counts.sent;
+			failed += counts.failed;
 		} catch (error) {
 			failed++;
 			logger.error(`Ablaufprüfung für Wallet ${subscription.wallet} fehlgeschlagen:`, error.message);

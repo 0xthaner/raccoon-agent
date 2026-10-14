@@ -21,7 +21,7 @@ import {
 	SIWE_CLOCK_SKEW_MS,
 	SIWE_VERSION,
 	TELEGRAM_RESOURCE_PATH,
-	TELEGRAM_STATEMENT,
+	telegramStatement,
 	checkSiweMessage,
 	dashboardExpectation,
 	dashboardSiweMessage,
@@ -31,6 +31,10 @@ import {
 	telegramRequestId,
 	telegramSiweMessage
 } from '../src/siwe-auth.mjs';
+
+// AUDIT E-L2: das Telegram-Statement nennt jetzt das Ziel; die Tests nutzen ein festes.
+const TELEGRAM_TARGET_FIXTURE = '@raccoon_user';
+const TELEGRAM_STATEMENT = telegramStatement(TELEGRAM_TARGET_FIXTURE);
 
 const WALLET = '0x1111111111111111111111111111111111111111';
 const OTHER_WALLET = '0x2222222222222222222222222222222222222222';
@@ -74,8 +78,8 @@ function dashboardParts() {
 }
 
 function telegramParts() {
-	const message = telegramSiweMessage({ wallet: WALLET, nonce: NONCE, issuedAt: ISSUED_AT, expiresAt: EXPIRES_AT, code: CODE });
-	const expected = telegramExpectation({ wallet: WALLET, nonce: NONCE, issuedAt: ISSUED_AT, expiresAt: EXPIRES_AT, code: CODE });
+	const message = telegramSiweMessage({ wallet: WALLET, nonce: NONCE, issuedAt: ISSUED_AT, expiresAt: EXPIRES_AT, code: CODE, target: TELEGRAM_TARGET_FIXTURE });
+	const expected = telegramExpectation({ wallet: WALLET, nonce: NONCE, issuedAt: ISSUED_AT, expiresAt: EXPIRES_AT, code: CODE, target: TELEGRAM_TARGET_FIXTURE });
 	return { message, expected };
 }
 
@@ -351,7 +355,7 @@ test('R die Nachricht nennt keine Transaktion und keine Freigabe als erlaubt', (
 test('R die Erzeugung faellt ohne trusted Origin zu', () => {
 	withEnv({ APP_BASE_URL: undefined, VERCEL_ENV: 'production', NODE_ENV: undefined }, () => {
 		assert.throws(() => dashboardSiweMessage({ wallet: WALLET, nonce: NONCE, issuedAt: ISSUED_AT, expiresAt: EXPIRES_AT, requestId: newRequestId() }));
-		assert.throws(() => telegramSiweMessage({ wallet: WALLET, nonce: NONCE, issuedAt: ISSUED_AT, expiresAt: EXPIRES_AT, code: CODE }));
+		assert.throws(() => telegramSiweMessage({ wallet: WALLET, nonce: NONCE, issuedAt: ISSUED_AT, expiresAt: EXPIRES_AT, code: CODE, target: TELEGRAM_TARGET_FIXTURE }));
 	});
 });
 

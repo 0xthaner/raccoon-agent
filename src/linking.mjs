@@ -50,6 +50,53 @@ export async function newDashboardAccess(wallet) {
 	return { code, expiresAt };
 }
 
+/*
+	AUDIT E-L2, 14.10.2026: WOHIN die Wallet verknuepft wird, steht jetzt im
+	signierten Text. Quelle ist ausschliesslich Telegram selbst: `getChat` fuer die
+	Chat-ID, die der Server beim Anlegen des Links aus dem authentifizierten Update
+	gespeichert hat. Kein Wert aus Query, Body oder Header geht ein.
+
+	Dieselbe Funktion liefert Anzeige (/api/link) und Signaturtext (/api/link,
+	/api/link/verify). Aendert jemand zwischen Anzeigen und Signieren seinen
+	Telegram-Namen, passt die Signatur nicht mehr - fail closed, neu signieren.
+	Ist Telegram nicht erreichbar, gibt es KEINEN Signaturtext (kein Rueckfall auf
+	einen Text ohne Ziel).
+*/
+const TELEGRAM_USERNAME = /^[A-Za-z0-9_]{5,32}$/;
+
+/** Ein frei waehlbarer Telegram-Name als ASCII-Text: ohne @, Klammern, Steuerzeichen. */
+function asciiName(chat) {
+	const raw = [chat?.first_name, chat?.last_name].filter((part) => typeof part === 'string').join(' ');
+	return raw.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9 .-]+/g, ' ')
+		.replace(/\s+/g, ' ').trim().slice(0, 32).trim().replace(/^[ .-]+/, '');
+}
+
+/**
+ * Zielbeschreibung fuer genau diesen privaten Chat - oder null.
+ * `chat` ist die `getChat`-Antwort; `chatId` die serverseitig gebundene ID.
+ */
+export function telegramTargetOf(chat, chatId) {
+	if (!/^[1-9][0-9]{0,19}$/.test(String(chatId))) return null;
+	if (!chat || chat.type !== 'private' || String(chat.id) !== String(chatId)) return null;
+	const username = typeof chat.username === 'string' && TELEGRAM_USERNAME.test(chat.username) ? chat.username : null;
+	const name = [chat.first_name, chat.last_name].filter((part) => typeof part === 'string').join(' ').replace(/[\p{Cc}\p{Cf}\u2028\u2029]/gu, '').trim().slice(0, 64) || null;
+	const ascii = asciiName(chat);
+	const target = username ? `@${username}` : ascii ? `[${ascii}] (no username)` : `account ending ${String(chatId).slice(-4).padStart(4, '0')} (no username)`;
+	return { username, name, target };
+}
+
+/** Liest das Ziel live bei Telegram. Jeder Fehler ergibt null. */
+export async function telegramTarget(chatId, { token = process.env.TELEGRAM_BOT_TOKEN?.trim(), fetchImpl = fetch } = {}) {
+	if (!token || !/^[1-9][0-9]{0,19}$/.test(String(chatId))) return null;
+	try {
+		const result = await fetchImpl(`https://api.telegram.org/bot${token}/getChat?chat_id=${encodeURIComponent(chatId)}`, { signal: AbortSignal.timeout(4_000) })
+			.then((response) => response.json());
+		return result?.ok ? telegramTargetOf(result.result, chatId) : null;
+	} catch {
+		return null;
+	}
+}
+
 /**
  * Der Signaturtext der Telegram-Verknuepfung, ERC-4361.
  *
@@ -57,28 +104,31 @@ export async function newDashboardAccess(wallet) {
  * `issuedAt` wird aus der gespeicherten Ablaufzeit und der festen Lebensdauer
  * ABGELEITET, damit Aussteller und Verifizierer denselben Zeitpunkt ohne ein
  * zusaetzliches Datenbankfeld rekonstruieren. Die Request-ID haengt am
- * serverseitigen Pending-Link-Code, siehe `telegramRequestId`.
+ * serverseitigen Pending-Link-Code, siehe `telegramRequestId`. `target` ist die
+ * Zielbeschreibung aus `telegramTarget` (Pflicht, AUDIT E-L2).
  *
  * Statement und Ressource unterscheiden sich vom Dashboard; eine Signatur des
  * einen Zwecks passt deshalb nie auf den anderen.
  */
-export function signingMessage({ wallet, nonce, expiresAt, code }) {
+export function signingMessage({ wallet, nonce, expiresAt, code, target }) {
 	return telegramSiweMessage({
 		wallet,
 		nonce,
 		issuedAt: Number(expiresAt) - LINK_LIFETIME_MS,
 		expiresAt: Number(expiresAt),
-		code
+		code,
+		target
 	});
 }
 
 /** Die trusted Erwartung zu genau diesem Pending-Link. */
-export function linkSiweExpectation({ wallet, nonce, expiresAt, code }) {
+export function linkSiweExpectation({ wallet, nonce, expiresAt, code, target }) {
 	return telegramExpectation({
 		wallet,
 		nonce,
 		issuedAt: Number(expiresAt) - LINK_LIFETIME_MS,
 		expiresAt: Number(expiresAt),
-		code
+		code,
+		target
 	});
 }

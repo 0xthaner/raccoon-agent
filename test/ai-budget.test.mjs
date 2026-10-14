@@ -64,9 +64,13 @@ test('der Bot prueft die Grenze, bevor die KI gefragt wird', () => {
 });
 
 test('die Verknuepfungsseite zeigt das Telegram-Konto, nur als Text', () => {
+	// AUDIT E-L2: getChat liegt jetzt in src/linking.mjs (telegramTarget), fuer Anzeige UND Signaturtext.
+	const linking = readFileSync(new URL('../src/linking.mjs', import.meta.url), 'utf8');
+	assert.match(linking, /getChat\?chat_id=/);
+	assert.match(linking, /chat\.type !== 'private'/, 'nur private Chats');
+	assert.match(linking, /String\(chat\.id\) !== String\(chatId\)/, 'nur der gebundene Chat');
 	const api = readFileSync(new URL('../api/link.mjs', import.meta.url), 'utf8');
-	assert.match(api, /getChat\?chat_id=/);
-	assert.match(api, /result\.result\?\.type !== 'private'/, 'nur private Chats');
+	assert.match(api, /telegramTarget\(pending\.chat_id\)/);
 	const main = readFileSync(new URL('../web/src/main.js', import.meta.url), 'utf8');
 	const block = main.slice(main.indexOf('async function zeigeTelegramKonto('), main.indexOf('zeigeTelegramKonto();'));
 	assert.match(block, /fett\.textContent = anzeige/);

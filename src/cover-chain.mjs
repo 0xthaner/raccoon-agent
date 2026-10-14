@@ -20,6 +20,7 @@
 	Schlaegt ein Schritt fehl, gibt es einen Fehler, nie eine leere Liste: eine
 	leere Liste hiesse "diese Wallet hat keine Covers".
 */
+import { boundedDisplayText } from './display-text.mjs';
 import { createPublicClient, formatUnits, http } from 'viem';
 import { mainnet } from 'viem/chains';
 
@@ -75,7 +76,7 @@ export function serializeChainCover(raw, productName, now = Date.now()) {
 	return {
 		coverId,
 		productId: Number(raw.productId),
-		productName: productName ?? null,
+		productName: boundedDisplayText(productName),
 		asset: { id: assetId, symbol: asset?.symbol ?? `asset#${assetId}` },
 		amount,
 		// Nur bei Stablecoins ist der Betrag ohne Kurs ein Dollarbetrag.
@@ -145,7 +146,8 @@ async function productNames(fetchImpl) {
 		const response = await fetchImpl(PRODUCTS_URL, { signal: AbortSignal.timeout(8_000) });
 		if (!response.ok) throw new Error(String(response.status));
 		const products = await response.json();
-		const names = new Map(products.filter((p) => typeof p?.id === 'number' && typeof p?.name === 'string').map((p) => [p.id, p.name]));
+		// AUDIT E-L3: Namen sind fremder Anzeigetext - hier, an der Grenze, gekuerzt und bereinigt.
+		const names = new Map(products.filter((p) => typeof p?.id === 'number' && boundedDisplayText(p?.name)).map((p) => [p.id, boundedDisplayText(p.name)]));
 		productCache = { at: Date.now(), names };
 		return names;
 	} catch {
