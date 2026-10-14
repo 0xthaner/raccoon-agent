@@ -178,23 +178,65 @@
       .cover-list { display:grid; gap:12px; }
       .cover-card { display:grid; grid-template-columns:minmax(180px,1.5fr) repeat(3,minmax(110px,1fr)) auto; gap:20px; align-items:center; padding:22px 24px; border:1px solid var(--line); border-radius:15px; background:rgba(13,14,16,.92); }
       .cover-card small { display:block; margin-bottom:7px; color:var(--dim); font:500 .58rem/1 ui-monospace,SFMono-Regular,Menlo,monospace; text-transform:uppercase; letter-spacing:.09em; }
-      .cover-name strong { font-size:1.05rem; font-weight:560; }
+      .cover-name strong { font-size:1.05rem; font-weight:560; overflow-wrap:anywhere; }
       .active-state { color:var(--mint); }
+      .cover-attribution { grid-column:1 / -1; display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 12px; padding-top:14px; border-top:1px solid var(--line-soft); }
+      .cover-attribution[hidden] { display:none; }
+      .cover-card .cover-attribution small { margin:0; }
+      .cover-attribution strong { font-size:.84rem; font-weight:600; color:var(--gold); }
       .cover-action { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:0 15px; border-radius:9px; color:#08090a; background:var(--white); text-decoration:none; font-size:.76rem; font-weight:650; white-space:nowrap; }
       .dash-empty { padding:36px; border:1px solid var(--line); border-radius:15px; color:var(--silver); text-align:center; }
-      .positions-note { max-width:760px; margin:-6px 0 16px; color:var(--silver); font-size:.76rem; line-height:1.55; }
-      .position-list { display:grid; gap:12px; }
-      .position-card { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; padding:22px 24px; border:1px solid var(--line); border-radius:15px; background:rgba(13,14,16,.92); }
-      .position-title { grid-column:1 / -1; margin:0; font-size:1.05rem; font-weight:560; }
-      .position-block { display:flex; flex-direction:column; gap:6px; min-width:0; }
-      .position-block small { display:block; margin-bottom:4px; color:var(--dim); font:500 .58rem/1 ui-monospace,SFMono-Regular,Menlo,monospace; text-transform:uppercase; letter-spacing:.09em; }
-      .position-block strong { font-size:.82rem; font-weight:600; }
-      .position-asset, .position-figure { font-size:.78rem; color:var(--white); overflow-wrap:anywhere; }
-      .position-muted { font-size:.76rem; color:var(--silver); }
+      .position-list { display:grid; gap:14px; }
+      .protocol-summary, .position-card { min-width:0; padding:22px 24px; border:1px solid var(--line); border-radius:15px; background:rgba(13,14,16,.92); }
+      .summary-head { display:flex; align-items:baseline; gap:12px; margin-bottom:16px; }
+      .summary-title, .position-title { margin:0; font-size:1.05rem; font-weight:560; overflow-wrap:anywhere; }
+      .summary-chain, .position-kicker, .positions-subheading, .asset-group-title, .summary-product small { color:var(--dim); font:500 .6rem/1.3 ui-monospace,SFMono-Regular,Menlo,monospace; text-transform:uppercase; letter-spacing:.09em; }
+      .summary-figures, .position-figures { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px 24px; }
+      .figure-row { display:flex; flex-direction:column; gap:4px; min-width:0; }
+      .figure-label { color:var(--silver); font-size:.74rem; }
+      .figure-value { font-size:1.02rem; font-weight:600; color:var(--white); overflow-wrap:anywhere; }
+      .figure-help { color:var(--dim); font-size:.68rem; line-height:1.4; }
+      .summary-warning { margin:16px 0 0; padding:10px 12px; border-left:2px solid var(--gold); border-radius:6px; background:rgba(255,255,255,.03); color:var(--silver); font-size:.74rem; line-height:1.5; }
+      .summary-status { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px 24px; margin-top:18px; padding-top:16px; border-top:1px solid var(--line-soft); }
+      .summary-product { display:flex; flex-direction:column; gap:5px; }
+      /* Drei Zeilen untereinander, jede ueber die volle Breite: kein Umbruch an "Aave-v3-". */
+      .market-status { display:flex; flex-direction:column; gap:10px; padding:14px; border:1px solid var(--line-soft); border-radius:11px; background:rgba(255,255,255,.02); }
+      .market-status .figure-row { gap:2px; }
+      .market-status .figure-value { font-size:.84rem; }
+      .market-status .association-unverified .figure-value { color:var(--gold); }
+      .nexus-action { align-self:flex-start; margin-top:16px; display:inline-flex; align-items:center; min-height:40px; padding:0 15px; border:1px solid var(--line); border-radius:9px; color:var(--white); text-decoration:none; font-size:.76rem; font-weight:620; }
+      .nexus-action.primary { color:#08090a; border-color:transparent; background:var(--white); }
+      .nexus-action:hover { border-color:var(--silver); }
+      .nexus-action:focus-visible { outline:2px solid var(--mint); outline-offset:3px; }
+      .summary-product strong { font-size:.86rem; font-weight:600; }
+      .summary-product-id { font-size:.8rem; color:var(--white); overflow-wrap:anywhere; }
+      .summary-note { max-width:760px; margin:8px 0 0; color:var(--silver); font-size:.72rem; line-height:1.55; }
+      .positions-subheading { margin:6px 0 -2px; }
+      .position-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); align-items:start; gap:14px; }
+      .position-card { display:flex; flex-direction:column; gap:14px; }
+      .position-kicker { margin-top:-8px; }
+      .asset-group { display:flex; flex-direction:column; gap:8px; }
+      .asset-group-title { margin:0; }
+      .asset-row { display:grid; grid-template-columns:minmax(64px,auto) minmax(0,1fr) auto; align-items:baseline; gap:4px 12px; padding:8px 0; border-top:1px solid var(--line-soft); }
+      .asset-symbol { min-width:0; font-size:.8rem; font-weight:600; color:var(--white); overflow-wrap:anywhere; }
+      .asset-amount { font-size:.78rem; color:var(--silver); overflow-wrap:anywhere; }
+      .asset-value { font-size:.8rem; color:var(--white); text-align:right; white-space:nowrap; }
+      .asset-flag { grid-column:2 / -1; color:var(--dim); font-size:.66rem; }
+      .position-figures { padding-top:12px; border-top:1px solid var(--line); }
+      .position-unavailable { gap:8px; background:rgba(13,14,16,.6); border-style:dashed; }
+      .unavailable-status .figure-value { font-size:.9rem; color:var(--silver); }
+      .unavailable-help { color:var(--dim); font-size:.7rem; line-height:1.45; }
+      .position-muted { margin:0; font-size:.76rem; color:var(--silver); }
       .position-match { color:var(--mint); }
       .position-error { color:var(--silver); }
-      .position-source { margin:4px 0 0; color:var(--dim); font-size:.68rem; }
-      @media (max-width: 900px) { .position-card { grid-template-columns:1fr; } }
+      .position-source { margin:2px 0 0; color:var(--dim); font-size:.68rem; }
+      @media (max-width: 640px) {
+        .protocol-summary, .position-card { padding:18px 16px; }
+        .position-grid { grid-template-columns:1fr; }
+        .asset-row { grid-template-columns:minmax(0,1fr) auto; }
+        .asset-symbol { grid-column:1 / -1; }
+        .asset-flag { grid-column:1 / -1; }
+      }
       .dash-actions { display:flex; gap:10px; margin-top:22px; }
       .dash-actions a { padding:13px 17px; border:1px solid var(--line); border-radius:9px; color:var(--white); text-decoration:none; font-size:.78rem; }
       .dash-actions a.primary { color:#08090a; background:var(--white); }
@@ -316,7 +358,6 @@
           <div class="covers-head"><h2 id="protection-title">Deine Covers</h2><span class="tag" id="checked-at"></span></div>
           <div class="cover-list" id="cover-list"></div>
           <div class="covers-head"><h2 id="positions-title">DeFi-Positionen</h2><span class="tag" id="positions-checked"></span></div>
-          <p class="positions-note" id="positions-note">Ein passendes Nexus-Produkt bedeutet nicht, dass ein konkreter Verlust gedeckt oder ein bestimmter Betrag erstattungsfähig ist. Maßgeblich sind die Produktbedingungen und der Claims-Prozess von Nexus Mutual.</p>
           <div class="position-list" id="position-list"></div>
           <div class="dash-actions" id="dash-actions"></div>
         </section>

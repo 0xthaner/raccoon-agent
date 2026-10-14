@@ -25,22 +25,40 @@ const translations = {
 */
 Object.assign(translations.de, {
 	positionsTitle: 'DeFi-Positionen', positionsLoading: 'DeFi-Positionen werden gelesen …', positionsError: 'DeFi-Positionen konnten gerade nicht geladen werden.',
-	positionsNone: 'Keine Aave-v3-Positionen auf Ethereum gefunden.', positionsChecked: 'Geprüft: Aave v3 auf Ethereum', positionsMarketUnavailable: 'Daten konnten nicht vollständig gelesen werden. Dieser Markt wird deshalb nicht angezeigt.',
+	positionsNone: 'Keine Aave-v3-Positionen auf Ethereum gefunden.', positionsChecked: 'Geprüft: Aave v3 auf Ethereum',
+	marketUnavailableHelp: 'Dieser Markt konnte nicht gelesen werden und ist in den Summen nicht enthalten.', notAvailable: 'Nicht verfügbar',
+	allMarketsUnavailable: 'Die Aave-v3-Positionen konnten gerade nicht gelesen werden.',
+	totalsIncompleteOne: '{markets} konnte derzeit nicht gelesen werden. Die Summen enthalten nur verfügbare Märkte.',
+	totalsIncompleteMany: '{markets} konnten derzeit nicht gelesen werden. Die Summen enthalten nur verfügbare Märkte.', listAnd: 'und',
+	totalSupplied: 'Gesamt eingezahlt', totalBorrowed: 'Gesamt geliehen', netHelp: 'Eingezahlter Wert minus geliehener Wert', positionsHeading: 'Positionen',
+	nexusLabel: 'Nexus Mutual', cardNexusLabel: 'Nexus', productAvailableShort: 'Passendes Produkt verfügbar', walletCoverStatusLabel: 'Wallet-Cover-Status', walletCoverLabel: 'Wallet-Cover',
+	activeCoverFound: 'Aktives Aave-v3-Cover gefunden', coversFoundOne: '1 aktives Cover gefunden', coversFoundMany: '{n} aktive Covers gefunden', noActiveCover: 'Kein aktives passendes Cover erkannt',
+	associationLabel: 'Positionszuordnung', associationUnverified: 'Nicht verifiziert', associationNone: '—',
+	summaryCoverNote: 'Ein aktives Cover für das passende Nexus-Produkt bedeutet nicht automatisch, dass jede erkannte Aave-Position diesem Cover zugeordnet ist.',
+	viewCoverAction: 'Cover bei Nexus ansehen', viewProductAction: 'Produkt bei Nexus ansehen',
 	positionsSource: 'Quelle: Aave v3 · Ethereum (live), bewertet über das Aave-Preisorakel', detectedPosition: 'Erkannte DeFi-Position', supplied: 'Eingezahlt', borrowed: 'Geliehen',
 	netPosition: 'Nettoposition', healthFactor: 'Health Factor', noDebt: 'keine Schulden', collateral: 'als Sicherheit', notCollateral: 'nicht als Sicherheit', none: 'keine',
 	matchingProduct: 'Passendes Nexus-Produkt', productAvailable: 'Passendes Nexus-Produkt verfügbar', productDeprecated: 'Nexus-Produkt eingestellt', productNone: 'Kein passendes Nexus-Produkt im aktuellen Katalog',
-	productUnavailable: 'Nexus-Katalog gerade nicht prüfbar', productUnsupported: 'Für diesen Markt nicht zugeordnet', productWord: 'Produkt', walletCovers: 'Vorhandene Covers dieser Wallet',
-	noWalletCovers: 'Keine passenden Covers in dieser Wallet gefunden', notComparable: 'Positionswert und Cover-Betrag sind nicht direkt vergleichbar. Ein Cover in dieser Wallet bezieht sich nicht zwingend auf diese Position.',
+	productUnavailable: 'Nexus-Katalog gerade nicht prüfbar', productUnsupported: 'Kein zugeordnetes Nexus-Produkt', productWord: 'Produkt',
 	positionsNote: 'Ein passendes Nexus-Produkt bedeutet nicht, dass ein konkreter Verlust gedeckt oder ein bestimmter Betrag erstattungsfähig ist. Maßgeblich sind die Produktbedingungen und der Claims-Prozess von Nexus Mutual.'
 });
 Object.assign(translations.en, {
 	positionsTitle: 'DeFi Positions', positionsLoading: 'Reading DeFi positions …', positionsError: 'DeFi positions could not be loaded right now.',
-	positionsNone: 'No Aave v3 positions found on Ethereum.', positionsChecked: 'Checked: Aave v3 on Ethereum', positionsMarketUnavailable: 'Data could not be read completely, so this market is not shown.',
+	positionsNone: 'No Aave v3 positions found on Ethereum.', positionsChecked: 'Checked: Aave v3 on Ethereum',
+	marketUnavailableHelp: 'This market could not be read and is not included in the totals.', notAvailable: 'Not available',
+	allMarketsUnavailable: 'The Aave v3 positions could not be read right now.',
+	totalsIncompleteOne: '{markets} could not be read right now. The totals include only available markets.',
+	totalsIncompleteMany: '{markets} could not be read right now. The totals include only available markets.', listAnd: 'and',
+	totalSupplied: 'Total supplied', totalBorrowed: 'Total borrowed', netHelp: 'Supplied value minus borrowed value', positionsHeading: 'Positions',
+	nexusLabel: 'Nexus Mutual', cardNexusLabel: 'Nexus', productAvailableShort: 'Matching product available', walletCoverStatusLabel: 'Wallet cover status', walletCoverLabel: 'Wallet cover',
+	activeCoverFound: 'Active Aave v3 cover found', coversFoundOne: '1 active cover found', coversFoundMany: '{n} active covers found', noActiveCover: 'No active matching cover detected',
+	associationLabel: 'Position attribution', associationUnverified: 'Not verified', associationNone: '—',
+	summaryCoverNote: 'An active cover for the matching Nexus product does not automatically mean that every detected Aave position is attributed to that cover.',
+	viewCoverAction: 'View cover on Nexus', viewProductAction: 'View product on Nexus',
 	positionsSource: 'Source: Aave v3 · Ethereum (live), valued with the Aave price oracle', detectedPosition: 'Detected DeFi position', supplied: 'Supplied', borrowed: 'Borrowed',
 	netPosition: 'Net position', healthFactor: 'Health factor', noDebt: 'no debt', collateral: 'as collateral', notCollateral: 'not as collateral', none: 'none',
 	matchingProduct: 'Matching Nexus product', productAvailable: 'Matching Nexus product available', productDeprecated: 'Nexus product discontinued', productNone: 'No matching Nexus product in the current catalogue',
-	productUnavailable: 'Nexus catalogue cannot be checked right now', productUnsupported: 'Not mapped for this market', productWord: 'Product', walletCovers: 'Existing covers in this wallet',
-	noWalletCovers: 'No matching covers found in this wallet', notComparable: 'Position value and cover amount are not directly comparable. A cover in this wallet does not necessarily relate to this position.',
+	productUnavailable: 'Nexus catalogue cannot be checked right now', productUnsupported: 'No mapped Nexus product', productWord: 'Product',
 	positionsNote: 'A matching Nexus product does not mean that a specific loss is covered or that a particular amount is reimbursable. Only the product terms and the Nexus Mutual claims process apply.'
 });
 let language = localStorage.getItem('raccoon_language') || (navigator.language?.toLowerCase().startsWith('de') ? 'de' : 'en');
@@ -190,7 +208,11 @@ function addTextElement(parent, tag, value, className = '') {
 
 /*
 	Positionen kommen aus /api/positions, getrennt vom Dashboard: faellt die
-	Abfrage aus, bleibt der Rest stehen. Gehalten nur im Modul-Speicher, nie in
+	Abfrage aus, bleibt der Rest stehen. Bewusst getrennt (13.10.2026): die
+	Aave-v3-Zusammenfassung mit Produkt, Wallet-Cover-Status und der einen
+	Erklaerung, die einzelnen Markt-Positionen (nur kurze Statuszeilen) und die
+	Covers selbst - die stehen genau einmal, oben unter "Deine Covers". Eine
+	Position wird nie einem bestimmten Cover zugeordnet. Gehalten nur im Modul-Speicher, nie in
 	localStorage. Alle Werte gehen als Text in den Baum (addTextElement).
 */
 let positionsState = { wallet: null, status: 'idle', data: null };
@@ -198,6 +220,18 @@ let positionsState = { wallet: null, status: 'idle', data: null };
 async function loadPositions(wallet) {
 	positionsState = { wallet, status: 'loading', data: null };
 	renderPositions();
+	// Lokale Dev-Fixture: nur im Vite-Entwicklungsserver (import.meta.env.DEV) und nur
+	// fuer die Platzhalter-Wallet der Fixture. Im Produktions-Build ist DEV false;
+	// dieser Zweig und das Fixture-Modul fallen aus dem Bundle.
+	if (import.meta.env.DEV && import.meta.env.VITE_POSITIONS_FIXTURE) {
+		const fixture = await import('./fixtures/positions-fixture.js');
+		const data = fixture.positionsFixture(import.meta.env.VITE_POSITIONS_FIXTURE, wallet);
+		if (data) {
+			positionsState = { wallet, status: 'ok', data };
+			renderPositions();
+			return;
+		}
+	}
 	try {
 		const response = await authFetch('/api/positions', { signal: AbortSignal.timeout(25000) });
 		const body = await response.json().catch(() => null);
@@ -214,19 +248,52 @@ async function loadPositions(wallet) {
 
 function formatAmount(value) {
 	const number = Number(value);
-	return Number.isFinite(number) ? number.toLocaleString(language === 'de' ? 'de-AT' : 'en-GB', { maximumFractionDigits: 6 }) : '—';
+	// de-DE statt de-AT: de-AT gruppiert Zahlen mit Leerzeichen, Waehrungen aber mit Punkt.
+	return Number.isFinite(number) ? number.toLocaleString(language === 'de' ? 'de-DE' : 'en-GB', { maximumFractionDigits: 6 }) : '—';
 }
 function formatUsd(value) {
 	const number = Number(value);
 	return Number.isFinite(number) ? new Intl.NumberFormat(language === 'de' ? 'de-AT' : 'en-GB', { style: 'currency', currency: 'USD' }).format(number) : '—';
 }
 
-function assetLines(parent, assets, withCollateral) {
-	if (!assets.length) { addTextElement(parent, 'span', t.none, 'position-muted'); return; }
+/** USD-Dezimalzeichenkette aus der API (hoechstens 8 Stellen) als ganze 10^-8-Einheiten. */
+function usdUnits(value) {
+	const match = /^(-?)(\d+)(?:\.(\d{1,8}))?$/.exec(String(value ?? ''));
+	if (!match) return null;
+	const units = BigInt(match[2]) * 100_000_000n + BigInt((match[3] ?? '').padEnd(8, '0'));
+	return match[1] ? -units : units;
+}
+const unitsToUsd = (units) => formatUsd(Number(units) / 1e8);
+
+function element(parent, tag, className = '') {
+	const node = document.createElement(tag);
+	if (className) node.className = className;
+	parent.appendChild(node);
+	return node;
+}
+
+/** Beschriftung und Wert als eigene Zeile; optional ein kleiner Hilfetext. */
+function figureRow(parent, label, value, help = '') {
+	const row = element(parent, 'div', 'figure-row');
+	addTextElement(row, 'span', label, 'figure-label');
+	addTextElement(row, 'strong', value, 'figure-value');
+	if (help) addTextElement(row, 'small', help, 'figure-help');
+	return row;
+}
+
+/** Ein Asset je Zeile: Symbol, Menge, USD-Wert, optional Sicherheiten-Hinweis. */
+function assetGroup(parent, label, assets, withCollateral) {
+	const group = element(parent, 'div', 'asset-group');
+	addTextElement(group, 'h4', label, 'asset-group-title');
+	if (!assets.length) { addTextElement(group, 'p', '—', 'position-muted'); return group; }
 	for (const asset of assets) {
-		const flag = withCollateral ? ` · ${asset.isCollateral ? t.collateral : t.notCollateral}` : '';
-		addTextElement(parent, 'span', `${formatAmount(asset.amount)} ${asset.symbol} (${formatUsd(asset.usdValue)})${flag}`, 'position-asset');
+		const row = element(group, 'div', 'asset-row');
+		addTextElement(row, 'span', asset.symbol, 'asset-symbol');
+		addTextElement(row, 'span', `${formatAmount(asset.amount)} ${asset.symbol}`, 'asset-amount');
+		addTextElement(row, 'span', formatUsd(asset.usdValue), 'asset-value');
+		if (withCollateral) addTextElement(row, 'small', asset.isCollateral ? t.collateral : t.notCollateral, 'asset-flag');
 	}
+	return group;
 }
 
 function productText(nexus) {
@@ -237,49 +304,190 @@ function productText(nexus) {
 	return t.productUnavailable;
 }
 
+/*
+	Offizielle Nexus-Produktseite (12.10.2026). Die Route /cover/product/<productId>
+	verlinkt Nexus selbst (Blog "Upfront Proof of Loss", 31.08.2026: Produkte 438,
+	463-466); deren IDs sind genau die Katalog-IDs. Nur fest eingetragene IDs, nie aus
+	Namen, API- oder Token-Daten gebaut.
+*/
+const NEXUS_PRODUCT_PAGES = Object.freeze({ 97: 'https://app.nexusmutual.io/cover/product/97' });
+const NEXUS_PRODUCT_PAGE = /^https:\/\/app\.nexusmutual\.io\/cover\/product\/(\d+)$/;
+
+/** Link nur fuer ein verfuegbares, fest eingetragenes Produkt; sonst null. */
+function nexusProductUrl(product) {
+	if (product?.state !== 'MATCHED') return null;
+	const url = Object.prototype.hasOwnProperty.call(NEXUS_PRODUCT_PAGES, product.productId) ? NEXUS_PRODUCT_PAGES[product.productId] : null;
+	const match = typeof url === 'string' ? NEXUS_PRODUCT_PAGE.exec(url) : null;
+	return match && Number(match[1]) === product.productId ? url : null;
+}
+
+/** Aktive Covers dieser Wallet fuer genau dieses Produkt (nach productId, nie nach Name). */
+function activeProductCovers(product) {
+	if (product?.state !== 'MATCHED') return [];
+	return (window.dashboardData?.covers ?? []).filter((cover) => cover.productId === product.productId && cover.status === 'active');
+}
+
+/*
+	Zuordnung Cover -> konkrete Position. VERIFIED gibt es erst, wenn eine
+	massgebliche Quelle die Position nennt. Heute liegt die "Proof of Loss"
+	(abgedeckte Adressen/Positionen) nur privat und off-chain bei Nexus; die
+	Cover-Daten auf der Kette nennen sie nicht. Gleiche Wallet, gleiche
+	productId, aehnlicher Betrag, gleiches Asset oder Marktname beweisen nichts.
+*/
+function positionCoverAssociation(product) {
+	if (product?.state !== 'MATCHED' || !Array.isArray(window.dashboardData?.covers)) return 'UNKNOWN';
+	return activeProductCovers(product).length ? 'UNVERIFIED' : 'NONE';
+}
+
+/* Genau eine Nexus-Aktion, auf Protokollebene: ohne aktives Cover hervorgehoben, sonst leise. */
+function nexusLink(parent, product, primary) {
+	const url = nexusProductUrl(product);
+	if (!url) return null;
+	const link = document.createElement('a');
+	link.href = url;
+	link.target = '_blank';
+	link.rel = 'noopener noreferrer';
+	link.className = primary ? 'nexus-action primary' : 'nexus-action';
+	link.textContent = primary ? t.viewCoverAction : t.viewProductAction;
+	parent.appendChild(link);
+	return link;
+}
+
+/** Ein Nexus-Ergebnis fuer das ganze Protokoll: alle gleich und MATCHED, sonst der erste andere Zustand. */
+function protocolProduct(positions) {
+	const results = positions.map((position) => position.nexus).filter(Boolean);
+	if (!results.length) return null;
+	return results.find((nexus) => nexus.state !== 'MATCHED' || nexus.productId !== results[0].productId) ?? results[0];
+}
+
+function renderSummary(list, positions, unavailableLabels, product) {
+	const card = element(list, 'section', 'protocol-summary');
+	const head = element(card, 'div', 'summary-head');
+	addTextElement(head, 'h3', 'Aave v3', 'summary-title');
+	addTextElement(head, 'span', 'Ethereum', 'summary-chain');
+	let supplied = 0n, borrowed = 0n, net = 0n;
+	for (const position of positions) {
+		supplied += usdUnits(position.totals.suppliedUsd) ?? 0n;
+		borrowed += usdUnits(position.totals.debtUsd) ?? 0n;
+		net += usdUnits(position.totals.netUsd) ?? 0n;
+	}
+	const figures = element(card, 'div', 'summary-figures');
+	figureRow(figures, t.totalSupplied, unitsToUsd(supplied));
+	figureRow(figures, t.totalBorrowed, unitsToUsd(borrowed));
+	figureRow(figures, t.netPosition, unitsToUsd(net), t.netHelp);
+	if (unavailableLabels.length) {
+		const names = unavailableLabels.length === 1 ? unavailableLabels[0] : `${unavailableLabels.slice(0, -1).join(', ')} ${t.listAnd} ${unavailableLabels.at(-1)}`;
+		addTextElement(card, 'p', (unavailableLabels.length === 1 ? t.totalsIncompleteOne : t.totalsIncompleteMany).replace('{markets}', names), 'summary-warning');
+	}
+	if (product) {
+		const status = element(card, 'div', 'summary-status');
+		const block = element(status, 'div', 'summary-product');
+		addTextElement(block, 'small', t.nexusLabel);
+		addTextElement(block, 'strong', productText(product), product.state === 'MATCHED' ? 'position-match' : 'position-muted');
+		if (product.productId != null && product.productName) addTextElement(block, 'span', `${product.productName} · ${t.productWord} #${product.productId}`, 'summary-product-id');
+		if (product.state === 'MATCHED') {
+			const wallet = element(status, 'div', 'summary-product');
+			addTextElement(wallet, 'small', t.walletCoverStatusLabel);
+			const count = activeProductCovers(product).length;
+			addTextElement(wallet, 'strong', count === 0 ? t.noActiveCover : count === 1 ? t.coversFoundOne : t.coversFoundMany.replace('{n}', String(count)));
+			// Die eine Nexus-Aktion: ohne aktives Cover hervorgehoben, mit Cover leise.
+			nexusLink(card, product, count === 0);
+			// Die Zuordnungs-Erklaerung steht nur hier, nicht in jeder Karte.
+			if (count) addTextElement(card, 'p', t.summaryCoverNote, 'summary-note');
+		}
+		addTextElement(card, 'p', t.positionsNote, 'summary-note');
+	}
+}
+
+/*
+	Status je Markt, immer dieselben drei Zeilen: Produkt -> Cover in dieser Wallet
+	-> Zuordnung. Keine Cover-Nummer, kein Betrag, kein Ablauf (die stehen einmal
+	oben unter "Deine Covers"), keine Aktion und kein Erklaerungsabsatz (beides
+	einmal in der Zusammenfassung). Eine Position wird nie als einem Cover
+	zugeordnet dargestellt.
+*/
+function renderMarketStatus(card, product) {
+	if (!product) return;
+	const box = element(card, 'div', 'market-status');
+	figureRow(box, t.cardNexusLabel, product.state === 'MATCHED' ? t.productAvailableShort : productText(product));
+	if (product.state !== 'MATCHED') return;
+	const association = positionCoverAssociation(product);
+	if (association === 'UNVERIFIED') {
+		figureRow(box, t.walletCoverLabel, t.activeCoverFound);
+		figureRow(box, t.associationLabel, t.associationUnverified).className += ' association-unverified';
+	} else if (association === 'NONE') {
+		figureRow(box, t.walletCoverLabel, t.noActiveCover);
+		figureRow(box, t.associationLabel, t.associationNone);
+	}
+}
+
+function renderMarketCard(parent, position) {
+	const card = element(parent, 'article', 'position-card');
+	addTextElement(card, 'h3', `Aave v3 · ${position.label}`, 'position-title');
+	addTextElement(card, 'small', t.detectedPosition, 'position-kicker');
+	assetGroup(card, t.supplied, position.supplied, true);
+	assetGroup(card, t.borrowed, position.borrowed, false);
+	const figures = element(card, 'div', 'position-figures');
+	figureRow(figures, t.netPosition, formatUsd(position.totals.netUsd), t.netHelp);
+	figureRow(figures, t.healthFactor, position.totals.healthFactor == null ? t.noDebt : formatAmount(position.totals.healthFactor));
+	renderMarketStatus(card, position.nexus);
+}
+
+function renderUnavailableCard(parent, market) {
+	const card = element(parent, 'article', 'position-card position-unavailable');
+	addTextElement(card, 'h3', `Aave v3 · ${market.label}`, 'position-title');
+	// Als Text, nicht nur als Farbe oder Rahmen: kein Null-Saldo, keine leere Position.
+	figureRow(card, t.status, t.notAvailable).className += ' unavailable-status';
+	addTextElement(card, 'small', t.marketUnavailableHelp, 'unavailable-help');
+}
+
+/*
+	"Deine Covers" (oben) ist die einzige Cover-Liste. Jede aktive Cover-Karte dort
+	hat einen leeren Platz fuer die Positionszuordnung; gefuellt wird er erst, wenn
+	Positionen fuer GENAU dieses Produkt (productId) erkannt sind - und dann nur mit
+	"Nicht verifiziert", weil die oeffentlichen Daten keine Position nennen.
+*/
+let coverAttributionSlots = [];
+
+function renderCoverAttributions(product) {
+	for (const { cover, slot } of coverAttributionSlots) {
+		slot.replaceChildren();
+		const applies = product?.state === 'MATCHED' && cover.status === 'active' && cover.productId === product.productId;
+		slot.hidden = !applies;
+		if (!applies) continue;
+		addTextElement(slot, 'small', t.associationLabel);
+		addTextElement(slot, 'strong', t.associationUnverified, 'association-unverified');
+	}
+}
+
 function renderPositions() {
 	const list = document.querySelector('#position-list');
 	if (!list) return;
 	document.querySelector('#positions-title').textContent = t.positionsTitle;
-	document.querySelector('#positions-note').textContent = t.positionsNote;
 	document.querySelector('#positions-checked').textContent = positionsState.status === 'ok' ? t.positionsChecked : '';
 	list.replaceChildren();
+	renderCoverAttributions(null);
 	if (positionsState.status === 'loading' || positionsState.status === 'idle') { addTextElement(list, 'div', t.positionsLoading, 'dash-empty'); return; }
 	if (positionsState.status !== 'ok') { addTextElement(list, 'div', t.positionsError, 'dash-empty position-error'); return; }
 	const { positions = [], checkedDeployments = [] } = positionsState.data;
-	const covers = window.dashboardData?.covers ?? [];
-	for (const position of positions) {
-		const card = document.createElement('article'); card.className = 'position-card';
-		addTextElement(card, 'h3', `Aave v3 · ${position.label}`, 'position-title');
-		const detected = document.createElement('section'); detected.className = 'position-block';
-		addTextElement(detected, 'small', t.detectedPosition);
-		const supply = document.createElement('div'); addTextElement(supply, 'strong', t.supplied); assetLines(supply, position.supplied, true); detected.appendChild(supply);
-		const debt = document.createElement('div'); addTextElement(debt, 'strong', t.borrowed); assetLines(debt, position.borrowed, false); detected.appendChild(debt);
-		addTextElement(detected, 'span', `${t.netPosition}: ${formatUsd(position.totals.netUsd)}`, 'position-figure');
-		addTextElement(detected, 'span', `${t.healthFactor}: ${position.totals.healthFactor == null ? t.noDebt : formatAmount(position.totals.healthFactor)}`, 'position-figure');
-		card.appendChild(detected);
-		const product = document.createElement('section'); product.className = 'position-block';
-		addTextElement(product, 'small', t.matchingProduct);
-		addTextElement(product, 'strong', productText(position.nexus), position.nexus?.state === 'MATCHED' ? 'position-match' : 'position-muted');
-		if (position.nexus?.productId != null && position.nexus.productName) addTextElement(product, 'span', `${position.nexus.productName} · ${t.productWord} #${position.nexus.productId}`);
-		card.appendChild(product);
-		const held = document.createElement('section'); held.className = 'position-block';
-		addTextElement(held, 'small', t.walletCovers);
-		const matching = position.nexus?.state === 'MATCHED'
-			? covers.filter((cover) => cover.productId === position.nexus.productId && cover.status === 'active')
-			: [];
-		if (!matching.length) addTextElement(held, 'span', t.noWalletCovers, 'position-muted');
-		for (const cover of matching) {
-			addTextElement(held, 'span', `Cover #${cover.coverId} · ${formatAmount(cover.amount)} ${cover.asset?.symbol ?? ''} · ${t.expiry} ${formatDate(cover.endsAt)}`.trim(), 'position-asset');
-		}
-		if (matching.length) addTextElement(held, 'span', t.notComparable, 'position-muted');
-		card.appendChild(held);
-		list.appendChild(card);
+	const unavailable = checkedDeployments.filter((entry) => entry.status !== 'OK');
+	const readMarkets = checkedDeployments.length - unavailable.length;
+	if (!readMarkets) {
+		// Kein Markt lesbar: keine Summen, die wie "null" aussehen.
+		addTextElement(list, 'div', t.allMarketsUnavailable, 'dash-empty position-error');
+	} else if (!positions.length && !unavailable.length) {
+		addTextElement(list, 'div', t.positionsNone, 'dash-empty');
+	} else {
+		const product = protocolProduct(positions);
+		if (positions.length) renderSummary(list, positions, unavailable.map((entry) => entry.label), product);
+		// Eyebrow, keine Ueberschrift: die Marktkarten (h3) stehen direkt unter "DeFi-Positionen" (h2).
+		addTextElement(list, 'p', t.positionsHeading, 'positions-subheading');
+		const grid = element(list, 'div', 'position-grid');
+		for (const position of positions) renderMarketCard(grid, position);
+		for (const market of unavailable) renderUnavailableCard(grid, market);
+		if (!positions.length) addTextElement(list, 'p', t.positionsNone, 'position-muted');
+		if (positions.length) renderCoverAttributions(product);
 	}
-	for (const market of checkedDeployments.filter((entry) => entry.status !== 'OK')) {
-		addTextElement(list, 'div', `Aave v3 · ${market.label}: ${t.positionsMarketUnavailable}`, 'dash-empty position-error');
-	}
-	if (!positions.length && checkedDeployments.every((entry) => entry.status === 'OK')) addTextElement(list, 'div', t.positionsNone, 'dash-empty');
 	addTextElement(list, 'p', t.positionsSource, 'position-source');
 }
 
@@ -319,6 +527,7 @@ function renderDashboard(data) {
 	document.querySelector('#checked-at').textContent = `${t.updated} ${new Intl.DateTimeFormat(language === 'de' ? 'de-AT' : 'en-GB', { hour: '2-digit', minute: '2-digit' }).format(new Date(data.checkedAt))}`;
 	const list = document.querySelector('#cover-list');
 	list.replaceChildren();
+	coverAttributionSlots = [];
 	if (!active.length) addTextElement(list, 'div', t.empty, 'dash-empty');
 	for (const cover of active) {
 		const card = document.createElement('article'); card.className = 'cover-card';
@@ -328,11 +537,13 @@ function renderDashboard(data) {
 		const coverId = addTextElement(name, 'small', `Cover #${cover.coverId}`); coverId.style.marginTop = '8px';
 		card.appendChild(name);
 		const amount = document.createElement('div'); addTextElement(amount, 'small', t.protectionAmount);
-		const numericAmount = Number(cover.amount);
-		addTextElement(amount, 'strong', `${Number.isFinite(numericAmount) ? numericAmount.toLocaleString(language === 'de' ? 'de-AT' : 'en-GB') : '—'} ${cover.asset?.symbol ?? ''}`.trim()); card.appendChild(amount);
+		addTextElement(amount, 'strong', `${formatAmount(cover.amount)} ${cover.asset?.symbol ?? ''}`.trim()); card.appendChild(amount);
 		const expiry = document.createElement('div'); addTextElement(expiry, 'small', t.expiry); addTextElement(expiry, 'strong', formatDate(cover.endsAt)); card.appendChild(expiry);
 		const state = document.createElement('div'); addTextElement(state, 'small', t.status); addTextElement(state, 'strong', `● ${t.active}`, 'active-state'); card.appendChild(state);
 		card.appendChild(document.createElement('span'));
+		// Positionszuordnung: gefuellt von renderCoverAttributions, sobald Positionen da sind.
+		const attribution = document.createElement('div'); attribution.className = 'cover-attribution'; attribution.hidden = true; card.appendChild(attribution);
+		coverAttributionSlots.push({ cover, slot: attribution });
 		list.appendChild(card);
 	}
 	const owner = String(data.wallet).toLowerCase();
@@ -962,6 +1173,18 @@ async function runSafeAppLogin(ctx) {
 }
 
 async function bootstrap() {
+	// Lokale Dev-Fixture (siehe loadPositions): zeigt das Dashboard mit erfundenen
+	// Daten ueber die echten Render-Funktionen, ohne Backend und ohne Sitzung.
+	// Einschalten nur per VITE_POSITIONS_FIXTURE beim Start des Vite-Entwicklungsservers.
+	if (import.meta.env.DEV && import.meta.env.VITE_POSITIONS_FIXTURE) {
+		const fixture = await import('./fixtures/positions-fixture.js');
+		const variant = fixture.fixtureVariant(import.meta.env.VITE_POSITIONS_FIXTURE);
+		if (variant) {
+			document.title = `[DEV-FIXTURE] ${document.title}`;
+			renderDashboard(fixture.dashboardFixture(variant));
+			return;
+		}
+	}
 	if (code) return restoreDashboard(); // Telegram-Link-Modus: unveraendert
 	const inIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
 	if (inIframe) {

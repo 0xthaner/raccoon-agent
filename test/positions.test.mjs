@@ -504,7 +504,7 @@ function fakeDom() {
 	return { document: { createElement: make, querySelector: (s) => nodes.get(s) ?? null }, nodes };
 }
 
-function renderWith(state, dashboardData, lang = 'de') {
+function renderWith(state, dashboardData, lang = 'de', nextState = null) {
 	const start = main.indexOf('function formatAmount(');
 	const end = main.indexOf('function renderDashboard(');
 	const translationsStart = main.indexOf('const translations = {');
@@ -516,77 +516,181 @@ function renderWith(state, dashboardData, lang = 'de') {
 		function formatDate(iso) { return iso ? iso.slice(0, 10) : '—'; }
 		let positionsState = state;
 		${main.slice(start, end)}
-		renderPositions();`;
-	new Function('document', 'window', 'lang', 'state', 'language', source)(document, { dashboardData }, lang, state, lang);
-	return nodes.get('#position-list');
+		// Wie renderDashboard: je aktivem Cover oben ein leerer, versteckter Platz.
+		coverAttributionSlots = (window.dashboardData?.covers ?? []).filter((cover) => cover.status === 'active').map((cover) => { const slot = document.createElement('div'); slot.className = 'cover-attribution'; slot.hidden = true; return { cover, slot }; });
+		renderPositions();
+		// Optional ein zweiter Durchlauf mit neuem Zustand, wie beim Wallet-Wechsel.
+		if (nextState) { positionsState = nextState; renderPositions(); }
+		return coverAttributionSlots;`;
+	const slots = new Function('document', 'window', 'lang', 'state', 'language', 'nextState', source)(document, { dashboardData }, lang, state, lang, nextState);
+	const list = nodes.get('#position-list');
+	list.attributionSlots = slots;
+	return list;
 }
 
 const SAMPLE = {
 	ok: true, wallet: WALLET, chainId: 1, complete: false,
 	checkedDeployments: [
 		{ deploymentKey: CORE.deploymentKey, label: 'Core', status: 'OK' },
-		{ deploymentKey: LIDO.deploymentKey, label: 'Lido / Prime', status: 'UNAVAILABLE', reason: 'RPC_TIMEOUT' },
-		{ deploymentKey: ETHERFI.deploymentKey, label: 'EtherFi', status: 'OK' }
+		{ deploymentKey: LIDO.deploymentKey, label: 'Lido / Prime', status: 'OK' },
+		{ deploymentKey: ETHERFI.deploymentKey, label: 'EtherFi', status: 'UNAVAILABLE', reason: 'RPC_TIMEOUT' }
 	],
 	positions: [{
 		deploymentKey: CORE.deploymentKey, label: 'Core',
-		supplied: [{ symbol: 'WETH', amount: '2', usdValue: '6000', isCollateral: true }],
-		borrowed: [{ symbol: 'USDC', amount: '1000', usdValue: '1000' }],
-		totals: { suppliedUsd: '6000', debtUsd: '1000', netUsd: '5000', healthFactor: '1.65' },
+		supplied: [{ symbol: 'USDC', amount: '8250', usdValue: '8250', isCollateral: true }, { symbol: 'WETH', amount: '1.35', usdValue: '4180.12345678', isCollateral: true }],
+		borrowed: [{ symbol: 'USDT', amount: '2000', usdValue: '2000.00000001' }],
+		totals: { suppliedUsd: '12430.12345678', debtUsd: '2000.00000001', netUsd: '10430.12345677', healthFactor: '2.31' },
+		nexus: { state: 'MATCHED', productId: 97, productName: 'Aave v3' }
+	}, {
+		deploymentKey: LIDO.deploymentKey, label: 'Lido / Prime',
+		supplied: [{ symbol: 'wstETH', amount: '0.8', usdValue: '2960', isCollateral: false }],
+		borrowed: [],
+		totals: { suppliedUsd: '2960', debtUsd: '0', netUsd: '2960', healthFactor: null },
 		nexus: { state: 'MATCHED', productId: 97, productName: 'Aave v3' }
 	}]
 };
 const COVERS = [
-	{ coverId: 7, productId: 97, productName: 'Aave v3', status: 'active', amount: '3', asset: { symbol: 'ETH' }, endsAt: '2026-12-01T00:00:00.000Z' },
+	{ coverId: 7, productId: 97, productName: 'Aave v3', status: 'active', amount: '10000', asset: { symbol: 'USDC' }, endsAt: '2026-11-25T00:00:00.000Z' },
 	{ coverId: 8, productId: 1, productName: 'Aave v3', status: 'active', amount: '9', asset: { symbol: 'ETH' }, endsAt: '2026-12-01T00:00:00.000Z' },
 	{ coverId: 9, productId: 97, productName: 'Aave v3', status: 'expired', amount: '5', asset: { symbol: 'ETH' }, endsAt: '2025-12-01T00:00:00.000Z' }
 ];
 
-test('H: a card keeps detected position, matching product and wallet covers separate', () => {
+/** Alle Knoten unterhalb eines Knotens. */
+const allNodes = (node) => [node, ...node.children.flatMap(allNodes)];
+const byClass = (node, className) => allNodes(node).filter((n) => String(n.className).split(' ').includes(className));
+const ownTexts = (node) => allNodes(node).map((n) => n._text).filter(Boolean);
+const countText = (node, pattern) => ownTexts(node).filter((text) => pattern.test(text)).length;
+
+test('UI 1/5: the Nexus product appears once, at protocol level', () => {
 	const list = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: COVERS });
-	const card = list.children[0];
-	assert.equal(card.className, 'position-card');
-	assert.equal(card.children[0].textContent, 'Aave v3 · Core');
-	const [, detected, product, held] = card.children;
-	assert.match(detected.textContent, /^Erkannte DeFi-Position/);
-	assert.match(detected.textContent, /Eingezahlt \| 2 WETH \(.*6\.000,00.*\) · als Sicherheit/);
-	assert.match(detected.textContent, /Geliehen \| 1[.\s\u00a0\u202f]?000 USDC/);
-	assert.match(detected.textContent, /Nettoposition: .*5\.000,00/);
-	assert.match(product.textContent, /^Passendes Nexus-Produkt \| Passendes Nexus-Produkt verfügbar \| Aave v3 · Produkt #97/);
-	assert.match(held.textContent, /^Vorhandene Covers dieser Wallet \| Cover #7 · 3 ETH/);
-	assert.doesNotMatch(held.textContent, /Cover #8|Cover #9/, 'nur productId 97 und nur aktive; Name zaehlt nicht');
-	assert.match(held.textContent, /nicht direkt vergleichbar/);
-	assert.match(list.textContent, /Aave v3 · Lido \/ Prime: Daten konnten nicht vollständig gelesen werden/);
-	assert.doesNotMatch(list.textContent, /Keine Aave-v3-Positionen/, 'unvollstaendig ist nicht leer');
+	const [summary] = byClass(list, 'protocol-summary');
+	assert.ok(summary);
+	assert.equal(countText(list, /^Passendes Nexus-Produkt verfügbar$/), 1);
+	assert.equal(countText(summary, /^Aave v3 · Produkt #97$/), 1, 'einmal in der Zusammenfassung');
+	assert.equal(countText(list, /Produkt #97/), 1, 'sonst nirgends, insbesondere in keiner Markt-Karte');
+	for (const card of byClass(list, 'position-card')) assert.equal(countText(card, /Produkt #97/), 0);
+	assert.match(summary.textContent, /Ein passendes Nexus-Produkt bedeutet nicht, dass ein konkreter Verlust gedeckt/);
 });
 
-test('H: genuine zero positions, loading and errors are distinct states', () => {
+test('UI 2/3/4: covers are listed only once, in "Deine Covers"; the positions area repeats no cover details', () => {
+	const list = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: COVERS });
+	assert.equal(byClass(list, 'nexus-covers').length, 0, 'keine zweite Cover-Liste unter den Positionen');
+	assert.doesNotMatch(list.textContent, /Cover #|Cover-Betrag|Ablauf|10\.000 USDC|2026-11-25|Vorhandene Nexus Covers/);
+	const cards = byClass(list, 'position-card');
+	assert.equal(cards.length, 3);
+	assert.doesNotMatch(main, /renderProductCovers|coversHeading|noProductCovers|coverNote/, 'der doppelte Abschnitt ist vollstaendig entfernt');
+	// Oben: die eine Cover-Liste bekommt die Zuordnung nur fuer das passende, aktive Produkt.
+	const slots = list.attributionSlots;
+	assert.deepEqual(slots.map(({ cover }) => cover.coverId), [7, 8], 'nur aktive Covers haben einen Platz');
+	const [p97, p1] = slots;
+	assert.equal(p97.slot.hidden, false);
+	assert.equal(p97.slot.textContent, 'Positionszuordnung | Nicht verifiziert');
+	assert.equal(byClass(p97.slot, 'association-unverified').length, 1);
+	assert.equal(p1.slot.hidden, true, 'anderes Produkt (gleicher Name) bekommt keine Zuordnung');
+	assert.equal(p1.slot.textContent, '');
+});
+
+test('UI 2/3/4: the top cover list builds one hidden attribution slot per active cover', () => {
+	const dashboard = main.slice(main.indexOf('function renderDashboard('), main.indexOf('let expectedWallet'));
+	assert.match(dashboard, /coverAttributionSlots = \[\];/);
+	assert.match(dashboard, /const attribution = document\.createElement\('div'\); attribution\.className = 'cover-attribution'; attribution\.hidden = true; card\.appendChild\(attribution\);\n\t\tcoverAttributionSlots\.push\(\{ cover, slot: attribution \}\);/);
+	assert.ok(dashboard.indexOf('for (const cover of active)') < dashboard.indexOf('coverAttributionSlots.push('), 'nur aktive Covers');
+});
+
+test('UI 2/3/4: no attribution in the top list without detected positions for that product', () => {
+	const loading = renderWith({ wallet: WALLET, status: 'loading', data: null }, { covers: COVERS });
+	assert.ok(loading.attributionSlots.every(({ slot }) => slot.hidden && slot.textContent === ''));
+	// Erst gefuellt, dann neu geladen (Wallet-Wechsel): die alte Zuordnung verschwindet sofort.
+	const reloaded = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: COVERS }, 'de', { wallet: OTHER, status: 'loading', data: null });
+	assert.ok(reloaded.attributionSlots.every(({ slot }) => slot.hidden && slot.textContent === ''));
+	const error = renderWith({ wallet: WALLET, status: 'error', data: null }, { covers: COVERS });
+	assert.ok(error.attributionSlots.every(({ slot }) => slot.hidden));
+	const none = renderWith({ wallet: WALLET, status: 'ok', data: { ...SAMPLE, positions: [], checkedDeployments: SAMPLE.checkedDeployments.map((d) => ({ ...d, status: 'OK' })) } }, { covers: COVERS });
+	assert.ok(none.attributionSlots.every(({ slot }) => slot.hidden), 'ohne erkannte Position keine Zuordnungsfrage');
+	const deprecated = renderWith({ wallet: WALLET, status: 'ok', data: { ...SAMPLE, positions: SAMPLE.positions.map((p) => ({ ...p, nexus: { state: 'PRODUCT_DEPRECATED', productId: 97, productName: 'Aave v3' } })) } }, { covers: COVERS });
+	assert.ok(deprecated.attributionSlots.every(({ slot }) => slot.hidden));
+});
+
+test('UI 6/7/8: protocol totals sum only read markets exactly and name the missing market', () => {
+	const list = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: [] });
+	const [summary] = byClass(list, 'protocol-summary');
+	const figures = byClass(byClass(summary, 'summary-figures')[0], 'figure-row').map((row) => row.children.map((c) => c._text));
+	// 12430.12345678 + 2960 = 15390.12345678 (exakt in 10^-8-Einheiten, gerundet erst zur Anzeige)
+	assert.deepEqual(figures.map((f) => f[0]), ['Gesamt eingezahlt', 'Gesamt geliehen', 'Nettoposition']);
+	assert.match(figures[0][1], /15\.390,12/);
+	assert.match(figures[1][1], /2\.000,00/);
+	assert.match(figures[2][1], /13\.390,12/);
+	assert.equal(figures[2][2], 'Eingezahlter Wert minus geliehener Wert');
+	assert.equal(byClass(summary, 'summary-warning')[0]._text, 'EtherFi konnte derzeit nicht gelesen werden. Die Summen enthalten nur verfügbare Märkte.');
+	const etherfi = byClass(list, 'position-unavailable')[0];
+	assert.equal(etherfi.textContent, 'Aave v3 · EtherFi | Status | Nicht verfügbar | Dieser Markt konnte nicht gelesen werden und ist in den Summen nicht enthalten.');
+	assert.equal(byClass(etherfi, 'unavailable-status').length, 1, 'Status als Text, nicht nur als Rahmen');
+	assert.doesNotMatch(etherfi.textContent, /\$|0,00|Keine|Eingezahlt|Geliehen|Nettoposition|Health/, 'sieht nie wie ein Null-Saldo oder eine leere Position aus');
+	const two = renderWith({ wallet: WALLET, status: 'ok', data: { ...SAMPLE, checkedDeployments: SAMPLE.checkedDeployments.map((d) => d.label === 'Lido / Prime' ? d : { ...d, status: d.label === 'Core' ? 'OK' : 'UNAVAILABLE' }).concat([{ deploymentKey: 'x', label: 'Horizon', status: 'UNAVAILABLE' }]) } }, { covers: [] });
+	assert.match(byClass(two, 'summary-warning')[0]._text, /^EtherFi und Horizon konnten derzeit nicht gelesen werden\./);
+	assert.match(renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: [] }, 'en').textContent, /EtherFi could not be read right now\. The totals include only available markets\./);
+	const complete = renderWith({ wallet: WALLET, status: 'ok', data: { ...SAMPLE, checkedDeployments: SAMPLE.checkedDeployments.map((d) => ({ ...d, status: 'OK' })) } }, { covers: [] });
+	assert.equal(byClass(complete, 'summary-warning').length, 0);
+	const allDown = renderWith({ wallet: WALLET, status: 'ok', data: { ...SAMPLE, positions: [], checkedDeployments: SAMPLE.checkedDeployments.map((d) => ({ ...d, status: 'UNAVAILABLE' })) } }, { covers: COVERS });
+	assert.match(allDown.textContent, /konnten gerade nicht gelesen werden/);
+	assert.doesNotMatch(allDown.textContent, /Gesamt eingezahlt|\$|Keine Aave-v3-Positionen/, 'keine Summen, die wie null aussehen');
+});
+
+test('UI 9: without a matching active cover the summary says so once, neutrally', () => {
+	const list = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: [] });
+	assert.match(byClass(list, 'protocol-summary')[0].textContent, /Wallet-Cover-Status \| Kein aktives passendes Cover erkannt/);
+	assert.match(renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: [] }, 'en').textContent, /Wallet cover status \| No active matching cover detected/);
+	assert.doesNotMatch(list.textContent, /unversichert|nicht versichert|uninsured|not insured|ungeschützt|unprotected/);
+	const deprecated = renderWith({ wallet: WALLET, status: 'ok', data: { ...SAMPLE, positions: SAMPLE.positions.map((p) => ({ ...p, nexus: { state: 'PRODUCT_DEPRECATED', productId: 97, productName: 'Aave v3' } })) } }, { covers: COVERS });
+	assert.equal(countText(byClass(deprecated, 'protocol-summary')[0], /^Nexus-Produkt eingestellt$/), 1, 'einmal in der Zusammenfassung');
+	assert.equal(countText(deprecated, /^Nexus-Produkt eingestellt$/), 3, 'plus der kompakte Nexus-Status je lesbarem Markt');
+	assert.doesNotMatch(deprecated.textContent, /Wallet-Cover|Positionszuordnung/);
+});
+
+test('UI 12: each asset is its own row with separate symbol, amount and value', () => {
+	const list = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: [] });
+	const core = byClass(list, 'position-card')[0];
+	const rows = byClass(core, 'asset-row').map((row) => row.children.map((c) => [c.className, c._text]));
+	assert.deepEqual(rows.map((r) => r.map(([cls]) => cls)), [
+		['asset-symbol', 'asset-amount', 'asset-value', 'asset-flag'],
+		['asset-symbol', 'asset-amount', 'asset-value', 'asset-flag'],
+		['asset-symbol', 'asset-amount', 'asset-value']
+	]);
+	assert.deepEqual(rows.map((r) => r[0][1]), ['USDC', 'WETH', 'USDT']);
+	assert.deepEqual(rows.map((r) => r[1][1]), ['8.250 USDC', '1,35 WETH', '2.000 USDT']);
+	assert.match(rows[0][2][1], /8\.250,00/);
+	assert.equal(rows[0][3][1], 'als Sicherheit');
+	assert.deepEqual(byClass(core, 'asset-group-title').map((n) => n._text), ['Eingezahlt', 'Geliehen']);
+	const lido = byClass(list, 'position-card')[1];
+	assert.match(lido.textContent, /Geliehen \| —/);
+	assert.match(lido.textContent, /Health Factor \| keine Schulden/);
+});
+
+test('UI: genuine zero positions, loading and errors are distinct states', () => {
 	const none = renderWith({ wallet: WALLET, status: 'ok', data: { ...SAMPLE, positions: [], checkedDeployments: SAMPLE.checkedDeployments.map((d) => ({ ...d, status: 'OK' })) } }, { covers: [] });
 	assert.match(none.textContent, /Keine Aave-v3-Positionen auf Ethereum gefunden/);
+	assert.equal(byClass(none, 'protocol-summary').length, 0);
 	assert.match(renderWith({ wallet: WALLET, status: 'error', data: null }, {}).textContent, /konnten gerade nicht geladen werden/);
 	assert.match(renderWith({ wallet: WALLET, status: 'loading', data: null }, {}).textContent, /werden gelesen/);
-	const noCovers = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: [] }, 'en');
-	assert.match(noCovers.textContent, /Matching Nexus product available/);
-	assert.match(noCovers.textContent, /No matching covers found in this wallet/);
-	const deprecated = renderWith({ wallet: WALLET, status: 'ok', data: { ...SAMPLE, positions: [{ ...SAMPLE.positions[0], nexus: { state: 'PRODUCT_DEPRECATED', productId: 97, productName: 'Aave v3' } }] } }, { covers: COVERS });
-	assert.doesNotMatch(deprecated.textContent, /Cover #7/, 'ohne MATCHED keine Zuordnung von Covers');
+	assert.match(renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: [] }, 'en').textContent, /Matching Nexus product available/);
 });
 
-test('H: no gap, difference or coverage wording anywhere in the positions UI', () => {
+test('UI 10/11: no gap, difference or coverage wording anywhere in the positions UI', () => {
 	const helpers = main.slice(main.indexOf('let positionsState'), main.indexOf('function renderDashboard('));
-	assert.doesNotMatch(helpers, /usdValue\s*-|netUsd\s*-|amount\s*-|- *cover|uncovered|gap|Lücke|Deckungs/i);
+	assert.doesNotMatch(helpers, /usdValue\s*-|netUsd\s*-|cover\.amount\s*[-+*/]|[-+*/]\s*(?:Number\()?cover\.amount|uncovered|gap|Lücke|Deckungs|coverable|insured/i);
+	assert.doesNotMatch(helpers, /supplied\s*-=|borrowed\s*-=|supplied\s*-\s*(?:borrowed|cover)/, 'Summen nur addiert, nie gegen Covers gerechnet');
 	const de = main.slice(main.indexOf('Object.assign(translations.de'), main.indexOf('Object.assign(translations.en'));
 	const en = main.slice(main.indexOf('Object.assign(translations.en'), main.indexOf("let language = localStorage.getItem('raccoon_language')"));
-	const note = /positionsNote: '[^']*'/;
 	for (const block of [de, en]) {
-		const withoutNote = block.replace(note, '');
-		assert.doesNotMatch(withoutNote, /gedeckt|versichert|geschützt|Schutz|covered|insured|protected|protection|guarantee|garantiert|uncovered|gap|Lücke/i);
+		const withoutNote = block.replace(/positionsNote: '[^']*'/, '');
+		assert.doesNotMatch(withoutNote, /gedeckt|versichert|geschützt|Schutz|covered|insured|protected|protection|guarantee|garantiert|uncovered|gap|Lücke|coverable/i);
 	}
 	assert.match(de, /Ein passendes Nexus-Produkt bedeutet nicht, dass ein konkreter Verlust gedeckt oder ein bestimmter Betrag erstattungsfähig ist\. Maßgeblich sind die Produktbedingungen und der Claims-Prozess von Nexus Mutual\./);
 	assert.match(de, /productAvailable: 'Passendes Nexus-Produkt verfügbar'/);
 	assert.match(en, /productAvailable: 'Matching Nexus product available'/);
-	assert.match(de, /walletCovers: 'Vorhandene Covers dieser Wallet'/);
+	assert.doesNotMatch(de + en, /coversHeading|noProductCovers|coverNote|associationHelp/, 'doppelter Abschnitt und wiederholte Erklaerung entfernt');
 	assert.match(de, /detectedPosition: 'Erkannte DeFi-Position'/);
+	assert.doesNotMatch(main, /walletCovers|notComparable|noWalletCovers|positionsMarketUnavailable/, 'alte Markt-Cover-Zuordnung entfernt');
 });
 
 test('Wording: the dashboard no longer promises "Schutz" / "Protection"', () => {
@@ -599,6 +703,7 @@ test('Wording: the dashboard no longer promises "Schutz" / "Protection"', () => 
 	assert.match(html, /id="protection-title">Deine Covers</);
 	assert.match(html, /id="positions-title">DeFi-Positionen</);
 	assert.match(html, /id="position-list"/);
+	assert.doesNotMatch(html, /id="positions-note"/, 'Hinweis steht jetzt in der Aave-Zusammenfassung');
 	assert.doesNotMatch(main.slice(main.indexOf('let positionsState'), main.indexOf('function renderDashboard(')), /localStorage|sessionStorage|indexedDB/, 'Positionen nie im Browser speichern');
 });
 
@@ -850,6 +955,114 @@ test('SEC amplification: a joiner of a refused lookup gets busy, never a hanging
 });
 
 /* ======================================================================== *
+ * Status-Abfolge je Markt (12.10.2026): Produkt -> Cover in dieser Wallet ->
+ * Positionszuordnung -> Aktion. VERIFIED gibt es ohne massgebliche Daten nie.
+ * ======================================================================== */
+
+const links = (node) => allNodes(node).filter((n) => n.tag === 'a');
+const NEXUS_97 = 'https://app.nexusmutual.io/cover/product/97';
+
+test('FLOW 1/2/3/4/12: with an active #97 cover each card shows the same three short status rows', () => {
+	const list = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: COVERS });
+	const [summary] = byClass(list, 'protocol-summary');
+	assert.match(summary.textContent, /Nexus Mutual \| Passendes Nexus-Produkt verfügbar \| Aave v3 · Produkt #97/);
+	assert.match(summary.textContent, /Wallet-Cover-Status \| 1 aktives Cover gefunden/);
+	assert.doesNotMatch(summary.textContent, /Cover #/, 'keine Cover-Details in der Zusammenfassung');
+	const cards = byClass(list, 'position-card').filter((card) => !String(card.className).includes('position-unavailable'));
+	assert.equal(cards.length, 2);
+	for (const card of cards) {
+		const [status] = byClass(card, 'market-status');
+		assert.ok(status, card.children[0].textContent);
+		assert.equal(status.textContent, 'Nexus | Passendes Produkt verfügbar | Wallet-Cover | Aktives Aave-v3-Cover gefunden | Positionszuordnung | Nicht verifiziert');
+		assert.ok(byClass(status, 'association-unverified').length === 1);
+		assert.doesNotMatch(card.textContent, /Cover #7|10\.000 USDC/, 'Cover nicht als dieser Position zugeordnet dargestellt');
+	}
+	assert.equal(byClass(list, 'position-unavailable')[0].children.length, 3, 'nicht lesbarer Markt ohne Nexus-Statusblock');
+});
+
+test('FLOW 4: the attribution explanation appears exactly once, in the summary', () => {
+	const NOTE = 'Ein aktives Cover für das passende Nexus-Produkt bedeutet nicht automatisch, dass jede erkannte Aave-Position diesem Cover zugeordnet ist.';
+	const list = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: COVERS });
+	assert.equal(countText(list, new RegExp(`^${NOTE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`)), 1);
+	assert.equal(countText(byClass(list, 'protocol-summary')[0], /bedeutet nicht automatisch/), 1);
+	for (const card of byClass(list, 'position-card')) assert.doesNotMatch(card.textContent, /bedeutet nicht|lässt sich nicht sicher bestimmen/);
+	assert.equal(countText(renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: [] }), /bedeutet nicht automatisch/), 0, 'ohne Cover keine Zuordnungs-Erklaerung');
+});
+
+test('FLOW 6/7/8: one Nexus action at protocol level - prominent without a cover, quiet with one - and none in cards', () => {
+	const none = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: [] });
+	const [summary] = byClass(none, 'protocol-summary');
+	assert.doesNotMatch(summary.textContent, /bedeutet nicht automatisch/);
+	assert.equal(links(none).length, 1, 'genau eine Aktion');
+	const [primary] = links(summary);
+	assert.equal(primary.textContent, 'Cover bei Nexus ansehen');
+	assert.equal(primary.className, 'nexus-action primary');
+	for (const card of byClass(none, 'position-card').filter((c) => !String(c.className).includes('position-unavailable'))) {
+		assert.equal(byClass(card, 'market-status')[0].textContent, 'Nexus | Passendes Produkt verfügbar | Wallet-Cover | Kein aktives passendes Cover erkannt | Positionszuordnung | —');
+		assert.deepEqual(links(card), [], 'keine Aktion in den Karten');
+	}
+	const withCover = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: COVERS });
+	assert.equal(links(withCover).length, 1);
+	const [quiet] = links(byClass(withCover, 'protocol-summary')[0]);
+	assert.equal(quiet.textContent, 'Produkt bei Nexus ansehen');
+	assert.equal(quiet.className, 'nexus-action', 'keine hervorgehobene Kauf-Aktion bei vorhandenem Cover');
+	for (const card of byClass(withCover, 'position-card')) assert.deepEqual(links(card), []);
+	const en = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: [] }, 'en');
+	assert.equal(links(en)[0].textContent, 'View cover on Nexus');
+	assert.match(en.textContent, /No active matching cover detected/);
+});
+
+test('FLOW 9: the Nexus link is the pinned official product page, opened safely', () => {
+	for (const covers of [[], COVERS]) {
+		for (const link of links(renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers }))) {
+			assert.equal(link.href, NEXUS_97);
+			assert.equal(link.target, '_blank');
+			assert.equal(link.rel, 'noopener noreferrer');
+		}
+	}
+	assert.match(main, /const NEXUS_PRODUCT_PAGES = Object\.freeze\(\{ 97: 'https:\/\/app\.nexusmutual\.io\/cover\/product\/97' \}\);/);
+	assert.doesNotMatch(main, /cover\/product\/\$\{|productName\}.*nexusmutual|href = .*(?:productName|label|symbol)/, 'URL nie aus Daten gebaut');
+	// Eine fremde productId, ein falscher Typ oder ein manipulierter Name ergeben keinen Link.
+	const tampered = (nexus) => links(renderWith({ wallet: WALLET, status: 'ok', data: { ...SAMPLE, positions: SAMPLE.positions.map((p) => ({ ...p, nexus })) } }, { covers: [] }));
+	assert.deepEqual(tampered({ state: 'MATCHED', productId: 98, productName: 'Aave v3' }), []);
+	assert.deepEqual(tampered({ state: 'MATCHED', productId: '97', productName: 'Aave v3' }), []);
+	assert.deepEqual(tampered({ state: 'MATCHED', productId: 97, productName: 'javascript:alert(1)' }).map((l) => l.href), [NEXUS_97]);
+});
+
+test('FLOW 10: no link and no wallet-cover status when the product is not available', () => {
+	for (const state of ['PRODUCT_DEPRECATED', 'NO_PRODUCT', 'UNAVAILABLE', 'UNSUPPORTED']) {
+		const list = renderWith({ wallet: WALLET, status: 'ok', data: { ...SAMPLE, positions: SAMPLE.positions.map((p) => ({ ...p, nexus: { state, productId: state === 'UNSUPPORTED' ? null : 97, productName: 'Aave v3' } })) } }, { covers: COVERS });
+		assert.deepEqual(links(list), [], state);
+		assert.doesNotMatch(list.textContent, /Wallet-Cover|Positionszuordnung|Vorhandene Nexus Covers/, state);
+	}
+});
+
+test('FLOW 5/11/13: no coverage claim, no gap logic, never a VERIFIED attribution', () => {
+	for (const covers of [[], COVERS]) {
+		const text = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers }).textContent
+			.replace('Ein passendes Nexus-Produkt bedeutet nicht, dass ein konkreter Verlust gedeckt oder ein bestimmter Betrag erstattungsfähig ist.', '');
+		assert.doesNotMatch(text, /gedeckt|versichert|abgesichert|geschützt|Schutz|covered|insured|protected|uncovered|Lücke|gap|Verifiziert(?!\w)|\bverifiziert\b(?<!Nicht verifiziert)/);
+		assert.doesNotMatch(text, /Core ist|Lido \/ Prime ist|EtherFi ist/);
+	}
+	const flow = main.slice(main.indexOf('const NEXUS_PRODUCT_PAGES'), main.indexOf('function renderDashboard('));
+	assert.doesNotMatch(flow, /'VERIFIED'/, 'VERIFIED wird nirgends gesetzt');
+	assert.match(flow, /return activeProductCovers\(product\)\.length \? 'UNVERIFIED' : 'NONE';/);
+	assert.doesNotMatch(flow, /cover\.amount\s*[-+*/<>]|[-+*/<>]\s*cover\.amount|usdValue\s*[<>]|netUsd\s*[<>]/, 'kein Vergleich Cover-Betrag gegen Position');
+});
+
+test('FLOW 9/10: nexusProductUrl itself only returns the pinned page for an available #97', () => {
+	const start = main.indexOf('const NEXUS_PRODUCT_PAGES');
+	const end = main.indexOf('/** Aktive Covers dieser Wallet');
+	const nexusProductUrl = new Function(`${main.slice(start, end)}\nreturn nexusProductUrl;`)();
+	assert.equal(nexusProductUrl({ state: 'MATCHED', productId: 97 }), NEXUS_97);
+	for (const product of [
+		{ state: 'PRODUCT_DEPRECATED', productId: 97 }, { state: 'UNAVAILABLE', productId: 97 }, { state: 'NO_PRODUCT', productId: 97 },
+		{ state: 'MATCHED', productId: 98 }, { state: 'MATCHED', productId: '97' }, { state: 'MATCHED', productId: 'toString' },
+		{ state: 'MATCHED', productId: '__proto__' }, { state: 'MATCHED' }, null, undefined
+	]) assert.equal(nexusProductUrl(product), null, JSON.stringify(product));
+});
+
+/* ======================================================================== *
  * Audit 12.10.2026: die zwei noch fehlenden Szenarien aus dem Auftrag.
  * ======================================================================== */
 
@@ -896,4 +1109,32 @@ test('AUDIT stale in-flight A while B logs in: B never joins or receives A', asy
 	assert.equal(usdcOf(a), '1');
 	assert.equal(await getWalletPositions(OTHER, options), b, 'B behaelt den eigenen Cache-Eintrag');
 	assert.equal(positionsCache.activeLookups(), 0);
+});
+
+test('AUDIT XSS: hostile chain/catalog strings render only as text, never as markup or links', () => {
+	const PAYLOADS = ['<img src=x onerror=alert(1)>', 'javascript:alert(1)', '</script><script>alert(1)</script>', '‮gnp.exe​‍' + 'A'.repeat(2000)];
+	const hostile = (i) => PAYLOADS[i % PAYLOADS.length];
+	let n = 0;
+	const poison = (value) => {
+		if (Array.isArray(value)) return value.map(poison);
+		if (value && typeof value === 'object') {
+			const out = {};
+			for (const [key, v] of Object.entries(value)) {
+				// Nur Anzeige-Strings vergiften; Zahlen/IDs/Zustaende bleiben, sonst rendert nichts.
+				out[key] = typeof v === 'string' && ['symbol', 'label', 'productName', 'name'].includes(key) ? `${v}${hostile(n++)}` : poison(v);
+			}
+			return out;
+		}
+		return value;
+	};
+	const clean = renderWith({ wallet: WALLET, status: 'ok', data: SAMPLE }, { covers: COVERS });
+	const dirty = renderWith({ wallet: WALLET, status: 'ok', data: poison(SAMPLE) }, { covers: poison(COVERS) });
+	const tags = (root) => allNodes(root).map((node) => node.tag).sort();
+	assert.deepEqual(tags(dirty), tags(clean), 'feindliche Strings erzeugen kein einziges zusaetzliches Element');
+	assert.ok(n > 5, 'es wurden tatsaechlich Strings vergiftet');
+	for (const node of allNodes(dirty)) {
+		for (const sink of ['innerHTML', 'outerHTML', 'src', 'srcdoc', 'onerror', 'onclick']) assert.equal(Object.hasOwn(node, sink), false, `${node.tag}.${sink}`);
+		if (node.tag === 'a') assert.equal(node.href, 'https://app.nexusmutual.io/cover/product/97');
+	}
+	assert.match(dirty.textContent, /<img src=x onerror=alert\(1\)>/, 'Payload steht woertlich als Text');
 });
