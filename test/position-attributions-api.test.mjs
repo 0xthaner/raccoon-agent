@@ -39,7 +39,7 @@ function world() {
 	const state = {
 		positions: new Map([[A, positionsOf(A)], [B, positionsOf(B)]]),
 		covers: new Map([[A, coversOf(A, [cover(1), cover(2)])], [B, coversOf(B, [cover(3)])]]),
-		rows: [], calls: [], fail: {}
+		rows: [], calls: [], fail: {}, revoked: new Set(), revocationChecks: []
 	};
 	const deps = {
 		getPositions: async (wallet) => { state.calls.push(['positions', wallet]); if (state.fail.positions) throw state.fail.positions; return state.positions.get(wallet) ?? positionsOf(wallet, { positions: [] }); },
@@ -61,7 +61,7 @@ function world() {
 			state.rows = state.rows.filter((r) => !(r.wallet === wallet && r.deployment_key === deploymentKey && r.cover_id === coverId));
 			return before - state.rows.length;
 		},
-		isRevoked: async () => { if (state.fail.revoked) throw new Error('db'); return false; },
+		isRevoked: async (wallet) => { state.revocationChecks.push(wallet.toLowerCase()); if (state.fail.revoked) throw new Error('db'); return state.revoked.has(wallet.toLowerCase()); },
 		rateLimit: async () => true,
 		rateLimitFor: async () => true,
 		now: () => Date.parse('2026-10-14T10:00:00Z')
@@ -146,6 +146,51 @@ test('HARDENING: writes need same origin and JSON; wrong methods 405; revocation
 	state.fail.revoked = true;
 	assert.equal((await call(handler, { method: 'POST', body: { deploymentKey: CORE, coverId: 1 } })).statusCode, 503);
 	assert.deepEqual(state.rows, []);
+});
+
+/*
+	Widerrufene Sitzung (Audit L1, 14.10.2026): eine gueltig signierte Sitzung,
+	deren Wallet vollstaendig getrennt wurde. Der Widerruf wird tatsaechlich
+	geprueft (revocationChecks), danach kein Lesen, kein Nachschlagen, kein Schreiben.
+*/
+const revokedRows = () => [{ wallet: A, protocol_key: 'aave', protocol_version: 'v3', deployment_key: CORE, product_id: 97, cover_id: 1, source: 'user_confirmed', confirmed_at: '2026-10-01T00:00:00.000Z' }];
+
+test('L1: a revoked session is rejected with 401 on GET, POST and DELETE, without lookup or write', async () => {
+	for (const method of ['GET', 'POST', 'DELETE']) {
+		const { state, handler } = world();
+		state.rows = revokedRows();
+		state.revoked.add(A);
+		const r = await call(handler, { method, body: { deploymentKey: CORE, coverId: 1 } });
+		assert.equal(r.statusCode, 401, method);
+		assert.equal(r.body.code, 'SESSION_REVOKED', method);
+		assert.equal(r.body.attributions, undefined, method);
+		assert.deepEqual(state.revocationChecks, [A], `${method}: Widerruf wurde geprueft`);
+		assert.deepEqual(state.calls, [], `${method}: keine Datenbank, keine Positionen, keine Covers`);
+		assert.deepEqual(state.rows, revokedRows(), `${method}: Tabelle unveraendert`);
+	}
+});
+
+test('L1: a failing revocation check fails closed with 503 on GET, POST and DELETE, without lookup or write', async () => {
+	for (const method of ['GET', 'POST', 'DELETE']) {
+		const { state, handler } = world();
+		state.rows = revokedRows();
+		state.fail.revoked = true;
+		const r = await call(handler, { method, body: { deploymentKey: CORE, coverId: 1 } });
+		assert.equal(r.statusCode, 503, method);
+		assert.equal(r.body.code, 'SESSION_CHECK_UNAVAILABLE', method);
+		assert.deepEqual(state.revocationChecks, [A], `${method}: Widerruf wurde versucht`);
+		assert.deepEqual(state.calls, [], `${method}: keine Datenbank, keine Positionen, keine Covers`);
+		assert.deepEqual(state.rows, revokedRows(), `${method}: Tabelle unveraendert`);
+	}
+});
+
+test('L1: revocation is per wallet; an unrevoked wallet keeps working while another is revoked', async () => {
+	const { state, handler } = world();
+	state.revoked.add(B);
+	assert.equal((await call(handler, { method: 'POST', body: { deploymentKey: CORE, coverId: 1 } })).statusCode, 200);
+	assert.equal((await call(handler, { method: 'POST', wallet: B, body: { deploymentKey: CORE, coverId: 3 } })).statusCode, 401);
+	assert.deepEqual(rowsOf(state, A), [[CORE, 1, 'user_confirmed']]);
+	assert.deepEqual(rowsOf(state, B), []);
 });
 
 /* ------------------------------------------------------- WRITE VALIDATION */
