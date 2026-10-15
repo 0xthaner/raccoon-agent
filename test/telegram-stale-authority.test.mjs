@@ -182,7 +182,9 @@ function world({ providerA = {}, providerB = {} } = {}) {
 		isDashboardSessionRevoked: async (wallet, iat) => { const cut = revokedAt.get(wallet.toLowerCase()); return cut != null && iat <= cut; }
 	};
 	const { providers } = dualProviders(chain(), providerA, providerB);
-	const subs = async () => (await db.listAlertSubscriptions({ client })).map((s) => `${s.chat_id}:${s.wallet}`).sort();
+	// Restaudit M1: der Lauf liest seitenweise per RPC (alert_subscriptions_page: alerts_enabled, siehe
+	// m1-wallet-limit-db.test.mjs gegen echten Postgres). Hier dieselbe Bedingung direkt auf den Zeilen.
+	const subs = async () => client.rows('monitored_wallets').filter((s) => s.alerts_enabled === true).map((s) => `${s.chat_id}:${s.wallet}`).sort();
 	return { client, helpers, providers, revokes, subs, state: { events: [] } };
 }
 const timeout = () => { throw new Error('The request took too long to respond.'); };

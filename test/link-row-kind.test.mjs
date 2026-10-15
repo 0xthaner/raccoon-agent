@@ -108,7 +108,7 @@ async function verifyAttempt(code, rows = ROWS) {
 			linkSiweExpectation: (p) => telegramExpectation({ ...p, issuedAt: p.expiresAt - 600_000 }),
 			signingMessage: (p) => telegramSiweMessage({ ...p, issuedAt: p.expiresAt - 600_000 }),
 			verifyWalletSiweSignature: verifyExpectedSiweSignature,
-			consumePendingLink: async (c) => { consumed.push(c); return rows[c].chat_id; },
+			consumePendingLink: async (c) => { consumed.push(c); return { status: 'linked', chatId: rows[c].chat_id }; },
 			recordSecurityEvent: async () => {}, SECURITY_EVENT: {}, securityFingerprint: () => 'fp',
 			getLanguage: async () => 'en', newDashboardAccess: async () => null,
 			process: { env: { TELEGRAM_BOT_TOKEN: 'offline-placeholder' } }, fetch: async () => ({ ok: true })
@@ -165,7 +165,10 @@ test('F1 every link entry point uses both guards before signing text or consumpt
 		assert.equal(source.split('isTelegramLinkRow(pending)').length - 1, lookups, `${file}: Zeilenart je Nachschlagen`);
 	}
 	// Der Code entsteht genau so, wie isTelegramLinkCode ihn erwartet.
-	assert.match(read('src/linking.mjs'), /export async function newLinkRequest\(chatId\) \{\n\tconst code = randomBytes\(18\)\.toString\('base64url'\);/);
+	// Restaudit M1: vor dem Code stehen jetzt die Rate-Limits; das Format ist unveraendert.
+	const linking = read('src/linking.mjs');
+	const body = linking.slice(linking.indexOf('export async function newLinkRequest('), linking.indexOf('\n}\n', linking.indexOf('export async function newLinkRequest(')));
+	assert.match(body, /\n\tconst code = randomBytes\(18\)\.toString\('base64url'\);/);
 });
 
 test('F1 the revocation check itself never depended on used_at (consumed marker stays effective)', () => {

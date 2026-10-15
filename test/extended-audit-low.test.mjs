@@ -137,7 +137,7 @@ function linkWorld() {
 		...common, requireSameOrigin: () => true, requireJson: () => true, enforceRateLimit: async () => true, enforceRateLimitFor: async () => true,
 		linkSiweExpectation: linking.linkSiweExpectation,
 		verifyWalletSiweSignature: (params) => siwe.verifyExpectedSiweSignature(params),
-		consumePendingLink: async (code, wallet) => { const row = pending[code]; if (!row || row.used_at) return null; row.used_at = Date.now(); state.consumed.push([code, wallet]); return row.chat_id; },
+		consumePendingLink: async (code, wallet) => { const row = pending[code]; if (!row || row.used_at) return { status: 'invalid', chatId: null }; row.used_at = Date.now(); state.consumed.push([code, wallet]); return { status: 'linked', chatId: row.chat_id }; },
 		recordSecurityEvent: async () => {}, SECURITY_EVENT: {}, securityFingerprint: () => 'fp',
 		getLanguage: async () => 'en', newDashboardAccess: async () => ({ code: 'access' }),
 		process: { env: { TELEGRAM_BOT_TOKEN: 'offline-placeholder', APP_BASE_URL: 'https://coverraccoon.com' } },

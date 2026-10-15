@@ -70,9 +70,10 @@ export function startWebServer({ port = 8787, onLinked }) {
 				if (await verifyWalletSiweSignature({ message, signature, expected }) !== 'VALID') {
 					return json(res, 401, { ok: false, error: 'Signatur konnte nicht bestätigt werden.' });
 				}
-				const chatId = await consumePendingLink(code, wallet);
-				if (!chatId) return json(res, 409, { ok: false, error: 'Verbindungscode wurde bereits verwendet.' });
-				await onLinked(chatId, wallet);
+				const outcome = await consumePendingLink(code, wallet);
+				if (outcome.status === 'wallet_limit') return json(res, 409, { ok: false, code: 'WALLET_LIMIT', error: 'Dieser Telegram-Chat überwacht bereits die Höchstzahl an Wallets. Entferne zuerst eine Wallet im Bot.' });
+				if (outcome.status !== 'linked') return json(res, 409, { ok: false, error: 'Verbindungscode wurde bereits verwendet.' });
+				await onLinked(outcome.chatId, wallet);
 				return json(res, 200, { ok: true });
 			}
 			if (req.method === 'GET' && await staticFile(url.pathname, res)) return;

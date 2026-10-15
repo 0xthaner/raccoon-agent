@@ -86,7 +86,7 @@ for(const mode of ['valid','wrong-wallet','wrong-chat','expired','replay','unsig
    isAddress:()=>true,linkSiweExpectation:(p)=>telegramExpectation({...p,issuedAt:p.expiresAt-600000}),
    signingMessage:(p)=>telegramSiweMessage({...p,issuedAt:p.expiresAt-600000}),
    verifyWalletSiweSignature:verifyExpectedSiweSignature,
-   consumePendingLink:async()=>{if(mode==='replay')return null;bound++;return '123';},
+   consumePendingLink:async()=>{if(mode==='replay')return {status:'invalid',chatId:null};bound++;return {status:'linked',chatId:'123'};},
    recordSecurityEvent:async()=>{},SECURITY_EVENT:{},securityFingerprint:()=> 'fingerprint',
    getLanguage:async()=> 'en',process:{env:{TELEGRAM_BOT_TOKEN:'offline-placeholder'}},fetch:async()=>({ok:true})
   });
@@ -104,7 +104,8 @@ test('Telegram final binding ignores client chat identity and consumes only the 
  assert.ok(verify.indexOf("verified !== 'VALID'") < verify.indexOf('consumePendingLink(code, wallet)'));
  assert.doesNotMatch(verify,/createDashboardSession|sessionCookieHeader/);
  const db=read('src/db.mjs');
- assert.match(db,/rpc\('consume_wallet_link'/);
+ // Restaudit M1: die begrenzte Funktion (Wallet-Limit je Chat in der Datenbank).
+ assert.match(db,/rpc\('consume_wallet_link_v2'/);
 });
 
 import { authenticPrivateMessage } from '../src/telegram-audit.mjs';

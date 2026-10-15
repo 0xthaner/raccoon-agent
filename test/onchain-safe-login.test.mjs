@@ -146,7 +146,7 @@ function server({ chain = freshChain(), alchemy = {}, infura = {}, limits = {} }
 	const linkVerify = load('../api/link/verify.mjs', {
 		...shared,
 		getPendingLink: async (code) => (code === LINK_CODE ? linkRow : null),
-		consumePendingLink: async (code, wallet) => { linked.push(wallet); return linkRow.chat_id; },
+		consumePendingLink: async (code, wallet) => { linked.push(wallet); return { status: 'linked', chatId: linkRow.chat_id }; },
 		getLanguage: async () => 'de', newDashboardAccess: async () => 'x',
 		isTelegramLinkCode: linking.isTelegramLinkCode, isTelegramLinkRow: linking.isTelegramLinkRow,
 		linkSiweExpectation: linking.linkSiweExpectation, signingMessage: linking.signingMessage,

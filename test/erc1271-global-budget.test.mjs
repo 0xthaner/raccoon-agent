@@ -123,7 +123,7 @@ function loadLinkVerify(h, effects) {
 		telegramTarget: async () => { h.events.push('telegram'); return { username: 'owner_b', name: 'B', target: '@owner_b' }; },
 		linkSiweExpectation: linking.linkSiweExpectation, signingMessage: linking.signingMessage,
 		verifyWalletSiweSignature: (params) => verifyWalletSiweSignature(params, { providers: h.providers }),
-		consumePendingLink: async () => { h.events.push('consume'); effects.push('link'); return '123456789'; },
+		consumePendingLink: async () => { h.events.push('consume'); effects.push('link'); return { status: 'linked', chatId: '123456789' }; },
 		recordSecurityEvent: async () => {}, SECURITY_EVENT: {}, securityFingerprint: () => 'fp',
 		getLanguage: async () => 'en', newDashboardAccess: async () => null,
 		process: { env: {} }, fetch: async () => ({ ok: true })

@@ -1,4 +1,4 @@
-import { beginTelegramDelivery, getChatProductContext, saveChatProductContext, finishTelegramDelivery, forgetRememberedWallet, getLanguage, getMonitoredWallets, getRememberedWallets, getWalletLink, recordAgentEvent, rememberUnlinkedWallet, renameMonitoredWallet, revokeDashboardSessions, setLanguage, setPrimaryWallet, setWalletAlertSettings, snoozeCoverAlert, unlinkWallet } from './db.mjs';
+import { MAX_WALLETS_PER_CHAT, beginTelegramDelivery, getChatProductContext, saveChatProductContext, finishTelegramDelivery, forgetRememberedWallet, getLanguage, getMonitoredWallets, getRememberedWallets, getWalletLink, recordAgentEvent, rememberUnlinkedWallet, renameMonitoredWallet, revokeDashboardSessions, setLanguage, setPrimaryWallet, setWalletAlertSettings, snoozeCoverAlert, unlinkWallet } from './db.mjs';
 import { newDashboardAccess, newLinkRequest } from './linking.mjs';
 import { noContractCodeByQuorum } from './contract-signature.mjs';
 import { startWebServer } from './web.mjs';
@@ -85,11 +85,21 @@ function reminderKeyboard(wallet, language) {
 	return { inline_keyboard: [[labels[0], labels[1]], [labels[2], labels[3]], [labels[4], labels[5]], [{ text: `${wallet.weekly_summary ? '✅' : '○'} ${language === 'en' ? 'Weekly summary' : language === 'zh' ? '每周摘要' : 'Wochenübersicht'}`, callback_data: 'alert:weekly' }]] };
 }
 
+// Restaudit M1: Link-Codes sind je Chat und global begrenzt (src/linking.mjs).
+const LINK_LIMIT_TEXT = Object.freeze({
+	de: 'Gerade wurden zu viele Verbindungslinks angefordert. Bitte versuche es in ein paar Minuten erneut.',
+	en: 'Too many connection links were requested. Please try again in a few minutes.',
+	zh: '请求的绑定链接过多，请几分钟后再试。'
+});
+
 async function walletSettingsKeyboard(chatId, language) {
 	const wallets = await getMonitoredWallets(chatId);
 	const rows = wallets.map((wallet) => [{ text: `${wallet.is_primary ? '⭐' : '○'} ${wallet.label} · ${wallet.wallet.slice(0, 6)}…${wallet.wallet.slice(-4)}`, callback_data: `wallet:primary:${wallet.wallet}` }]);
 	if (ANMELDUNG_PAUSIERT) return { inline_keyboard: rows };
+	// Restaudit M1: voller Chat (die Datenbank lehnt ohnehin ab) oder Limit erreicht - kein Link.
+	if (wallets.length >= MAX_WALLETS_PER_CHAT) return { inline_keyboard: rows };
 	const link = await newLinkRequest(chatId);
+	if (!link) return { inline_keyboard: rows };
 	rows.push([{ text: language === 'en' ? '＋ Add wallet' : language === 'zh' ? '＋ 添加钱包' : '＋ Wallet hinzufügen', url: `${appBaseUrl}/link?code=${link.code}` }]);
 	return { inline_keyboard: rows };
 }
@@ -476,8 +486,9 @@ async function handleMessage(message, updateContext = {}) {
 				await sendMessage(message.chat.id, PAUSE_TEXT[language] ?? PAUSE_TEXT.de);
 			} else if (connectRequested || !await getWalletLink(message.chat.id)) {
 				const link = await newLinkRequest(message.chat.id);
-				const walletUrl = `${appBaseUrl}/link?code=${link.code}`;
-				await sendMessage(message.chat.id, language === 'zh' ? '绑定钱包（10 分钟内有效）：' : language === 'en' ? 'Connect wallet (valid for 10 minutes):' : 'Wallet verbinden (10 Minuten gültig):', {
+				const walletUrl = link ? `${appBaseUrl}/link?code=${link.code}` : null;
+				if (!walletUrl) await sendMessage(message.chat.id, LINK_LIMIT_TEXT[language] ?? LINK_LIMIT_TEXT.de);
+				else await sendMessage(message.chat.id, language === 'zh' ? '绑定钱包（10 分钟内有效）：' : language === 'en' ? 'Connect wallet (valid for 10 minutes):' : 'Wallet verbinden (10 Minuten gültig):', {
 					reply_markup: {
 						inline_keyboard: [[{ text: language === 'zh' ? '🔗 绑定钱包' : language === 'en' ? '🔗 Connect wallet' : '🔗 Wallet verbinden', url: walletUrl }]]
 					}
@@ -638,8 +649,9 @@ async function handleCallbackQuery(query) {
 		await sendMessage(chatId, PAUSE_TEXT[language] ?? PAUSE_TEXT.de);
 	} else if (!await getWalletLink(chatId)) {
 		const link = await newLinkRequest(chatId);
-		const walletUrl = `${appBaseUrl}/link?code=${link.code}`;
-		await sendMessage(chatId, language === 'zh' ? '绑定钱包（10 分钟内有效）：' : language === 'en' ? 'Connect wallet (valid for 10 minutes):' : 'Wallet verbinden (10 Minuten gültig):', {
+		const walletUrl = link ? `${appBaseUrl}/link?code=${link.code}` : null;
+		if (!walletUrl) await sendMessage(chatId, LINK_LIMIT_TEXT[language] ?? LINK_LIMIT_TEXT.de);
+		else await sendMessage(chatId, language === 'zh' ? '绑定钱包（10 分钟内有效）：' : language === 'en' ? 'Connect wallet (valid for 10 minutes):' : 'Wallet verbinden (10 Minuten gültig):', {
 			reply_markup: { inline_keyboard: [[{ text: language === 'zh' ? '🔗 绑定钱包' : language === 'en' ? '🔗 Connect wallet' : '🔗 Wallet verbinden', url: walletUrl }]] }
 		});
 	} else await sendMessage(chatId,

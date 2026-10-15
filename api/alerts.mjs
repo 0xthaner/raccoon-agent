@@ -35,6 +35,13 @@ async function sendMessage(chatId, text, options = {}) {
 export default async function handler(request, response) {
 	if (request.method !== 'GET') return response.status(405).json({ ok: false });
 	if (!authorized(request.headers.authorization)) return response.status(401).json({ ok: false });
+	// Restaudit M1: fehlt die Konfiguration, scheitert der Lauf als Ganzes - statt
+	// dass jedes Abo einzeln still fehlschlaegt und der Lauf "ok" meldet.
+	if (!process.env.TELEGRAM_BOT_TOKEN?.trim()) {
+		console.error('Erinnerungslauf: Telegram ist nicht konfiguriert');
+		await alertOperatorCronFailure('expiry-alert-config');
+		return response.status(500).json({ ok: false });
+	}
 	const dashboardUrl = (process.env.APP_BASE_URL?.trim() || '').replace(/\/$/, '');
 	// AGENT-IR-001 (ALERT-4): ein echter Reminder-Lauf-Fehler alarmiert den
 	// Operator (generische Kennung, kein roher Fehlertext) und meldet generisch 500.

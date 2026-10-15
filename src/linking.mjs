@@ -1,14 +1,35 @@
 import { randomBytes } from 'node:crypto';
-import { createDashboardAccess, createPendingLink, createTelegramHandoff } from './db.mjs';
+import { checkRateLimit, createDashboardAccess, createPendingLink, createTelegramHandoff } from './db.mjs';
+import { recordSecurityEvent, securityFingerprint, SECURITY_EVENT } from './security-events.mjs';
 import { telegramExpectation, telegramSiweMessage } from './siwe-auth.mjs';
 
 export const LINK_LIFETIME_MS = 10 * 60 * 1000;
 
-export async function newLinkRequest(chatId) {
+/*
+	Restaudit M1, 15.10.2026: neue Link-Codes sind begrenzt - je Chat und global,
+	geprueft VOR jedem Schreiben. Identitaet ist der Telegram-Chat (der Webhook
+	kommt immer von Telegrams Servern, eine IP sagt nichts), als HMAC-Fingerprint.
+	Je Chat 10 in 10 Minuten: jedes Oeffnen der Wallet-Einstellungen erzeugt einen
+	Code, normales Bedienen bleibt deutlich darunter. Global 300 in 10 Minuten:
+	ein Vielfaches des echten Bedarfs, aber eine Obergrenze fuer Schreiblast aus
+	vielen Chats. Ergebnis null = abgelehnt; ohne Secret wird nichts angelegt.
+*/
+export const LINK_CODE_CHAT_LIMIT = Object.freeze({ max: 10, windowSeconds: 600 });
+export const LINK_CODE_GLOBAL_LIMIT = Object.freeze({ max: 300, windowSeconds: 600 });
+
+export async function newLinkRequest(chatId, { gate = checkRateLimit, create = createPendingLink, record = recordSecurityEvent } = {}) {
+	const fingerprint = securityFingerprint(`telegram-chat:${chatId}`);
+	if (!fingerprint) throw new Error('Security configuration missing.');
+	for (const [scope, key, limit] of [['link-code-chat', `link-code-chat:${fingerprint}`, LINK_CODE_CHAT_LIMIT], ['link-code-global', 'link-code-global:all', LINK_CODE_GLOBAL_LIMIT]]) {
+		if (!await gate(key, limit.max, limit.windowSeconds)) {
+			await record(SECURITY_EVENT.RATE_LIMIT_BLOCKED, { source: 'telegram', fingerprint, scope }).catch(() => {});
+			return null;
+		}
+	}
 	const code = randomBytes(18).toString('base64url');
 	const nonce = randomBytes(16).toString('hex');
 	const expiresAt = Date.now() + LINK_LIFETIME_MS;
-	await createPendingLink({ code, chatId, nonce, expiresAt });
+	await create({ code, chatId, nonce, expiresAt });
 	return { code, expiresAt };
 }
 

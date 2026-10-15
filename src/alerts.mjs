@@ -1,7 +1,7 @@
 import { getWalletCovers } from './covers.mjs';
 import { newDashboardAccess } from './linking.mjs';
 import { boundedDisplayText } from './display-text.mjs';
-import { clearSnooze, getCoverSnapshots, listAlertSubscriptions, listDueSnoozes, listPositionAttributions, recordAlertSent, recordRenewalEvent, recordWeeklySummary, saveCoverSnapshot, wasAlertSent, wasWeeklySummarySent } from './db.mjs';
+import { clearSnooze, getAlertRunCursor, getAlertSubscription, getCoverSnapshots, listAlertSubscriptionsPage, listDueSnoozesPage, listPositionAttributions, recordAgentEvent, recordAlertSent, recordRenewalEvent, recordWeeklySummary, rescheduleSnooze, saveAlertRunCursor, saveCoverSnapshot, wasAlertSent, wasWeeklySummarySent } from './db.mjs';
 import { getWalletPositions } from './positions/index.mjs';
 import { reconcile } from './position-attributions.mjs';
 
@@ -47,8 +47,8 @@ function lifecycleText(kind, cover, previous, language) {
 	return `ℹ️ Cover-Status geändert\n\n${product} · Cover #${cover.coverId}\n${previous.status} → ${cover.status}`;
 }
 
-async function syncCoverLifecycle(subscription, covers, sendMessage, dashboardUrl) {
-	const snapshots = await getCoverSnapshots(subscription.chat_id, subscription.wallet);
+async function syncCoverLifecycle(subscription, covers, sendMessage, dashboardUrl, store = ALERT_STORE) {
+	const snapshots = await store.getCoverSnapshots(subscription.chat_id, subscription.wallet);
 	const previousById = new Map(snapshots.map((cover) => [String(cover.cover_id), cover]));
 	const initialized = snapshots.length > 0;
 	for (const cover of covers) {
@@ -64,7 +64,7 @@ async function syncCoverLifecycle(subscription, covers, sendMessage, dashboardUr
 		if (kind) {
 			if (kind === 'renewed') {
 				const renewedCoverId = previous?.cover_id ?? snapshots.find((item) => item.product_id === String(cover.productId) && item.ends_at && cover.startsAt && Math.abs(Date.parse(cover.startsAt) - Date.parse(item.ends_at)) <= 7 * DAY_MS)?.cover_id;
-				if (renewedCoverId) await recordRenewalEvent({
+				if (renewedCoverId) await store.recordRenewalEvent({
 					wallet: subscription.wallet, coverId: renewedCoverId, productId: cover.productId,
 					amount: cover.amount, coverAssetId: cover.asset?.id, status: 'confirmed',
 					buyTxHash: cover.purchaseTx, metadata: { detectedCoverId: cover.coverId, detectedBy: 'cover_snapshot' }
@@ -72,12 +72,12 @@ async function syncCoverLifecycle(subscription, covers, sendMessage, dashboardUr
 			}
 			const rows = [];
 			if (dashboardUrl) {
-				const access = await newDashboardAccess(subscription.wallet);
+				const access = await store.newAccess(subscription.wallet);
 				rows.push([{ text: subscription.language === 'en' ? 'Open dashboard' : subscription.language === 'zh' ? '打开仪表板' : 'Dashboard öffnen', url: `${dashboardUrl}/?access=${encodeURIComponent(access.code)}` }]);
 			}
 			await sendMessage(subscription.chat_id, lifecycleText(kind, cover, previous, subscription.language), { ...(rows.length ? { reply_markup: { inline_keyboard: rows } } : {}), _messageKind: `cover_${kind}` });
 		}
-		await saveCoverSnapshot(subscription.chat_id, subscription.wallet, cover);
+		await store.saveCoverSnapshot(subscription.chat_id, subscription.wallet, cover);
 	}
 }
 
@@ -86,7 +86,7 @@ function weekKey(now) {
 	return `${date.getUTCFullYear()}-${String(Math.ceil((((date - first) / DAY_MS) + first.getUTCDay() + 1) / 7)).padStart(2, '0')}`;
 }
 
-async function sendWeeklySummaries(subscriptions, results, sendMessage, now) {
+async function sendWeeklySummaries(subscriptions, results, sendMessage, now, store = ALERT_STORE, timeLeft = () => true, onTimeUp = () => {}, onFailure = () => {}) {
 	if (new Date(now).getUTCDay() !== 1) return 0;
 	const grouped = new Map();
 	for (const subscription of subscriptions.filter((item) => item.weekly_summary)) {
@@ -97,18 +97,23 @@ async function sendWeeklySummaries(subscriptions, results, sendMessage, now) {
 	}
 	let sent = 0; const week = weekKey(now);
 	for (const [chatId, entry] of grouped) {
-		if (await wasWeeklySummarySent(chatId, week)) continue;
-		const active = entry.wallets.flatMap((wallet) => wallet.covers);
-		const next = active.filter((cover) => cover.endsAt).sort((a, b) => Date.parse(a.endsAt) - Date.parse(b.endsAt))[0];
-		const totals = new Map();
-		for (const cover of active) { const symbol = cover.asset?.symbol || 'Cover'; totals.set(symbol, (totals.get(symbol) ?? 0) + (Number(cover.amount) || 0)); }
-		const totalText = [...totals].map(([symbol, amount]) => `${amount.toLocaleString(entry.language === 'en' ? 'en-US' : entry.language === 'zh' ? 'zh-CN' : 'de-AT')} ${symbol}`).join(' · ') || '—';
-		const text = entry.language === 'en'
-			? `📋 Weekly cover summary\n\n${entry.wallets.length} wallet(s) monitored\n${active.length} active cover(s)\nTotal cover: ${totalText}${next ? `\nNext expiry: ${new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium' }).format(new Date(next.endsAt))}` : ''}`
-			: entry.language === 'zh'
-				? `📋 每周保障摘要\n\n监控 ${entry.wallets.length} 个钱包\n${active.length} 个有效保障\n保障总额：${totalText}${next ? `\n最近到期：${new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium' }).format(new Date(next.endsAt))}` : ''}`
-				: `📋 Wöchentliche Cover-Übersicht\n\n${entry.wallets.length} Wallet(s) überwacht\n${active.length} aktive Cover(s)\nGesamte Deckung: ${totalText}${next ? `\nNächster Ablauf: ${new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium' }).format(new Date(next.endsAt))}` : ''}`;
-		await sendMessage(chatId, text, { _messageKind: 'weekly_summary' }); await recordWeeklySummary(chatId, week); sent++;
+		if (!timeLeft()) { onTimeUp(); break; }
+		// Restaudit M1: ein Chat, an den der Versand scheitert (etwa Bot blockiert), stoppt
+		// nicht mehr die Uebersichten aller weiteren Chats und nicht den ganzen Lauf.
+		try {
+			if (await store.wasWeeklySummarySent(chatId, week)) continue;
+			const active = entry.wallets.flatMap((wallet) => wallet.covers);
+			const next = active.filter((cover) => cover.endsAt).sort((a, b) => Date.parse(a.endsAt) - Date.parse(b.endsAt))[0];
+			const totals = new Map();
+			for (const cover of active) { const symbol = cover.asset?.symbol || 'Cover'; totals.set(symbol, (totals.get(symbol) ?? 0) + (Number(cover.amount) || 0)); }
+			const totalText = [...totals].map(([symbol, amount]) => `${amount.toLocaleString(entry.language === 'en' ? 'en-US' : entry.language === 'zh' ? 'zh-CN' : 'de-AT')} ${symbol}`).join(' · ') || '—';
+			const text = entry.language === 'en'
+				? `📋 Weekly cover summary\n\n${entry.wallets.length} wallet(s) monitored\n${active.length} active cover(s)\nTotal cover: ${totalText}${next ? `\nNext expiry: ${new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium' }).format(new Date(next.endsAt))}` : ''}`
+				: entry.language === 'zh'
+					? `📋 每周保障摘要\n\n监控 ${entry.wallets.length} 个钱包\n${active.length} 个有效保障\n保障总额：${totalText}${next ? `\n最近到期：${new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium' }).format(new Date(next.endsAt))}` : ''}`
+					: `📋 Wöchentliche Cover-Übersicht\n\n${entry.wallets.length} Wallet(s) überwacht\n${active.length} aktive Cover(s)\nGesamte Deckung: ${totalText}${next ? `\nNächster Ablauf: ${new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium' }).format(new Date(next.endsAt))}` : ''}`;
+			await sendMessage(chatId, text, { _messageKind: 'weekly_summary' }); await store.recordWeeklySummary(chatId, week); sent++;
+		} catch (error) { onFailure(error); }
 	}
 	return sent;
 }
@@ -241,37 +246,175 @@ export async function sendExpiryAlertsFor(subscription, result, { sendMessage, d
 	return { sent, failed };
 }
 
-export async function checkExpiryAlerts({ sendMessage, dashboardUrl, now = Date.now(), logger = console, loadAttributions = listPositionAttributions, loadPositions = (wallet) => getWalletPositions(wallet) }) {
-	const subscriptions = await listAlertSubscriptions();
+/*
+	Restaudit M1, 15.10.2026: der taegliche Lauf ist begrenzt und fair.
+
+	Vorher lud er ALLE Abos und alle faelligen Snoozes in einem Zug (PostgREST
+	kappt still bei max_rows) und machte je Abo eine Cover-Abfrage ohne Obergrenze
+	fuer Anzahl, RPC-Aufrufe oder Laufzeit. Wer viele Wallets verknuepfte, konnte
+	den Lauf ausdehnen, bis er abbrach - und spaetere Nutzer bekamen still keine
+	Erinnerung mehr.
+
+	Jetzt:
+	- Abos seitenweise (Keyset, feste Sortierung chat_id, wallet), bis eine Seite
+	  leer ist oder ein Budget erschoepft ist. Snoozes ebenso, aelteste zuerst.
+	- Budgets je Lauf, alle serverseitig gezaehlt: Abos, Cover-/Positions-Abfragen
+	  (externe RPC-Folgen), Snoozes und Laufzeit. Fuer Snoozes und die
+	  Wochenuebersicht bleibt ein fester Teil von Abfragen und Zeit reserviert,
+	  damit die Abos sie nie ganz verdraengen. Geprueft wird VOR jeder
+	  Arbeitseinheit; eine einzelne Abfrage ist durch die Provider-Timeouts begrenzt.
+	- Fairness: endet ein Lauf am Budget, merkt er sich die letzte bearbeitete
+	  Zeile; der naechste beginnt dahinter und laeuft ueber das Ende wieder nach
+	  vorn. Ein gescheiterter Snooze wandert nach hinten (remind_at + 12 h).
+	- Budget-Ende ist kein stiller Erfolg: EIN Ereignis alerts.run_budget_exhausted
+	  je Lauf (nur Zaehler und Budget-Art, keine Wallet, keine Chat-ID) und die
+	  Angabe im Ergebnis.
+	- Ein einzelnes Abo oder ein Snooze, das scheitert, bricht den Lauf nicht ab.
+	  Scheitert das Lesen einer Seite oder des Cursors (Datenbank), scheitert der
+	  ganze Lauf - wie bisher mit Operator-Alarm in api/alerts.mjs.
+	- Laeuft alles durch, ist das Ergebnis dasselbe wie vorher.
+*/
+export const ALERT_RUN_LIMITS = Object.freeze({
+	// Weit unter PostgREST max_rows (1000) und der Seitenobergrenze der Datenbank (200).
+	subscriptionPageSize: 100,
+	snoozePageSize: 50,
+	maxSubscriptions: 500,
+	// Cover- und Positions-Abfragen zusammen; jede ist eine Folge externer RPC-Aufrufe.
+	maxCoverLookups: 250,
+	snoozeLookupReserve: 50,
+	maxSnoozes: 200,
+	// Die Funktion darf laenger laufen (Vercel-Standard 300 s); 45 s lassen Luft
+	// fuer die Bereinigung danach und fuer eine einzelne langsame Abfrage (Timeout 10 s).
+	maxRunMs: 45_000,
+	snoozePhaseMs: 10_000,
+	summaryPhaseMs: 5_000
+});
+export const ALERT_RUN_BUDGET_EVENT = 'alerts.run_budget_exhausted';
+const SNOOZE_RETRY_MS = 12 * 60 * 60 * 1000;
+
+export const ALERT_STORE = Object.freeze({
+	subscriptionsPage: (options) => listAlertSubscriptionsPage(options),
+	loadCursor: () => getAlertRunCursor(),
+	saveCursor: (cursor) => saveAlertRunCursor(cursor),
+	dueSnoozesPage: (now, limit) => listDueSnoozesPage(now, limit),
+	subscriptionFor: (chatId, wallet) => getAlertSubscription(chatId, wallet),
+	clearSnooze, rescheduleSnooze,
+	getCoverSnapshots, saveCoverSnapshot, recordRenewalEvent,
+	wasSent: wasAlertSent, recordSent: recordAlertSent, newAccess: newDashboardAccess,
+	wasWeeklySummarySent, recordWeeklySummary
+});
+
+const keyOf = (row) => `${row.chat_id}:${row.wallet}`;
+
+export async function checkExpiryAlerts({ sendMessage, dashboardUrl, now = Date.now(), logger = console, loadAttributions = listPositionAttributions, loadPositions = (wallet) => getWalletPositions(wallet), lookupCovers = getWalletCovers, store = {}, limits = ALERT_RUN_LIMITS, clock = Date.now, recordEvent = recordAgentEvent }) {
+	const data = { ...ALERT_STORE, ...store };
+	const startedAt = clock();
+	const elapsed = () => clock() - startedAt;
+	const used = { subscriptions: 0, lookups: 0, snoozes: 0 };
+	const exhausted = [];
+	const exhaust = (budget) => { if (!exhausted.includes(budget)) exhausted.push(budget); };
+	let lookupReserve = limits.snoozeLookupReserve;
+	const lookupAllowed = () => used.lookups < limits.maxCoverLookups - lookupReserve;
+	const coversFor = (wallet) => { used.lookups++; return lookupCovers(wallet); };
+	// Positionen nur als optionaler Kontext: ohne Budget keine Abfrage, die Warnung geht trotzdem raus.
+	const budgetedPositions = (wallet) => {
+		if (!lookupAllowed()) { exhaust('cover_lookups'); return null; }
+		used.lookups++;
+		return loadPositions(wallet);
+	};
 	let sent = 0;
 	let failed = 0;
 	const results = new Map();
+	const processed = [];
 
-	for (const subscription of subscriptions) {
-		try {
-			const result = await getWalletCovers(subscription.wallet);
-			results.set(`${subscription.chat_id}:${subscription.wallet}`, result);
-			await syncCoverLifecycle(subscription, result.covers, sendMessage, dashboardUrl);
-			const counts = await sendExpiryAlertsFor(subscription, result, { sendMessage, dashboardUrl, now, logger, loadAttributions, loadPositions });
-			sent += counts.sent;
-			failed += counts.failed;
-		} catch (error) {
-			failed++;
-			logger.error(`Ablaufprüfung für Wallet ${subscription.wallet} fehlgeschlagen:`, error.message);
+	/* ------------------------------------------------------------ Abos */
+	const subscriptionDeadline = limits.maxRunMs - limits.snoozePhaseMs - limits.summaryPhaseMs;
+	const cursor = await data.loadCursor();
+	// Ab dem Cursor bis zum Ende, dann von vorn bis einschliesslich Cursor.
+	const passes = cursor ? [{ after: cursor, through: null }, { after: null, through: cursor }] : [{ after: null, through: null }];
+	let stopped = null;
+	pages: for (const pass of passes) {
+		let after = pass.after;
+		for (;;) {
+			const page = await data.subscriptionsPage({ after, through: pass.through, limit: limits.subscriptionPageSize });
+			if (!page.length) break;
+			for (const subscription of page) {
+				stopped = used.subscriptions >= limits.maxSubscriptions ? 'subscriptions'
+					: !lookupAllowed() ? 'cover_lookups'
+						: elapsed() >= subscriptionDeadline ? 'time' : null;
+				if (stopped) { exhaust(stopped); break pages; }
+				used.subscriptions++;
+				processed.push(subscription);
+				try {
+					const result = await coversFor(subscription.wallet);
+					results.set(keyOf(subscription), result);
+					await syncCoverLifecycle(subscription, result.covers, sendMessage, dashboardUrl, data);
+					const counts = await sendExpiryAlertsFor(subscription, result, { sendMessage, dashboardUrl, now, logger, loadAttributions, loadPositions: budgetedPositions, wasSent: data.wasSent, recordSent: data.recordSent, newAccess: data.newAccess });
+					sent += counts.sent;
+					failed += counts.failed;
+				} catch (error) {
+					failed++;
+					logger.error(`Ablaufprüfung für Wallet ${subscription.wallet} fehlgeschlagen:`, error?.message);
+				}
+			}
+			after = [page.at(-1).chat_id, page.at(-1).wallet];
+		}
+	}
+	// Abgebrochen: hinter der letzten bearbeiteten Zeile weitermachen. Durchgelaufen: von vorn.
+	if (stopped && processed.length) await data.saveCursor([processed.at(-1).chat_id, processed.at(-1).wallet]);
+	else if (!stopped && cursor) await data.saveCursor(null);
+
+	/* --------------------------------------------------------- Snoozes */
+	lookupReserve = 0;
+	const snoozeDeadline = limits.maxRunMs - limits.summaryPhaseMs;
+	const subscriptionsByKey = new Map(processed.map((subscription) => [keyOf(subscription), subscription]));
+	const snoozeCovers = new Map();
+	const seen = new Set();
+	snoozes: for (;;) {
+		const page = await data.dueSnoozesPage(now, limits.snoozePageSize);
+		const fresh = page.filter((snooze) => !seen.has(`${keyOf(snooze)}:${snooze.cover_id}`));
+		if (!fresh.length) break;
+		for (const snooze of fresh) {
+			const budget = used.snoozes >= limits.maxSnoozes ? 'snoozes' : elapsed() >= snoozeDeadline ? 'time' : null;
+			if (budget) { exhaust(budget); break snoozes; }
+			seen.add(`${keyOf(snooze)}:${snooze.cover_id}`);
+			used.snoozes++;
+			try {
+				const subscription = subscriptionsByKey.get(keyOf(snooze)) ?? await data.subscriptionFor(snooze.chat_id, snooze.wallet);
+				if (!subscription) { await data.clearSnooze(snooze.chat_id, snooze.wallet, snooze.cover_id); continue; }
+				let result = results.get(keyOf(subscription)) ?? snoozeCovers.get(subscription.wallet);
+				if (!result) {
+					if (!lookupAllowed()) { exhaust('cover_lookups'); used.snoozes--; break snoozes; }
+					result = await coversFor(subscription.wallet);
+					snoozeCovers.set(subscription.wallet, result);
+				}
+				const cover = result.covers.find((item) => String(item.coverId) === snooze.cover_id && item.status === 'active');
+				if (cover) await sendMessage(subscription.chat_id, `${subscription.language === 'en' ? '⏰ Reminder as requested' : subscription.language === 'zh' ? '⏰ 按要求提醒' : '⏰ Erinnerung wie gewünscht'}\n\n${formatExpiryAlert(cover, Math.max(0, Math.ceil((Date.parse(cover.endsAt) - now) / DAY_MS)), subscription.language)}`, { _messageKind: 'snoozed_alert' });
+				await data.clearSnooze(snooze.chat_id, snooze.wallet, snooze.cover_id); sent++;
+			} catch (error) {
+				failed++;
+				logger.error('Snooze-Prüfung fehlgeschlagen:', error?.message);
+				// Nach hinten; scheitert schon das, ist die Datenbank weg und der Lauf scheitert.
+				await data.rescheduleSnooze(snooze.chat_id, snooze.wallet, snooze.cover_id, now + SNOOZE_RETRY_MS);
+			}
 		}
 	}
 
-	for (const snooze of await listDueSnoozes(now)) {
-		try {
-			const subscription = subscriptions.find((item) => item.chat_id === snooze.chat_id && item.wallet === snooze.wallet);
-			if (!subscription) { await clearSnooze(snooze.chat_id, snooze.wallet, snooze.cover_id); continue; }
-			const result = results.get(`${subscription.chat_id}:${subscription.wallet}`) ?? await getWalletCovers(subscription.wallet);
-			const cover = result.covers.find((item) => String(item.coverId) === snooze.cover_id && item.status === 'active');
-			if (cover) await sendMessage(subscription.chat_id, `${subscription.language === 'en' ? '⏰ Reminder as requested' : subscription.language === 'zh' ? '⏰ 按要求提醒' : '⏰ Erinnerung wie gewünscht'}\n\n${formatExpiryAlert(cover, Math.max(0, Math.ceil((Date.parse(cover.endsAt) - now) / DAY_MS)), subscription.language)}`, { _messageKind: 'snoozed_alert' });
-			await clearSnooze(snooze.chat_id, snooze.wallet, snooze.cover_id); sent++;
-		} catch (error) { failed++; logger.error('Snooze-Prüfung fehlgeschlagen:', error.message); }
-	}
-	const summaries = await sendWeeklySummaries(subscriptions, results, sendMessage, now);
+	/* ---------------------------------------------- Wochenuebersicht */
+	// Nur Chats, deren Wallets in DIESEM Lauf vollstaendig bearbeitet wurden. Nach
+	// einem Abbruch sind das alle ausser dem angeschnittenen ersten und letzten.
+	const partial = new Set(stopped ? [cursor?.[0], processed.at(-1)?.chat_id].filter(Boolean) : []);
+	const summaries = await sendWeeklySummaries(processed.filter((subscription) => !partial.has(subscription.chat_id)), results, sendMessage, now, data,
+		() => elapsed() < limits.maxRunMs, () => exhaust('time'), (error) => { failed++; logger.error('Wochenübersicht fehlgeschlagen:', error?.message); });
 
-	return { subscriptions: subscriptions.length, sent, summaries, failed };
+	const result = { subscriptions: used.subscriptions, sent, summaries, failed, snoozes: used.snoozes, lookups: used.lookups, budgetExhausted: exhausted[0] ?? null, continuation: Boolean(stopped) };
+	if (exhausted.length) {
+		logger.warn?.(`Erinnerungslauf am Budget beendet: ${exhausted.join(', ')}`);
+		try {
+			await recordEvent({ eventType: ALERT_RUN_BUDGET_EVENT, source: 'cron', metadata: { budget: exhausted[0], budgets: exhausted.join(','), subscriptions: used.subscriptions, lookups: used.lookups, snoozes: used.snoozes, continuation: Boolean(stopped) } });
+		} catch {
+			logger.error('Budget-Ereignis konnte nicht gespeichert werden.');
+		}
+	}
+	return result;
 }

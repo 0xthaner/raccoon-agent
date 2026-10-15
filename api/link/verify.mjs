@@ -1,5 +1,5 @@
 import { isAddress } from 'viem';
-import { consumePendingLink, getPendingLink, getLanguage } from '../../src/db.mjs';
+import { MAX_WALLETS_PER_CHAT, consumePendingLink, getPendingLink, getLanguage } from '../../src/db.mjs';
 import { isTelegramLinkCode, isTelegramLinkRow, linkSiweExpectation, newDashboardAccess, signingMessage, telegramTarget } from '../../src/linking.mjs';
 import { verifyWalletSiweSignature } from '../../src/contract-signature.mjs';
 import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin } from '../../src/http-security.mjs';
@@ -29,6 +29,26 @@ async function notifyLinked(chatId, wallet) {
 		]] } })
 	});
 	if (!result.ok) throw new Error('Telegram-Bestätigung fehlgeschlagen.');
+}
+
+/*
+	Restaudit M1: der Chat hat schon MAX_WALLETS_PER_CHAT Wallets. Die Datenbank hat
+	nichts geschrieben; der Bot sagt es dem Chat - ohne Wallet-Liste, best effort.
+*/
+async function notifyWalletLimit(chatId) {
+	const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
+	if (!token) return;
+	const language = await getLanguage(chatId) ?? 'de';
+	const text = language === 'zh'
+		? `此聊天已连接 ${MAX_WALLETS_PER_CHAT} 个钱包（上限）。请先在设置中移除一个钱包，然后再连接新的钱包。`
+		: language === 'en'
+			? `This chat already monitors ${MAX_WALLETS_PER_CHAT} wallets, the maximum. Remove a wallet in the settings first, then connect the new one.`
+			: `Dieser Chat überwacht bereits ${MAX_WALLETS_PER_CHAT} Wallets, das Maximum. Entferne zuerst eine Wallet in den Einstellungen und verbinde dann die neue.`;
+	await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({ chat_id: chatId, text })
+	});
 }
 
 export default async function handler(request, response) {
@@ -84,11 +104,16 @@ export default async function handler(request, response) {
 		}
 		return response.status(401).json({ ok: false, error: 'Signatur konnte nicht bestätigt werden.' });
 	}
-	const chatId = await consumePendingLink(code, wallet);
-	if (!chatId) {
+	const outcome = await consumePendingLink(code, wallet);
+	if (outcome.status === 'wallet_limit') {
+		await notifyWalletLimit(outcome.chatId).catch(() => {});
+		return response.status(409).json({ ok: false, code: 'WALLET_LIMIT', error: `Dieser Telegram-Chat überwacht bereits ${MAX_WALLETS_PER_CHAT} Wallets, das Maximum. Entferne zuerst eine Wallet im Bot.` });
+	}
+	if (outcome.status !== 'linked') {
 		await recordSecurityEvent(SECURITY_EVENT.SIWE_REPLAY_BLOCKED, { source: 'telegram', fingerprint: securityFingerprint(wallet) });
 		return response.status(409).json({ ok: false, error: 'Verbindungscode wurde bereits verwendet.' });
 	}
+	const chatId = outcome.chatId;
 	await notifyLinked(chatId, wallet);
 	// AGENT-SEC-A1, 29.08.2026: hier wurde bis dahin ein Dashboard-Sessioncookie
 	// gesetzt. Die signierte Nachricht autorisiert aber ausschliesslich das

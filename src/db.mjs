@@ -34,10 +34,26 @@ export async function getPendingLink(code) {
 	return data ? { ...data, expires_at: Date.parse(data.expires_at), used_at: data.used_at ? Date.parse(data.used_at) : null } : null;
 }
 
-export async function consumePendingLink(code, wallet) {
-	const chatId = value(await db.rpc('consume_wallet_link', { link_code: code, linked_wallet: wallet.toLowerCase() }));
-	if (chatId) value(await db.from('pending_links').delete().like('chat_id', `unlinked:${chatId}:%`));
-	return chatId;
+/*
+	Restaudit M1, 15.10.2026: hoechstens MAX_WALLETS_PER_CHAT Wallets je Chat.
+	Durchgesetzt wird das in der Datenbank (link_wallet_to_chat_limited, unter
+	einem Lock je Chat); dieser Wert muss dort identisch stehen und dient hier nur
+	fuer Texte und dafuer, bei vollem Chat keinen Link-Code mehr anzubieten.
+
+	Ergebnis: { status: 'linked' | 'wallet_limit' | 'invalid', chatId }. Am Limit
+	ist nichts geschrieben und der Code nicht verbraucht.
+*/
+export const MAX_WALLETS_PER_CHAT = 10;
+
+export async function consumePendingLink(code, wallet, { client = db } = {}) {
+	const outcome = value(await client.rpc('consume_wallet_link_v2', { link_code: code, linked_wallet: wallet.toLowerCase() })) ?? {};
+	const chatId = outcome.status === 'linked' ? outcome.chat_id : null;
+	if (chatId) {
+		value(await client.from('pending_links').delete().like('chat_id', `unlinked:${chatId}:%`));
+		return { status: 'linked', chatId };
+	}
+	if (outcome.status === 'wallet_limit' && outcome.chat_id) return { status: 'wallet_limit', chatId: outcome.chat_id };
+	return { status: 'invalid', chatId: null };
 }
 
 export async function createTelegramHandoff({ code, wallet, expiresAt }) {
@@ -299,20 +315,57 @@ export async function setLanguage(chatId, language) {
 	}));
 }
 
-export async function listAlertSubscriptions({ client = db } = {}) {
-	const links = value(await client.from('monitored_wallets').select('chat_id,wallet,label,alert_thresholds,weekly_summary').eq('alerts_enabled', true).order('chat_id'));
-	if (!links.length) return [];
-	const preferences = value(await client.from('user_preferences').select('chat_id,language').in('chat_id', links.map((link) => link.chat_id)));
-	const languages = new Map(preferences.map((preference) => [preference.chat_id, preference.language]));
-	return links.map((link) => ({ ...link, language: languages.get(link.chat_id) ?? 'de' }));
+/*
+	Restaudit M1: Erinnerungs-Abos nur noch SEITENWEISE (Keyset ueber chat_id,
+	wallet; Datenbank deckelt die Seite auf 200). `after` (exklusiv) und `through`
+	(inklusiv) sind [chat_id, wallet] oder null. Der Aufrufer liest, bis eine Seite
+	leer ist - nie unter der Annahme, eine Antwort enthalte alles.
+*/
+export async function listAlertSubscriptionsPage({ after = null, through = null, limit, client = db }) {
+	return value(await client.rpc('alert_subscriptions_page', {
+		after_chat: after?.[0] ?? null, after_wallet: after?.[1] ?? null,
+		through_chat: through?.[0] ?? null, through_wallet: through?.[1] ?? null,
+		page_size: limit
+	})) ?? [];
+}
+
+/** Ein einzelnes aktives Abo (fuer faellige Snoozes) - oder null. */
+export async function getAlertSubscription(chatId, wallet, { client = db } = {}) {
+	const row = value(await client.from('monitored_wallets').select('chat_id,wallet,label,alert_thresholds,weekly_summary')
+		.match({ chat_id: String(chatId), wallet: String(wallet).toLowerCase(), alerts_enabled: true }).maybeSingle());
+	if (!row) return null;
+	const preference = value(await client.from('user_preferences').select('language').eq('chat_id', row.chat_id).maybeSingle());
+	return { ...row, language: preference?.language ?? 'de' };
+}
+
+const ALERT_RUN_STATE_ID = 'expiry-alerts';
+
+/** Fortsetzungspunkt des Erinnerungslaufs: [chat_id, wallet] oder null. */
+export async function getAlertRunCursor({ client = db } = {}) {
+	const row = value(await client.from('alert_run_state').select('cursor_chat_id,cursor_wallet').eq('id', ALERT_RUN_STATE_ID).maybeSingle());
+	return row?.cursor_chat_id && row?.cursor_wallet ? [row.cursor_chat_id, row.cursor_wallet] : null;
+}
+
+export async function saveAlertRunCursor(cursor, { client = db } = {}) {
+	value(await client.from('alert_run_state').upsert({
+		id: ALERT_RUN_STATE_ID, cursor_chat_id: cursor?.[0] ?? null, cursor_wallet: cursor?.[1] ?? null, updated_at: new Date().toISOString()
+	}));
 }
 
 export async function snoozeCoverAlert(chatId, wallet, coverId, remindAt) {
 	value(await db.from('alert_snoozes').upsert({ chat_id: String(chatId), wallet: wallet.toLowerCase(), cover_id: String(coverId), remind_at: new Date(remindAt).toISOString(), created_at: new Date().toISOString() }));
 }
 
-export async function listDueSnoozes(now = Date.now()) {
-	return value(await db.from('alert_snoozes').select('*').lte('remind_at', new Date(now).toISOString()).order('remind_at'));
+/** Restaudit M1: faellige Snoozes seitenweise, aelteste zuerst, feste Reihenfolge. */
+export async function listDueSnoozesPage(now, limit, { client = db } = {}) {
+	return value(await client.from('alert_snoozes').select('chat_id,wallet,cover_id,remind_at').lte('remind_at', new Date(now).toISOString())
+		.order('remind_at').order('chat_id').order('wallet').order('cover_id').limit(limit)) ?? [];
+}
+
+/** Gescheiterter Snooze: nach hinten, damit er spaetere nicht dauerhaft blockiert. */
+export async function rescheduleSnooze(chatId, wallet, coverId, remindAt, { client = db } = {}) {
+	value(await client.from('alert_snoozes').update({ remind_at: new Date(remindAt).toISOString() })
+		.match({ chat_id: String(chatId), wallet: wallet.toLowerCase(), cover_id: String(coverId) }));
 }
 
 export async function clearSnooze(chatId, wallet, coverId) {
