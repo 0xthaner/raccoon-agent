@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs';
 import { isAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { queryParams, singleQueryValue } from '../src/request-query.mjs';
+import { signingRefusal, WALLET_TYPE_UNAVAILABLE } from '../src/signing-policy.mjs';
 
 process.env.APP_BASE_URL = 'https://coverraccoon.com';
 process.env.DASHBOARD_SESSION_SECRET = 'audit-test-secret-0123456789abcdef-0123456789';
@@ -37,7 +38,7 @@ function setup({ consumeResult = true, storedWallet = OWNER.address } = {}) {
 	const handler = loadHandler({
 		isAddress, getWalletCovers: async () => ({ covers: [] }), queryParams, singleQueryValue,
 		...auth,
-		verifyWalletSiweAuthority, isDeployedContract: async () => false,
+		verifyWalletSiweAuthority, isDeployedContract: async () => false, contractCodeQuorum: async () => 'NONE', signingRefusal, WALLET_TYPE_UNAVAILABLE,
 		beginTelegramDelivery: async () => null, finishTelegramDelivery: async () => {},
 		consumeDashboardAccess: async () => null,
 		// Wie die echte Tabelle: verbraucht nur, wenn die gespeicherte Wallet passt (src/db.mjs).

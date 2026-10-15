@@ -28,7 +28,8 @@ delete process.env.TELEGRAM_BOT_TOKEN;
 
 const auth = await import('../src/dashboard-auth.mjs');
 const linking = await import('../src/linking.mjs');
-const { noContractCodeByQuorum, verifyWalletSiweAuthority } = await import('../src/contract-signature.mjs');
+const { contractCodeQuorum, noContractCodeByQuorum, verifyWalletSiweAuthority } = await import('../src/contract-signature.mjs');
+const { signingRefusal, WALLET_TYPE_UNAVAILABLE } = await import('../src/signing-policy.mjs');
 
 const SAFE = '0x5afe00000000000000000000000000000000a00a';
 const OTHER_SAFE = '0x5afe00000000000000000000000000000000b00b';
@@ -68,6 +69,7 @@ function world({ owners = ['A', 'B'], codeError = null, callError = null, forge 
 		isAddress, queryParams, singleQueryValue, ...auth,
 		verifyWalletSiweAuthority: (params) => verifyWalletSiweAuthority(params, { providers }),
 		noContractCodeByQuorum: (wallet) => noContractCodeByQuorum(wallet, { providers }),
+		contractCodeQuorum: (wallet) => contractCodeQuorum(wallet, { providers }), signingRefusal, WALLET_TYPE_UNAVAILABLE,
 		isDeployedContract: async (wallet) => { if (state.contractCheckError) throw new Error('rpc'); return state.deployed.has(wallet.toLowerCase()); },
 		getWalletCovers: async () => { state.covers++; return { covers: [] }; },
 		getWalletLinkStateByWallet: async () => { state.linkStates++; return { linked: true, link: null }; },
@@ -114,10 +116,20 @@ async function eoaLogin(h) {
 	return call(h.handler, { method: 'POST', body: { wallet: EOA.address, token: c.token, signature: await EOA.signMessage({ message: c.message }) } });
 }
 /** Holt eine Aktions-Challenge mit der gegebenen Sitzung und laesst Owner `sig` signieren. */
+/*
+	META-AUDIT M-3: der Server stellt Contract-Wallets KEINE Aktions-Challenge mehr aus
+	(keine Signaturanfrage an eine Safe). Die Pruefung verifyFreshAuthority bleibt
+	bestehen und wird hier weiter getestet: die Challenge entsteht direkt, so wie der
+	Server sie vorher ausgestellt hat (gleiche Funktion, gleiche Speicherung).
+*/
 async function freshAuth(h, session, purpose) {
 	const r = await call(h.handler, { method: 'POST', headers: cookie(session), body: { action: purpose } });
-	assert.equal(r.statusCode, 200, JSON.stringify(r.body));
-	return r.body;
+	assert.equal(r.statusCode, 409, JSON.stringify(r.body));
+	assert.equal(r.body.code, 'CONTRACT_SIGNING_UNSUPPORTED');
+	const wallet = auth.verifyDashboardSession(session).wallet;
+	const action = auth.createActionChallenge(wallet, purpose);
+	h.state.challenges.set(action.data.nonce, { wallet: action.data.wallet, expiresAt: action.data.exp, used: false });
+	return { ok: true, freshSignatureRequired: true, token: action.token, message: action.message };
 }
 
 /* ========================================================== SESSION TTL */
@@ -415,22 +427,20 @@ test('SA-L2 22/23: a revocation lookup failure on GET /api/dashboard is 503 and 
 
 /* ======================================================= CLIENT / SAFE */
 
-test('SA-L1 client: Safe App confirmation uses only off-chain signing; WalletConnect path uses only personal_sign for the session wallet', async () => {
-	const { signSafeMessage } = await import('../web/src/safe-app.js');
-	for (const settings of [undefined, {}, { offChainSigning: false }, { offChainSigning: 'true' }]) {
-		let signed = 0;
-		const sdk = { eth: { setSafeSettings: async () => settings }, txs: { signMessage: async () => { signed++; return { messageHash: '0x1' }; } }, safe: { getOffChainSignature: async () => '0x12' } };
-		await assert.rejects(signSafeMessage({ sdk, message: 'm' }));
-		assert.equal(signed, 0);
-	}
+/*
+	META-AUDIT M-3: die fruehere Pruefung "Fake-SDK liefert offChainSigning: false ->
+	keine Signatur" bildete einen Zustand nach, den echtes Safe{Wallet} nie liefert
+	(setSafeSettings spiegelt nur die Anfrage). Sie bewies nichts und ist entfernt.
+	Das Verhalten (keine Signaturanfrage an Safes) pruefen jetzt die Ablauftests in
+	test/safe-offchain-guarantee.test.mjs; hier bleibt nur der Quelltext-Waechter.
+*/
+test('SA-L1/M-3 client guard: the fresh-confirmation helper never signs; AppKit send/receive are off', () => {
 	const main = readFileSync(new URL('../web/src/main.js', import.meta.url), 'utf8');
-	const block = main.slice(main.indexOf('let safeContext = null;'), main.indexOf('async function endSession('));
-	assert.deepEqual([...block.matchAll(/method: '([a-z_A-Z]+)'/g)].map((m) => m[1]), ['POST', 'personal_sign']);
-	assert.doesNotMatch(block, /eth_sendTransaction|eth_signTypedData|wallet_sendCalls|txs\.send|eth_sign'/);
-	assert.match(block, /keine Transaktion: keine Übertragung, keine Token-Freigabe/);
-	assert.match(block, /not a transaction: no transfer, no token approval/);
-	assert.match(block, /if \(konto !== expected \|\| normalizeAddress\(modal\.getAddress\(\)\) !== expected\)/, 'nur die angemeldete Wallet');
-	assert.match(block, /if \(!confirm\(/, 'nie still im Hintergrund');
+	const block = main.slice(main.indexOf('async function frischeBestaetigung('), main.indexOf('async function endSession('));
+	assert.ok(block.length > 100);
+	assert.doesNotMatch(block, /personal_sign|signSafeMessage|txs\.signMessage|provider\.request|eth_sign|signTypedData|sendTransaction/);
+	assert.doesNotMatch(main, /function signiereMitWalletConnect|let safeContext/, 'kein Signierweg fuer Contract-Wallets mehr im Frontend');
+	assert.match(main, /features: \{[^}]*send: false[^}]*receive: false/);
 });
 
 /* ===================================================== DUAL-RPC (14.10.2026) */

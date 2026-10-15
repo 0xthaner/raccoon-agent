@@ -27,7 +27,8 @@ process.env.DASHBOARD_SESSION_SECRET = 'telegram-stale-authority-secret-01234567
 delete process.env.TELEGRAM_BOT_TOKEN;
 
 const auth = await import('../src/dashboard-auth.mjs');
-const { verifyWalletSiweAuthority, noContractCodeByQuorum } = await import('../src/contract-signature.mjs');
+const { contractCodeQuorum, verifyWalletSiweAuthority, noContractCodeByQuorum } = await import('../src/contract-signature.mjs');
+const { signingRefusal, WALLET_TYPE_UNAVAILABLE } = await import('../src/signing-policy.mjs');
 
 const SAFE = '0x5afe00000000000000000000000000000000a00a';
 const EOA = '0x1111111111111111111111111111111111111111';
@@ -100,6 +101,7 @@ function loadDashboard(helpers, providers, state) {
 		isAddress, queryParams, singleQueryValue, ...auth,
 		verifyWalletSiweAuthority: (params) => verifyWalletSiweAuthority(params, { providers }),
 		noContractCodeByQuorum: (wallet) => noContractCodeByQuorum(wallet, { providers }),
+		contractCodeQuorum: (wallet) => contractCodeQuorum(wallet, { providers }), signingRefusal, WALLET_TYPE_UNAVAILABLE,
 		isDeployedContract: async () => true,
 		getWalletCovers: async () => ({ covers: [] }), getWalletLinkStateByWallet: async () => ({ linked: true, link: null }),
 		storeDashboardChallenge: async ({ nonce, wallet, expiresAt }) => { challenges.set(nonce, { wallet: wallet.toLowerCase(), expiresAt, used: false }); },
@@ -112,7 +114,9 @@ function loadDashboard(helpers, providers, state) {
 		SECURITY_EVENT: { ERC1271_RPC_DISAGREEMENT: 'security.erc1271_rpc_disagreement', SIWE_SIGNATURE_INVALID: 'security.siwe_signature_invalid', SIWE_REPLAY_BLOCKED: 'security.siwe_replay_blocked' },
 		...helpers // injizierte (echte) Helfer gewinnen gegen die Attrappen oben
 	};
-	return new Function(...Object.keys(deps), `${source}\nreturn handler;`)(...Object.values(deps));
+	const handler = new Function(...Object.keys(deps), `${source}\nreturn handler;`)(...Object.values(deps));
+	handler.challenges = challenges;
+	return handler;
 }
 const res = () => ({ statusCode: null, body: null, headers: {}, status(c) { this.statusCode = c; return this; }, setHeader(k, v) { this.headers[k] = v; }, json(b) { this.body = b; return this; } });
 async function call(handler, { method = 'GET', url = '/api/dashboard', headers = {}, body } = {}) {
@@ -123,11 +127,19 @@ async function call(handler, { method = 'GET', url = '/api/dashboard', headers =
 const cookie = (wallet) => ({ cookie: `${auth.SESSION_COOKIE}=${encodeURIComponent(auth.createDashboardSession(wallet, Date.now(), 'contract'))}` });
 
 /** Owner B holt eine Aktions-Challenge und laesst sie von `owners` der Safe signieren. */
+/*
+	META-AUDIT M-3: der Server stellt Contract-Wallets keine Aktions-Challenge mehr aus
+	(keine Signaturanfrage an eine Safe) - geprueft wird das hier mit. Die Backend-
+	Pruefung bleibt bestehen und wird weiter getestet: die Challenge entsteht direkt,
+	so wie der Server sie vorher ausgestellt hat.
+*/
 async function freshSafeAuthorization(handler, purpose, owners) {
 	const ask = await call(handler, { method: 'POST', headers: cookie(SAFE), body: { action: purpose } });
-	assert.equal(ask.statusCode, 200, JSON.stringify(ask.body));
-	assert.equal(ask.body.freshSignatureRequired, true);
-	return { token: ask.body.token, signature: ownerSignature(owners, hashMessage(ask.body.message)), message: ask.body.message };
+	assert.equal(ask.statusCode, 409, JSON.stringify(ask.body));
+	assert.equal(ask.body.code, 'CONTRACT_SIGNING_UNSUPPORTED');
+	const action = auth.createActionChallenge(SAFE, purpose);
+	handler.challenges.set(action.data.nonce, { wallet: action.data.wallet, expiresAt: action.data.exp, used: false });
+	return { token: action.token, signature: ownerSignature(owners, hashMessage(action.message)), message: action.message };
 }
 
 /* ====================================================== Reproduktion M-1 */

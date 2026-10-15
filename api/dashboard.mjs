@@ -1,8 +1,8 @@
 import { isAddress } from 'viem';
 import { getWalletCovers } from '../src/covers.mjs';
-import { actionMessage, actionSiweExpectation, CLEAR_SESSION_COOKIES, createActionChallenge, createDashboardChallenge, createDashboardSession, DASHBOARD_CHALLENGE_TTL_CONTRACT_MS, DASHBOARD_CHALLENGE_TTL_EOA_MS, dashboardMessage, dashboardSiweExpectation, resolveDashboardSession, resolveLogout, sessionCookieHeader, verifyActionChallenge, verifyDashboardToken } from '../src/dashboard-auth.mjs';
-import { noContractCodeByQuorum, verifyWalletSiweAuthority } from '../src/contract-signature.mjs';
-import { isDeployedContract } from '../src/contract-detect.mjs';
+import { actionMessage, actionSiweExpectation, CLEAR_SESSION_COOKIES, createDashboardChallenge, createDashboardSession, DASHBOARD_CHALLENGE_TTL_EOA_MS, dashboardMessage, dashboardSiweExpectation, resolveDashboardSession, resolveLogout, sessionCookieHeader, verifyActionChallenge, verifyDashboardToken } from '../src/dashboard-auth.mjs';
+import { contractCodeQuorum, noContractCodeByQuorum, verifyWalletSiweAuthority } from '../src/contract-signature.mjs';
+import { signingRefusal, WALLET_TYPE_UNAVAILABLE } from '../src/signing-policy.mjs';
 import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, getWalletLinkStateByWallet, isDashboardSessionRevoked, recordAgentEvent, revokeDashboardSessions, storeDashboardChallenge, unlinkWalletByWallet, unlinkWalletFromAllChats } from '../src/db.mjs';
 import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../src/pause.mjs';
 import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin } from '../src/http-security.mjs';
@@ -131,16 +131,14 @@ export default async function handler(request, response) {
 			// Diskriminator ('all'), kein Angreifer-Input. Greift VOR getCode (Alchemy) und
 			// dem Challenge-Insert und deckelt so die aggregierte Last verteilter Angreifer.
 			if (!await enforceRateLimitFor(response, 'dashboard-challenge-global', 'all', 600, 600)) return;
-			// AGENT-SAFE-1: deployte Contract-Wallets (Safe-Multisig) bekommen ein
-			// laengeres Challenge-Fenster, weil mehrere Owner asynchron bestaetigen.
-			// Der SERVER entscheidet ueber Mainnet-getCode; der Client sendet nie
-			// multisig/contract/ttl. Faellt die Erkennung aus (kein Schluessel, RPC-
-			// Fehler): fail closed auf die kurze EOA-TTL.
-			let ttlMs = DASHBOARD_CHALLENGE_TTL_EOA_MS;
-			try {
-				if (await isDeployedContract(wallet)) ttlMs = DASHBOARD_CHALLENGE_TTL_CONTRACT_MS;
-			} catch { /* fail closed: kurze EOA-TTL */ }
-			const challenge = createDashboardChallenge(wallet, Date.now(), ttlMs);
+			// META-AUDIT M-3: eine Nachricht zum Signieren gibt es nur fuer eine EOA - nach
+			// BEIDEN Providern ohne Code. Fuer eine Contract-Wallet (Safe) kann vorab nicht
+			// garantiert werden, dass aus der Anfrage kein Safe-Transaktionsvorschlag wird
+			// (src/signing-policy.mjs); bei unklarer Art ebenso wenig. Dann keine Challenge,
+			// keine Nachricht - also startet keine Oberflaeche eine Signaturanfrage.
+			const refusal = signingRefusal(await contractCodeQuorum(wallet));
+			if (refusal) return response.status(refusal.status).json(refusal.body);
+			const challenge = createDashboardChallenge(wallet, Date.now(), DASHBOARD_CHALLENGE_TTL_EOA_MS);
 			const verified = verifyDashboardToken(challenge.token);
 			await storeDashboardChallenge({ nonce: verified.nonce, wallet: verified.wallet, expiresAt: verified.exp });
 			return response.status(200).json({ ok: true, ...challenge });
@@ -244,10 +242,14 @@ export default async function handler(request, response) {
 		try { revoked = await isDashboardSessionRevoked(session.wallet, sessionIssuedAt(session)); } catch { return response.status(503).json({ ok: false, code: 'SESSION_CHECK_UNAVAILABLE', error: 'Sitzung konnte gerade nicht geprüft werden.' }); }
 		if (revoked) return response.status(401).json({ ok: false, code: 'SESSION_REVOKED', error: 'Die Wallet-Verbindung wurde vollständig zurückgesetzt.' });
 		if (!await freshAuthorityRequired(session)) return response.status(200).json({ ok: true, freshSignatureRequired: false });
-		if (!await enforceRateLimitFor(response, 'dashboard-action-wallet', session.wallet, 10, 600)) return;
-		const action = createActionChallenge(session.wallet, body.action);
-		await storeDashboardChallenge({ nonce: action.data.nonce, wallet: action.data.wallet, expiresAt: action.data.exp });
-		return response.status(200).json({ ok: true, freshSignatureRequired: true, action: body.action, token: action.token, message: action.message });
+		// META-AUDIT M-3: eine frische Bestaetigung waere eine Signaturanfrage an eine
+		// Contract-Wallet - die vorab nicht sicher off-chain bleibt. Deshalb wird keine
+		// Aktions-Challenge ausgestellt. Die Pruefung (verifyFreshAuthority) bleibt
+		// bestehen; ohne Challenge kommt sie nicht zum Zug. Alt-Sitzungen ohne Art mit
+		// unklarer Wallet-Art (RPC-Ausfall) bekommen ebenfalls keine Challenge.
+		const refusal = signingRefusal(session.kind === 'contract' ? 'CONTRACT' : await contractCodeQuorum(session.wallet));
+		const blocked = refusal ?? { status: 503, body: WALLET_TYPE_UNAVAILABLE };
+		return response.status(blocked.status === 422 ? 409 : blocked.status).json({ ...blocked.body, freshSignatureRequired: true });
 	}
 	if (ANMELDUNG_PAUSIERT) return pauseAntwort(response);
 	// AGENT-AUTH-002, 05.10.2026: der Telegram-Zugangscode wird NUR hier per POST

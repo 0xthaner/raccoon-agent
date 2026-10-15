@@ -1,3 +1,4 @@
+import { signingRefusal, WALLET_TYPE_UNAVAILABLE } from '../src/signing-policy.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -53,7 +54,7 @@ for (const mode of ['active','lookup-error','telegram']) {
    queryParams,singleQueryValue,
    resolveDashboardSession:()=>({session:{wallet:'0x1111111111111111111111111111111111111111',iat:100}}),
    isDashboardSessionRevoked:async()=>{if(mode==='lookup-error')throw Error('offline');return false;},
-   requireSameOrigin:()=>true,enforceRateLimit:async()=>true,CLEAR_SESSION_COOKIES,resolveLogout,isDeployedContract:async()=>false,noContractCodeByQuorum:async()=>true,
+   requireSameOrigin:()=>true,enforceRateLimit:async()=>true,CLEAR_SESSION_COOKIES,resolveLogout,isDeployedContract:async()=>false,noContractCodeByQuorum:async()=>true,contractCodeQuorum:async()=>'NONE',signingRefusal,WALLET_TYPE_UNAVAILABLE,
    revokeDashboardSessions:async()=>{writes++;},recordAgentEvent:async()=>{},
    unlinkWalletByWallet:async()=>{unlinks++;return [];}
   });

@@ -22,6 +22,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { telegramExpectation, telegramSiweMessage, verifyExpectedSiweSignature } from '../src/siwe-auth.mjs';
 import * as linking from '../src/linking.mjs';
 import * as requestQuery from '../src/request-query.mjs';
+import { signingRefusal, WALLET_TYPE_UNAVAILABLE } from '../src/signing-policy.mjs';
 
 const urlOf = (path, query = {}) => { const qs = new URLSearchParams(query).toString(); return qs ? `${path}?${qs}` : path; };
 
@@ -52,6 +53,7 @@ function linkDeps(lookups) {
 		isAddress: (v) => /^0x[0-9a-fA-F]{40}$/.test(v),
 		getPendingLink: async (code) => { lookups.push(code); return ROWS[code] ?? null; },
 		signingMessage: (p) => `SIWE nonce=${p.nonce}`,
+		enforceRateLimitFor: async () => true, contractCodeQuorum: async () => 'NONE', signingRefusal,
 		enforceRateLimit: async () => true,
 		ANMELDUNG_PAUSIERT: false, pauseAntwort: () => {},
 		isTelegramLinkCode: linking.isTelegramLinkCode, isTelegramLinkRow: linking.isTelegramLinkRow,

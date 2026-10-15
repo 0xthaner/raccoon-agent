@@ -11,6 +11,7 @@
  * ausgefuehrt (enforceRateLimitFor + check_agent_rate_limit bleiben unveraendert).
  */
 
+import { signingRefusal, WALLET_TYPE_UNAVAILABLE } from '../src/signing-policy.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -57,7 +58,7 @@ test('B/C globales Budget steht NACH IP- und Wallet-Schranke', () => {
 
 test('D/E globales Budget steht VOR getCode und VOR dem Challenge-Insert', () => {
 	const global = idx(CHAL_GLOBAL);
-	const getCode = idx('isDeployedContract(wallet)');
+	const getCode = idx('contractCodeQuorum(wallet)'); // META-AUDIT M-3: Klassifizierung statt TTL-getCode
 	const store = idx('storeDashboardChallenge(');
 	const create = idx('createDashboardChallenge(wallet');
 	assert.ok(global > -1 && getCode > -1 && store > -1 && create > -1);
@@ -155,7 +156,7 @@ test('kein neuer Ad-hoc-Zaehler, kein Sharding, keine Env-Variable fuer die Gren
 
 test('vollstaendige Challenge- und Login-Reihenfolge bleibt erhalten', () => {
 	for (const steps of [
-		["if (!isAddress(wallet)) return response.status(400)", "enforceRateLimit(request, response, 'dashboard-challenge',", "enforceRateLimitFor(response, 'dashboard-challenge-wallet',", CHAL_GLOBAL, 'isDeployedContract(wallet)', 'createDashboardChallenge(wallet', 'storeDashboardChallenge('],
+		["if (!isAddress(wallet)) return response.status(400)", "enforceRateLimit(request, response, 'dashboard-challenge',", "enforceRateLimitFor(response, 'dashboard-challenge-wallet',", CHAL_GLOBAL, 'contractCodeQuorum(wallet)', 'createDashboardChallenge(wallet', 'storeDashboardChallenge('],
 		["enforceRateLimit(request, response, 'dashboard-login',", 'const challenge = verifyDashboardToken(token)', "if (challenge?.type !== 'challenge'", "enforceRateLimitFor(response, 'dashboard-login-wallet',", LOGIN_GLOBAL, 'verifyWalletSiweAuthority({', 'consumeDashboardChallenge(', 'sessionCookieHeader(wallet,']
 	]) {
 		let previous = -1;
@@ -186,6 +187,8 @@ function handlerWith(calls, blocked) {
 		verifyDashboardToken: (token) => token === 'valid' ? { type: 'challenge', wallet, nonce: 'test', exp: 1 } : null,
 		DASHBOARD_CHALLENGE_TTL_EOA_MS: 300000, DASHBOARD_CHALLENGE_TTL_CONTRACT_MS: 1800000,
 		isDeployedContract: async () => { step('getCode'); return false; },
+		// META-AUDIT M-3: die Wallet-Klassifizierung (beide Provider) ist jetzt der RPC-Schritt.
+		contractCodeQuorum: async () => { step('getCode'); return 'NONE'; }, signingRefusal, WALLET_TYPE_UNAVAILABLE,
 		createDashboardChallenge: () => { step('create'); return { token: 'valid' }; },
 		storeDashboardChallenge: async () => step('store'),
 		dashboardMessage: () => 'test message', dashboardSiweExpectation: () => ({}),

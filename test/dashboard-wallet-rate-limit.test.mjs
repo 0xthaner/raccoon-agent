@@ -21,7 +21,7 @@ test('1 Challenge-Erzeugung begrenzt pro IP UND pro Wallet', () => {
 
 test('2 die Wallet-Schranke greift VOR dem Alchemy-getCode und dem DB-Insert', () => {
 	const schranke = dashboard.indexOf("enforceRateLimitFor(response, 'dashboard-challenge-wallet'");
-	const getCode = dashboard.indexOf('isDeployedContract(wallet)');
+	const getCode = dashboard.indexOf('contractCodeQuorum(wallet)'); // META-AUDIT M-3: Klassifizierung (getCode bei beiden Providern)
 	const insert = dashboard.indexOf('storeDashboardChallenge(');
 	assert.ok(schranke > -1 && getCode > -1 && insert > -1);
 	assert.ok(schranke < getCode, 'die Schranke steht hinter dem getCode-Aufruf');
