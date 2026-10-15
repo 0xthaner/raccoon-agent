@@ -107,10 +107,17 @@ test('LOGIN replay (consume fails): 409, no cookie, no bearer', async () => {
 	assert.equal(res.body.sessionToken, undefined);
 });
 
-test('LOGIN bearer transport only changes transport, never identity', async () => {
+// EOA-Meta-Audit M1 (15.10.2026): hier stand "bearer transport only changes
+// transport" - mit der Erwartung, dass eine EOA auf Anfrage ein JS-lesbares
+// 7-Tage-Token im Body bekommt. Genau das war die Luecke: den Header setzt jeder
+// Client, auch ein kompromittiertes Frontend. Jetzt: EOA nie Bearer, nur Cookie.
+test('LOGIN an EOA asking for bearer transport still gets only the HttpOnly cookie, never a JS-readable token', async () => {
 	const { res } = await login({ bearer: true });
 	assert.equal(res.code, 200);
-	assert.equal(auth.verifyDashboardSession(res.body.sessionToken).wallet, OWNER.address.toLowerCase());
+	assert.equal(res.body.sessionToken, undefined);
+	const token = decodeURIComponent(/=([^;]+)/.exec(res.headers['set-cookie'])[1]);
+	assert.equal(auth.verifyDashboardSession(token).wallet, OWNER.address.toLowerCase());
+	assert.match(res.headers['set-cookie'], /; HttpOnly;/);
 });
 
 test('LOGIN a challenge token is never accepted as a session, and a session never as a challenge', async () => {

@@ -361,12 +361,17 @@ export default async function handler(request, response) {
 		await recordAgentEvent({ wallet, eventType: 'dashboard.wallet_authenticated', source: 'dashboard', metadata: { mode } }).catch(() => {});
 		const data = await dashboardData(wallet);
 		// AGENT-SAFE-3: Safe-App-Pfad (eingebettetes iframe) kann das __Host-Cookie
-		// nicht zuverlaessig setzen. NUR wenn der Client den Bearer-Transport
-		// ausdruecklich anfordert, liegt zusaetzlich das bestehende signierte
-		// Session-Token im Body (gleiche type=session/wallet/iat/exp/HMAC/7-Tage/
-		// Revoke-Semantik). Das Flag steuert NUR den Transport, nie Identity,
-		// Signatur, Chain, Nonce oder ERC-1271. Normaler Browser bekommt es nie.
-		if (String(request.headers['x-dashboard-transport'] ?? '').toLowerCase() === 'bearer') {
+		// nicht zuverlaessig setzen und bekommt das Session-Token deshalb auf Anfrage
+		// im Body - JS-lesbar.
+		// EOA-Meta-Audit M1 (15.10.2026): den Header setzt jeder Client selbst, auch ein
+		// kompromittiertes Frontend. Ob es ein Bearer-Token gibt, entscheidet deshalb
+		// die serverseitig BEWIESENE Autoritaet: nur eine Contract-Wallet-Sitzung
+		// (ERC-1271 bzw. On-chain-Freigabe, 24 h) - der einzige Nutzer ist der
+		// Safe-App-Login. Eine EOA bekommt NIE ein JS-lesbares Token, egal was der
+		// Client verlangt; sie hat nur das HttpOnly-Cookie. Restrisiko: ein
+		// kompromittiertes Frontend kann fuer eine Safe weiterhin einen 24-h-Bearer
+		// anfordern (Abhilfe waere ein Partitioned-HttpOnly-Cookie, offen).
+		if (kind === 'contract' && String(request.headers['x-dashboard-transport'] ?? '').toLowerCase() === 'bearer') {
 			data.sessionToken = createDashboardSession(wallet, Date.now(), kind);
 		}
 		return response.status(200).json(data);

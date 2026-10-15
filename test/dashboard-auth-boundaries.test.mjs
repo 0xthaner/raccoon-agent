@@ -350,7 +350,13 @@ test('R35b eine Session gilt nur fuer die signierte Wallet', () => {
 
 test('R36 die atomare Challenge-Verbrauchslogik ist unveraendert', () => {
 	const code = source('../src/db.mjs');
-	const consume = code.slice(code.indexOf('export async function consumeDashboardChallenge'), code.indexOf('export async function checkRateLimit'));
+	// EOA-Meta-Audit H2: der Ausschnitt endet am Ende DIESER Funktion. Bis aa78b6c lief
+	// er bis checkRateLimit und schloss isDashboardChallengeOpen mit denselben Filtern
+	// ein - das Entfernen eines Filters aus dem Verbrauch blieb dann unsichtbar.
+	// Weiterhin nur ein Quelltext-Waechter; das Verhalten prueft consume-challenge-request.
+	const start = code.indexOf('export async function consumeDashboardChallenge');
+	const consume = code.slice(start, code.indexOf('\n}\n', start) + 2);
+	assert.equal(consume.includes('isDashboardChallengeOpen'), false);
 	assert.ok(consume.includes(".is('used_at', null)"));
 	assert.ok(consume.includes(".gt('expires_at'"));
 	assert.ok(consume.includes(".eq('wallet'"));

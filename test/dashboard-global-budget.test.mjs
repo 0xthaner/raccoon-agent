@@ -189,7 +189,11 @@ function handlerWith(calls, blocked) {
 		createDashboardChallenge: () => { step('create'); return { token: 'valid' }; },
 		storeDashboardChallenge: async () => step('store'),
 		dashboardMessage: () => 'test message', dashboardSiweExpectation: () => ({}),
-		verifyWalletSiweAuthority: async () => { step('verify'); return { result: 'VALID', authority: 'eoa' }; },
+		// EOA-Meta-Audit M1: ein Bearer entsteht nur noch fuer eine Contract-Autoritaet.
+		// Damit die Reihenfolge weiter BEIDE Sitzungswege (Cookie und Bearer) abdeckt,
+		// meldet dieser Mock 'contract'. Dass eine EOA nie einen Bearer bekommt, pruefen
+		// eoa-session-transport und dashboard-login-behavior am echten Handler.
+		verifyWalletSiweAuthority: async () => { step('verify'); return { result: 'VALID', authority: 'contract' }; },
 		consumeDashboardChallenge: async () => step('consume'),
 		sessionCookieHeader: () => { step('cookie'); return 'test cookie'; },
 		createDashboardSession: () => { step('bearer'); return 'test token'; },
