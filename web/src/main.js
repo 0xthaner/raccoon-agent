@@ -1,6 +1,7 @@
 import { appKitMethoden, WALLET_METHODEN_ANMELDEN } from './wallet-methods.js';
 import { ensureMainnetAccount, ensureAppKitMainnetAccount, eoaLoginTexts, guardedChallengeSignSubmit, normalizeAddress } from './eoa-login.js';
 import { submitDashboardLogin } from './onchain-login.js';
+import { startAnalytics } from './analytics.js';
 import { mountEye } from './eye.js';
 
 const status = document.querySelector('#status');
@@ -1524,4 +1525,5 @@ async function bootstrap() {
 	return restoreDashboard();
 }
 
+startAnalytics(); // anonyme Seitenaufruf-Statistik, URL ohne Query (analytics.js)
 const dashboardRestorePromise = bootstrap();

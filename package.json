@@ -25,6 +25,7 @@
     "@reown/appkit-adapter-ethers": "^1.8.23",
     "@safe-global/safe-apps-sdk": "9.1.0",
     "@supabase/supabase-js": "^2.112.3",
+    "@vercel/analytics": "2.0.1",
     "ethers": "^6.17.0",
     "viem": "^2.55.13"
   },

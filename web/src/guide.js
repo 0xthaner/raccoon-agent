@@ -1,3 +1,7 @@
+import { startAnalytics } from './analytics.js';
+
+startAnalytics(); // anonyme Seitenaufruf-Statistik, URL ohne Query (analytics.js)
+
 const en = {
 	back: '← Back to dashboard', eyebrow: 'User guide', title: ['Start simply.', 'Stay protected.'],
 	lead: 'How to connect your wallet, open your dashboard and activate Telegram. The Agent only ever asks for signatures, never for a transaction.',
