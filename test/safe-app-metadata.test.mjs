@@ -89,7 +89,9 @@ test('the icon is derived from the existing holo-raccoon mark (same raccoon path
 
 test('CORP: exactly one rule per path; only /safe-app-icon.svg is cross-origin, everything else stays same-origin', () => {
 	assert.deepEqual(rulesSetting('/safe-app-icon.svg', 'Cross-Origin-Resource-Policy'), [{ source: '/safe-app-icon.svg', value: 'cross-origin' }]);
-	for (const path of ['/', '/manifest.json', '/holo-raccoon.svg', '/assets/main-abc.js', '/api/dashboard', '/api/positions', '/guide', '/safe-app-icon.svg.bak', '/safe-app-icon.svgx', '/x/safe-app-icon.svg', '/safe-app-iconXsvg', '/SAFE-APP-ICON.SVG']) {
+	// OG-Bild (15.10.2026): ebenso genau ein Pfad mit cross-origin, fuer Link-Vorschauen.
+	assert.deepEqual(rulesSetting('/og-image.png', 'Cross-Origin-Resource-Policy'), [{ source: '/og-image.png', value: 'cross-origin' }]);
+	for (const path of ['/', '/manifest.json', '/holo-raccoon.svg', '/assets/main-abc.js', '/api/dashboard', '/api/positions', '/guide', '/safe-app-icon.svg.bak', '/safe-app-icon.svgx', '/x/safe-app-icon.svg', '/safe-app-iconXsvg', '/SAFE-APP-ICON.SVG', '/og-image.png.bak', '/og-image.pngx', '/x/og-image.png', '/og-imageXpng', '/api/og-image.png']) {
 		const rules = rulesSetting(path, 'Cross-Origin-Resource-Policy');
 		assert.equal(rules.length, 1, `${path}: genau eine Regel`);
 		assert.equal(rules[0].value, 'same-origin', path);
@@ -109,4 +111,26 @@ test('the other global security headers and the framing policy are unchanged', (
 		assert.deepEqual(rulesSetting(path, 'X-Frame-Options').map((r) => r.value), ['DENY'], path);
 	}
 	assert.deepEqual(rulesSetting('/safe-app-icon.svg', 'X-Content-Type-Options').map((r) => r.value), ['nosniff']);
+});
+
+/* ============================================================ OG-Bild */
+
+test('Open Graph / Twitter: index.html points to the local 1200x630 OG image and names CoverRaccoon', () => {
+	const html = read('web/index.html');
+	const meta = (attr, key) => { const m = new RegExp(`<meta ${attr}="${key.replace(/[.:]/g, (c) => `\\${c}`)}" content="([^"]*)" />`).exec(html); return m?.[1]; };
+	assert.equal(meta('property', 'og:type'), 'website');
+	assert.equal(meta('property', 'og:title'), 'CoverRaccoon · Onchain Cover Agent');
+	assert.equal(meta('property', 'og:description'), 'Your DeFi cover, always in sight.');
+	assert.equal(meta('property', 'og:url'), 'https://coverraccoon.com/');
+	assert.equal(meta('property', 'og:image'), 'https://coverraccoon.com/og-image.png', 'absolut, eigene Domain');
+	assert.equal(meta('property', 'og:image:width'), '1200');
+	assert.equal(meta('property', 'og:image:height'), '630');
+	assert.equal(meta('name', 'twitter:card'), 'summary_large_image');
+	assert.equal(meta('name', 'twitter:image'), 'https://coverraccoon.com/og-image.png');
+	// keine fremde Bildquelle in den Vorschau-Tags
+	for (const m of html.matchAll(/<meta (?:property|name)="(?:og|twitter):[^"]+" content="(https?:[^"]*)"/g)) assert.ok(m[1].startsWith('https://coverraccoon.com/'), m[1]);
+	const png = readFileSync(new URL('../web/public/og-image.png', import.meta.url));
+	assert.deepEqual([...png.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 'PNG');
+	assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [1200, 630]);
+	assert.ok(png.length < 300_000, 'klein genug fuer Vorschauen');
 });
