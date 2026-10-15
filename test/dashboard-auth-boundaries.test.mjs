@@ -104,14 +104,13 @@ test('A5 ein Sessioncookie entsteht nur an der einen dafuer zustaendigen Stelle'
 	const auth = source('../src/dashboard-auth.mjs');
 	assert.equal((auth.match(/createDashboardSession\(/g) ?? []).length, 2);
 	assert.equal(source('../api/link/verify.mjs').includes('createDashboardSession'), false);
-	// AGENT-SAFE-3: der Dashboard-Handler mintet zusaetzlich EINEN Bearer-Session-
-	// Token fuer den Safe-App-Pfad - genau einmal und ausschliesslich im per Header
-	// 'x-dashboard-transport: bearer' bewachten Zweig, NACH ERC-1271 + Nonceverbrauch
-	// und NACH dem Setzen des Cookies. Kein zweiter Mint-Pfad, keine Verknuepfung.
+	// Safe-App-Sitzung (15.10.2026): der Dashboard-Handler mintet KEIN zusaetzliches
+	// Token mehr (der fruehere Safe-App-Bearer ist entfernt). Das Safe-App-Cookie
+	// uebernimmt den Wert des einen Strict-Cookies (safeAppCookieFor), nach diesem.
 	const dash = source('../api/dashboard.mjs');
-	assert.equal((dash.match(/createDashboardSession\(/g) ?? []).length, 1);
-	assert.ok(dash.includes('x-dashboard-transport'));
-	assert.ok(dash.indexOf('sessionCookieHeader(') < dash.indexOf('createDashboardSession('));
+	assert.equal((dash.match(/createDashboardSession\(/g) ?? []).length, 0);
+	assert.equal(dash.includes('sessionToken'), false);
+	assert.ok(dash.indexOf('sessionCookieHeader(') < dash.indexOf('safeAppCookieFor(cookie'));
 });
 
 /* ------------------------------------------------------------------------- *
@@ -179,15 +178,19 @@ test('B15 die Fehlermeldung traegt keine interne Ursache nach aussen', async () 
 	}
 });
 
-test('B9 und B10 der Logout loescht beide Cookienamen', () => {
-	assert.equal(CLEAR_SESSION_COOKIES.length, 2);
+test('B9 und B10 der Logout loescht alle drei Cookienamen', () => {
+	// Safe-App-Sitzung (15.10.2026): dazu das partitionierte Safe-App-Cookie. Ein
+	// partitioniertes Cookie loescht der Browser nur mit denselben Attributen
+	// (SameSite=None; Partitioned) - deshalb dort nicht Strict.
+	assert.equal(CLEAR_SESSION_COOKIES.length, 3);
 	assert.ok(CLEAR_SESSION_COOKIES.some((item) => item.startsWith(`${SESSION_COOKIE}=;`)));
 	assert.ok(CLEAR_SESSION_COOKIES.some((item) => item.startsWith(`${LEGACY_SESSION_COOKIE}=;`)));
+	assert.ok(CLEAR_SESSION_COOKIES.some((item) => item.startsWith('__Host-raccoon_safeapp=;')));
 	for (const item of CLEAR_SESSION_COOKIES) {
 		assert.ok(item.includes('Max-Age=0'));
 		assert.ok(item.includes('HttpOnly'));
 		assert.ok(item.includes('Secure'));
-		assert.ok(item.includes('SameSite=Strict'));
+		assert.ok(item.includes(item.startsWith('__Host-raccoon_safeapp=') ? 'SameSite=None; Partitioned' : 'SameSite=Strict'));
 		assert.ok(item.includes('Path=/'));
 		assert.equal(/Domain=/i.test(item), false);
 	}

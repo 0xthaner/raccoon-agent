@@ -16,7 +16,7 @@ const {
 	createDashboardSession,
 	DASHBOARD_CHALLENGE_TTL_EOA_MS,
 	DASHBOARD_CHALLENGE_TTL_CONTRACT_MS,
-	readBearerToken,
+	SAFEAPP_COOKIE,
 	resolveDashboardSession,
 	verifyDashboardToken,
 	SESSION_COOKIE
@@ -27,9 +27,12 @@ const WALLET_A = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const WALLET_B = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 
 function cookieReq(token) { return { headers: { cookie: `${SESSION_COOKIE}=${encodeURIComponent(token)}` } }; }
-function bearerReq(token) { return { headers: { authorization: `Bearer ${token}` } }; }
-function bothReq(cookieToken, bearerToken) {
-	return { headers: { cookie: `${SESSION_COOKIE}=${encodeURIComponent(cookieToken)}`, authorization: `Bearer ${bearerToken}` } };
+// Safe-App-Sitzung (15.10.2026): an die Stelle des Bearers tritt das partitionierte
+// Safe-App-Cookie (nur Contract-Sitzungen). Die Faelle A-G gelten unveraendert.
+const contract = (wallet) => createDashboardSession(wallet, Date.now(), 'contract');
+function safeAppReq(token) { return { headers: { cookie: `${SAFEAPP_COOKIE}=${encodeURIComponent(token)}` } }; }
+function bothReq(cookieToken, safeAppToken) {
+	return { headers: { cookie: `${SESSION_COOKIE}=${encodeURIComponent(cookieToken)}; ${SAFEAPP_COOKIE}=${encodeURIComponent(safeAppToken)}` } };
 }
 
 /* ---- Challenge-TTL ------------------------------------------------------- */
@@ -124,70 +127,71 @@ test('RPC-Fehler wird NICHT gecacht (Klassifikation bleibt offen)', async () => 
 	assert.equal(calls, 2);
 });
 
-/* ---- Bearer-Parsing ------------------------------------------------------ */
+/* ---- Bearer nicht mehr angenommen --------------------------------------- */
 
-test('readBearerToken: gueltig / ungueltig / fehlend', () => {
-	const tok = createDashboardSession(WALLET_A);
-	assert.equal(readBearerToken(bearerReq(tok)), tok);
-	assert.equal(readBearerToken({ headers: {} }), null);
-	assert.equal(readBearerToken({ headers: { authorization: 'Basic abc' } }), null);
-	assert.equal(readBearerToken({ headers: { authorization: 'Bearer ' } }), null);
-	assert.equal(readBearerToken({ headers: { authorization: 'Bearer ' + 'a'.repeat(3000) } }), null);
-	// case-insensitive scheme
-	assert.equal(readBearerToken({ headers: { authorization: `bearer ${tok}` } }), tok);
+test('Authorization: Bearer wird nicht mehr gelesen - auch nicht mit gueltigem Contract-Token', () => {
+	for (const authorization of [`Bearer ${contract(WALLET_A)}`, `bearer ${contract(WALLET_A)}`, `Bearer ${createDashboardSession(WALLET_A)}`]) {
+		assert.deepEqual(resolveDashboardSession({ headers: { authorization } }), { conflict: false, session: null });
+	}
 });
 
-test('Token wird nie aus Query/Body gelesen (nur Authorization-Header)', () => {
-	const tok = createDashboardSession(WALLET_A);
-	assert.equal(readBearerToken({ headers: {}, query: { token: tok }, body: { token: tok } }), null);
+test('Token wird nie aus Query/Body gelesen', () => {
+	const tok = contract(WALLET_A);
+	assert.equal(resolveDashboardSession({ headers: {}, query: { token: tok }, body: { token: tok } }).session, null);
 });
 
-/* ---- Cookie + Bearer Konflikt (A-G) -------------------------------------- */
+/* ---- Strict-Cookie + Safe-App-Cookie Konflikt (A-G) ----------------------- */
 
-test('A: nur gueltiges Cookie -> Cookie-Session', () => {
+test('A: nur gueltiges Strict-Cookie -> Cookie-Session', () => {
 	const r = resolveDashboardSession(cookieReq(createDashboardSession(WALLET_A)));
 	assert.equal(r.conflict, false);
 	assert.equal(r.session.wallet, WALLET_A);
 });
 
-test('B: nur gueltiger Bearer -> Bearer-Session', () => {
-	const r = resolveDashboardSession(bearerReq(createDashboardSession(WALLET_B)));
+test('B: nur gueltiges Safe-App-Cookie (Contract) -> Safe-App-Session', () => {
+	const r = resolveDashboardSession(safeAppReq(contract(WALLET_B)));
 	assert.equal(r.conflict, false);
 	assert.equal(r.session.wallet, WALLET_B);
+	assert.equal(r.session.kind, 'contract');
+});
+
+test('B2: eine EOA- oder Alt-Sitzung unter dem Safe-App-Namen wird nie angenommen', () => {
+	assert.equal(resolveDashboardSession(safeAppReq(createDashboardSession(WALLET_B, Date.now(), 'eoa'))).session, null);
+	assert.equal(resolveDashboardSession(safeAppReq(createDashboardSession(WALLET_B))).session, null, 'Standardart eoa');
 });
 
 test('C: beide gueltig + gleiche Wallet -> akzeptiert', () => {
-	const r = resolveDashboardSession(bothReq(createDashboardSession(WALLET_A), createDashboardSession(WALLET_A)));
+	const r = resolveDashboardSession(bothReq(contract(WALLET_A), contract(WALLET_A)));
 	assert.equal(r.conflict, false);
 	assert.equal(r.session.wallet, WALLET_A);
 });
 
 test('D: beide gueltig + verschiedene Wallets -> CONFLICT, keine Session', () => {
-	const r = resolveDashboardSession(bothReq(createDashboardSession(WALLET_A), createDashboardSession(WALLET_B)));
+	const r = resolveDashboardSession(bothReq(createDashboardSession(WALLET_A), contract(WALLET_B)));
 	assert.equal(r.conflict, true);
 	assert.equal(r.session, null);
 });
 
-test('E: Cookie ungueltig + Bearer gueltig -> Bearer', () => {
-	const r = resolveDashboardSession(bothReq('garbage.token', createDashboardSession(WALLET_B)));
+test('E: Strict-Cookie ungueltig + Safe-App-Cookie gueltig -> Safe-App', () => {
+	const r = resolveDashboardSession(bothReq('garbage.token', contract(WALLET_B)));
 	assert.equal(r.conflict, false);
 	assert.equal(r.session.wallet, WALLET_B);
 });
 
-test('F: Bearer ungueltig + Cookie gueltig -> Cookie', () => {
-	const r = resolveDashboardSession({ headers: { cookie: `${SESSION_COOKIE}=${encodeURIComponent(createDashboardSession(WALLET_A))}`, authorization: 'Bearer garbage.token' } });
+test('F: Safe-App-Cookie ungueltig + Strict-Cookie gueltig -> Strict-Cookie', () => {
+	const r = resolveDashboardSession({ headers: { cookie: `${SESSION_COOKIE}=${encodeURIComponent(createDashboardSession(WALLET_A))}; ${SAFEAPP_COOKIE}=garbage.token` } });
 	assert.equal(r.conflict, false);
 	assert.equal(r.session.wallet, WALLET_A);
 });
 
 test('G: beide ungueltig -> keine Session', () => {
-	const r = resolveDashboardSession({ headers: { cookie: `${SESSION_COOKIE}=nope`, authorization: 'Bearer nope.nope' } });
+	const r = resolveDashboardSession({ headers: { cookie: `${SESSION_COOKIE}=nope; ${SAFEAPP_COOKIE}=nope.nope` } });
 	assert.equal(r.conflict, false);
 	assert.equal(r.session, null);
 });
 
 test('Challenge-Token wird nie als Session akzeptiert (type=challenge)', () => {
 	const { token } = createDashboardChallenge(WALLET_A);
-	// Challenge-Token als Bearer -> verifyDashboardSession lehnt ab (nur type=session)
-	assert.equal(resolveDashboardSession(bearerReq(token)).session, null);
+	assert.equal(resolveDashboardSession(safeAppReq(token)).session, null);
+	assert.equal(resolveDashboardSession(cookieReq(token)).session, null);
 });

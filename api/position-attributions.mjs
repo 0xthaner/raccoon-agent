@@ -3,7 +3,7 @@
 	DeFi-Markt <-> oeffentliches Nexus Cover (14.10.2026).
 
 	Die Wallet kommt AUSSCHLIESSLICH aus der verifizierten Dashboard-Sitzung
-	(Cookie oder - im Safe-App-iframe - Bearer), mit derselben Konflikt- und
+	(Strict-Cookie oder - im Safe-App-iframe - partitioniertes Safe-App-Cookie), mit derselben Konflikt- und
 	Widerrufspruefung wie /api/positions. Kein Abfrageparameter, keine Wallet im
 	Body. Der Body nennt nur { deploymentKey, coverId }; alles andere leitet der
 	Server selbst ab und prueft es gegen den aktuellen oeffentlichen Stand.

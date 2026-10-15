@@ -391,6 +391,8 @@ function res() {
 	return { statusCode: null, body: null, headers: {}, setHeader(k, v) { this.headers[k] = v; }, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } };
 }
 const cookie = (wallet) => ({ cookie: `${SESSION_COOKIE}=${encodeURIComponent(createDashboardSession(wallet))}` });
+// Safe-App-Sitzung (15.10.2026): partitioniertes Cookie, nur fuer Contract-Sitzungen.
+const safeAppCookie = (wallet) => `__Host-raccoon_safeapp=${encodeURIComponent(createDashboardSession(wallet, Date.now(), 'contract'))}`;
 
 test('A: no session is 401 and never reads positions', async () => {
 	const { h, seen } = handler();
@@ -433,14 +435,17 @@ test('A: a ?wallet= parameter is rejected; positions come only from the session 
 	assert.equal(post.statusCode, 405);
 });
 
-test('A: Safe-App Bearer session works; cookie/Bearer conflict fails closed', async () => {
+test('A: Safe-App cookie session works; a bearer is ignored; Strict-cookie/Safe-App-cookie conflict fails closed', async () => {
 	const { h, seen } = handler();
 	const r = res();
-	await h({ method: 'GET', headers: { authorization: `Bearer ${createDashboardSession(OTHER)}` }, query: {} }, r);
+	await h({ method: 'GET', headers: { cookie: safeAppCookie(OTHER) }, query: {} }, r);
 	assert.equal(r.statusCode, 200);
 	assert.deepEqual(seen.wallets, [OTHER]);
+	const bearer = res();
+	await h({ method: 'GET', headers: { authorization: `Bearer ${createDashboardSession(OTHER, Date.now(), 'contract')}` }, query: {} }, bearer);
+	assert.equal(bearer.statusCode, 401, 'Authorization: Bearer wird nicht mehr angenommen');
 	const conflict = res();
-	await h({ method: 'GET', headers: { ...cookie(WALLET), authorization: `Bearer ${createDashboardSession(OTHER)}` }, query: {} }, conflict);
+	await h({ method: 'GET', headers: { cookie: `${cookie(WALLET).cookie}; ${safeAppCookie(OTHER)}` }, query: {} }, conflict);
 	assert.equal(conflict.statusCode, 401);
 	assert.deepEqual(seen.wallets, [OTHER]);
 });
@@ -1077,9 +1082,9 @@ test('AUDIT revoked A, valid B: A gets 401 and no data, B gets only B', async ()
 	assert.equal(rb.statusCode, 200);
 	assert.equal(rb.body.wallet, OTHER);
 	assert.deepEqual(seen.wallets, [OTHER], 'fuer die widerrufene Wallet wurde nie gelesen');
-	// Cookie der widerrufenen A plus Bearer der gueltigen B: Konflikt, kein Rueckfall auf B.
+	// Cookie der widerrufenen A plus Safe-App-Cookie der gueltigen B: Konflikt, kein Rueckfall auf B.
 	const mixed = res();
-	await h({ method: 'GET', headers: { ...cookie(WALLET), authorization: `Bearer ${createDashboardSession(OTHER)}` }, query: {} }, mixed);
+	await h({ method: 'GET', headers: { cookie: `${cookie(WALLET).cookie}; ${safeAppCookie(OTHER)}` }, query: {} }, mixed);
 	assert.equal(mixed.statusCode, 401);
 	assert.deepEqual(seen.wallets, [OTHER]);
 });

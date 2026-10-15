@@ -89,16 +89,13 @@ const show = (message) => { status.textContent = message; };
 const disable = () => { wcButton.disabled = true; injectedButton.disabled = true; };
 
 /*
-	Safe-App-Pfad: das Dashboard-Session-Token liegt AUSSCHLIESSLICH hier im
-	Modul-Speicher (kein localStorage/sessionStorage/IndexedDB/Cookie/URL, kein
-	postMessage an den Parent). Reload/Tab-Schliessen => weg, das ist akzeptiert.
-	Im normalen Browser bleibt `safeSession` null und es wird das __Host-Cookie
-	verwendet.
+	Safe-App-Sitzung (15.10.2026): Es gibt kein JS-lesbares Sitzungstoken mehr. Im
+	normalen Browser traegt das Strict-Cookie die Sitzung, in der eingebetteten Safe
+	App das partitionierte HttpOnly-Cookie - beides schickt der Browser selbst mit.
+	authFetch bleibt als einzige Aufrufstelle fuer authentisierte Anfragen bestehen.
 */
-let safeSession = null;
 function authFetch(url, options = {}) {
-	if (!safeSession) return fetch(url, options);
-	return fetch(url, { ...options, headers: { ...(options.headers || {}), Authorization: `Bearer ${safeSession}` } });
+	return fetch(url, options);
 }
 
 /*
@@ -1484,15 +1481,16 @@ function renderSafeState(state, detail = {}) {
 }
 
 async function runSafeAppLogin(ctx) {
-	const { runSafeLogin } = await import('./safe-app.js');
+	const { startSafeApp } = await import('./safe-app.js');
 	document.body.classList.add('safe-mode');
 	for (const selector of ['.actions', '.security', '.verify', '#link-account']) {
 		const element = document.querySelector(selector);
 		if (element) element.hidden = true;
 	}
 	try {
-		const { sessionToken, dashboard } = await runSafeLogin({ sdk: ctx.sdk, info: ctx.info, fetchFn: fetch, onState: renderSafeState });
-		safeSession = sessionToken; // nur im Speicher
+		// Erst eine bestehende Sitzung derselben Safe uebernehmen (Cookie, ohne Signatur),
+		// sonst der Login. Kein Token im Speicher - die Sitzung liegt im HttpOnly-Cookie.
+		const { dashboard } = await startSafeApp({ sdk: ctx.sdk, info: ctx.info, fetchFn: fetch, onState: renderSafeState });
 		safeContext = ctx; // fuer frische Bestaetigungen (AUDIT SA-L1), ebenfalls nur im Speicher
 		await configPromise.catch(() => null);
 		renderDashboard(dashboard);

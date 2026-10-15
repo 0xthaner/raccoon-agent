@@ -93,18 +93,22 @@ for (const transport of ['bearer', 'Bearer', 'BEARER']) {
 	});
 }
 
-test('M1 residual (documented, not fixed here): a PROVEN contract-wallet (Safe) login still receives a 24 h bearer on request - never 7 days, never for an EOA', async () => {
+// Safe-App-Sitzung (15.10.2026): das hier frueher dokumentierte M1-Restrisiko (eine
+// Safe bekam auf Anfrage einen JS-lesbaren 24-h-Bearer) ist geschlossen. Erwartung
+// deshalb umgekehrt: KEIN Token im JSON, egal welcher Transport; die Safe App
+// bekommt nur das partitionierte HttpOnly-Cookie.
+test('M1 closed for Safes: a PROVEN contract-wallet login never receives a JS-readable session, whatever transport it asks for', async () => {
 	const srv = server();
-	const challenge = auth.createDashboardChallenge(SAFE, Date.now(), auth.DASHBOARD_CHALLENGE_TTL_CONTRACT_MS);
-	const signature = ownerSignature(['b2'], hashMessage(challenge.message));
-	const withBearer = await post(srv, { wallet: SAFE, token: challenge.token, signature }, { 'x-dashboard-transport': 'bearer' });
-	assert.equal(withBearer.code, 200, JSON.stringify(withBearer.body));
-	const bearer = auth.verifyDashboardSession(withBearer.body.sessionToken);
-	assert.equal(bearer.kind, 'contract');
-	assert.equal(bearer.exp - bearer.iat, auth.SESSION_TTL_CONTRACT_MS);
-	const second = auth.createDashboardChallenge(SAFE, Date.now(), auth.DASHBOARD_CHALLENGE_TTL_CONTRACT_MS);
-	const without = await post(srv, { wallet: SAFE, token: second.token, signature: ownerSignature(['b2'], hashMessage(second.message)) });
-	assert.deepEqual(jsReadableSessions(without.body), [], 'ohne Anforderung auch fuer Safes kein Bearer');
+	for (const transport of ['bearer', 'partitioned-cookie', undefined]) {
+		const challenge = auth.createDashboardChallenge(SAFE, Date.now(), auth.DASHBOARD_CHALLENGE_TTL_CONTRACT_MS);
+		const res = await post(srv, { wallet: SAFE, token: challenge.token, signature: ownerSignature(['b2'], hashMessage(challenge.message)) }, transport ? { 'x-dashboard-transport': transport } : {});
+		assert.equal(res.code, 200, JSON.stringify(res.body));
+		assert.deepEqual(jsReadableSessions(res.body), [], String(transport));
+		assert.equal(res.body.sessionToken, undefined);
+		const safeApp = [].concat(res.headers['set-cookie']).find((c) => c.startsWith('__Host-raccoon_safeapp='));
+		assert.equal(Boolean(safeApp), transport === 'partitioned-cookie', `${transport}: Safe-App-Cookie nur auf diesen Transport`);
+		if (safeApp) assert.match(safeApp, /; HttpOnly; SameSite=None; Partitioned$/);
+	}
 });
 
 /* ============================================================ H1 */

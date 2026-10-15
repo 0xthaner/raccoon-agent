@@ -42,7 +42,9 @@ const okRoutes = () => (url, options) => {
 
 const info2of2 = { safeAddress: SAFE, chainId: 1, threshold: 2, owners: [OWNER, '0x2222222222222222222222222222222222222222'], isReadOnly: false };
 
-test('erfolgreicher 2/2-Flow: Zustandsfolge, Identitaet = Safe, Bearer zurueck', async () => {
+// Safe-App-Sitzung (15.10.2026): kein Bearer mehr. Die Route liefert hier absichtlich
+// weiter ein sessionToken - das Frontend darf es trotzdem nicht uebernehmen.
+test('erfolgreicher 2/2-Flow: Zustandsfolge, Identitaet = Safe, Cookie-Transport, kein Token im Ergebnis', async () => {
 	const sdk = makeSdk({ offchainSeq: ['', '', '0xFINALSIG'], threshold: 2 });
 	const fetchFn = makeFetch(okRoutes());
 	const states = [];
@@ -52,17 +54,19 @@ test('erfolgreicher 2/2-Flow: Zustandsfolge, Identitaet = Safe, Bearer zurueck',
 		pollIntervalMs: 0, waitFn: async () => {}, now: (() => { let t = 0; return () => (t += 1000); })()
 	});
 	assert.deepEqual(states, ['SAFE_CONTEXT_DETECTED', 'CHALLENGE_CREATED', 'SIGNATURE_PENDING', 'WAITING_FOR_OWNERS', 'SIGNATURE_READY', 'VERIFYING', 'AUTHENTICATED']);
-	assert.equal(out.sessionToken, 'SESSION_TOKEN');
+	assert.equal('sessionToken' in out, false, 'ein vom Server geliefertes Token wird nicht uebernommen');
+	assert.equal(JSON.stringify(out).includes('SESSION_TOKEN'), false);
 	// signMessage bekam exakt die serverseitige SIWE-Nachricht
 	assert.equal(sdk.calls.signMessage[0], SIWE);
 	// offChainSigning wurde aktiviert
 	assert.deepEqual(sdk.calls.setSafeSettings[0], [{ offChainSigning: true }]);
-	// POST: Identity = Safe-Adresse, Bearer-Transport-Header, keine Owner-Adresse
+	// POST: Identity = Safe-Adresse, Safe-App-Cookie-Transport, keine Owner-Adresse
 	const post = fetchFn.calls.find((c) => c.url === '/api/dashboard' && c.options.method === 'POST');
 	const body = JSON.parse(post.options.body);
 	assert.equal(body.wallet, SAFE);
 	assert.notEqual(body.wallet.toLowerCase(), OWNER.toLowerCase());
-	assert.equal(post.options.headers['X-Dashboard-Transport'], 'bearer');
+	assert.equal(post.options.headers['X-Dashboard-Transport'], 'partitioned-cookie');
+	assert.equal(post.options.headers.Authorization, undefined);
 	assert.equal(body.signature, '0xFINALSIG');
 });
 

@@ -3,7 +3,7 @@
 	(Phase 1: Aave v3, Ethereum, 11.10.2026).
 
 	Die Wallet kommt AUSSCHLIESSLICH aus der verifizierten Dashboard-Sitzung
-	(Cookie oder - im Safe-App-iframe - Bearer), mit derselben Konflikt- und
+	(Strict-Cookie oder - im Safe-App-iframe - partitioniertes Safe-App-Cookie), mit derselben Konflikt- und
 	Widerrufspruefung wie /api/dashboard. Ein `wallet`-Parameter wird
 	abgelehnt: der Endpunkt ist kein Auskunftsdienst fuer beliebige Adressen.
 	Keine neue Signatur, keine Transaktion, keine Speicherung der Positionen.

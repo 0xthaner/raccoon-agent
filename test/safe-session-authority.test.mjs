@@ -97,7 +97,10 @@ async function call(handler, { method = 'GET', url = '/api/dashboard', headers =
 	return r;
 }
 const cookie = (token) => ({ cookie: `${auth.SESSION_COOKIE}=${encodeURIComponent(token)}` });
-const bearer = (token) => ({ authorization: `Bearer ${token}` });
+// Safe-App-Sitzung (15.10.2026): an die Stelle des Bearers tritt das partitionierte
+// Safe-App-Cookie (nur Contract-Sitzungen); Authorization: Bearer wird nicht mehr gelesen.
+const safeApp = (token) => ({ cookie: `__Host-raccoon_safeapp=${encodeURIComponent(token)}` });
+const safeAppToken = (r) => { const c = [].concat(r.headers['set-cookie']).find((x) => x.startsWith('__Host-raccoon_safeapp=') && !x.includes('Max-Age=0')); return c ? decodeURIComponent(c.slice(c.indexOf('=') + 1, c.indexOf(';'))) : null; };
 const payloadOf = (token) => JSON.parse(Buffer.from(token.split('.')[0], 'base64url').toString());
 const cookieToken = (r) => decodeURIComponent(String(r.headers['set-cookie']).split(';')[0].split('=').slice(1).join('='));
 
@@ -133,11 +136,12 @@ test('SA-L1 1: an EOA login still yields a 7-day session (cookie Max-Age and tok
 	assert.deepEqual(h.state.rpc, [], 'EOA bleibt offline');
 });
 
-test('SA-L1 2/4: a deployed contract (Safe) login yields a 24-hour session - cookie (WalletConnect) and bearer (Safe App) alike', async () => {
+test('SA-L1 2/4: a deployed contract (Safe) login yields a 24-hour session - Strict cookie (WalletConnect) and Safe-App cookie alike, never a body token', async () => {
 	const h = world();
-	const r = await safeLogin(h, { headers: { 'x-dashboard-transport': 'bearer' } });
+	const r = await safeLogin(h, { headers: { 'x-dashboard-transport': 'partitioned-cookie' } });
 	assert.equal(r.statusCode, 200);
-	for (const token of [cookieToken(r), r.body.sessionToken]) {
+	assert.equal(r.body.sessionToken, undefined);
+	for (const token of [cookieToken(r), safeAppToken(r)]) {
 		const t = payloadOf(token);
 		assert.equal(t.kind, 'contract');
 		assert.equal(t.exp - t.iat, DAY);
@@ -156,8 +160,9 @@ test('SA-L1 3: the browser cannot obtain a 7-day contract session - body, query 
 		body: { kind: 'eoa', sessionKind: 'eoa', ttlMs: 7 * DAY, isSafe: false }
 	});
 	assert.equal(r.statusCode, 200);
-	assert.equal(payloadOf(r.body.sessionToken).kind, 'contract');
-	assert.equal(payloadOf(r.body.sessionToken).exp - payloadOf(r.body.sessionToken).iat, DAY);
+	assert.equal(r.body.sessionToken, undefined, 'auch auf x-dashboard-transport: bearer kein Token');
+	assert.equal(payloadOf(cookieToken(r)).kind, 'contract');
+	assert.equal(payloadOf(cookieToken(r)).exp - payloadOf(cookieToken(r)).iat, DAY);
 	// Ein (HMAC-gueltiges) Token "contract" mit 7 Tagen wird nie akzeptiert.
 	const forged = auth.createDashboardSession(SAFE, Date.now(), 'contract');
 	const data = payloadOf(forged); data.exp = data.iat + 7 * DAY;
@@ -237,7 +242,7 @@ test('SA-L1 8: after owner A is removed, A\'s fresh signature is rejected by ERC
 test('SA-L1 9: a Safe session alone cannot revoke all sessions - this device is signed out only', async () => {
 	const h = world();
 	const session = auth.createDashboardSession(SAFE, Date.now(), 'contract');
-	const r = await call(h.handler, { method: 'DELETE', headers: bearer(session) });
+	const r = await call(h.handler, { method: 'DELETE', headers: safeApp(session) });
 	assert.equal(r.statusCode, 200);
 	assert.deepEqual(r.body, { ok: true, revoked: false, freshSignatureRequired: true });
 	assert.equal(h.state.revokes, 0);
@@ -371,7 +376,7 @@ test('SA-L1: unknown actions, no session, conflicting or revoked sessions get no
 	const session = auth.createDashboardSession(SAFE, Date.now(), 'contract');
 	assert.equal((await call(h.handler, { method: 'POST', headers: cookie(session), body: { action: 'transfer' } })).statusCode, 400);
 	assert.equal((await call(h.handler, { method: 'POST', body: { action: 'session-revoke' } })).statusCode, 401);
-	assert.equal((await call(h.handler, { method: 'POST', headers: { ...cookie(session), ...bearer(auth.createDashboardSession(OTHER_SAFE, Date.now(), 'contract')) }, body: { action: 'session-revoke' } })).statusCode, 401);
+	assert.equal((await call(h.handler, { method: 'POST', headers: { cookie: `${cookie(session).cookie}; ${safeApp(auth.createDashboardSession(OTHER_SAFE, Date.now(), 'contract')).cookie}` }, body: { action: 'session-revoke' } })).statusCode, 401);
 	h.state.revokedAt.set(SAFE, Date.now() + 1000);
 	assert.equal((await call(h.handler, { method: 'POST', headers: cookie(session), body: { action: 'session-revoke' } })).statusCode, 401);
 	assert.equal(h.state.challenges.size, 0);
@@ -390,22 +395,22 @@ test('SA-L2 20/23: GET /api/dashboard refuses a revoked COOKIE session with SESS
 	assert.deepEqual([h.state.covers, h.state.linkStates], [0, 0]);
 });
 
-test('SA-L2 21/23: GET /api/dashboard refuses a revoked BEARER session with SESSION_REVOKED and reads nothing', async () => {
+test('SA-L2 21/23: GET /api/dashboard refuses a revoked SAFE-APP-COOKIE session with SESSION_REVOKED and reads nothing', async () => {
 	const h = world();
-	const token = auth.createDashboardSession(EOA.address, Date.now() - 5000, 'eoa');
-	h.state.revokedAt.set(EOA.address.toLowerCase(), Date.now() - 1000);
-	const r = await call(h.handler, { headers: bearer(token) });
+	const token = auth.createDashboardSession(SAFE, Date.now() - 5000, 'contract');
+	h.state.revokedAt.set(SAFE, Date.now() - 1000);
+	const r = await call(h.handler, { headers: safeApp(token) });
 	assert.equal(r.statusCode, 401);
 	assert.equal(r.body.code, 'SESSION_REVOKED');
 	assert.deepEqual([h.state.covers, h.state.linkStates], [0, 0]);
 	// Gegenprobe: eine nach dem Widerruf ausgestellte Sitzung liest.
-	assert.equal((await call(h.handler, { headers: bearer(auth.createDashboardSession(EOA.address, Date.now() + 5000, 'eoa')) })).statusCode, 200);
+	assert.equal((await call(h.handler, { headers: safeApp(auth.createDashboardSession(SAFE, Date.now() + 5000, 'contract')) })).statusCode, 200);
 });
 
 test('SA-L2 22/23: a revocation lookup failure on GET /api/dashboard is 503 and reads nothing', async () => {
 	const h = world();
 	h.state.revokedLookupError = true;
-	for (const headers of [cookie(auth.createDashboardSession(SAFE, Date.now(), 'contract')), bearer(auth.createDashboardSession(EOA.address, Date.now(), 'eoa'))]) {
+	for (const headers of [cookie(auth.createDashboardSession(SAFE, Date.now(), 'contract')), cookie(auth.createDashboardSession(EOA.address, Date.now(), 'eoa')), safeApp(auth.createDashboardSession(SAFE, Date.now(), 'contract'))]) {
 		const r = await call(h.handler, { headers });
 		assert.equal(r.statusCode, 503);
 		assert.equal(r.body.code, 'SESSION_CHECK_UNAVAILABLE');

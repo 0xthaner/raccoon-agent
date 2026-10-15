@@ -28,14 +28,15 @@ test('dashboard never issues binding handoffs; new and legacy bot payloads requi
  assert.ok(bot.indexOf('if (!authenticPrivateMessage(message)) return') < bot.indexOf('const connectRequested'));
 });
 
-for (const transport of ['cookie', 'bearer']) {
+// Safe-App-Sitzung (15.10.2026): statt des Bearers das partitionierte Safe-App-Cookie (Contract).
+for (const transport of ['cookie', 'safeapp']) {
  test(`revoked ${transport} logout is idempotent and never kills newer sessions`, async () => {
   // Real token parsing; test-only secret scoped to this process.
   const before=process.env.DASHBOARD_SESSION_SECRET;
   process.env.DASHBOARD_SESSION_SECRET='offline-hard004-test-secret-0123456789';
   try {
-   const token=createDashboardSession('0x1111111111111111111111111111111111111111');
-   const headers=transport==='cookie'?{cookie:`${SESSION_COOKIE}=${token}`}:{authorization:`Bearer ${token}`};
+   const token=createDashboardSession('0x1111111111111111111111111111111111111111',Date.now(),transport==='cookie'?'eoa':'contract');
+   const headers=transport==='cookie'?{cookie:`${SESSION_COOKIE}=${token}`}:{cookie:`__Host-raccoon_safeapp=${token}`};
    let writes=0;
    const handler=loadHandler(dashboard,{queryParams,singleQueryValue,resolveDashboardSession,isDashboardSessionRevoked:async()=>true,requireSameOrigin:()=>true,enforceRateLimit:async()=>true,CLEAR_SESSION_COOKIES,resolveLogout,revokeDashboardSessions:async()=>{writes++;}});
    for(let i=0;i<3;i++) {

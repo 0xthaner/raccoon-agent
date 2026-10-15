@@ -176,9 +176,25 @@ export const SESSION_COOKIE_OPTIONS = 'Path=/; Max-Age=604800; HttpOnly; Secure;
  */
 export const LEGACY_SESSION_COOKIE = 'raccoon_dashboard';
 
+/*
+	Safe-App-Sitzung (15.10.2026): Die Safe App laeuft als Drittanbieter-iframe unter
+	app.safe.global; dort wird das Strict-Cookie nie gesendet. Statt des frueheren
+	JS-lesbaren 24-h-Bearers traegt die Safe App ihre Sitzung jetzt in einem
+	partitionierten HttpOnly-Cookie (CHIPS, Partition = Top-Level-Site safe.global):
+	  __Host-raccoon_safeapp=<Contract-Sitzung>; Path=/; Max-Age=86400; Secure; HttpOnly; SameSite=None; Partitioned
+	Es gilt NUR als Contract-Sitzung (kind=contract) - nie fuer eine EOA. Gleiches Token,
+	gleiche Laufzeit (24 h), gleicher Widerruf wie das Strict-Cookie derselben Anmeldung.
+	Browser ohne CHIPS koennen die eingebettete Safe App damit nicht halten; ein
+	JS-lesbarer Rueckfall ist bewusst NICHT vorgesehen.
+*/
+export const SAFEAPP_COOKIE = '__Host-raccoon_safeapp';
+export const SAFEAPP_TRANSPORT = 'partitioned-cookie';
+const SAFEAPP_COOKIE_OPTIONS = `Path=/; Max-Age=${SESSION_TTL_CONTRACT_MS / 1000}; Secure; HttpOnly; SameSite=None; Partitioned`;
+
 export const CLEAR_SESSION_COOKIES = [
 	`${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`,
-	`${LEGACY_SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`
+	`${LEGACY_SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`,
+	`${SAFEAPP_COOKIE}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=None; Partitioned`
 ];
 
 /** Die EINZIGE Stelle, die ein Dashboard-Sessioncookie ausstellt. */
@@ -202,38 +218,48 @@ export function readSessionCookie(request) {
 }
 
 /**
- * Bearer-Session fuer den Safe-App-Pfad (eingebettetes iframe, in dem ein
- * Third-Party-Cookie nicht zuverlaessig gesetzt wird). Liest NUR
- * `Authorization: Bearer <token>`, strikt und laengenbegrenzt. Das Token ist
- * dasselbe signierte Session-Token wie im Cookie; die Gueltigkeit prueft
- * ausschliesslich `verifyDashboardSession`. Niemals aus Query/Body/anderen
- * Headern lesen.
+ * Das partitionierte Safe-App-Cookie zum soeben ausgestellten Strict-Cookie - oder
+ * null. Nur fuer eine bewiesene Contract-Sitzung (`kind === 'contract'`) und nur,
+ * wenn die Safe App genau diesen Transport anfordert. Der Wert wird aus dem
+ * Strict-Cookie uebernommen (kein neues Token, keine neue Laufzeit) und nochmals
+ * geprueft. Es gibt KEINEN Transport, der ein JS-lesbares Token liefert.
  */
-export function readBearerToken(request) {
-	const header = request?.headers?.authorization;
-	if (typeof header !== 'string' || header.length > 2300) return null;
-	const match = /^Bearer[ ]([A-Za-z0-9._-]{1,2200})$/i.exec(header);
-	return match ? match[1] : null;
+export function safeAppCookieFor(sessionCookie, kind, transport) {
+	if (kind !== 'contract' || transport !== SAFEAPP_TRANSPORT) return null;
+	const prefix = `${SESSION_COOKIE}=`;
+	if (typeof sessionCookie !== 'string' || !sessionCookie.startsWith(prefix)) return null;
+	const raw = sessionCookie.slice(prefix.length, sessionCookie.indexOf(';'));
+	let session;
+	try { session = verifyDashboardSession(decodeURIComponent(raw)); } catch { return null; }
+	if (session?.kind !== 'contract') return null;
+	return `${SAFEAPP_COOKIE}=${raw}; ${SAFEAPP_COOKIE_OPTIONS}`;
+}
+
+/** Safe-App-Cookie als Sitzung - ausschliesslich eine Contract-Sitzung. */
+function readSafeAppSession(request) {
+	const session = verifyDashboardSession(cookieOf(request, SAFEAPP_COOKIE));
+	return session?.kind === 'contract' ? session : null;
 }
 
 /**
- * Loest die Dashboard-Session aus Cookie UND/ODER Bearer auf - rein ueber HMAC,
- * ohne Datenbank (die Revoke-Pruefung bleibt im Handler). Regeln:
- *  - nur Cookie gueltig  -> Cookie-Session
- *  - nur Bearer gueltig  -> Bearer-Session
- *  - beide gueltig, gleiche Wallet -> akzeptieren (Cookie)
+ * Loest die Dashboard-Session aus dem Strict-Cookie (normaler Browser) UND/ODER dem
+ * partitionierten Safe-App-Cookie auf - rein ueber HMAC, ohne Datenbank (die
+ * Revoke-Pruefung bleibt im Handler). Regeln:
+ *  - nur eines gueltig -> diese Session
+ *  - beide gueltig, gleiche Wallet -> akzeptieren (Strict-Cookie)
  *  - beide gueltig, verschiedene Wallets -> CONFLICT (Aufrufer: fail closed, 401)
  *  - sonst -> keine Session
+ * `Authorization: Bearer` wird NICHT mehr gelesen (Safe-App-Sitzung, 15.10.2026).
  * Es wird NIE eine client-behauptete Wallet uebernommen.
  */
 export function resolveDashboardSession(request) {
 	const cookie = verifyDashboardSession(readSessionCookie(request));
-	const bearer = verifyDashboardSession(readBearerToken(request));
-	if (cookie && bearer) {
-		if (cookie.wallet !== bearer.wallet) return { conflict: true, session: null };
+	const safeApp = readSafeAppSession(request);
+	if (cookie && safeApp) {
+		if (cookie.wallet !== safeApp.wallet) return { conflict: true, session: null };
 		return { conflict: false, session: cookie };
 	}
-	return { conflict: false, session: cookie || bearer };
+	return { conflict: false, session: cookie || safeApp };
 }
 
 /**

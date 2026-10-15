@@ -66,13 +66,22 @@ test('E-L1: the central resolver rejects an expired COOKIE session', () => {
 	assert.deepEqual(r, { conflict: false, session: null });
 });
 
-test('E-L1: the central resolver rejects an expired BEARER session', () => {
-	const r = auth.resolveDashboardSession({ headers: { authorization: `Bearer ${expiredSession()}` } });
-	assert.deepEqual(r, { conflict: false, session: null });
+// Safe-App-Sitzung (15.10.2026): der Bearer ist entfernt; die Safe App traegt ihre
+// Contract-Sitzung (24 h) im partitionierten Safe-App-Cookie.
+function expiredSafeAppCookie() {
+	return `__Host-raccoon_safeapp=${encodeURIComponent(auth.createDashboardSession(A, Date.now() - auth.SESSION_TTL_CONTRACT_MS - 60_000, 'contract'))}`;
+}
+
+test('E-L1: the central resolver rejects an expired SAFE-APP-COOKIE session (and ignores any bearer)', () => {
+	assert.deepEqual(auth.resolveDashboardSession({ headers: { cookie: expiredSafeAppCookie() } }), { conflict: false, session: null });
+	// Gegenprobe: dieselbe Konstruktion eine Minute vor Ablauf ist gueltig.
+	const live = `__Host-raccoon_safeapp=${encodeURIComponent(auth.createDashboardSession(A, Date.now() - auth.SESSION_TTL_CONTRACT_MS + 60_000, 'contract'))}`;
+	assert.equal(auth.resolveDashboardSession({ headers: { cookie: live } }).session?.wallet, A);
+	assert.deepEqual(auth.resolveDashboardSession({ headers: { authorization: `Bearer ${auth.createDashboardSession(A, Date.now(), 'contract')}` } }), { conflict: false, session: null });
 });
 
-test('E-L1: protected endpoints stop at 401 for expired cookie and bearer - no revocation, DB or RPC call', async () => {
-	for (const headers of [{ cookie: `${auth.SESSION_COOKIE}=${encodeURIComponent(expiredSession())}` }, { authorization: `Bearer ${expiredSession()}` }]) {
+test('E-L1: protected endpoints stop at 401 for an expired Strict cookie and Safe-App cookie - no revocation, DB or RPC call', async () => {
+	for (const headers of [{ cookie: `${auth.SESSION_COOKIE}=${encodeURIComponent(expiredSession())}` }, { cookie: expiredSafeAppCookie() }]) {
 		const calls = [];
 		const touch = (name) => async () => { calls.push(name); throw new Error(`${name} must not run`); };
 		const attributions = createAttributionsHandler({

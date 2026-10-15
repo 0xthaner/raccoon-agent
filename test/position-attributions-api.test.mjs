@@ -123,15 +123,22 @@ test('6/7: wallet A can neither read nor delete wallet B relations', async () =>
 	assert.ok(state.calls.filter(([k]) => k === 'delete').every(([, wallet]) => wallet === A));
 });
 
-test('8: cookie A + bearer B is a conflict and fails closed', async () => {
+// Safe-App-Sitzung (15.10.2026): die Safe App traegt ihre Sitzung im partitionierten
+// Cookie (nur Contract-Sitzungen); Authorization: Bearer wird nicht mehr angenommen.
+const safeAppCookie = (wallet) => `__Host-raccoon_safeapp=${encodeURIComponent(createDashboardSession(wallet, Date.now(), 'contract'))}`;
+test('8: Strict cookie A + Safe-App cookie B is a conflict and fails closed; a bearer is ignored', async () => {
 	const { state, handler } = world();
 	for (const method of ['GET', 'POST', 'DELETE']) {
-		const r = await call(handler, { method, wallet: A, headers: { authorization: `Bearer ${createDashboardSession(B)}` }, body: { deploymentKey: CORE, coverId: 1 } });
+		const r = await call(handler, { method, wallet: null, headers: { cookie: `${cookie(A)}; ${safeAppCookie(B)}` }, body: { deploymentKey: CORE, coverId: 1 } });
 		assert.equal(r.statusCode, 401, method);
 	}
 	assert.deepEqual(state.rows, []);
-	// Bearer allein (Safe-App) funktioniert.
-	const safe = await call(handler, { method: 'POST', wallet: null, headers: { authorization: `Bearer ${createDashboardSession(B)}` }, body: { deploymentKey: CORE, coverId: 3 } });
+	// Bearer allein wird nicht mehr angenommen - auch nicht fuer eine Contract-Sitzung.
+	const bearer = await call(handler, { method: 'POST', wallet: null, headers: { authorization: `Bearer ${createDashboardSession(B, Date.now(), 'contract')}` }, body: { deploymentKey: CORE, coverId: 2 } });
+	assert.equal(bearer.statusCode, 401);
+	assert.deepEqual(state.rows, []);
+	// Safe-App-Cookie allein funktioniert.
+	const safe = await call(handler, { method: 'POST', wallet: null, headers: { cookie: safeAppCookie(B) }, body: { deploymentKey: CORE, coverId: 3 } });
 	assert.equal(safe.statusCode, 200);
 	assert.deepEqual(rowsOf(state, B), [[CORE, 3, 'user_confirmed']]);
 });

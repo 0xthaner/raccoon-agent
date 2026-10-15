@@ -92,13 +92,13 @@ test('L/M/N/O globales Login-Budget steht VOR Signatur/ERC-1271, Nonce-Consume u
 	const global = idx(LOGIN_GLOBAL);
 	const verify = loginIdx('verifyWalletSiweAuthority({');
 	const consume = loginIdx('consumeDashboardChallenge(');
-	const session = idx('createDashboardSession(');
+	const session = idx('safeAppCookieFor(cookie'); // Safe-App-Sitzung: frueher der Bearer-Mint
 	assert.ok(global > -1 && verify > -1, 'globales Budget und Signaturpruefung muessen existieren');
 	assert.ok(global < verify, 'globales Budget muss vor der Signatur-/ERC-1271-Pruefung stehen');
 	// Nonce-Consume und Session entstehen erst nach erfolgreicher Verifikation,
 	// also zwangslaeufig hinter dem globalen Budget.
 	assert.ok(consume > -1 && global < consume, 'globales Budget muss vor dem Nonce-Consume stehen');
-	assert.ok(session > -1 && global < session, 'globales Budget muss vor der Bearer-Session stehen');
+	assert.ok(session > -1 && global < session, 'globales Budget muss vor der Safe-App-Cookie-Session stehen');
 	assert.ok(global < idx('sessionCookieHeader(wallet,'), 'globales Budget muss vor der Cookie-Session stehen');
 });
 
@@ -196,7 +196,7 @@ function handlerWith(calls, blocked) {
 		verifyWalletSiweAuthority: async () => { step('verify'); return { result: 'VALID', authority: 'contract' }; },
 		consumeDashboardChallenge: async () => step('consume'),
 		sessionCookieHeader: () => { step('cookie'); return 'test cookie'; },
-		createDashboardSession: () => { step('bearer'); return 'test token'; },
+		safeAppCookieFor: () => { step('safeapp'); return null; }, // Safe-App-Sitzung: frueher createDashboardSession (Bearer)
 		recordAgentEvent: async () => {}, dashboardData: async () => ({ ok: true })
 	});
 }
@@ -214,11 +214,11 @@ test('offline handler: malformed challenge and narrower/global blocks stop later
 });
 
 test('offline handler: login validation and narrower/global blocks precede verification and both sessions', async () => {
-	const stages = ['dashboard-login', 'dashboard-login-wallet', 'dashboard-login-global', 'verify', 'consume', 'cookie', 'bearer'];
+	const stages = ['dashboard-login', 'dashboard-login-wallet', 'dashboard-login-global', 'verify', 'consume', 'cookie', 'safeapp'];
 	for (const blocked of [null, 'token', 'wallet', 'signature', ...stages.slice(0, 3)]) {
 		const calls = [];
 		const response = responseMock();
-		await handlerWith(calls, blocked)({ method: 'POST', query: {}, headers: { 'x-dashboard-transport': 'bearer' }, body: {
+		await handlerWith(calls, blocked)({ method: 'POST', query: {}, headers: { 'x-dashboard-transport': 'partitioned-cookie' }, body: {
 			wallet: blocked === 'wallet' ? 'bad' : wallet, token: blocked === 'token' ? 'bad' : 'valid', signature: blocked === 'signature' ? null : 'test'
 		} }, response);
 		const invalid = ['token', 'wallet', 'signature'].includes(blocked);

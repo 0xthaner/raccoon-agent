@@ -1,6 +1,6 @@
 import { isAddress } from 'viem';
 import { getWalletCovers } from '../src/covers.mjs';
-import { actionMessage, actionSiweExpectation, CLEAR_SESSION_COOKIES, createActionChallenge, createDashboardChallenge, createDashboardSession, DASHBOARD_CHALLENGE_TTL_CONTRACT_MS, DASHBOARD_CHALLENGE_TTL_EOA_MS, dashboardMessage, dashboardSiweExpectation, resolveDashboardSession, resolveLogout, sessionCookieHeader, verifyActionChallenge, verifyDashboardToken } from '../src/dashboard-auth.mjs';
+import { actionMessage, actionSiweExpectation, CLEAR_SESSION_COOKIES, createActionChallenge, createDashboardChallenge, DASHBOARD_CHALLENGE_TTL_CONTRACT_MS, DASHBOARD_CHALLENGE_TTL_EOA_MS, dashboardMessage, dashboardSiweExpectation, resolveDashboardSession, resolveLogout, safeAppCookieFor, sessionCookieHeader, verifyActionChallenge, verifyDashboardToken } from '../src/dashboard-auth.mjs';
 import { noContractCodeByQuorum, verifyOnchainDashboardLoginApproval, verifyWalletSiweAuthority } from '../src/contract-signature.mjs';
 import { isDeployedContract } from '../src/contract-detect.mjs';
 import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, isDashboardChallengeOpen, getWalletLinkStateByWallet, isDashboardSessionRevoked, recordAgentEvent, revokeDashboardSessions, storeDashboardChallenge, unlinkWalletByWallet, unlinkWalletFromAllChats } from '../src/db.mjs';
@@ -145,8 +145,9 @@ export default async function handler(request, response) {
 			await storeDashboardChallenge({ nonce: verified.nonce, wallet: verified.wallet, expiresAt: verified.exp });
 			return response.status(200).json({ ok: true, ...challenge });
 		}
-		// AGENT-SAFE-2: Session aus Cookie (normaler Browser) ODER Bearer (Safe-App
-		// iframe). Beide gueltig und verschiedene Wallets -> fail closed.
+		// AGENT-SAFE-2: Session aus dem Strict-Cookie (normaler Browser) ODER dem
+		// partitionierten Safe-App-Cookie (Safe-App-iframe). Beide gueltig und
+		// verschiedene Wallets -> fail closed. Ein Bearer wird nicht mehr gelesen.
 		const resolved = resolveDashboardSession(request);
 		if (resolved.conflict) {
 			response.setHeader('set-cookie', CLEAR_SESSION_COOKIES);
@@ -357,23 +358,17 @@ export default async function handler(request, response) {
 		'contract'). Die Sitzungsart kommt aus dem tatsaechlich erfolgreichen Pfad.
 	*/
 	async function issueLoginSession(request, response, wallet, kind, mode) {
-		response.setHeader('set-cookie', sessionCookieHeader(wallet, Date.now(), kind));
+		const cookie = sessionCookieHeader(wallet, Date.now(), kind);
+		// Safe-App-Sitzung: fuer eine bewiesene Contract-Autoritaet, die den Safe-App-
+		// Transport anfordert, zusaetzlich das partitionierte HttpOnly-Cookie (dasselbe
+		// Token). Sonst null -> nur das Strict-Cookie.
+		const safeAppCookie = safeAppCookieFor(cookie, kind, String(request.headers['x-dashboard-transport'] ?? '').toLowerCase());
+		response.setHeader('set-cookie', safeAppCookie ? [cookie, safeAppCookie] : cookie);
 		await recordAgentEvent({ wallet, eventType: 'dashboard.wallet_authenticated', source: 'dashboard', metadata: { mode } }).catch(() => {});
 		const data = await dashboardData(wallet);
-		// AGENT-SAFE-3: Safe-App-Pfad (eingebettetes iframe) kann das __Host-Cookie
-		// nicht zuverlaessig setzen und bekommt das Session-Token deshalb auf Anfrage
-		// im Body - JS-lesbar.
-		// EOA-Meta-Audit M1 (15.10.2026): den Header setzt jeder Client selbst, auch ein
-		// kompromittiertes Frontend. Ob es ein Bearer-Token gibt, entscheidet deshalb
-		// die serverseitig BEWIESENE Autoritaet: nur eine Contract-Wallet-Sitzung
-		// (ERC-1271 bzw. On-chain-Freigabe, 24 h) - der einzige Nutzer ist der
-		// Safe-App-Login. Eine EOA bekommt NIE ein JS-lesbares Token, egal was der
-		// Client verlangt; sie hat nur das HttpOnly-Cookie. Restrisiko: ein
-		// kompromittiertes Frontend kann fuer eine Safe weiterhin einen 24-h-Bearer
-		// anfordern (Abhilfe waere ein Partitioned-HttpOnly-Cookie, offen).
-		if (kind === 'contract' && String(request.headers['x-dashboard-transport'] ?? '').toLowerCase() === 'bearer') {
-			data.sessionToken = createDashboardSession(wallet, Date.now(), kind);
-		}
+		// Safe-App-Sitzung (15.10.2026): es gibt KEIN JS-lesbares Sitzungstoken mehr -
+		// weder fuer EOAs noch fuer Safes, egal welchen Transport der Client verlangt.
+		// Die Safe App haelt ihre Sitzung im partitionierten HttpOnly-Cookie (oben).
 		return response.status(200).json(data);
 	}
 }

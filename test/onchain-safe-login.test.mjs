@@ -162,6 +162,20 @@ async function call(handler, url, init = {}) {
 	await handler({ method: init.method ?? 'GET', url, headers, body: init.body }, r);
 	return r;
 }
+/** Der vom Server gesetzte, unveraenderte Safe-App-Cookie-Wert (fuer Folgeanfragen). */
+function safeAppCookieFrom(headers) {
+	const c = [].concat(headers['set-cookie'] ?? []).find((x) => x.startsWith('__Host-raccoon_safeapp=') && !x.includes('Max-Age=0'));
+	return c ? c.slice(0, c.indexOf(';')) : null;
+}
+/** Die vom Server gesetzte Safe-App-Sitzung (partitioniertes Cookie) aus den Antwort-Headern. */
+function safeAppSessionFrom(headersList) {
+	for (const headers of headersList) {
+		for (const c of [].concat(headers['set-cookie'] ?? [])) {
+			if (c.startsWith('__Host-raccoon_safeapp=') && !c.includes('Max-Age=0')) return auth.verifyDashboardSession(decodeURIComponent(c.slice(c.indexOf('=') + 1, c.indexOf(';'))));
+		}
+	}
+	return null;
+}
 function fetchVia(handler) {
 	return async (url, init = {}) => {
 		const r = await call(handler, url, { ...init, body: init.body ? JSON.parse(init.body) : undefined });
@@ -169,7 +183,7 @@ function fetchVia(handler) {
 	};
 }
 const getChallenge = async (srv, wallet = SAFE) => (await call(srv.dashboard, `/api/dashboard?wallet=${wallet}`)).body;
-const postOnchain = (srv, body) => call(srv.dashboard, '/api/dashboard', { method: 'POST', headers: { 'content-type': 'application/json', 'x-dashboard-transport': 'bearer' }, body });
+const postOnchain = (srv, body) => call(srv.dashboard, '/api/dashboard', { method: 'POST', headers: { 'content-type': 'application/json', 'x-dashboard-transport': 'partitioned-cookie' }, body });
 const rpcCalls = (srv) => srv.logs.alchemy.length + srv.logs.infura.length;
 function sessionOf(r) {
 	const cookie = String(r.headers['set-cookie'] ?? '');
@@ -185,8 +199,10 @@ test('1 Safe App, on-chain path: Safe creates only its SignMessageLib proposal; 
 	const wallet = safeWallet(srv.chain, { onchain: true });
 	const states = [];
 	let waits = 0;
+	const seen = [];
+	const base = fetchVia(srv.dashboard);
 	const result = await runSafeLogin({
-		sdk: wallet.sdk, info: await wallet.sdk.safe.getInfo(), fetchFn: fetchVia(srv.dashboard), onState: (s) => states.push(s),
+		sdk: wallet.sdk, info: await wallet.sdk.safe.getInfo(), fetchFn: async (u, i) => { const r = await base(u, i); seen.push(r.headers); return r; }, onState: (s) => states.push(s),
 		pollIntervalMs: 1, pollTimeoutMs: 60_000,
 		waitFn: async () => { if (++waits === 2) wallet.execute(); }
 	});
@@ -194,7 +210,9 @@ test('1 Safe App, on-chain path: Safe creates only its SignMessageLib proposal; 
 	assert.equal(wallet.state.appTxRequests, 0, 'CoverRaccoon fragt keine Transaktion an');
 	assert.ok(states.includes('ONCHAIN_APPROVAL_PENDING'));
 	assert.ok(states.includes('AUTHENTICATED'));
-	const session = auth.verifyDashboardToken(result.sessionToken);
+	// Safe-App-Sitzung: kein Token im Ergebnis, die Sitzung steckt im partitionierten Cookie.
+	assert.equal('sessionToken' in result, false);
+	const session = safeAppSessionFrom(seen);
 	assert.equal(session.kind, 'contract');
 	assert.equal(session.exp - session.iat, DAY);
 });
@@ -227,8 +245,10 @@ test('2 off-chain Safe login (Safe App and WalletConnect) is unchanged: one sign
 	const srv = server();
 	const wallet = safeWallet(srv.chain, { onchain: false });
 	const fetchFn = fetchVia(srv.dashboard);
-	const app = await runSafeLogin({ sdk: wallet.sdk, info: await wallet.sdk.safe.getInfo(), fetchFn, waitFn: async () => {}, pollTimeoutMs: 1000 });
-	assert.equal(auth.verifyDashboardToken(app.sessionToken).kind, 'contract');
+	const seen = [];
+	const app = await runSafeLogin({ sdk: wallet.sdk, info: await wallet.sdk.safe.getInfo(), fetchFn: async (u, i) => { const r = await fetchFn(u, i); seen.push(r.headers); return r; }, waitFn: async () => {}, pollTimeoutMs: 1000 });
+	assert.equal('sessionToken' in app, false);
+	assert.equal(safeAppSessionFrom(seen).kind, 'contract');
 	const posts = [];
 	const spy = async (url, init = {}) => { if (init.method === 'POST') posts.push(JSON.parse(init.body)); return fetchFn(url, init); };
 	const wc = await guardedChallengeSignSubmit({
@@ -446,7 +466,7 @@ async function contractSessionCookie(srv) {
 	executeSignMessageLib(srv.chain, SAFE, message);
 	const r = await postOnchain(srv, { wallet: SAFE, token, approval: 'onchain' });
 	assert.equal(r.statusCode, 200);
-	return { cookie: `${auth.SESSION_COOKIE}=${encodeURIComponent(r.body.sessionToken)}`, token };
+	return { cookie: safeAppCookieFrom(r.headers), token };
 }
 
 for (const [purpose, url] of [['session-revoke', '/api/dashboard'], ['telegram-disconnect', '/api/dashboard?telegram=1']]) {
@@ -508,7 +528,7 @@ test('18 owner change after the on-chain approval: the approval still yields ONL
 	assert.equal(login.statusCode, 200);
 	assert.equal(sessionOf(login).kind, 'contract');
 	assert.equal(sessionOf(login).exp - sessionOf(login).iat, DAY);
-	const headers = { 'content-type': 'application/json', cookie: `${auth.SESSION_COOKIE}=${encodeURIComponent(login.body.sessionToken)}` };
+	const headers = { 'content-type': 'application/json', cookie: safeAppCookieFrom(login.headers) };
 	// destruktiv: der entfernte Owner b2 kann nicht bestaetigen ...
 	const ask = await call(srv.dashboard, '/api/dashboard', { method: 'POST', headers, body: { action: 'session-revoke' } });
 	const stale = await call(srv.dashboard, '/api/dashboard', { method: 'DELETE', headers, body: { token: ask.body.token, signature: ownerSignature(['b2'], hashMessage(ask.body.message)) } });
