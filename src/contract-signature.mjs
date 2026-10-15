@@ -222,36 +222,20 @@ async function consensus(p, { address, message, signature }) {
 }
 
 /**
- * Wallet-Art nach BEIDEN Providern (aktueller Kopf, nur getCode):
- *   'NONE'     - beide melden keinen Code (EOA)
- *   'CONTRACT' - beide melden Code (z. B. Safe)
- *   'UNKNOWN'  - Ausfall, unlesbare Antwort, Widerspruch oder fehlender Schluessel
- * Ein einzelner Provider kann so weder eine EOA noch einen Contract vortaeuschen.
+ * Fuer Entscheidungen "ist eine frische Bestaetigung noetig?" (api/dashboard.mjs,
+ * Alt-Sitzungen ohne Art): true NUR, wenn BEIDE Provider fuer die Adresse
+ * keinen Code melden. Ein einzelner Provider kann eine Bestaetigung so nur
+ * erzwingen (Ablehnung), nie wegnehmen. Jeder Fehler -> false.
  */
-export async function contractCodeQuorum(address, { providers } = {}) {
+export async function noContractCodeByQuorum(address, { providers } = {}) {
 	const p = providers === undefined ? erc1271Providers() : providers;
-	if (!p?.alchemy || !p?.infura) return 'UNKNOWN';
+	if (!p?.alchemy || !p?.infura) return false;
 	const codes = await perProvider(p, async (client) => {
 		const code = (await client.getCode({ address })) ?? '0x';
 		if (typeof code !== 'string' || !CODE_HEX.test(code)) throw new Error('malformed code');
 		return code;
 	});
-	if (!codes.alchemy.ok || !codes.infura.ok) return 'UNKNOWN';
-	const a = codes.alchemy.value !== '0x';
-	const b = codes.infura.value !== '0x';
-	if (!a && !b) return 'NONE';
-	if (a && b) return 'CONTRACT';
-	return 'UNKNOWN';
-}
-
-/**
- * Fuer Entscheidungen "ist eine frische Bestaetigung noetig?" (api/dashboard.mjs,
- * Alt-Sitzungen ohne Art) und den Telegram-Bot: true NUR, wenn BEIDE Provider
- * fuer die Adresse keinen Code melden. Ein einzelner Provider kann eine
- * Bestaetigung so nur erzwingen (Ablehnung), nie wegnehmen. Jeder Fehler -> false.
- */
-export async function noContractCodeByQuorum(address, { providers } = {}) {
-	return (await contractCodeQuorum(address, { providers })) === 'NONE';
+	return codes.alchemy.ok && codes.infura.ok && codes.alchemy.value === '0x' && codes.infura.value === '0x';
 }
 
 /**

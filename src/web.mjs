@@ -4,8 +4,7 @@ import { extname, join, normalize } from 'node:path';
 import { isAddress } from 'viem';
 import { consumePendingLink, getPendingLink } from './db.mjs';
 import { isTelegramLinkCode, isTelegramLinkRow, linkSiweExpectation, signingMessage, telegramTarget } from './linking.mjs';
-import { contractCodeQuorum, verifyWalletSiweSignature } from './contract-signature.mjs';
-import { signingRefusal } from './signing-policy.mjs';
+import { verifyWalletSiweSignature } from './contract-signature.mjs';
 
 const publicDir = join(process.cwd(), 'dist-web');
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
@@ -54,9 +53,6 @@ export function startWebServer({ port = 8787, onLinked }) {
 				if (!wallet) return json(res, 200, { ok: true, telegram: target });
 				if (!isAddress(wallet)) return json(res, 400, { ok: false, error: 'Ungültige Wallet-Adresse.' });
 				if (!target) return json(res, 503, { ok: false, code: 'TELEGRAM_TARGET_UNAVAILABLE', error: 'Das Telegram-Konto zu diesem Link konnte gerade nicht bestätigt werden.' });
-				// META-AUDIT M-3: wie api/link.mjs - Text zum Signieren nur fuer eine EOA.
-				const refusal = signingRefusal(await contractCodeQuorum(wallet));
-				if (refusal) return json(res, refusal.status, refusal.body);
 				return json(res, 200, { ok: true, telegram: target, message: signingMessage({ wallet, nonce: pending.nonce, expiresAt: pending.expires_at, code, target: target.target }) });
 			}
 			if (req.method === 'POST' && url.pathname === '/api/link/verify') {

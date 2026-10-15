@@ -27,8 +27,7 @@ delete process.env.TELEGRAM_BOT_TOKEN;
 
 const auth = await import('../src/dashboard-auth.mjs');
 const linking = await import('../src/linking.mjs');
-const { contractCodeQuorum, verifyWalletSiweAuthority, verifyWalletSiweSignature, noContractCodeByQuorum } = await import('../src/contract-signature.mjs');
-const { signingRefusal, WALLET_TYPE_UNAVAILABLE } = await import('../src/signing-policy.mjs');
+const { verifyWalletSiweAuthority, verifyWalletSiweSignature, noContractCodeByQuorum } = await import('../src/contract-signature.mjs');
 
 const SAFE = '0x5afe00000000000000000000000000000000a00a';
 const HEAD = 20_000_000n;
@@ -65,7 +64,6 @@ function loadDashboard(h, effects) {
 		isAddress, queryParams, singleQueryValue, ...auth,
 		verifyWalletSiweAuthority: (params) => verifyWalletSiweAuthority(params, { providers: h.providers }),
 		noContractCodeByQuorum: (wallet) => noContractCodeByQuorum(wallet, { providers: h.providers }),
-		contractCodeQuorum: (wallet) => contractCodeQuorum(wallet, { providers: h.providers }), signingRefusal, WALLET_TYPE_UNAVAILABLE,
 		isDeployedContract: async () => true,
 		getWalletCovers: async () => ({ covers: [] }), getWalletLinkStateByWallet: async () => ({ linked: true, link: null }),
 		storeDashboardChallenge: async ({ nonce, wallet, expiresAt }) => { challenges.set(nonce, { wallet: wallet.toLowerCase(), expiresAt, used: false }); },

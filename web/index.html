@@ -316,7 +316,7 @@
           <div class="signal"></div>
           <div class="principles" aria-label="Sicherheitsmerkmale">
             <div class="principle"><strong>READ ONLY</strong><span id="principle-wallet">Wallet bleibt unberührt</span></div>
-            <div class="principle"><strong>KEIN GAS</strong><span id="principle-signature">Nur eine Signatur</span></div>
+            <div class="principle"><strong>KEIN WERT</strong><span id="principle-signature">Nur eine Signatur</span></div>
             <div class="principle"><strong>PRIVAT</strong><span id="principle-alerts">Hinweise über Telegram</span></div>
           </div>
         </section>
@@ -338,12 +338,12 @@
             <div id="status" aria-live="polite"></div>
             <div class="security">
               <svg width="13" height="15" viewBox="0 0 13 15" fill="none" aria-hidden="true"><rect x="1" y="6" width="11" height="8" rx="2" stroke="currentColor"/><path d="M3.5 6V4a3 3 0 0 1 6 0v2" stroke="currentColor"/></svg>
-              <span>Keine Transaktion, keine Freigabe und keine Gasgebühr.</span>
+              <span>Keine Transaktion und keine Freigabe. Gas nur, wenn eine Safe die Anmeldung on-chain bestätigt.</span>
             </div>
             <details class="verify">
               <summary><span class="verify-dot" aria-hidden="true"></span><span id="verify-title">Woran erkenne ich eine echte Anfrage?</span></summary>
               <ol class="verify-list">
-                <li id="verify-1">Es ist eine Signatur, keine Transaktion: kein Betrag, keine Gasgebühr. Safe- und andere Contract-Wallets bekommen derzeit keine Anfrage, weil sich das dort vorab nicht garantieren lässt.</li>
+                <li id="verify-1">Es ist eine Signatur, keine Transaktion: kein Betrag, keine Freigabe. Bei einer Safe kann Safe{Wallet} daraus eine SignMessageLib-On-chain-Bestätigung machen: Sie kann Gas kosten, bewegt aber keinen Wert und erteilt keine Tokenfreigabe.</li>
                 <li id="verify-2">Die Nachricht beginnt mit „coverraccoon.com wants you to sign in“, und die Adresszeile zeigt coverraccoon.com.</li>
                 <li id="verify-3">Kein „Permit“, kein „Approve“, kein Token-Betrag und kein unlesbarer Hex-Text. Siehst du so etwas, brich ab.</li>
                 <li id="verify-4">Links zum Verbinden einer Wallet kommen nur aus deinem privaten Chat mit dem Raccoon-Agent-Bot.</li>

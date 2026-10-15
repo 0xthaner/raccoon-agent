@@ -126,10 +126,7 @@ export async function runSafeLogin({
 
 	const challenge = await fetchFn(`/api/dashboard?wallet=${encodeURIComponent(wallet)}`).then((r) => r.json());
 	if (!challenge || !challenge.ok) {
-		// META-AUDIT M-3: der Server gibt Contract-Wallets keine Nachricht zum Signieren -
-		// eine Off-chain-Signatur laesst sich vorab nicht garantieren. Kein signMessage.
-		if (challenge?.code === 'CONTRACT_SIGNING_UNSUPPORTED') onState('REJECTED', { reason: 'contract-signing-unsupported' });
-		else onState('EXPIRED');
+		onState('EXPIRED');
 		throw new Error(challenge?.error || 'Challenge konnte nicht erstellt werden.');
 	}
 	onState('CHALLENGE_CREATED', { threshold: info.threshold });

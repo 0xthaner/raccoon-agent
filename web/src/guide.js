@@ -3,7 +3,7 @@ const en = {
 	lead: 'How to connect your wallet, open your dashboard and activate Telegram. The Agent only ever asks for signatures, never for a transaction.',
 	quickStart: 'Quick start', quickStartCopy: 'Open wallet and dashboard', quickTgCopy: 'Activate reminders',
 	expect: 'What your wallet shows', source: 'Data source', result: 'Result', tip: 'Tip',
-	s1Title: 'Connect wallet', s1Copy: 'Open the Agent, choose your wallet and confirm the login message. This only proves that you control the address.', s1Expect: 'A signature request. No transaction, token approval or gas fee.',
+	s1Title: 'Connect wallet', s1Copy: 'Open the Agent, choose your wallet and confirm the login message. This only proves that you control the address.', s1Expect: 'A signature request. No transaction, no token approval. With a Safe, Safe{Wallet} may turn this into a SignMessageLib on-chain confirmation: it can cost gas, but it moves no value and grants no token approval.',
 	s2Title: 'Review dashboard', s2Copy: 'The Agent loads your cover data from Cover Raccoon. You see active cover, protected amount and expiry.', s2Expect: 'Cover Raccoon · Nexus Mutual · Ethereum. The Agent does not alter on-chain data.',
 	s3Title: 'Activate Telegram', s3Copy: 'Select “Connect Telegram” in the dashboard and start the bot. Your verified wallet is transferred securely – no second signature is needed.', s3Expect: 'Expiry reminders and a direct route back to the dashboard.',
 	capLanding: '1. Open the Agent and select “Connect wallet”.', capWallets: '2. Open your preferred wallet from the secure selector.', capSignature: '3. Review and sign the login message – without gas or approval.',

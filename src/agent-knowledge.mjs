@@ -9,7 +9,7 @@ const model = process.env.OPENAI_AGENT_MODEL?.trim() || 'gpt-5.6-luna';
 export const productKnowledge = `
 Raccoon Agent is a personal, read-only DeFi cover monitor. CoverRaccoon is the application/project behind Raccoon Agent, not an asserted insurance provider.
 It links a public Ethereum wallet address to a private Telegram chat after the wallet owner signs a human-readable login message.
-The login signature proves wallet control. It is not a blockchain transaction, costs no gas, grants no token approval, and cannot move funds.
+The login signature proves wallet control. CoverRaccoon never requests a blockchain transaction; the signature grants no token approval and cannot move funds. For a normal wallet it costs no gas. For a Safe, Safe{Wallet} may turn the sign-in into its standard SignMessageLib on-chain confirmation, which can cost gas but moves no value and grants no approval.
 The dashboard shows covers held by the linked wallet. Cover data is read live from the Ethereum blockchain at the moment of each request: the Nexus Mutual cover NFTs the wallet holds and their data from the Nexus cover contracts, accessed through the blockchain provider Alchemy. There is no nightly copy; if the live read fails, the agent says the data is unavailable instead of showing old data. Product names come from the public Nexus Mutual catalogue.
 Telegram is optional. The bot can show covers, upcoming expiries, reminder settings, and dashboard links.
 Expiry reminders can be configured for 30, 14, 7, 3, or 1 day before expiry and on the expiry day. A weekly summary is optional.
