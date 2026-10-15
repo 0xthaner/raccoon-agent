@@ -1,5 +1,6 @@
 import { appKitMethoden, WALLET_METHODEN_ANMELDEN } from './wallet-methods.js';
 import { ensureMainnetAccount, ensureAppKitMainnetAccount, eoaLoginTexts, guardedChallengeSignSubmit, normalizeAddress } from './eoa-login.js';
+import { submitDashboardLogin } from './onchain-login.js';
 import { mountEye } from './eye.js';
 
 const status = document.querySelector('#status');
@@ -847,9 +848,14 @@ async function openDashboard(wallet, sign, isAborted = () => false) {
 		},
 		submit: async (challenge, signature) => {
 			show('Cover-Daten werden geladen …');
-			const result = await fetch('/api/dashboard', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ wallet, token: challenge.token, signature }) }).then((res) => res.json());
-			if (!result.ok) throw new Error(result.error);
-			return result;
+			// META-AUDIT M-3, Modus B: '0x' heisst, Safe{Wallet} hat eine SignMessageLib-
+			// On-chain-Bestaetigung vorgeschlagen. Dann nur noch read-only abfragen.
+			return submitDashboardLogin({
+				wallet, token: challenge.token, signature, fetchFn: fetch,
+				onPending: () => show(language === 'de'
+					? 'Safe hat eine On-chain-Bestätigung (SignMessageLib) vorgeschlagen. Sobald die Owner sie ausgeführt haben, wirst du automatisch angemeldet. CoverRaccoon fragt dafür nur lesend ab.'
+					: 'Safe proposed an on-chain confirmation (SignMessageLib). Once the owners have executed it, you are signed in automatically. CoverRaccoon only reads to check.')
+			});
 		}
 	});
 	await configPromise;
@@ -1458,6 +1464,9 @@ function renderSafeState(state, detail = {}) {
 		case 'SAFE_CONTEXT_DETECTED': show(de ? 'Safe erkannt.' : 'Safe detected.'); break;
 		case 'CHALLENGE_CREATED': show(de ? 'Anmeldung wird vorbereitet …' : 'Preparing sign-in …'); break;
 		case 'SIGNATURE_PENDING': show(de ? 'Bitte im Safe signieren …' : 'Please sign in your Safe …'); break;
+		case 'ONCHAIN_APPROVAL_PENDING': show(de
+			? 'Safe hat eine On-chain-Bestätigung (SignMessageLib) vorgeschlagen: kein Wert, keine Freigabe, aber Gas. Sobald die Owner sie ausgeführt haben, wirst du automatisch angemeldet.'
+			: 'Safe proposed an on-chain confirmation (SignMessageLib): no value, no approval, but gas. Once the owners have executed it, you are signed in automatically.'); break;
 		case 'WAITING_FOR_OWNERS':
 			show(n ? (de ? `Warte auf Bestätigungen (${n} erforderlich) …` : `Waiting for confirmations (${n} required) …`)
 				: (de ? 'Warte auf weitere Bestätigung …' : 'Waiting for more confirmations …'));

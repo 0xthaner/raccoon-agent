@@ -9,8 +9,9 @@
 
 	Diese Datei ist bewusst frei von Top-Level-Abhaengigkeiten und DOM-Zugriffen:
 	das SDK, fetch, Warten und Zeit werden injiziert, damit der Flow offline
-	testbar ist.
+	testbar ist. Einzige Ausnahme: der ebenso abhaengigkeitsfreie Modus-B-Helfer.
 */
+import { ONCHAIN_POLL_INTERVAL_MS, pollOnchainLogin } from './onchain-login.js';
 
 export const SAFE_ORIGIN = 'https://app.safe.global';
 export const SAFE_LOGIN_CHAIN_ID = 1;
@@ -21,6 +22,7 @@ export const SAFE_STATES = Object.freeze([
 	'SIGNATURE_PENDING',
 	'WAITING_FOR_OWNERS',
 	'SIGNATURE_READY',
+	'ONCHAIN_APPROVAL_PENDING',
 	'VERIFYING',
 	'AUTHENTICATED',
 	'EXPIRED',
@@ -28,6 +30,10 @@ export const SAFE_STATES = Object.freeze([
 ]);
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Rueckgabe von signSafeMessage, wenn Safe on-chain (SignMessageLib) signiert. Nur im Login erlaubt. */
+export const ONCHAIN_APPROVAL = Symbol('ONCHAIN_APPROVAL');
+const SAFE_TX_HASH = /^0x[0-9a-fA-F]{64}$/;
 
 /**
  * Erkennt den Safe-App-Kontext. `loadSdk` liefert die SafeAppsSDK-Klasse (per
@@ -57,7 +63,7 @@ export async function detectSafeContext(loadSdk, { timeoutMs = 2000 } = {}) {
  * Transaktion ueber SignMessageLib vor). Kein eigener Hash, kein Typed Data,
  * keine Transaktion. Wirft (fail closed), nachdem der passende Zustand gemeldet wurde.
  */
-export async function signSafeMessage({ sdk, message, threshold, onState = () => {}, pollIntervalMs = 5000, pollTimeoutMs = 25 * 60_000, waitFn = wait, now = () => Date.now() }) {
+export async function signSafeMessage({ sdk, message, threshold, onState = () => {}, pollIntervalMs = 5000, pollTimeoutMs = 25 * 60_000, waitFn = wait, now = () => Date.now(), allowOnchainApproval = false }) {
 	// Off-chain-Signing aktivieren, sonst wuerde Safe on-chain signieren (Transaktion).
 	// AUDIT-2026-10-12 F2: das Ergebnis pruefen (laut SDK "Returns the new
 	// SafeSettings"). Bestaetigt die Safe-Oberflaeche das Off-chain-Signieren nicht,
@@ -73,6 +79,10 @@ export async function signSafeMessage({ sdk, message, threshold, onState = () =>
 	// Exakt die serverseitige SIWE-Nachricht. Keine eigene Hash-/Typed-Data-Logik.
 	const signed = await sdk.txs.signMessage(message);
 	const messageHash = signed && signed.messageHash;
+	// META-AUDIT M-3, Modus B: Safe hat statt einer Off-chain-Signatur seine
+	// SignMessageLib-Bestaetigung vorgeschlagen (safeTxHash, kein messageHash).
+	// Nur der Dashboard-Login darf darauf warten; frische Bestaetigungen nicht.
+	if (!messageHash && allowOnchainApproval && SAFE_TX_HASH.test(signed?.safeTxHash ?? '')) return ONCHAIN_APPROVAL;
 	if (!messageHash) {
 		onState('REJECTED', { reason: 'no-message-hash' });
 		throw new Error('Safe hat keinen Message-Hash geliefert.');
@@ -131,7 +141,21 @@ export async function runSafeLogin({
 	}
 	onState('CHALLENGE_CREATED', { threshold: info.threshold });
 
-	const signature = await signSafeMessage({ sdk, message: challenge.message, threshold: info.threshold, onState, pollIntervalMs, pollTimeoutMs, waitFn, now });
+	const signature = await signSafeMessage({ sdk, message: challenge.message, threshold: info.threshold, onState, pollIntervalMs, pollTimeoutMs, waitFn, now, allowOnchainApproval: true });
+
+	if (signature === ONCHAIN_APPROVAL) {
+		// Nur noch read-only: der Server prueft on-chain, ob die Owner ausgefuehrt haben.
+		onState('ONCHAIN_APPROVAL_PENDING', { threshold: info.threshold });
+		let login;
+		try {
+			login = await pollOnchainLogin({ wallet, token: challenge.token, fetchFn, headers: { 'X-Dashboard-Transport': 'bearer' }, intervalMs: ONCHAIN_POLL_INTERVAL_MS, timeoutMs: pollTimeoutMs, waitFn, now });
+		} catch (error) {
+			onState('EXPIRED');
+			throw error;
+		}
+		onState('AUTHENTICATED', { wallet });
+		return { sessionToken: login.sessionToken || null, dashboard: login };
+	}
 
 	onState('VERIFYING');
 	const login = await fetchFn('/api/dashboard', {

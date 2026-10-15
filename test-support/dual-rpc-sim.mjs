@@ -9,8 +9,20 @@
 	Segment: 1 Byte Owner-Kennung + 32 Byte Hash + 32 Byte Fuellung. isValidSignature
 	liefert den Magic-Wert nur, wenn alle Segmente genau diesen Hash tragen, jeder
 	Unterzeichner zu diesem Block Owner ist und der Threshold erreicht ist.
+
+	META-AUDIT M-3, Modus B: On-chain-Freigaben ueber SignMessageLib. Eine Safe
+	kann `signedMessages: [{ hash, from }]` tragen - `hash` ist der EIP-191-Hash
+	der Nachricht, also genau das `_data`, das Safe{Wallet} an
+	SignMessageLib.signMessage uebergibt (ReviewSignMessageOnChain.tsx,
+	safe-wallet-monorepo @dab2bd9: encode('signMessage', [hashMessage(message)])).
+	Mit LEERER Signatur verhaelt sich isValidSignature(bytes32, bytes) wie der
+	CompatibilityFallbackHandler (safe-smart-account v1.4.1, Z. 28-34, 77-80):
+	Magic-Wert, wenn der Hash ab Block `from` freigegeben ist, sonst Revert
+	"Hash not approved". Die Ableitung des Safe-Message-Hashs aus `_data` ist
+	je Safe eindeutig (domainSeparator) und wird hier nicht nachgerechnet.
+	`noFallbackHandler: true` bildet eine Safe ohne Handler nach (leere Antwort).
 */
-import { createPublicClient, custom, decodeFunctionData, parseAbi, toHex } from 'viem';
+import { createPublicClient, custom, decodeFunctionData, hashMessage, parseAbi, toHex } from 'viem';
 import { mainnet } from 'viem/chains';
 
 const ABI = parseAbi(['function isValidSignature(bytes32 hash, bytes signature) view returns (bytes4)']);
@@ -78,7 +90,13 @@ export function simProvider(chain, { headOffset = 0n, chainId = 1, behave = {} }
 				const n = at(tag);
 				const safe = chain.safes[String(tx.to).toLowerCase()];
 				if (!safe || !stateAt(safe, n)) return '0x';
+				if (safe.noFallbackHandler) return '0x';
 				const { args } = decodeFunctionData({ abi: ABI, data: tx.data });
+				if (args[1] === '0x') {
+					const approved = (safe.signedMessages ?? []).some((m) => m.hash.toLowerCase() === args[0].toLowerCase() && m.from <= n);
+					if (approved) return MAGIC_RESULT;
+					const e = new Error('execution reverted: Hash not approved'); e.code = 3; e.data = '0x'; throw e;
+				}
 				return accepts(safe, n, args[0], args[1]) ? MAGIC_RESULT : NOT_MAGIC_RESULT;
 			}
 			default: throw new Error(`unexpected ${method}`);
@@ -97,4 +115,17 @@ export function dualProviders(chain, alchemy = {}, infura = {}) {
 /** Blocknummern, an denen ein Provider getCode/eth_call ausfuehrte. */
 export function stateBlocks(log) {
 	return log.filter((entry) => entry.method === 'eth_getCode' || entry.method === 'eth_call').map((entry) => entry.params[1]);
+}
+
+/**
+ * Die Owner fuehren die SignMessageLib-Transaktion fuer `message` aus: ab dem
+ * naechsten Block ist hashMessage(message) freigegeben; danach laufen so viele
+ * Bloecke, dass der gemeinsame Pruefblock (Kopf - STATE_DEPTH) sie enthaelt.
+ */
+export function executeSignMessageLib(chain, safeAddress, message, { depth = 2n } = {}) {
+	const safe = chain.safes[safeAddress.toLowerCase()];
+	const from = chain.head + 1n;
+	safe.signedMessages = [...(safe.signedMessages ?? []), { hash: hashMessage(message), from }];
+	chain.head += depth + 1n;
+	return from;
 }

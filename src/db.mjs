@@ -96,6 +96,22 @@ export async function consumeDashboardChallenge(nonce, wallet) {
 	return rows.length === 1;
 }
 
+/**
+ * META-AUDIT M-3, Modus B: ist die Login-Challenge noch offen (nicht verbraucht,
+ * nicht abgelaufen, diese Wallet)? NUR lesen - verbraucht wird ausschliesslich in
+ * consumeDashboardChallenge. Spart RPC fuer verbrauchte/abgelaufene Challenges.
+ */
+export async function isDashboardChallengeOpen(nonce, wallet) {
+	const row = value(await db.from('dashboard_challenges')
+		.select('nonce')
+		.eq('nonce', nonce)
+		.eq('wallet', wallet.toLowerCase())
+		.is('used_at', null)
+		.gt('expires_at', new Date().toISOString())
+		.maybeSingle());
+	return Boolean(row);
+}
+
 export async function checkRateLimit(keyHash, maxRequests, windowSeconds) {
 	return Boolean(value(await db.rpc('check_agent_rate_limit', {
 		rate_key: keyHash,

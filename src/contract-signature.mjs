@@ -43,6 +43,7 @@
 import { BaseError, ContractFunctionRevertedError, ContractFunctionZeroDataError, createPublicClient, hashMessage, http, parseAbi, toHex } from 'viem';
 import { mainnet } from 'viem/chains';
 import { verifyExpectedSiweSignature } from './siwe-auth.mjs';
+import { dashboardMessage } from './dashboard-auth.mjs';
 
 /** Mögliche interne Ergebnisse. Nach aussen bleibt die Meldung generisch. */
 export const WALLET_SIG_RESULTS = Object.freeze([
@@ -188,7 +189,9 @@ export async function verifyContractSiweSignature({ address, message, signature 
 	let timer;
 	const deadline = new Promise((resolve) => { timer = setTimeout(() => resolve('RPC_UNAVAILABLE'), deadlineMs); });
 	try {
-		return await Promise.race([consensus(p, { address, message, signature }), deadline]);
+		const result = await Promise.race([consensus(p, { address, message, signature }), deadline]);
+		// Ohne Code bei beiden Providern gibt es kein ERC-1271 - nach aussen wie bisher.
+		return result === 'NO_CONTRACT' ? 'INVALID_SIGNATURE' : result;
 	} finally {
 		clearTimeout(timer);
 	}
@@ -209,7 +212,7 @@ async function consensus(p, { address, message, signature }) {
 	const hasA = codes.alchemy.value !== '0x';
 	const hasB = codes.infura.value !== '0x';
 	// Kein deployter Contract (EOA oder undeployed/6492) nach Ansicht beider: kein 1271.
-	if (!hasA && !hasB) return 'INVALID_SIGNATURE';
+	if (!hasA && !hasB) return 'NO_CONTRACT';
 	// Nur einer meldet Code, oder verschiedener Code am selben Block: fail closed.
 	if (hasA !== hasB || codes.alchemy.value !== codes.infura.value) return 'RPC_DISAGREEMENT';
 
@@ -219,6 +222,57 @@ async function consensus(p, { address, message, signature }) {
 		erc1271Verdict(p.infura, { address, hash, signature, blockNumber })
 	]);
 	return combineErc1271Verdicts(a, b);
+}
+
+/*
+	META-AUDIT M-3, Modus B (15.10.2026): ONCHAIN_SAFE_MESSAGE_APPROVAL - AUSSCHLIESSLICH
+	fuer den Dashboard-Login.
+
+	Safe{Wallet} kann eine Signaturanfrage in seine Standard-On-chain-Bestaetigung
+	umwandeln: SignMessageLib.signMessage(hashMessage(message)) per DelegateCall,
+	value 0, Ziel von Safe gewaehlt (ReviewSignMessageOnChain.tsx, safe-wallet-
+	monorepo @dab2bd9). Danach gibt der CompatibilityFallbackHandler fuer
+	isValidSignature(hashMessage(message), <leer>) den Magic-Wert zurueck
+	(safe-smart-account v1.4.1: signedMessages[...] != 0).
+
+	Hier ist die leere Signatur KEIN Client-Wert: der Browser liefert weder
+	Signatur noch Hash noch Nachricht. Die Nachricht entsteht aus der HMAC-
+	geschuetzten Login-Challenge (Typ 'challenge', eigene Wallet), der Hash
+	daraus, die leere Signatur setzt diese Funktion selbst. Danach dieselbe
+	Dual-RPC-Konsenspruefung wie fuer jede Contract-Signatur (gemeinsamer Block,
+	beide Code, beide VALID).
+
+	Bewusst KEIN allgemeines Primitive: eine Aktions-Challenge (Telegram trennen,
+	ueberall abmelden), ein Telegram-Link oder ein beliebiger Text kommen hier nie
+	an - die Funktion baut ausschliesslich dashboardMessage(challenge). Eine
+	On-chain-Freigabe bleibt auch nach einem Owner-Wechsel gueltig; deshalb bleiben
+	destruktive Aktionen bei der frischen, aktuellen ERC-1271-Signatur.
+
+	Ergebnis:
+	  'APPROVED'           beide Provider VALID am gemeinsamen Block
+	  'PENDING'            (noch) nicht freigegeben - beide sagen nein
+	  'NOT_CONTRACT'       beide Provider: kein Code (EOA) - Modus B gilt nicht
+	  'INVALID_CHALLENGE'  kein Login-Challenge dieser Wallet - kein RPC
+	  'RPC_UNAVAILABLE'    Ausfall, Frist, fehlender Schluessel
+	  'RPC_DISAGREEMENT'   Widerspruch (Block, Code oder Urteil)
+*/
+const EMPTY_SIGNATURE = '0x';
+export async function verifyOnchainDashboardLoginApproval({ challenge, wallet }, { providers, deadlineMs = ERC1271_DEADLINE_MS } = {}) {
+	if (challenge?.type !== 'challenge' || typeof wallet !== 'string' || challenge.wallet !== wallet.toLowerCase()) return 'INVALID_CHALLENGE';
+	const p = providers === undefined ? erc1271Providers() : providers;
+	if (!p?.alchemy || !p?.infura) return 'RPC_UNAVAILABLE';
+	const message = dashboardMessage(challenge, wallet);
+	let timer;
+	const deadline = new Promise((resolve) => { timer = setTimeout(() => resolve('RPC_UNAVAILABLE'), deadlineMs); });
+	try {
+		const result = await Promise.race([consensus(p, { address: challenge.wallet, message, signature: EMPTY_SIGNATURE }), deadline]);
+		if (result === 'VALID') return 'APPROVED';
+		if (result === 'INVALID_SIGNATURE') return 'PENDING';
+		if (result === 'NO_CONTRACT') return 'NOT_CONTRACT';
+		return result === 'RPC_DISAGREEMENT' ? 'RPC_DISAGREEMENT' : 'RPC_UNAVAILABLE';
+	} finally {
+		clearTimeout(timer);
+	}
 }
 
 /**

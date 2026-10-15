@@ -1,9 +1,9 @@
 import { isAddress } from 'viem';
 import { getWalletCovers } from '../src/covers.mjs';
 import { actionMessage, actionSiweExpectation, CLEAR_SESSION_COOKIES, createActionChallenge, createDashboardChallenge, createDashboardSession, DASHBOARD_CHALLENGE_TTL_CONTRACT_MS, DASHBOARD_CHALLENGE_TTL_EOA_MS, dashboardMessage, dashboardSiweExpectation, resolveDashboardSession, resolveLogout, sessionCookieHeader, verifyActionChallenge, verifyDashboardToken } from '../src/dashboard-auth.mjs';
-import { noContractCodeByQuorum, verifyWalletSiweAuthority } from '../src/contract-signature.mjs';
+import { noContractCodeByQuorum, verifyOnchainDashboardLoginApproval, verifyWalletSiweAuthority } from '../src/contract-signature.mjs';
 import { isDeployedContract } from '../src/contract-detect.mjs';
-import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, getWalletLinkStateByWallet, isDashboardSessionRevoked, recordAgentEvent, revokeDashboardSessions, storeDashboardChallenge, unlinkWalletByWallet, unlinkWalletFromAllChats } from '../src/db.mjs';
+import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, isDashboardChallengeOpen, getWalletLinkStateByWallet, isDashboardSessionRevoked, recordAgentEvent, revokeDashboardSessions, storeDashboardChallenge, unlinkWalletByWallet, unlinkWalletFromAllChats } from '../src/db.mjs';
 import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../src/pause.mjs';
 import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin } from '../src/http-security.mjs';
 import { recordSecurityEvent, securityFingerprint, SECURITY_EVENT } from '../src/security-events.mjs';
@@ -250,6 +250,48 @@ export default async function handler(request, response) {
 		return response.status(200).json({ ok: true, freshSignatureRequired: true, action: body.action, token: action.token, message: action.message });
 	}
 	if (ANMELDUNG_PAUSIERT) return pauseAntwort(response);
+	/*
+		META-AUDIT M-3, Modus B: ONCHAIN_SAFE_MESSAGE_APPROVAL - NUR Dashboard-Login.
+		Safe{Wallet} hat die Login-Signatur in seine Standard-On-chain-Bestaetigung
+		(SignMessageLib) umgewandelt; der Browser fragt nur noch read-only ab, ob die
+		Owner sie ausgefuehrt haben. Body exakt { wallet, token, approval: 'onchain' }:
+		keine Signatur, kein Hash, keine Nachricht, kein Ziel, keine Gaswerte. Der
+		Server baut die Nachricht aus der HMAC-Challenge, rechnet den Hash, setzt die
+		leere ERC-1271-Signatur selbst und verlangt VALID von beiden Providern
+		(verifyOnchainDashboardLoginApproval). Noch nicht freigegeben -> 202, nichts
+		verbraucht, nichts gespeichert. Erst VALID -> Nonce atomar verbrauchen ->
+		24-h-Contract-Sitzung. Der Zugangsbeweis ist allein der On-chain-Zustand der
+		Safe; das Token waehlt nur, WELCHE Challenge geprueft wird.
+	*/
+	if (Object.prototype.hasOwnProperty.call(body, 'approval')) {
+		if (!await enforceRateLimit(request, response, 'dashboard-onchain', 60, 600)) return;
+		const keys = Object.keys(body).sort().join(',');
+		if (keys !== 'approval,token,wallet' || body.approval !== 'onchain') return response.status(400).json({ ok: false, code: 'ONCHAIN_APPROVAL_INVALID_REQUEST', error: 'Ungültige Anfrage.' });
+		const { wallet, token } = body;
+		const challenge = verifyDashboardToken(token);
+		if (challenge?.type !== 'challenge' || !isAddress(wallet) || challenge.wallet !== wallet.toLowerCase()) return response.status(401).json({ ok: false, error: 'Dashboard-Anmeldung ungültig oder abgelaufen.' });
+		// Abfrage-Budget je Challenge, je Wallet und global (M-2) - alles VOR jedem RPC.
+		if (!await enforceRateLimitFor(response, 'dashboard-onchain-nonce', challenge.nonce, 45, 600)) return;
+		if (!await enforceRateLimitFor(response, 'dashboard-onchain-wallet', wallet.toLowerCase(), 90, 600)) return;
+		if (!await enforceRateLimitFor(response, 'dashboard-onchain-global', 'all', 600, 600)) return;
+		let open;
+		try { open = await isDashboardChallengeOpen(challenge.nonce, wallet); } catch { return response.status(503).json({ ok: false, code: 'ONCHAIN_APPROVAL_CHECK_UNAVAILABLE', error: 'Die Freigabe konnte gerade nicht geprüft werden.' }); }
+		if (!open) return response.status(409).json({ ok: false, code: 'CHALLENGE_CLOSED', error: 'Diese Login-Anfrage ist abgelaufen oder wurde bereits verwendet.' });
+		const approval = await verifyOnchainDashboardLoginApproval({ challenge, wallet });
+		if (approval === 'PENDING') return response.status(202).json({ ok: false, code: 'ONCHAIN_APPROVAL_PENDING' });
+		if (approval === 'NOT_CONTRACT') return response.status(400).json({ ok: false, code: 'ONCHAIN_APPROVAL_CONTRACT_ONLY', error: 'Diese Anmeldung gilt nur für Safe- und andere Contract-Wallets.' });
+		if (approval === 'RPC_DISAGREEMENT') {
+			await recordSecurityEvent(SECURITY_EVENT.ERC1271_RPC_DISAGREEMENT, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });
+			return response.status(401).json({ ok: false, error: 'Wallet-Freigabe konnte nicht bestätigt werden.' });
+		}
+		if (approval !== 'APPROVED') return response.status(503).json({ ok: false, code: 'ONCHAIN_APPROVAL_CHECK_UNAVAILABLE', error: 'Die Freigabe konnte gerade nicht geprüft werden. Bitte gleich erneut versuchen.' });
+		// Erst verbrauchen, DANN Sitzung - atomar, einmalig.
+		if (!await consumeDashboardChallenge(challenge.nonce, wallet)) {
+			await recordSecurityEvent(SECURITY_EVENT.SIWE_REPLAY_BLOCKED, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });
+			return response.status(409).json({ ok: false, error: 'Diese Login-Anfrage wurde bereits verwendet.' });
+		}
+		return issueLoginSession(request, response, wallet, 'contract', 'onchain_safe_message_approval');
+	}
 	// AGENT-AUTH-002, 05.10.2026: der Telegram-Zugangscode wird NUR hier per POST
 	// eingeloest - Same-Origin und JSON sind oben bereits erzwungen. Der Verbrauch
 	// bleibt atomar (consumeDashboardAccess, bedingtes Update, Erfolg nur bei genau
@@ -306,18 +348,27 @@ export default async function handler(request, response) {
 		await recordSecurityEvent(SECURITY_EVENT.SIWE_REPLAY_BLOCKED, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });
 		return response.status(409).json({ ok: false, error: 'Diese Login-Anfrage wurde bereits verwendet.' });
 	}
-	const kind = authority === 'contract' ? 'contract' : 'eoa';
-	response.setHeader('set-cookie', sessionCookieHeader(wallet, Date.now(), kind));
-	await recordAgentEvent({ wallet, eventType: 'dashboard.wallet_authenticated', source: 'dashboard' }).catch(() => {});
-	const data = await dashboardData(wallet);
-	// AGENT-SAFE-3: Safe-App-Pfad (eingebettetes iframe) kann das __Host-Cookie
-	// nicht zuverlaessig setzen. NUR wenn der Client den Bearer-Transport
-	// ausdruecklich anfordert, liegt zusaetzlich das bestehende signierte
-	// Session-Token im Body (gleiche type=session/wallet/iat/exp/HMAC/7-Tage/
-	// Revoke-Semantik). Das Flag steuert NUR den Transport, nie Identity,
-	// Signatur, Chain, Nonce oder ERC-1271. Normaler Browser bekommt es nie.
-	if (String(request.headers['x-dashboard-transport'] ?? '').toLowerCase() === 'bearer') {
-		data.sessionToken = createDashboardSession(wallet, Date.now(), kind);
+	return issueLoginSession(request, response, wallet, authority === 'contract' ? 'contract' : 'eoa', 'signature');
+
+	/*
+		Die EINE Stelle, an der eine Dashboard-Sitzung entsteht. Aufgerufen NUR nach
+		erfolgreicher Pruefung UND atomarem Nonce-Verbrauch - vom Signatur-Login
+		(Modus A) und vom On-chain-Freigabe-Login (META-AUDIT M-3, Modus B, immer
+		'contract'). Die Sitzungsart kommt aus dem tatsaechlich erfolgreichen Pfad.
+	*/
+	async function issueLoginSession(request, response, wallet, kind, mode) {
+		response.setHeader('set-cookie', sessionCookieHeader(wallet, Date.now(), kind));
+		await recordAgentEvent({ wallet, eventType: 'dashboard.wallet_authenticated', source: 'dashboard', metadata: { mode } }).catch(() => {});
+		const data = await dashboardData(wallet);
+		// AGENT-SAFE-3: Safe-App-Pfad (eingebettetes iframe) kann das __Host-Cookie
+		// nicht zuverlaessig setzen. NUR wenn der Client den Bearer-Transport
+		// ausdruecklich anfordert, liegt zusaetzlich das bestehende signierte
+		// Session-Token im Body (gleiche type=session/wallet/iat/exp/HMAC/7-Tage/
+		// Revoke-Semantik). Das Flag steuert NUR den Transport, nie Identity,
+		// Signatur, Chain, Nonce oder ERC-1271. Normaler Browser bekommt es nie.
+		if (String(request.headers['x-dashboard-transport'] ?? '').toLowerCase() === 'bearer') {
+			data.sessionToken = createDashboardSession(wallet, Date.now(), kind);
+		}
+		return response.status(200).json(data);
 	}
-	return response.status(200).json(data);
 }
