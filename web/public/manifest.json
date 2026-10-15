@@ -1,5 +1,5 @@
 {
-  "name": "Raccoon Agent",
-  "description": "Personal DeFi cover monitoring for Nexus Mutual covers.",
-  "iconPath": "holo-raccoon.svg"
+  "name": "CoverRaccoon",
+  "description": "Monitor onchain cover, wallet protection and DeFi risk from your Safe.",
+  "iconPath": "safe-app-icon.svg"
 }
