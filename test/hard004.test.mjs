@@ -16,7 +16,7 @@ function loadHandler(source, deps) {
 function response() {
  return { headers: {}, status(n) { this.code=n; return this; }, setHeader(k,v) { this.headers[k]=v; }, json(body) { this.body=body; return this; } };
 }
-import { resolveLogout, CLEAR_SESSION_COOKIES, clearSessionCookies, resolveDashboardSession, createDashboardSession, SESSION_COOKIE } from '../src/dashboard-auth.mjs';
+import { resolveLogout, CLEAR_SESSION_COOKIES, resolveDashboardSession, createDashboardSession, SESSION_COOKIE } from '../src/dashboard-auth.mjs';
 
 test('dashboard never issues binding handoffs; new and legacy bot payloads require pending-link proof', () => {
  assert.doesNotMatch(dashboard, /newTelegramHandoff/);
@@ -37,7 +37,7 @@ for (const transport of ['cookie', 'bearer']) {
    const token=createDashboardSession('0x1111111111111111111111111111111111111111');
    const headers=transport==='cookie'?{cookie:`${SESSION_COOKIE}=${token}`}:{authorization:`Bearer ${token}`};
    let writes=0;
-   const handler=loadHandler(dashboard,{queryParams,singleQueryValue,resolveDashboardSession,isDashboardSessionRevoked:async()=>true,requireSameOrigin:()=>true,enforceRateLimit:async()=>true,CLEAR_SESSION_COOKIES,clearSessionCookies,resolveLogout,revokeDashboardSessions:async()=>{writes++;}});
+   const handler=loadHandler(dashboard,{queryParams,singleQueryValue,resolveDashboardSession,isDashboardSessionRevoked:async()=>true,requireSameOrigin:()=>true,enforceRateLimit:async()=>true,CLEAR_SESSION_COOKIES,resolveLogout,revokeDashboardSessions:async()=>{writes++;}});
    for(let i=0;i<3;i++) {
     const res=response(); await handler({method:'DELETE',url:'/api/dashboard',headers},res);
     assert.equal(res.code,200); assert.equal(res.body.ok,true); assert.deepEqual(res.headers['set-cookie'],CLEAR_SESSION_COOKIES);
@@ -53,7 +53,7 @@ for (const mode of ['active','lookup-error','telegram']) {
    queryParams,singleQueryValue,
    resolveDashboardSession:()=>({session:{wallet:'0x1111111111111111111111111111111111111111',iat:100}}),
    isDashboardSessionRevoked:async()=>{if(mode==='lookup-error')throw Error('offline');return false;},
-   requireSameOrigin:()=>true,enforceRateLimit:async()=>true,CLEAR_SESSION_COOKIES,clearSessionCookies,resolveLogout,isDeployedContract:async()=>false,noContractCodeByQuorum:async()=>true,
+   requireSameOrigin:()=>true,enforceRateLimit:async()=>true,CLEAR_SESSION_COOKIES,resolveLogout,isDeployedContract:async()=>false,noContractCodeByQuorum:async()=>true,
    revokeDashboardSessions:async()=>{writes++;},recordAgentEvent:async()=>{},
    unlinkWalletByWallet:async()=>{unlinks++;return [];}
   });

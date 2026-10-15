@@ -1484,17 +1484,15 @@ function renderSafeState(state, detail = {}) {
 }
 
 async function runSafeAppLogin(ctx) {
-	const { startSafeApp } = await import('./safe-app.js');
+	const { runSafeLogin } = await import('./safe-app.js');
 	document.body.classList.add('safe-mode');
 	for (const selector of ['.actions', '.security', '.verify', '#link-account']) {
 		const element = document.querySelector(selector);
 		if (element) element.hidden = true;
 	}
 	try {
-		// Safe-App-Reload: erst eine bestehende Sitzung derselben Safe uebernehmen (Cookie,
-		// ohne Signatur), sonst unveraendert der Login (startSafeApp in safe-app.js).
-		const { sessionToken, dashboard } = await startSafeApp({ sdk: ctx.sdk, info: ctx.info, fetchFn: fetch, onState: renderSafeState });
-		safeSession = sessionToken; // nur im Speicher; nach Wiederherstellung null
+		const { sessionToken, dashboard } = await runSafeLogin({ sdk: ctx.sdk, info: ctx.info, fetchFn: fetch, onState: renderSafeState });
+		safeSession = sessionToken; // nur im Speicher
 		safeContext = ctx; // fuer frische Bestaetigungen (AUDIT SA-L1), ebenfalls nur im Speicher
 		await configPromise.catch(() => null);
 		renderDashboard(dashboard);

@@ -216,66 +216,6 @@ export function readBearerToken(request) {
 	return match ? match[1] : null;
 }
 
-/*
-	PRODUKTIONS-EXPERIMENT (15.10.2026) fuer GENAU EINE freigegebene, leere Test-Safe:
-	partitioniertes HttpOnly-Cookie statt des JS-lesbaren Safe-Bearers. Aktiv nur, wenn
-	  SAFE_PARTITIONED_COOKIE_EXPERIMENT === 'true'
-	  VERCEL_ENV === 'production'
-	  die serverseitig BEWIESENE Contract-Wallet === SAFE_PARTITIONED_COOKIE_TEST_WALLET
-	Die Freigabe ist genau EINE Adresse (0x + 40 Hex, sonst gilt sie als nicht gesetzt):
-	keine Liste, kein Platzhalter, kein Praefix, kein Trimmen. Fuer jede andere Wallet,
-	jede EOA und ohne volle Aktivierung laeuft alles exakt wie bisher - inklusive Bearer.
-	Das Cookie traegt DASSELBE Token wie das Strict-Cookie derselben Anmeldung (gleiches
-	iat/exp, gleicher Widerruf); es steht nie im JSON.
-*/
-export const SAFEAPP_COOKIE = '__Host-raccoon_safeapp';
-const SAFEAPP_COOKIE_OPTIONS = `Path=/; Max-Age=${SESSION_TTL_CONTRACT_MS / 1000}; Secure; HttpOnly; SameSite=None; Partitioned`;
-const CLEAR_SAFEAPP_COOKIE = `${SAFEAPP_COOKIE}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=None; Partitioned`;
-
-/** Die eine freigegebene Test-Safe (kleingeschrieben) - oder null, wenn das Experiment nicht voll aktiv ist. */
-function safeAppTestWallet() {
-	if (process.env.SAFE_PARTITIONED_COOKIE_EXPERIMENT !== 'true' || process.env.VERCEL_ENV !== 'production') return null;
-	const wallet = process.env.SAFE_PARTITIONED_COOKIE_TEST_WALLET;
-	return typeof wallet === 'string' && /^0x[0-9a-fA-F]{40}$/.test(wallet) ? wallet.toLowerCase() : null;
-}
-
-/** Gilt das Experiment fuer genau diese Sitzung (Contract, freigegebene Wallet)? */
-export function safeAppCookieApplies(wallet, kind) {
-	const testWallet = safeAppTestWallet();
-	return testWallet !== null && kind === 'contract' && typeof wallet === 'string' && wallet.toLowerCase() === testWallet;
-}
-
-/**
- * Das partitionierte Safe-App-Cookie zum soeben ausgestellten Strict-Cookie - oder null.
- * Der Wert wird aus dem Strict-Cookie uebernommen (kein neues Token) und nochmals
- * geprueft: Contract-Sitzung genau der freigegebenen Wallet.
- */
-export function safeAppCookieFor(sessionCookie, wallet, kind) {
-	if (!safeAppCookieApplies(wallet, kind)) return null;
-	const prefix = `${SESSION_COOKIE}=`;
-	if (typeof sessionCookie !== 'string' || !sessionCookie.startsWith(prefix)) return null;
-	const raw = sessionCookie.slice(prefix.length, sessionCookie.indexOf(';'));
-	let session;
-	try { session = verifyDashboardSession(decodeURIComponent(raw)); } catch { return null; }
-	if (!session || !safeAppCookieApplies(session.wallet, session.kind)) return null;
-	return `${SAFEAPP_COOKIE}=${raw}; ${SAFEAPP_COOKIE_OPTIONS}`;
-}
-
-/**
- * Cookies, die ein Logout loescht. Nur wenn die Anfrage ein Safe-App-Cookie
- * mitbringt, kommt dessen Loeschung dazu - fuer alle anderen exakt die bisherige Liste.
- */
-export function clearSessionCookies(request) {
-	return cookieOf(request, SAFEAPP_COOKIE) === null ? CLEAR_SESSION_COOKIES : [...CLEAR_SESSION_COOKIES, CLEAR_SAFEAPP_COOKIE];
-}
-
-/** Safe-App-Cookie als Sitzung - nur im aktiven Experiment und nur fuer die freigegebene Contract-Wallet. */
-function safeAppSession(request) {
-	if (safeAppTestWallet() === null) return null;
-	const session = verifyDashboardSession(cookieOf(request, SAFEAPP_COOKIE));
-	return session && safeAppCookieApplies(session.wallet, session.kind) ? session : null;
-}
-
 /**
  * Loest die Dashboard-Session aus Cookie UND/ODER Bearer auf - rein ueber HMAC,
  * ohne Datenbank (die Revoke-Pruefung bleibt im Handler). Regeln:
@@ -289,14 +229,6 @@ function safeAppSession(request) {
 export function resolveDashboardSession(request) {
 	const cookie = verifyDashboardSession(readSessionCookie(request));
 	const bearer = verifyDashboardSession(readBearerToken(request));
-	// PRODUKTIONS-EXPERIMENT: Safe-App-Cookie der Test-Safe als dritte Quelle; jede
-	// abweichende Wallet unter den gueltigen Quellen -> CONFLICT. Sonst null = wie bisher.
-	const safeApp = safeAppSession(request);
-	if (safeApp) {
-		const valid = [cookie, safeApp, bearer].filter(Boolean);
-		if (valid.some((s) => s.wallet !== valid[0].wallet)) return { conflict: true, session: null };
-		return { conflict: false, session: valid[0] };
-	}
 	if (cookie && bearer) {
 		if (cookie.wallet !== bearer.wallet) return { conflict: true, session: null };
 		return { conflict: false, session: cookie };

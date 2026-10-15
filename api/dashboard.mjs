@@ -1,6 +1,6 @@
 import { isAddress } from 'viem';
 import { getWalletCovers } from '../src/covers.mjs';
-import { actionMessage, actionSiweExpectation, CLEAR_SESSION_COOKIES, clearSessionCookies, safeAppCookieFor, createActionChallenge, createDashboardChallenge, createDashboardSession, DASHBOARD_CHALLENGE_TTL_CONTRACT_MS, DASHBOARD_CHALLENGE_TTL_EOA_MS, dashboardMessage, dashboardSiweExpectation, resolveDashboardSession, resolveLogout, sessionCookieHeader, verifyActionChallenge, verifyDashboardToken } from '../src/dashboard-auth.mjs';
+import { actionMessage, actionSiweExpectation, CLEAR_SESSION_COOKIES, createActionChallenge, createDashboardChallenge, createDashboardSession, DASHBOARD_CHALLENGE_TTL_CONTRACT_MS, DASHBOARD_CHALLENGE_TTL_EOA_MS, dashboardMessage, dashboardSiweExpectation, resolveDashboardSession, resolveLogout, sessionCookieHeader, verifyActionChallenge, verifyDashboardToken } from '../src/dashboard-auth.mjs';
 import { noContractCodeByQuorum, verifyOnchainDashboardLoginApproval, verifyWalletSiweAuthority } from '../src/contract-signature.mjs';
 import { isDeployedContract } from '../src/contract-detect.mjs';
 import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, isDashboardChallengeOpen, getWalletLinkStateByWallet, isDashboardSessionRevoked, recordAgentEvent, revokeDashboardSessions, storeDashboardChallenge, unlinkWalletByWallet, unlinkWalletFromAllChats } from '../src/db.mjs';
@@ -193,7 +193,7 @@ export default async function handler(request, response) {
 		if (saved) {
 			try {
 				if (await isDashboardSessionRevoked(saved.wallet, sessionIssuedAt(saved))) {
-					response.setHeader('set-cookie', clearSessionCookies(request));
+					response.setHeader('set-cookie', CLEAR_SESSION_COOKIES);
 					return response.status(200).json({ ok: true });
 				}
 			} catch {
@@ -207,7 +207,7 @@ export default async function handler(request, response) {
 		if (saved && await freshAuthorityRequired(saved)) {
 			const body = request.body && typeof request.body === 'object' ? request.body : {};
 			if (body.token === undefined && body.signature === undefined) {
-				response.setHeader('set-cookie', clearSessionCookies(request));
+				response.setHeader('set-cookie', CLEAR_SESSION_COOKIES);
 				return response.status(200).json({ ok: true, revoked: false, freshSignatureRequired: true });
 			}
 			if (!await verifyFreshAuthority(request, response, saved.wallet, 'session-revoke')) return;
@@ -216,7 +216,7 @@ export default async function handler(request, response) {
 		// Eine abgegriffene Session blieb damit sieben Tage gueltig. Jetzt wird sie
 		// serverseitig widerrufen. Die Cookies verschwinden in JEDEM Fall, auch
 		// wenn der Widerruf scheitert; gemeldet wird der Erfolg aber erst danach.
-		response.setHeader('set-cookie', clearSessionCookies(request));
+		response.setHeader('set-cookie', CLEAR_SESSION_COOKIES);
 		const logout = await resolveLogout({
 			session: saved,
 			revoke: revokeDashboardSessions,
@@ -357,13 +357,7 @@ export default async function handler(request, response) {
 		'contract'). Die Sitzungsart kommt aus dem tatsaechlich erfolgreichen Pfad.
 	*/
 	async function issueLoginSession(request, response, wallet, kind, mode) {
-		const cookie = sessionCookieHeader(wallet, Date.now(), kind);
-		const bearerRequested = String(request.headers['x-dashboard-transport'] ?? '').toLowerCase() === 'bearer';
-		// PRODUKTIONS-EXPERIMENT: nur fuer die eine freigegebene Test-Safe im Safe-App-Fluss
-		// kommt das partitionierte HttpOnly-Cookie (dasselbe Token) STATT des Bearers. Fuer
-		// jede andere Sitzung null -> exakt der bisherige Header und Bearer.
-		const safeAppCookie = bearerRequested ? safeAppCookieFor(cookie, wallet, kind) : null;
-		response.setHeader('set-cookie', safeAppCookie ? [cookie, safeAppCookie] : cookie);
+		response.setHeader('set-cookie', sessionCookieHeader(wallet, Date.now(), kind));
 		await recordAgentEvent({ wallet, eventType: 'dashboard.wallet_authenticated', source: 'dashboard', metadata: { mode } }).catch(() => {});
 		const data = await dashboardData(wallet);
 		// AGENT-SAFE-3: Safe-App-Pfad (eingebettetes iframe) kann das __Host-Cookie
@@ -377,7 +371,7 @@ export default async function handler(request, response) {
 		// Client verlangt; sie hat nur das HttpOnly-Cookie. Restrisiko: ein
 		// kompromittiertes Frontend kann fuer eine Safe weiterhin einen 24-h-Bearer
 		// anfordern (Abhilfe waere ein Partitioned-HttpOnly-Cookie, offen).
-		if (kind === 'contract' && bearerRequested && !safeAppCookie) {
+		if (kind === 'contract' && String(request.headers['x-dashboard-transport'] ?? '').toLowerCase() === 'bearer') {
 			data.sessionToken = createDashboardSession(wallet, Date.now(), kind);
 		}
 		return response.status(200).json(data);
