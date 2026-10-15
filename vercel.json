@@ -3,6 +3,9 @@
   "installCommand": "npm ci --ignore-scripts",
   "buildCommand": "npm run build:web",
   "outputDirectory": "dist-web",
+  "git": {
+    "deploymentEnabled": false
+  },
   "regions": ["fra1"],
   "crons": [
     { "path": "/api/alerts", "schedule": "0 8 * * *" }
