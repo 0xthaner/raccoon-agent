@@ -17,6 +17,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { createHmac } from 'node:crypto';
 import { queryParams, singleQueryValue } from '../src/request-query.mjs';
+import { safeAppCookieFor } from '../src/dashboard-auth.mjs';
 
 const dashboard = readFileSync('api/dashboard.mjs', 'utf8');
 const sicherheit = readFileSync('src/http-security.mjs', 'utf8');
@@ -196,6 +197,7 @@ function handlerWith(calls, blocked) {
 		verifyWalletSiweAuthority: async () => { step('verify'); return { result: 'VALID', authority: 'contract' }; },
 		consumeDashboardChallenge: async () => step('consume'),
 		sessionCookieHeader: () => { step('cookie'); return 'test cookie'; },
+		safeAppCookieFor, // echt; ohne aktives Experiment immer null
 		createDashboardSession: () => { step('bearer'); return 'test token'; },
 		recordAgentEvent: async () => {}, dashboardData: async () => ({ ok: true })
 	});
