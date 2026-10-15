@@ -1,5 +1,6 @@
 import { beginTelegramDelivery, getChatProductContext, saveChatProductContext, finishTelegramDelivery, forgetRememberedWallet, getLanguage, getMonitoredWallets, getRememberedWallets, getWalletLink, recordAgentEvent, rememberUnlinkedWallet, renameMonitoredWallet, revokeDashboardSessions, setLanguage, setPrimaryWallet, setWalletAlertSettings, snoozeCoverAlert, unlinkWallet } from './db.mjs';
 import { newDashboardAccess, newLinkRequest } from './linking.mjs';
+import { noContractCodeByQuorum } from './contract-signature.mjs';
 import { startWebServer } from './web.mjs';
 import { CoverDataError, formatWalletCovers, getWalletCovers } from './covers.mjs';
 import { checkExpiryAlerts } from './alerts.mjs';
@@ -362,6 +363,22 @@ async function unlinkTelegramFor(chatId, language) {
 	{ reply_markup: navigationKeyboard(language) });
 }
 
+/*
+	META-AUDIT M-1, 15.10.2026: ein Telegram-Chat hat KEINE wallet-weite Befugnis
+	ueber eine Contract-Wallet (Safe). Er wurde verknuepft, als sein Nutzer Owner
+	war - das kann laengst nicht mehr stimmen, und die Verknuepfung laeuft nie ab.
+	Deshalb widerruft "Wallet vollstaendig trennen" Dashboard-Sitzungen nur noch
+	fuer Wallets, die nach BEIDEN Providern keinen Code haben (EOA: der Schluessel
+	ist die Befugnis und kann nicht entzogen werden - unveraendert). Fuer Safes,
+	Contracts und jede unklare Lage (RPC-Ausfall) wirkt die Aktion nur chat-lokal:
+	DIESER Chat bekommt keine Erinnerungen mehr, sonst aendert sich nichts. Ueberall
+	abmelden und andere Chats trennen geht fuer eine Safe nur im Dashboard mit
+	frischer, aktueller Safe-Bestaetigung.
+*/
+async function walletWideFromChatAllowed(wallet) {
+	try { return await noContractCodeByQuorum(wallet); } catch { return false; }
+}
+
 async function unlinkWalletFor(chatId, language) {
 	const wallets = await getMonitoredWallets(chatId);
 	const link = wallets.find((wallet) => wallet.is_primary) ?? wallets[0];
@@ -371,20 +388,37 @@ async function unlinkWalletFor(chatId, language) {
 		await sendMessage(chatId, language === 'zh' ? '尚未绑定钱包。' : language === 'en' ? 'No wallet was linked.' : 'Es war keine Wallet verknüpft.', { reply_markup: navigationKeyboard(language) });
 		return;
 	}
-	await Promise.all(walletAddresses.map((item) => revokeDashboardSessions(item)));
+	const allowed = await Promise.all(walletAddresses.map(walletWideFromChatAllowed));
+	const revokable = walletAddresses.filter((_, i) => allowed[i]);
+	const chatOnly = walletAddresses.length - revokable.length;
+	await Promise.all(revokable.map((item) => revokeDashboardSessions(item)));
+	// Chat-lokal: nur DIESER Chat und seine gemerkten Wallets.
 	if (link) await unlinkWallet(chatId);
 	await forgetRememberedWallet(chatId);
-	await sendMessage(chatId, language === 'zh'
-		? '钱包已完全断开。Telegram 通知已停止，所有设备上的仪表板会话均已退出。'
-		: language === 'en'
-			? 'Wallet fully disconnected. Telegram notifications are stopped and dashboard sessions on all devices are signed out.'
-			: 'Wallet vollständig getrennt. Telegram-Benachrichtigungen sind gestoppt und die Dashboard-Sitzungen auf allen Geräten wurden abgemeldet.',
+	const safeNote = chatOnly
+		? (language === 'zh'
+			? '\n\n对于合约钱包（例如 Safe），仪表板会话保持不变。如需在所有设备上退出，请在仪表板中用 Safe 确认。'
+			: language === 'en'
+				? '\n\nFor contract wallets (e.g. Safe), dashboard sessions stay as they are. To sign out everywhere, confirm with your Safe in the dashboard.'
+				: '\n\nBei Contract-Wallets (z. B. Safe) bleiben die Dashboard-Sitzungen bestehen. Überall abmelden geht im Dashboard mit einer Bestätigung deiner Safe.')
+		: '';
+	await sendMessage(chatId, (revokable.length
+		? (language === 'zh'
+			? '钱包已完全断开。此聊天的 Telegram 通知已停止，所有设备上的仪表板会话均已退出。'
+			: language === 'en'
+				? 'Wallet fully disconnected. Telegram notifications for this chat are stopped and dashboard sessions on all devices are signed out.'
+				: 'Wallet vollständig getrennt. Telegram-Benachrichtigungen für diesen Chat sind gestoppt und die Dashboard-Sitzungen auf allen Geräten wurden abgemeldet.')
+		: (language === 'zh'
+			? '此聊天的 Telegram 通知已停止。'
+			: language === 'en'
+				? 'Telegram notifications for this chat are stopped.'
+				: 'Telegram-Benachrichtigungen für diesen Chat sind gestoppt.')) + safeNote,
 	{ reply_markup: navigationKeyboard(language) });
 }
 
 async function confirmWalletUnlink(chatId, language) {
 	await sendMessage(chatId,
-		language === 'zh' ? '这将停止 Telegram 通知并退出所有设备上的仪表板。是否继续？' : language === 'en' ? 'This stops Telegram notifications and signs the dashboard out on every device. Continue?' : 'Dadurch werden Telegram-Benachrichtigungen gestoppt und das Dashboard auf allen Geräten abgemeldet. Fortfahren?',
+		language === 'zh' ? '这将停止此聊天的 Telegram 通知；对于普通钱包，还会退出所有设备上的仪表板（合约钱包如 Safe 除外）。是否继续？' : language === 'en' ? 'This stops Telegram notifications for this chat and, for regular wallets, signs the dashboard out on every device (not for contract wallets such as Safe). Continue?' : 'Dadurch werden die Telegram-Benachrichtigungen für diesen Chat gestoppt und bei normalen Wallets das Dashboard auf allen Geräten abgemeldet (nicht bei Contract-Wallets wie Safe). Fortfahren?',
 		{ reply_markup: { inline_keyboard: [[
 			{ text: language === 'zh' ? '确认断开' : language === 'en' ? 'Confirm disconnect' : 'Trennung bestätigen', callback_data: 'confirm:unlink_wallet' },
 			{ text: language === 'zh' ? '取消' : language === 'en' ? 'Cancel' : 'Abbrechen', callback_data: 'confirm:cancel' }

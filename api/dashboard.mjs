@@ -3,7 +3,7 @@ import { getWalletCovers } from '../src/covers.mjs';
 import { actionMessage, actionSiweExpectation, CLEAR_SESSION_COOKIES, createActionChallenge, createDashboardChallenge, createDashboardSession, DASHBOARD_CHALLENGE_TTL_CONTRACT_MS, DASHBOARD_CHALLENGE_TTL_EOA_MS, dashboardMessage, dashboardSiweExpectation, resolveDashboardSession, resolveLogout, sessionCookieHeader, verifyActionChallenge, verifyDashboardToken } from '../src/dashboard-auth.mjs';
 import { noContractCodeByQuorum, verifyWalletSiweAuthority } from '../src/contract-signature.mjs';
 import { isDeployedContract } from '../src/contract-detect.mjs';
-import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, getWalletLinkStateByWallet, isDashboardSessionRevoked, recordAgentEvent, revokeDashboardSessions, storeDashboardChallenge, unlinkWalletByWallet } from '../src/db.mjs';
+import { beginTelegramDelivery, consumeDashboardAccess, consumeDashboardChallenge, finishTelegramDelivery, getLanguage, getWalletLinkStateByWallet, isDashboardSessionRevoked, recordAgentEvent, revokeDashboardSessions, storeDashboardChallenge, unlinkWalletByWallet, unlinkWalletFromAllChats } from '../src/db.mjs';
 import { ANMELDUNG_PAUSIERT, pauseAntwort } from '../src/pause.mjs';
 import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin } from '../src/http-security.mjs';
 import { recordSecurityEvent, securityFingerprint, SECURITY_EVENT } from '../src/security-events.mjs';
@@ -174,8 +174,12 @@ export default async function handler(request, response) {
 		if (singleQueryValue(queryParams(request), 'telegram') === '1') {
 			if (!saved || await isDashboardSessionRevoked(saved.wallet, sessionIssuedAt(saved))) return response.status(401).json({ ok: false, error: 'Keine aktive Dashboard-Sitzung.' });
 			// AUDIT SA-L1: Contract-Wallet -> nur mit frischer Bestaetigung fuer genau "telegram-disconnect".
-			if (await freshAuthorityRequired(saved) && !await verifyFreshAuthority(request, response, saved.wallet, 'telegram-disconnect')) return;
-			const removed = await unlinkWalletByWallet(saved.wallet);
+			const contractAuthority = await freshAuthorityRequired(saved);
+			if (contractAuthority && !await verifyFreshAuthority(request, response, saved.wallet, 'telegram-disconnect')) return;
+			// META-AUDIT M-1: mit AKTUELLER, frisch bestaetigter Contract-Befugnis werden ALLE
+			// Telegram-Chats dieser Wallet getrennt - auch ein veralteter Chat eines entfernten
+			// Owners. EOA unveraendert (nur bei genau einem Chat, sonst im jeweiligen Chat).
+			const removed = contractAuthority ? await unlinkWalletFromAllChats(saved.wallet) : await unlinkWalletByWallet(saved.wallet);
 			await recordAgentEvent({ wallet: saved.wallet, eventType: 'dashboard.telegram_disconnected', source: 'dashboard', metadata: { linkedChats: removed.length } }).catch(() => {});
 			await notifyTelegramDisconnected(removed.map((row) => row.chat_id));
 			return response.status(200).json({ ok: true, disconnected: removed.length > 0 });

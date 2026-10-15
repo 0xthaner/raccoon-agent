@@ -76,6 +76,8 @@ function world({ owners = ['A', 'B'], codeError = null, callError = null, forge 
 		isDashboardSessionRevoked: async (wallet, iat) => { if (state.revokedLookupError) throw new Error('db'); const cut = state.revokedAt.get(wallet.toLowerCase()); return cut != null && iat <= cut; },
 		revokeDashboardSessions: async (wallet) => { state.revokes++; state.revokedAt.set(wallet.toLowerCase(), Date.now()); return Date.now(); },
 		unlinkWalletByWallet: async () => { state.unlinks++; return [{ chat_id: '42' }]; },
+		// META-AUDIT M-1: der Contract-Pfad trennt mit frischer Befugnis alle Chats (gleicher Zaehler).
+		unlinkWalletFromAllChats: async () => { state.unlinks++; return [{ chat_id: '42' }]; },
 		recordAgentEvent: async () => {}, consumeDashboardAccess: async () => null, getLanguage: async () => 'de',
 		beginTelegramDelivery: async () => null, finishTelegramDelivery: async () => {},
 		ANMELDUNG_PAUSIERT: false, pauseAntwort: () => {},

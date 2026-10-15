@@ -136,8 +136,8 @@ export async function getWalletLinkStateByWallet(wallet) {
 	return { linked: rows.length > 0, link: rows.length === 1 ? rows[0] : null };
 }
 
-export async function getMonitoredWallets(chatId) {
-	return value(await db.from('monitored_wallets').select('*').eq('chat_id', String(chatId)).order('is_primary', { ascending: false }).order('linked_at'));
+export async function getMonitoredWallets(chatId, { client = db } = {}) {
+	return value(await client.from('monitored_wallets').select('*').eq('chat_id', String(chatId)).order('is_primary', { ascending: false }).order('linked_at'));
 }
 
 export async function renameMonitoredWallet(chatId, wallet, label) {
@@ -163,17 +163,17 @@ export async function setWalletAlertSettings(chatId, wallet, { thresholds, weekl
 	return rows[0] ?? null;
 }
 
-export async function unlinkWallet(chatId) {
+export async function unlinkWallet(chatId, { client = db } = {}) {
 	const chat = String(chatId);
-	const data = value(await db.from('monitored_wallets').delete().eq('chat_id', chat).select('wallet'));
-	value(await db.from('wallet_links').delete().eq('chat_id', chat));
+	const data = value(await client.from('monitored_wallets').delete().eq('chat_id', chat).select('wallet'));
+	value(await client.from('wallet_links').delete().eq('chat_id', chat));
 	return data.length > 0;
 }
 
-export async function rememberUnlinkedWallet(chatId, wallet) {
+export async function rememberUnlinkedWallet(chatId, wallet, { client = db } = {}) {
 	const normalized = wallet.toLowerCase();
-	value(await db.from('pending_links').delete().eq('chat_id', `unlinked:${chatId}:${normalized}`));
-	value(await db.from('pending_links').insert({
+	value(await client.from('pending_links').delete().eq('chat_id', `unlinked:${chatId}:${normalized}`));
+	value(await client.from('pending_links').insert({
 		code: `unlinked_${randomBytes(18).toString('base64url')}`,
 		chat_id: `unlinked:${chatId}:${normalized}`,
 		nonce: normalized,
@@ -186,48 +186,72 @@ export async function getRememberedWallet(chatId) {
 	return rows[0]?.nonce ?? null;
 }
 
-export async function getRememberedWallets(chatId) {
-	const rows = value(await db.from('pending_links').select('nonce').like('chat_id', `unlinked:${chatId}:%`));
+export async function getRememberedWallets(chatId, { client = db } = {}) {
+	const rows = value(await client.from('pending_links').select('nonce').like('chat_id', `unlinked:${chatId}:%`));
 	return [...new Set(rows.map((row) => row.nonce))];
 }
 
-export async function forgetRememberedWallet(chatId) {
-	value(await db.from('pending_links').delete().like('chat_id', `unlinked:${chatId}:%`));
+export async function forgetRememberedWallet(chatId, { client = db } = {}) {
+	value(await client.from('pending_links').delete().like('chat_id', `unlinked:${chatId}:%`));
 }
 
-export async function unlinkWalletByWallet(wallet) {
+export async function unlinkWalletByWallet(wallet, { client = db } = {}) {
 	const normalized = wallet.toLowerCase();
-	const matches = value(await db.from('monitored_wallets').select('chat_id,is_primary').eq('wallet', normalized));
+	const matches = value(await client.from('monitored_wallets').select('chat_id,is_primary').eq('wallet', normalized));
 	// Ohne eindeutigen Chatkontext gibt es keine sichere Zielzuordnung. Bei
 	// mehreren Treffern muss die Trennung im jeweiligen Telegram-Chat erfolgen.
 	if (matches.length !== 1) return [];
 	const [{ chat_id: chatId, is_primary: wasPrimary }] = matches;
+	return [await removeWalletFromChat(chatId, normalized, wasPrimary, { remember: true, client })];
+}
 
+/*
+	META-AUDIT M-1, 15.10.2026: die AKTUELLE Befugnis einer Contract-Wallet (frisch
+	per ERC-1271 bestaetigt, api/dashboard.mjs) trennt die Wallet von ALLEN
+	Telegram-Chats - auch von einem, der verknuepft wurde, als sein Nutzer noch
+	Owner war. Ohne diesen Weg konnten die aktuellen Owner einen veralteten Chat
+	nie entfernen (unlinkWalletByWallet greift nur bei genau einem Chat).
+	Betroffen ist je Chat NUR diese eine Wallet; andere Wallets der Chats bleiben.
+	Die Chats merken sich die Wallet nicht ("remember: false"): eine entzogene
+	Verknuepfung soll keine Spur hinterlassen, aus der der Chat spaeter etwas ableitet.
+*/
+export async function unlinkWalletFromAllChats(wallet, { client = db } = {}) {
+	const normalized = wallet.toLowerCase();
+	const matches = value(await client.from('monitored_wallets').select('chat_id,is_primary').eq('wallet', normalized));
+	const removed = [];
+	for (const { chat_id: chatId, is_primary: wasPrimary } of matches) {
+		removed.push(await removeWalletFromChat(chatId, normalized, wasPrimary, { remember: false, client }));
+	}
+	return removed;
+}
+
+/** Entfernt GENAU diese Wallet aus GENAU diesem Chat und richtet dessen Primaer-Wallet neu aus. */
+async function removeWalletFromChat(chatId, normalized, wasPrimary, { remember, client }) {
 	// Die Walletsignatur autorisiert die Entfernung dieser Wallet, nicht die
 	// Loeschung aller anderen Wallets desselben Telegram-Chats.
-	value(await db.from('monitored_wallets').delete().match({ chat_id: chatId, wallet: normalized }));
-	await rememberUnlinkedWallet(chatId, normalized);
+	value(await client.from('monitored_wallets').delete().match({ chat_id: chatId, wallet: normalized }));
+	if (remember) await rememberUnlinkedWallet(chatId, normalized, { client });
 
-	const remaining = value(await db.from('monitored_wallets')
+	const remaining = value(await client.from('monitored_wallets')
 		.select('*')
 		.eq('chat_id', chatId)
 		.order('is_primary', { ascending: false })
 		.order('linked_at'));
 	if (!remaining.length) {
-		value(await db.from('wallet_links').delete().eq('chat_id', chatId));
-		return [{ chat_id: chatId }];
+		value(await client.from('wallet_links').delete().eq('chat_id', chatId));
+		return { chat_id: chatId };
 	}
 	const primary = remaining.find((item) => item.is_primary) ?? remaining[0];
 	if (wasPrimary && !primary.is_primary) {
-		value(await db.from('monitored_wallets').update({ is_primary: true, updated_at: new Date().toISOString() }).match({ chat_id: chatId, wallet: primary.wallet }));
+		value(await client.from('monitored_wallets').update({ is_primary: true, updated_at: new Date().toISOString() }).match({ chat_id: chatId, wallet: primary.wallet }));
 	}
-	value(await db.from('wallet_links').upsert({
+	value(await client.from('wallet_links').upsert({
 		chat_id: chatId,
 		wallet: primary.wallet,
 		linked_at: new Date().toISOString(),
 		alerts_enabled: primary.alerts_enabled
 	}));
-	return [{ chat_id: chatId }];
+	return { chat_id: chatId };
 }
 
 export async function revokeDashboardSessions(wallet, now = Date.now()) {
@@ -259,10 +283,10 @@ export async function setLanguage(chatId, language) {
 	}));
 }
 
-export async function listAlertSubscriptions() {
-	const links = value(await db.from('monitored_wallets').select('chat_id,wallet,label,alert_thresholds,weekly_summary').eq('alerts_enabled', true).order('chat_id'));
+export async function listAlertSubscriptions({ client = db } = {}) {
+	const links = value(await client.from('monitored_wallets').select('chat_id,wallet,label,alert_thresholds,weekly_summary').eq('alerts_enabled', true).order('chat_id'));
 	if (!links.length) return [];
-	const preferences = value(await db.from('user_preferences').select('chat_id,language').in('chat_id', links.map((link) => link.chat_id)));
+	const preferences = value(await client.from('user_preferences').select('chat_id,language').in('chat_id', links.map((link) => link.chat_id)));
 	const languages = new Map(preferences.map((preference) => [preference.chat_id, preference.language]));
 	return links.map((link) => ({ ...link, language: languages.get(link.chat_id) ?? 'de' }));
 }
