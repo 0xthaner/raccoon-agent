@@ -53,6 +53,10 @@ async function verifyFreshAuthority(request, response, wallet, purpose) {
 		return false;
 	}
 	if (!await enforceRateLimitFor(response, 'dashboard-action-verify', wallet.toLowerCase(), 10, 600)) return false;
+	// META-AUDIT M-2: globales Budget (konstanter Schluessel 'all') VOR der Dual-RPC-
+	// ERC-1271-Pruefung. Je Wallet und je IP allein liesse sich mit vielen eigenen
+	// Contract-Wallets und IPs beliebig oft pruefen lassen. Wie der Login.
+	if (!await enforceRateLimitFor(response, 'dashboard-action-verify-global', 'all', 100, 600)) return false;
 	const verified = await verifyWalletSiweAuthority({ message: actionMessage(challenge), signature: body.signature, expected: actionSiweExpectation(challenge) });
 	if (verified.result === 'RPC_UNAVAILABLE') {
 		response.status(503).json({ ok: false, code: 'SIGNATURE_CHECK_UNAVAILABLE', error: 'Die Bestätigung konnte gerade nicht geprüft werden. Bitte gleich erneut versuchen.' });

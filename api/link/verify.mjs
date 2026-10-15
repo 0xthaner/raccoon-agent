@@ -56,6 +56,15 @@ export default async function handler(request, response) {
 	if (!isAddress(wallet) || typeof signature !== 'string') {
 		return response.status(400).json({ ok: false, error: 'Ungültige Signaturdaten.' });
 	}
+	/*
+		META-AUDIT M-2, 15.10.2026: globales Budget (konstanter Schluessel 'all') NACH
+		den billigen Strukturpruefungen und den Grenzen je IP und je Code, aber VOR
+		jedem externen Aufruf - Telegram getChat und der Dual-RPC-ERC-1271-Pruefung
+		(rund zehn RPC-Aufrufe bei zwei Providern je Versuch). Frische Link-Codes und
+		IPs sind billig zu bekommen; ohne diese Schranke liesse sich die Pruefung
+		beliebig oft ausloesen. Wie der Login (dashboard-login-global).
+	*/
+	if (!await enforceRateLimitFor(response, 'wallet-link-verify-global', 'all', 200, 600)) return;
 	// AGENT-SEC-A3/A4: der Text wird serverseitig aus dem gespeicherten
 	// Pending-Link rekonstruiert; Felder und Signatur prueft dieselbe
 	// gemeinsame Grenze wie beim Dashboard. Der Client schickt keine eigene
