@@ -6,9 +6,10 @@
   "scripts": {
     "build:web": "npm run fonts && vite build web --config vite.config.js --outDir ../dist-web --emptyOutDir",
     "fonts": "node scripts/fetch-fonts.mjs",
-    "test": "node --env-file=.env --test",
+    "//test": "Laeuft ueber den Test-Waechter: scheitert bei abgebrochenen, todo- und unerwartet uebersprungenen Tests (16.10.2026).",
+    "test": "node --env-file=.env scripts/run-tests-guarded.mjs",
     "//test:ci": "AGENT-SEC-W1: dieselbe Suite ohne '--env-file=.env' - in einer CI gibt es keine .env, und 'npm test' scheiterte dort schon am Startkommando. Die Tests selbst brauchen nichts davon: keiner macht einen Netzaufruf. Nur 'src/db.mjs' wirft beim Import, wenn SUPABASE_URL und SUPABASE_SECRET_KEY fehlen; der Workflow setzt dafuer zwei Attrappen.",
-    "test:ci": "node --test",
+    "test:ci": "node scripts/run-tests-guarded.mjs",
     "start": "npm run build:web && node --env-file=.env src/bot.mjs",
     "//check:quellen": "Reine Syntaxpruefung. Steht eigenstaendig, damit 'check' und 'check:ci' dieselbe Liste benutzen und nicht auseinanderlaufen. AGENT-SEC-W1: die Sicherheitsmodule und die Frontenddateien standen bisher nicht darin.",
     "check:quellen": "node --check src/bot.mjs && node --check src/telegram-audit.mjs && node --check src/nexus-facts.mjs && node --check src/nexus-documents.mjs && node --check src/pdf-text.mjs && node --check src/positions/aave-registry.mjs && node --check src/positions/aave-v3.mjs && node --check src/positions/match-nexus.mjs && node --check src/positions/index.mjs && node --check api/positions.mjs && node --check src/answer-filter.mjs && node --check src/ai-budget.mjs && node --check src/pause.mjs && node --check src/agent-intent.mjs && node --check src/agent-knowledge.mjs && node --check src/alerts.mjs && node --check src/covers.mjs && node --check src/cover-chain.mjs && node --check src/db.mjs && node --check src/linking.mjs && node --check src/web.mjs && node --check src/dashboard-auth.mjs && node --check src/http-security.mjs && node --check src/siwe-auth.mjs && node --check web/src/main.js && node --check web/src/wallet-methods.js && node --check web/src/eye.js",
