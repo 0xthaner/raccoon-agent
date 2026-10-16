@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2g
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2h
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -8,9 +8,9 @@
 
 ### Security assurance
 
-- FAIL: 19
+- FAIL: 20
 - INFORMATIONAL: 2
-- MISSING_EVIDENCE: 51
+- MISSING_EVIDENCE: 50
 - PASS_AUTOMATED: 50
 - PASS_MANUAL: 24
 
@@ -23,7 +23,8 @@
 
 ### Release-blocking controls by security status
 
-- MISSING_EVIDENCE: 5
+- FAIL: 1
+- MISSING_EVIDENCE: 4
 - PASS_AUTOMATED: 48
 
 ### Standard conformance (ASVS 5.0.0, applicable requirements)
@@ -31,8 +32,8 @@
 - ACCEPTED_PLATFORM_DEVIATION: 1
 - ACCEPTED_PROTOCOL_DEVIATION: 2
 - CONFORMANT: 73
-- NON_CONFORMANT: 21
-- NOT_DEMONSTRATED: 65
+- NON_CONFORMANT: 24
+- NOT_DEMONSTRATED: 62
 
 ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Profile: ASVS L2 (all applicable L1 + L2 requirements are in scope); selected L3: V6.7.2, V15.4.2, V15.4.3, V7.5.3, V3.5.8, V14.2.6, V14.2.7, V8.3.2, V2.3.5.
 
@@ -149,7 +150,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-CONC-004 | Stale cleanup is compare-and-delete | RELEASE_BLOCKING | E5 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E5 |
 | CR-CONC-005 | Session revocation atomic per wallet | RELEASE_BLOCKING | E5 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E5 |
 | CR-CONC-006 | Locks consistent, deadlock-free and local | SECURITY_DEBT | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied; P2 unsatisfied; P3 unsatisfied |
-| CR-RESOURCE-001 | Rate limits before expensive work (IP, wallet, global) | RELEASE_BLOCKING | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-ERC1271,EV-RL,EV-PROBE-LEGACY-RPC,EV-LEGACY-ORDER,EV-KB-LEGACY-ORDER); P2 unsatisfied (partial only: EV-M1,EV-RL); P3 unsatisfied (partial only: EV-RL); P4 unsatisfied (partial only: EV-M2) |
+| CR-RESOURCE-001 | Rate limits before expensive work (IP, wallet, global) | RELEASE_BLOCKING | E3 | **FAIL** | NON_CONFORMANT | P4: F-2H-1: POST /api/position-attributions (and GET for wallets with stored rows) calls getWalletCovers - Alchemy NFT index, Nexus, getCovers RPC - after only the per-IP and per-wallet limits; the only global budget on the path (positions-lookup-global) is consulted solely on a positions cache miss, so with cached positions the cover provider lookup runs with no global limit [EV-PROBE-ATTRIB-COVERS] |
 | CR-RESOURCE-002 | Rate limiter counting atomic | SECURITY_DEBT | E5 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
 | CR-RESOURCE-003 | Cron run budgets, pagination and failure isolation | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E3 |
 | CR-RESOURCE-004 | Dashboard provider amplification bounded | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
@@ -347,6 +348,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-PROBE-LEGACY-RPC | behavioral | E2 | probe | PARTIAL | yes | regression proof (F-2F-1 fixed in Phase 2G): with every per-wallet and global key denied, a legacy session (no kind) reaches no provider on POST {action} or DELETE (429); with every gate admitting it is still classified by the providers; sessions with kind never reach a provider; the probe exits 1 if the defect returns |
 | EV-LEGACY-ORDER | behavioral | E3 | node-test | PARTIAL | yes | real api/dashboard.mjs + real src/http-security.mjs guards + real noContractCodeByQuorum on two offline wire providers with per-provider request counters: for a legacy session (no kind) on POST {action}, DELETE sign-out and DELETE ?telegram=1, a denied per-IP, per-wallet (dashboard-action-wallet) or global (dashboard-action-verify-global) limit yields 429 with Alchemy 0, Infura 0 eth_getCode calls and no challenge store, revocation or unlink, and no later gate is consulted; admitted legacy requests are still classified by both providers (contract code -> fresh authority required; both 0x -> legacy EOA behaviour); the wallet budget is charged once; sessions with kind eoa/contract make no provider call and pass exactly their previous gates |
 | EV-KB-LEGACY-ORDER | known-bad | E4 | mutation | PARTIAL | yes | moving the provider lookup before the gates on POST, bypassing the gate on DELETE sign-out or on DELETE ?telegram=1, or removing the global or the per-wallet gate from the shared helper is each caught behaviourally (provider calls or writes observed under a denied limit) |
+| EV-PROBE-ATTRIB-COVERS | behavioral | E2 | probe | PARTIAL | yes | observation (finding F-2H-1): real createAttributionsHandler + real http-security guards + real getWalletPositions cache; with every global budget denied, a POST whose positions are cached reaches the cover provider lookup without consulting any global limit (503 after the provider work); control: with positions not cached, the denied positions-lookup-global stops the request (429) before any provider work |
 
 ## 6. Mutation cases
 
@@ -536,7 +538,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V2.3.3 | L2 | CR-CONC-001, CR-CONC-004 | CONFORMANT |
 | V2.3.4 | L2 | CR-CONC-002, CR-CONC-003 | CONFORMANT |
 | V2.3.5 | L3 | CR-API-010 | CONFORMANT |
-| V2.4.1 | L2 | CR-RESOURCE-001, CR-RESOURCE-002 | NOT_DEMONSTRATED |
+| V2.4.1 | L2 | CR-RESOURCE-001, CR-RESOURCE-002 | NON_CONFORMANT |
 | V3.2.1 | L1 | CR-BROWSER-006 | CONFORMANT |
 | V3.2.2 | L1 | CR-BROWSER-004 | NOT_DEMONSTRATED |
 | V3.3.1 | L1 | CR-SESSION-004 | CONFORMANT |
@@ -566,7 +568,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V5.2.3 | L2 | CR-DOC-001 | CONFORMANT |
 | V6.1.1 | L1 | CR-AUTH-011 | NON_CONFORMANT |
 | V6.1.3 | L2 | CR-AUTH-009 | NON_CONFORMANT |
-| V6.3.1 | L1 | CR-RESOURCE-001 | NOT_DEMONSTRATED |
+| V6.3.1 | L1 | CR-RESOURCE-001 | NON_CONFORMANT |
 | V6.3.2 | L1 | CR-AUTH-012 | CONFORMANT |
 | V6.3.3 | L2 | CR-AUTH-010 | NON_CONFORMANT |
 | V6.3.4 | L2 | CR-AUTH-002 | CONFORMANT |
@@ -646,7 +648,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V15.1.2 | L2 | CR-SUPPLY-006 | NOT_DEMONSTRATED |
 | V15.1.3 | L2 | CR-RESOURCE-006 | NON_CONFORMANT |
 | V15.2.1 | L1 | CR-SUPPLY-005 | NON_CONFORMANT |
-| V15.2.2 | L2 | CR-RESOURCE-001, CR-RESOURCE-003, CR-RESOURCE-004, CR-DOC-003 | NOT_DEMONSTRATED |
+| V15.2.2 | L2 | CR-RESOURCE-001, CR-RESOURCE-003, CR-RESOURCE-004, CR-DOC-003 | NON_CONFORMANT |
 | V15.2.3 | L2 | CR-CONFIG-008 | CONFORMANT |
 | V15.3.1 | L1 | CR-API-007 | NOT_DEMONSTRATED |
 | V15.3.2 | L2 | CR-PROVIDER-003 | CONFORMANT |
@@ -747,4 +749,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2e** — Phase 2E: F-2D-2 fixed (fail closed on malformed eth_getCode answers); CR-PROVIDER-001 recomputed; finding-fix records must be proven (FINDING_FIX_NOT_PROVEN).
 - **1.0-draft-phase2f** — Phase 2F: application finding F-2F-1 recorded as a VIOLATION of CR-RESOURCE-001 P1 (stop condition B, not fixed); remaining controls not attempted.
 - **1.0-draft-phase2g** — Phase 2G: F-2F-1 fixed (dashboard action limits before the legacy provider lookup); CR-RESOURCE-001 recomputed (no FAIL; P1 evidence partial, P2-P4 unchanged).
+- **1.0-draft-phase2h** — Phase 2H: application finding F-2H-1 recorded as a VIOLATION of CR-RESOURCE-001 P4 (stop condition B, not fixed); remaining work not attempted.
 

@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2g",
+	"crsf_version": "1.0-draft-phase2h",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -6006,6 +6006,51 @@
 			],
 			"coverage": "PARTIAL",
 			"reason_for_partial": "CR-RESOURCE-001[P1]: mutation cases: MUT-CR-RESOURCE-001-P1-F2F1A, MUT-CR-RESOURCE-001-P1-F2F1B1, MUT-CR-RESOURCE-001-P1-F2F1B2, MUT-CR-RESOURCE-001-P1-F2F1C, MUT-CR-RESOURCE-001-P1-F2F1D; covers the provider work of the dashboard action paths (legacy kind lookup on POST {action}, DELETE sign-out, DELETE ?telegram=1); login, on-chain approval and fresh-authority verification ordering are not behaviourally proven by this item"
+		},
+		{
+			"id": "EV-PROBE-ATTRIB-COVERS",
+			"type": "behavioral",
+			"level": "E2",
+			"source": "repository",
+			"artifact": "security/crsf/probes/attribution-cover-budget-probe.mjs",
+			"test_or_proof": "node security/crsf/probes/attribution-cover-budget-probe.mjs",
+			"property_proven": "observation (finding F-2H-1): real createAttributionsHandler + real http-security guards + real getWalletPositions cache; with every global budget denied, a POST whose positions are cached reaches the cover provider lookup without consulting any global limit (503 after the provider work); control: with positions not cached, the denied positions-lookup-global stops the request (429) before any provider work",
+			"property_not_proven": "real provider cost; cross-instance behaviour of the in-memory positions cache (per serverless instance)",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "F-2H-1: POST /api/position-attributions (and GET for wallets with stored rows) calls getWalletCovers - Alchemy NFT index, Nexus, getCovers RPC - after only the per-IP and per-wallet limits; the only global budget on the path (positions-lookup-global) is consulted solely on a positions cache miss, so with cached positions the cover provider lookup runs with no global limit"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "probe",
+				"script": "security/crsf/probes/attribution-cover-budget-probe.mjs",
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 60000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			},
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P4]: F-2H-1: POST /api/position-attributions (and GET for wallets with stored rows) calls getWalletCovers - Alchemy NFT index, Nexus, getCovers RPC - after only the per-IP and per-wallet limits; the only global budget on the path (positions-lookup-global) is consulted solely on a positions cache miss, so with cached positions the cover provider lookup runs with no global limit"
 		}
 	]
 }

@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2g",
+	"crsf_version": "1.0-draft-phase2h",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -3800,6 +3800,7 @@
 				"EV-LEGACY-ORDER",
 				"EV-M1",
 				"EV-M2",
+				"EV-PROBE-ATTRIB-COVERS",
 				"EV-PROBE-LEGACY-RPC",
 				"EV-RL"
 			],
@@ -3838,10 +3839,10 @@
 					"insufficient": []
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied (partial only: EV-ERC1271,EV-RL,EV-PROBE-LEGACY-RPC,EV-LEGACY-ORDER,EV-KB-LEGACY-ORDER); P2 unsatisfied (partial only: EV-M1,EV-RL); P3 unsatisfied (partial only: EV-RL); P4 unsatisfied (partial only: EV-M2)",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied (partial only: EV-ERC1271,EV-RL,EV-PROBE-LEGACY-RPC,EV-LEGACY-ORDER,EV-KB-LEGACY-ORDER); P2 unsatisfied (partial only: EV-M1,EV-RL); P3 unsatisfied (partial only: EV-RL); P4 unsatisfied (partial only: EV-M2)",
+			"conformance_status": "NON_CONFORMANT",
+			"conformance_status_reason": "P4: F-2H-1: POST /api/position-attributions (and GET for wallets with stored rows) calls getWalletCovers - Alchemy NFT index, Nexus, getCovers RPC - after only the per-IP and per-wallet limits; the only global budget on the path (positions-lookup-global) is consulted solely on a positions cache miss, so with cached positions the cover provider lookup runs with no global limit [EV-PROBE-ATTRIB-COVERS]",
+			"security_status": "FAIL",
+			"security_status_reason": "P4: F-2H-1: POST /api/position-attributions (and GET for wallets with stored rows) calls getWalletCovers - Alchemy NFT index, Nexus, getCovers RPC - after only the per-IP and per-wallet limits; the only global budget on the path (positions-lookup-global) is consulted solely on a positions cache miss, so with cached positions the cover provider lookup runs with no global limit [EV-PROBE-ATTRIB-COVERS]",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [

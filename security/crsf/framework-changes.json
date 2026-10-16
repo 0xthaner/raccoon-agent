@@ -987,6 +987,35 @@
 					"reason": "The finding block of framework-changes records gains optional affected_population, order_before, order_after and application_files_changed fields (documentation only; the FINDING_FIX_NOT_PROVEN check is unchanged)."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2h",
+			"summary": "Phase 2H: application finding F-2H-1 recorded as a VIOLATION of CR-RESOURCE-001 P4 (stop condition B, not fixed); remaining work not attempted.",
+			"changes": [
+				{
+					"id": "F-2H-1",
+					"kind": "NEW_FINDING",
+					"reason": "Application, Low. api/position-attributions.mjs: currentState() calls getCovers = getWalletCovers (Alchemy NFT index + Nexus + getCovers RPC; no cache, no budget of its own) after only attributions-write (IP, 30/600 s) and attributions-write-wallet (30/600 s) on POST, or attributions-read / attributions-wallet on GET for wallets with stored rows. The only global budget on the path, positions-lookup-global (200/600 s), is consulted inside getWalletPositions ONLY on a positions cache miss (cache 60 s, failures 15 s, per instance). With cached positions, every syntactically valid POST triggers a full cover provider lookup with no global limit; many valid sessions multiply it without bound. The dashboard read path budgets exactly these lookups per wallet AND globally (Restaudit M2: dashboard-read-wallet / dashboard-read-global, plus cache and coalescing); this endpoint bypasses both. Fix direction: put a global cover-lookup budget (reuse the M2 budget or positions-lookup-global semantics) in front of getCovers on both methods, ideally through the same cached/coalesced cover lookup as the dashboard. Not fixed in Phase 2H."
+				},
+				{
+					"id": "CR-RESOURCE-001",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "FAIL",
+					"minimum_level": "E3",
+					"evidence_added": [
+						"security/crsf/probes/attribution-cover-budget-probe.mjs (EV-PROBE-ATTRIB-COVERS, VIOLATION P4)"
+					],
+					"why_sufficient": "Reproducible observation of a P4 violation (attribution lookups not limited globally before provider calls) on the real handler, guards and positions cache; FAIL until fixed; the probe exits 1 after a fix so the record must then be revisited.",
+					"remains_unproven": "n/a (finding). P1 login / on-chain / verify paths were read (all gate IP -> per-key -> global before verification) but not yet covered by behavioural evidence; P2 and P3 were read (gated) but not re-evidenced.",
+					"reason": "application finding F-2H-1 (Phase 2H), not fixed - stop condition B"
+				},
+				{
+					"id": "STOP-2H",
+					"kind": "STOP_CONDITION",
+					"reason": "Stop condition B (real application finding F-2H-1) reached during the CR-RESOURCE-001 P2-P4 inventory, the first item of Phase 2H. Not attempted: CR-RESOURCE-001 P1 remaining behavioural evidence, CR-INPUT-004, CR-BROWSER-004, CR-VERIFY-003, CR-VERIFY-004."
+				}
+			]
 		}
 	]
 }
