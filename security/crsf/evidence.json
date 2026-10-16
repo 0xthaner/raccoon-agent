@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2h",
+	"crsf_version": "1.0-draft-phase2i",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -6014,17 +6014,17 @@
 			"source": "repository",
 			"artifact": "security/crsf/probes/attribution-cover-budget-probe.mjs",
 			"test_or_proof": "node security/crsf/probes/attribution-cover-budget-probe.mjs",
-			"property_proven": "observation (finding F-2H-1): real createAttributionsHandler + real http-security guards + real getWalletPositions cache; with every global budget denied, a POST whose positions are cached reaches the cover provider lookup without consulting any global limit (503 after the provider work); control: with positions not cached, the denied positions-lookup-global stops the request (429) before any provider work",
-			"property_not_proven": "real provider cost; cross-instance behaviour of the in-memory positions cache (per serverless instance)",
+			"property_proven": "regression proof (finding F-2H-1, fixed in Phase 2I): real createAttributionsHandler + real http-security guards + real getWalletPositions cache; with a denied global cover budget a POST reaches no cover provider for cold and warm positions caches (429), an admitted POST still reaches the provider and writes, and the warm request makes no positions RPC (cache intact). History: in Phase 2H it reproduced the defect (warm cache, every global budget denied -> cover provider reached and the attribution written).",
+			"property_not_proven": "real provider cost; cross-instance behaviour of the in-memory positions cache (per serverless instance); GET /api/positions",
 			"covers": [
 				{
 					"control": "CR-RESOURCE-001",
 					"properties": [
 						"P4"
 					],
-					"scope": "FULL",
-					"result": "VIOLATION",
-					"note": "F-2H-1: POST /api/position-attributions (and GET for wallets with stored rows) calls getWalletCovers - Alchemy NFT index, Nexus, getCovers RPC - after only the per-IP and per-wallet limits; the only global budget on the path (positions-lookup-global) is consulted solely on a positions cache miss, so with cached positions the cover provider lookup runs with no global limit"
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "Phase 2H: reproduced F-2H-1 (VIOLATION); Phase 2I: inverted to a regression proof after the fix; covers the attribution POST path only"
 				}
 			],
 			"reproducible": true,
@@ -6050,7 +6050,103 @@
 				"CR-RESOURCE-001"
 			],
 			"coverage": "PARTIAL",
-			"reason_for_partial": "CR-RESOURCE-001[P4]: F-2H-1: POST /api/position-attributions (and GET for wallets with stored rows) calls getWalletCovers - Alchemy NFT index, Nexus, getCovers RPC - after only the per-IP and per-wallet limits; the only global budget on the path (positions-lookup-global) is consulted solely on a positions cache miss, so with cached positions the cover provider lookup runs with no global limit"
+			"reason_for_partial": "CR-RESOURCE-001[P4]: Phase 2H: reproduced F-2H-1 (VIOLATION); Phase 2I: inverted to a regression proof after the fix; covers the attribution POST path only"
+		},
+		{
+			"id": "EV-ATTRIB-COVER-BUDGET",
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/attribution-cover-budget.test.mjs",
+			"test_or_proof": "test/attribution-cover-budget.test.mjs",
+			"property_proven": "real createAttributionsHandler + real http-security guards + real getWalletPositions cache + real getWalletCovers up to the wire: with the global cover budget (dashboard-read-global, 300/600 s) denied, POST and GET return 429 with Alchemy NFT 0 / Nexus 0 / getCovers 0 calls and no write, for cold, warm and failure positions caches; the limit order is identical across cache states except positions-lookup-global on a miss; admitted requests make exactly one cover lookup, charge the cover budget once and keep their previous results; paths without a cover lookup charge nothing",
+			"property_not_proven": "GET /api/positions (its own positions-wallet/positions-global/positions-lookup-global gates) is not covered here; limiter store and providers are stubs/offline wire (limiter atomicity is CR-RESOURCE-002)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P4]: covers the cover-provider lookup of /api/position-attributions (POST and GET with stored attributions) for cold, warm and failure positions caches; GET /api/positions is not covered by this evidence",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P4"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "covers the cover-provider lookup of /api/position-attributions (POST and GET with stored attributions) for cold, warm and failure positions caches; GET /api/positions is not covered by this evidence"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/attribution-cover-budget.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-ATTRIB-COVER-BUDGET",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 4 case(s)",
+			"property_proven": "bypassing the global cover budget on POST or on GET, charging it only on a positions-cache miss (the original F-2H-1 shape) or checking it after the lookup is each detected by the intended test and message",
+			"property_not_proven": "GET /api/positions (its own positions-wallet/positions-global/positions-lookup-global gates) is not covered here; limiter store and providers are stubs/offline wire (limiter atomicity is CR-RESOURCE-002)",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P4"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-RESOURCE-001-P4-F2H1A, MUT-CR-RESOURCE-001-P4-F2H1B, MUT-CR-RESOURCE-001-P4-F2H1C, MUT-CR-RESOURCE-001-P4-F2H1D"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-RESOURCE-001-P4-F2H1A",
+					"MUT-CR-RESOURCE-001-P4-F2H1B",
+					"MUT-CR-RESOURCE-001-P4-F2H1C",
+					"MUT-CR-RESOURCE-001-P4-F2H1D"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P4]: mutation cases: MUT-CR-RESOURCE-001-P4-F2H1A, MUT-CR-RESOURCE-001-P4-F2H1B, MUT-CR-RESOURCE-001-P4-F2H1C, MUT-CR-RESOURCE-001-P4-F2H1D"
 		}
 	]
 }

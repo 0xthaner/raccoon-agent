@@ -215,6 +215,22 @@
 												"minLength": 1
 											},
 											"minItems": 1
+										},
+										"affected_endpoints": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"minLength": 1
+											},
+											"minItems": 1
+										},
+										"cache_dependency": {
+											"type": "string",
+											"minLength": 20
+										},
+										"global_budget_used": {
+											"type": "string",
+											"minLength": 20
 										}
 									}
 								}

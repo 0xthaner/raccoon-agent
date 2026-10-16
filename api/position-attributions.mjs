@@ -81,6 +81,16 @@ function createInnerHandler({
 			if (error instanceof LookupNotAdmittedError) return { aborted: true };
 			positions = null;
 		}
+		/*
+			CRSF F-2H-1, 17.10.2026: die Cover-Abfrage (Alchemy-NFT-Index, Nexus, RPC
+			getCovers) hatte hier keine globale Schranke - positions-lookup-global oben
+			greift nur, wenn der Positions-Cache verfehlt. Jetzt zieht JEDE Cover-Abfrage
+			unmittelbar davor das kanonische globale Cover-Budget des Dashboard-Lesepfads
+			(Restaudit M2, dashboard-read-global, 300 in 10 Minuten), unabhaengig vom
+			Cache-Zustand. Positionen und Covers sind getrennte Provider-Arbeit, daher
+			getrennte Budgets. Abgelehnt: 429 (schon geschrieben), keine Abfrage.
+		*/
+		if (!await rateLimitFor(response, 'dashboard-read-global', 'all', 300, 600)) return { aborted: true };
 		try {
 			covers = await getCovers(wallet);
 		} catch {

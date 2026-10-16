@@ -5662,6 +5662,167 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P4-F2H1A",
+			"origin": "new (Phase 2I)",
+			"evidence_id": "EV-KB-ATTRIB-COVER-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P4"
+				}
+			],
+			"description": "POST: the global cover budget is bypassed (cover lookup after only the IP and wallet limits)",
+			"edits": [
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\tasync function currentState(wallet, response) {",
+					"replace": "\tasync function currentState(wallet, response, skipCoverBudget = false) {"
+				},
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\t\tif (!await rateLimitFor(response, 'dashboard-read-global', 'all', 300, 600)) return { aborted: true };\n",
+					"replace": "\t\tif (!skipCoverBudget && !await rateLimitFor(response, 'dashboard-read-global', 'all', 300, 600)) return { aborted: true };\n"
+				},
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "// POST: erst alles serverseitig pruefen, dann schreiben.\n\t\tconst state = await currentState(wallet, response);",
+					"replace": "// POST: erst alles serverseitig pruefen, dann schreiben.\n\t\tconst state = await currentState(wallet, response, true);"
+				}
+			],
+			"tests": [
+				"test/attribution-cover-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^ATTRIB-COVER-BUDGET POST (denied|allowed) (cold|warm|failure)$",
+					"message": "^POST (cold|warm|failure):"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P4-F2H1B",
+			"origin": "new (Phase 2I)",
+			"evidence_id": "EV-KB-ATTRIB-COVER-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P4"
+				}
+			],
+			"description": "GET with stored attributions: the global cover budget is bypassed",
+			"edits": [
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\tasync function currentState(wallet, response) {",
+					"replace": "\tasync function currentState(wallet, response, skipCoverBudget = false) {"
+				},
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\t\tif (!await rateLimitFor(response, 'dashboard-read-global', 'all', 300, 600)) return { aborted: true };\n",
+					"replace": "\t\tif (!skipCoverBudget && !await rateLimitFor(response, 'dashboard-read-global', 'all', 300, 600)) return { aborted: true };\n"
+				},
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\t\t\tconst state = await currentState(wallet, response);",
+					"replace": "\t\t\tconst state = await currentState(wallet, response, true);"
+				}
+			],
+			"tests": [
+				"test/attribution-cover-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^ATTRIB-COVER-BUDGET GET (denied|allowed) (cold|warm|failure)$",
+					"message": "^GET (cold|warm|failure):"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P4-F2H1C",
+			"origin": "new (Phase 2I)",
+			"evidence_id": "EV-KB-ATTRIB-COVER-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P4"
+				}
+			],
+			"description": "the global cover budget is charged only on a positions-cache miss (inside the positions admit) - the original F-2H-1 shape",
+			"edits": [
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\t\tif (!await rateLimitFor(response, 'dashboard-read-global', 'all', 300, 600)) return { aborted: true };\n",
+					"replace": ""
+				},
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\t\tconst admit = () => rateLimitFor(response, 'positions-lookup-global', 'all', 200, 600);",
+					"replace": "\t\tconst admit = async () => await rateLimitFor(response, 'positions-lookup-global', 'all', 200, 600) && await rateLimitFor(response, 'dashboard-read-global', 'all', 300, 600);"
+				}
+			],
+			"tests": [
+				"test/attribution-cover-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^ATTRIB-COVER-BUDGET (POST|GET) denied (warm|failure)$",
+					"message": "^(POST|GET) (warm|failure): status (200|503)"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P4-F2H1D",
+			"origin": "new (Phase 2I)",
+			"evidence_id": "EV-KB-ATTRIB-COVER-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P4"
+				}
+			],
+			"description": "the global cover budget is checked after the cover lookup instead of before it",
+			"edits": [
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\t\tif (!await rateLimitFor(response, 'dashboard-read-global', 'all', 300, 600)) return { aborted: true };\n\t\ttry {\n\t\t\tcovers = await getCovers(wallet);\n\t\t} catch {\n\t\t\tcovers = null;\n\t\t}\n",
+					"replace": "\t\ttry {\n\t\t\tcovers = await getCovers(wallet);\n\t\t} catch {\n\t\t\tcovers = null;\n\t\t}\n\t\tif (!await rateLimitFor(response, 'dashboard-read-global', 'all', 300, 600)) return { aborted: true };\n"
+				}
+			],
+			"tests": [
+				"test/attribution-cover-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^ATTRIB-COVER-BUDGET (POST|GET) denied (cold|warm|failure)$",
+					"message": "^(POST|GET) (cold|warm|failure): cover provider reached"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

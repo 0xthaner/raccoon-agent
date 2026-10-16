@@ -1016,6 +1016,89 @@
 					"reason": "Stop condition B (real application finding F-2H-1) reached during the CR-RESOURCE-001 P2-P4 inventory, the first item of Phase 2H. Not attempted: CR-RESOURCE-001 P1 remaining behavioural evidence, CR-INPUT-004, CR-BROWSER-004, CR-VERIFY-003, CR-VERIFY-004."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2i",
+			"summary": "Phase 2I: F-2H-1 fixed in api/position-attributions.mjs (global cover budget before every cover lookup), proven behaviourally and by four KILLED mutations; the VIOLATION probe is inverted to a regression proof. Same-root-cause search found a separate application finding F-2I-1 (Telegram cover lookups without any limit), recorded and not fixed (stop).",
+			"changes": [
+				{
+					"id": "F-2H-1",
+					"kind": "FINDING_FIXED",
+					"reason": "Application finding F-2H-1 (Low, Phase 2H) fixed in api/position-attributions.mjs; proven behaviourally for cold, warm and failure positions caches and by four KILLED mutations; the VIOLATION probe is inverted to a regression proof.",
+					"finding": {
+						"control": "CR-RESOURCE-001",
+						"property": "P4",
+						"status_before": "OPEN",
+						"status_after": "FIXED",
+						"affected_endpoints": [
+							"POST /api/position-attributions",
+							"GET /api/position-attributions (wallets with stored attributions)"
+						],
+						"root_cause": "currentState() in api/position-attributions.mjs called getCovers = getWalletCovers (Alchemy NFT index, Nexus product list, getCovers RPC; no cache, no budget of its own) after only the per-IP and per-wallet limits. The only global budget on the path, positions-lookup-global, is the admit callback of getWalletPositions and is consulted only on a positions cache miss; the cover lookup implicitly relied on it.",
+						"cache_dependency": "Before: whether any global budget ran before the cover lookup depended on the positions cache (miss -> positions-lookup-global ran; hit or remembered failure -> none). After: the global cover budget runs immediately before every cover lookup in every cache state; the cache only decides whether the separate positions budget and positions RPC run.",
+						"global_budget_used": "dashboard-read-global, constant key \"all\", 300 per 600 s - the canonical global cover-lookup budget of the dashboard read path (Restaudit M2, DASHBOARD_READ_GLOBAL_LIMIT), which counts only real cover provider lookups. Reused, no new quota. positions-lookup-global stays in front of the separate positions provider work, so a cold request charges two different budgets for two different provider operations (Aave RPC multicalls vs. Alchemy NFT + Nexus + getCovers); no logical work is charged twice.",
+						"code_change": "api/position-attributions.mjs currentState(): one line before getCovers - if (!await rateLimitFor(response, 'dashboard-read-global', 'all', 300, 600)) return { aborted: true }; - the existing aborted handling returns with the 429 already written. Positions lookup, cache, reconcile/checkRelation, writes and responses are unchanged.",
+						"before_behavior": "With cached positions (60 s, failures 15 s, per instance) every syntactically valid POST - and every GET of a wallet with stored attributions - triggered a full cover provider lookup with no global limit; with every global budget denied the probe still reached the provider and wrote the attribution (200).",
+						"after_behavior": "With the global cover budget denied, POST and GET return 429 (retry-after 600) with zero cover provider calls and no write in cold, warm and failure cache states; admitted requests behave exactly as before (one cover lookup, same attribution results, cache used).",
+						"order_before": {
+							"post_cold": "IP attributions-write -> session/revoked -> attributions-write-wallet -> getWalletPositions (cache miss) -> positions-lookup-global -> Aave RPC -> getWalletCovers (Alchemy NFT, Nexus, getCovers) -> checkRelation -> upsert",
+							"post_warm": "IP attributions-write -> session/revoked -> attributions-write-wallet -> getWalletPositions (cache hit, no budget) -> getWalletCovers (Alchemy NFT, Nexus, getCovers) -> checkRelation -> upsert",
+							"get_stored_rows": "IP attributions-read -> session/revoked -> attributions-wallet -> listRows -> getWalletPositions (budget only on miss) -> getWalletCovers -> reconcile -> stale deletes"
+						},
+						"order_after": {
+							"post_cold": "IP attributions-write -> session/revoked -> attributions-write-wallet -> getWalletPositions (cache miss) -> positions-lookup-global -> Aave RPC -> dashboard-read-global -> getWalletCovers -> checkRelation -> upsert",
+							"post_warm": "IP attributions-write -> session/revoked -> attributions-write-wallet -> getWalletPositions (cache hit) -> dashboard-read-global -> getWalletCovers -> checkRelation -> upsert",
+							"get_stored_rows": "IP attributions-read -> session/revoked -> attributions-wallet -> listRows -> getWalletPositions -> dashboard-read-global -> getWalletCovers -> reconcile -> stale deletes",
+							"no_lookup_paths": "unchanged: GET without stored rows and DELETE charge no cover budget and make no provider call"
+						},
+						"application_files_changed": [
+							"api/position-attributions.mjs"
+						],
+						"regression_tests": [
+							"test/attribution-cover-budget.test.mjs (ATTRIB-COVER-BUDGET POST/GET denied|allowed x cold|warm|failure, positions budget first, no-lookup paths, same budget as dashboard read)",
+							"security/crsf/probes/attribution-cover-budget-probe.mjs (regression proof)",
+							"test-support/aave-fake-client.mjs (offline Aave client used by both)"
+						],
+						"mutation_ids": [
+							"MUT-CR-RESOURCE-001-P4-F2H1A",
+							"MUT-CR-RESOURCE-001-P4-F2H1B",
+							"MUT-CR-RESOURCE-001-P4-F2H1C",
+							"MUT-CR-RESOURCE-001-P4-F2H1D"
+						],
+						"mutation_result": "KILLED",
+						"call_sites_proven": [
+							"api/position-attributions.mjs POST (currentState -> getCovers)",
+							"api/position-attributions.mjs GET with stored attributions (currentState -> getCovers)"
+						],
+						"remaining_assumptions": "Limiter store and providers are stubs/offline wire (limiter atomicity is CR-RESOURCE-002). The global cover budget is shared with the dashboard read path by design (one budget for real cover lookups), so exhausting it also pauses dashboard cover reads for up to 10 minutes - the same trade-off Restaudit M2 made. Attribution cover lookups do not use the dashboard in-memory cover cache/coalescing (unchanged, every admitted lookup is budgeted). Other getWalletCovers callers: dashboard read (budgeted, M2), dashboard login (login budgets, by design), expiry alerts (cron, maxCoverLookups), Telegram bot - not budgeted, recorded separately as F-2I-1."
+					}
+				},
+				{
+					"id": "CR-RESOURCE-001",
+					"kind": "STATUS_CHANGE",
+					"old_status": "FAIL",
+					"new_status": "MISSING_EVIDENCE",
+					"minimum_level": "E3",
+					"evidence_added": [
+						"test/attribution-cover-budget.test.mjs (EV-ATTRIB-COVER-BUDGET)",
+						"security/mutation/cases.json (EV-KB-ATTRIB-COVER-BUDGET, 4 KILLED)",
+						"EV-PROBE-ATTRIB-COVERS inverted to SUPPORTS"
+					],
+					"why_sufficient": "Fix of the P4 violation proven behaviourally and by known-bad mutations; P4 evidence is PARTIAL (attribution path + dashboard reads), so the control recomputes to MISSING_EVIDENCE, not PASS.",
+					"remains_unproven": "P1 login / on-chain approval / fresh-authority verification ordering; P2; P3; P4 for GET /api/positions.",
+					"reason": "F-2H-1 fixed (Phase 2I)"
+				},
+				{
+					"id": "F-2I-1",
+					"kind": "NEW_FINDING",
+					"reason": "Application, Low. src/bot.mjs: sendCovers() and sendNextExpiry() call getWalletCovers (Alchemy NFT index + Nexus + getCovers RPC) once per linked wallet (up to MAX_WALLETS_PER_CHAT = 10) for /covers, the show_covers callback button and the AI intents show_covers / show_next_expiry. api/telegram.mjs checks the webhook secret, private chat and update_id dedupe; there is no per-chat and no global limit in front of the command/button paths (allowAiRequest limits only the AI intent route per chat, and no global cover budget exists there). A Telegram account with linked wallets can therefore trigger up to 10 cover provider lookups per message or button press, bounded only by Telegram-side message limits; many accounts multiply it. Separate from F-2H-1: different route (Telegram webhook, not the dashboard API), different root cause (no resource gate at all, not a cache-dependent one), and not covered by any CRSF control property (CR-RESOURCE-001 P1-P4 and CR-RESOURCE-004 name only dashboard/link/positions/attribution paths) - so it changes no computed status; mapping it needs a control decision. Fix direction: per-chat and global cover-lookup budget (e.g. the canonical dashboard-read-global) before each Telegram cover lookup, ideally through the same budgeted/cached cover lookup. Not fixed in Phase 2I."
+				},
+				{
+					"id": "STOP-2I",
+					"kind": "STOP_CONDITION",
+					"reason": "Phase 2I fixed F-2H-1; the same-root-cause search found the separate application finding F-2I-1, recorded and not fixed (task: \"If separate: record new finding and STOP\"). F-2I-1 is not mapped to any control property; adding coverage is a framework decision for the next phase."
+				}
+			]
 		}
 	]
 }
