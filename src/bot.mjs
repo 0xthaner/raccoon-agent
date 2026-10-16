@@ -1,4 +1,4 @@
-import { MAX_WALLETS_PER_CHAT, beginTelegramDelivery, getChatProductContext, saveChatProductContext, finishTelegramDelivery, forgetRememberedWallet, getLanguage, getMonitoredWallets, getRememberedWallets, getWalletLink, recordAgentEvent, rememberUnlinkedWallet, renameMonitoredWallet, revokeDashboardSessions, setLanguage, setPrimaryWallet, setWalletAlertSettings, snoozeCoverAlert, unlinkWallet } from './db.mjs';
+import { MAX_WALLETS_PER_CHAT, beginTelegramDelivery, getChatProductContext, saveChatProductContext, finishTelegramDelivery, forgetRememberedWallet, getLanguage, getMonitoredWallets, getRememberedWallets, getWalletLink, recordAgentEvent, rememberUnlinkedWallet, renameMonitoredWallet, revokeDashboardSessions, setLanguage, setPrimaryWallet, setWalletAlertSettings, snoozeLinkedCoverAlert, unlinkWallet } from './db.mjs';
 import { newDashboardAccess, newLinkRequest } from './linking.mjs';
 import { noContractCodeByQuorum } from './contract-signature.mjs';
 import { startWebServer } from './web.mjs';
@@ -630,12 +630,17 @@ async function handleCallbackQuery(query) {
 		await sendCovers(query.message.chat.id, language);
 		return;
 	}
-	const later = /^renew_later:(\d+)(?::(0x[a-fA-F0-9]{40}))?$/.exec(query?.data ?? '');
+	// Restaudit L3: Cover-ID in kanonischer Form (keine fuehrenden Nullen), Wallet aus
+	// dem Knopf nur als Hinweis - ob sie diesem Chat JETZT gehoert, entscheidet die Datenbank.
+	const later = /^renew_later:(0|[1-9][0-9]{0,19})(?::(0x[a-fA-F0-9]{40}))?$/.exec(query?.data ?? '');
 	if (later && query.message?.chat?.id) {
-		const language = await getLanguage(query.message.chat.id) ?? 'de';
-		const wallet = later[2] ?? (await getWalletLink(query.message.chat.id))?.wallet;
-		if (wallet) await snoozeCoverAlert(query.message.chat.id, wallet, later[1], nextDailyAgentRun());
-		await telegram('answerCallbackQuery', { callback_query_id: query.id, text: language === 'zh' ? '好的，我明天提醒你。' : language === 'en' ? 'Okay, I will remind you tomorrow.' : 'Okay, ich erinnere dich morgen.' });
+		const chatId = query.message.chat.id;
+		const language = await getLanguage(chatId) ?? 'de';
+		const wallet = later[2] ?? (await getWalletLink(chatId))?.wallet;
+		const outcome = wallet ? await snoozeLinkedCoverAlert(chatId, wallet, later[1], nextDailyAgentRun()) : 'not_linked';
+		await telegram('answerCallbackQuery', { callback_query_id: query.id, text: outcome === 'snoozed'
+			? (language === 'zh' ? '好的，我明天提醒你。' : language === 'en' ? 'Okay, I will remind you tomorrow.' : 'Okay, ich erinnere dich morgen.')
+			: (language === 'zh' ? '此提醒已不适用于此聊天。' : language === 'en' ? 'This reminder no longer applies to this chat.' : 'Diese Erinnerung gilt für diesen Chat nicht mehr.') });
 		return;
 	}
 	const match = /^language:(de|en|zh)$/.exec(query?.data ?? '');

@@ -332,6 +332,39 @@ export async function saveAlertRunCursor(cursor, { client = db } = {}) {
 	}));
 }
 
+/*
+	Restaudit L3, 16.10.2026: `renew_later:<cover>:<wallet>` kommt als callback_data
+	vom Telegram-Client - frei waehlbar, nicht vom Bot signiert. Bisher wurde die
+	Wallet daraus ungeprueft in alert_snoozes geschrieben: jeder Chat konnte fuer
+	beliebige Wallets und Cover-IDs Zeilen anlegen (Muell in der Snooze-Schlange,
+	die der Lauf mit begrenztem Budget abarbeitet).
+
+	Jetzt entscheidet der Zustand ZUM ZEITPUNKT DES KLICKS: die Wallet muss jetzt mit
+	genau diesem Chat verknuepft sein (monitored_wallets), und das Cover muss fuer
+	diesen Chat und diese Wallet schon gesehen worden sein (cover_snapshots - jede
+	Erinnerung mit Knopf entsteht erst nach diesem Eintrag). Keine RPC, kein Netz.
+
+	Kein eigener SQL-Pfad noetig: trennt jemand die Wallet zwischen Pruefung und
+	Schreiben, bleibt hoechstens dieselbe Zeile, die auch ein Snooze kurz vor dem
+	Trennen hinterlaesst - der Lauf findet kein Abo dazu und loescht sie ohne
+	Nachricht (alerts.mjs). Fremde Chats sind nie betroffen: chat_id ist Teil des
+	Schluessels und kommt aus dem authentifizierten Update.
+
+	Ergebnis: 'snoozed' | 'not_linked' | 'unknown_cover'. Nur 'snoozed' schreibt.
+*/
+export async function snoozeLinkedCoverAlert(chatId, wallet, coverId, remindAt, { client = db } = {}) {
+	const chat = String(chatId);
+	const normalized = String(wallet).toLowerCase();
+	const cover = String(coverId);
+	const linked = value(await client.from('monitored_wallets').select('wallet').match({ chat_id: chat, wallet: normalized }).maybeSingle());
+	if (!linked) return 'not_linked';
+	const known = value(await client.from('cover_snapshots').select('cover_id').match({ chat_id: chat, wallet: normalized, cover_id: cover }).maybeSingle());
+	if (!known) return 'unknown_cover';
+	value(await client.from('alert_snoozes').upsert({ chat_id: chat, wallet: normalized, cover_id: cover, remind_at: new Date(remindAt).toISOString(), created_at: new Date().toISOString() }));
+	return 'snoozed';
+}
+
+/** Ungeprueftes Schreiben, nur fuer das Betreiber-Skript scripts/verify-agent.mjs. Bot und API nutzen snoozeLinkedCoverAlert. */
 export async function snoozeCoverAlert(chatId, wallet, coverId, remindAt) {
 	value(await db.from('alert_snoozes').upsert({ chat_id: String(chatId), wallet: wallet.toLowerCase(), cover_id: String(coverId), remind_at: new Date(remindAt).toISOString(), created_at: new Date().toISOString() }));
 }

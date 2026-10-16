@@ -1,19 +1,22 @@
 /*
 	Testhilfe: ein kleiner In-Memory-Ersatz fuer den Supabase/PostgREST-Client,
 	gerade genug fuer die Telegram-Verknuepfungs-Helfer in src/db.mjs (select,
-	eq, in, like, match, order, limit, insert, update, upsert, delete mit
+	eq, in, like, match, order, limit, maybeSingle, insert, update, upsert, delete mit
 	optionalem select). So laeuft der ECHTE Helfer-Code mit seinen echten
 	Filtern; ein fehlender oder falscher Filter loescht hier wie in der
 	Datenbank zu viel und faellt im Test auf.
 
 	Primaerschluessel wie in den Migrationen: monitored_wallets (chat_id, wallet),
-	wallet_links (chat_id), pending_links (code), user_preferences (chat_id).
+	wallet_links (chat_id), pending_links (code), user_preferences (chat_id),
+	alert_snoozes und cover_snapshots (chat_id, wallet, cover_id).
 */
 const PRIMARY_KEYS = {
 	monitored_wallets: ['chat_id', 'wallet'],
 	wallet_links: ['chat_id'],
 	pending_links: ['code'],
-	user_preferences: ['chat_id']
+	user_preferences: ['chat_id'],
+	alert_snoozes: ['chat_id', 'wallet', 'cover_id'],
+	cover_snapshots: ['chat_id', 'wallet', 'cover_id']
 };
 
 const likeToRegex = (pattern) => new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*').replace(/_/g, '.')}$`);
@@ -29,6 +32,7 @@ export function fakePostgrest(initial = {}) {
 		let returning = false;
 		let projection = '*';
 		let limit = Infinity;
+		let single = false;
 		const api = {
 			select(cols = '*') { if (op === 'select') projection = cols; else returning = true; projection = cols; return api; },
 			eq(key, val) { filters.push((row) => String(row[key]) === String(val)); return api; },
@@ -39,6 +43,7 @@ export function fakePostgrest(initial = {}) {
 			match(obj) { for (const [k, v] of Object.entries(obj)) api.eq(k, v); return api; },
 			order() { return api; },
 			limit(n) { limit = n; return api; },
+			maybeSingle() { single = true; return api; },
 			delete() { op = 'delete'; return api; },
 			insert(obj) { op = 'insert'; payload = obj; return api; },
 			update(obj) { op = 'update'; payload = obj; return api; },
@@ -48,6 +53,11 @@ export function fakePostgrest(initial = {}) {
 		const project = (row) => (projection === '*' ? { ...row } : Object.fromEntries(projection.split(',').map((c) => c.trim()).map((c) => [c, row[c]])));
 		const matches = () => table(name).filter((row) => filters.every((f) => f(row)));
 		function run() {
+			if (op === 'select' && single) {
+				const hit = matches();
+				if (hit.length > 1) return { data: null, error: { message: 'multiple rows for maybeSingle' } };
+				return { data: hit[0] ? project(hit[0]) : null, error: null };
+			}
 			if (op === 'select') return { data: matches().slice(0, limit).map(project), error: null };
 			if (op === 'delete') {
 				const gone = matches();
