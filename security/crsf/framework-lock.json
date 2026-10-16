@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2i",
+	"crsf_version": "1.0-draft-phase2j",
 	"profile_rules_digest": "501cd4020037fd18d98d762b31003adf33faa4fdde4d50e8ec0d721be2748d5b",
 	"controls": {
 		"CR-API-001": {
@@ -1125,6 +1125,18 @@
 			"properties_digest": "411fbe559ca795132ab3a332f4515330e401c8fba851be55e4f7488c2ff65180",
 			"derivation_digest": "8c7d6de1c88d4a8f6a91dd699f6cab4b76fefa3e11780f3e70f70965cd996aed"
 		},
+		"CR-RESOURCE-007": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"API4:2023",
+				"V2.4.1",
+				"V15.2.2"
+			],
+			"properties_digest": "c261ef4e593b786eaaa0996de35818361c5d6b308a426a9534c4a6fa30bed030",
+			"derivation_digest": "9a9ae63affea863c8cd0ad13553ff2e1669b7d4c1c30fce9ec15cb62abb60f69"
+		},
 		"CR-SESSION-001": {
 			"release_class": "RELEASE_BLOCKING",
 			"minimum_evidence_level": "E4",
@@ -1529,6 +1541,28 @@
 			"external_requirement_ids": [],
 			"properties_digest": "a6956fb146becf67f74fb0b67a11d51e2a64368aa73af85dbb8c720a655e703f",
 			"derivation_digest": "2f55f6484eeea395dc2f73d9b1694533a38480cb6dc61ba329f56cab12e3f6a4"
+		}
+	},
+	"findings": {
+		"F-2C-1": {
+			"finding_class": "FRAMEWORK",
+			"opened_in": "1.0-draft-phase2c"
+		},
+		"F-2D-2": {
+			"finding_class": "APPLICATION",
+			"opened_in": "1.0-draft-phase2d"
+		},
+		"F-2F-1": {
+			"finding_class": "APPLICATION",
+			"opened_in": "1.0-draft-phase2f"
+		},
+		"F-2H-1": {
+			"finding_class": "APPLICATION",
+			"opened_in": "1.0-draft-phase2h"
+		},
+		"F-2I-1": {
+			"finding_class": "APPLICATION",
+			"opened_in": "1.0-draft-phase2i"
 		}
 	}
 }

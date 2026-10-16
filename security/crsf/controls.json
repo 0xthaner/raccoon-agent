@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2i",
+	"crsf_version": "1.0-draft-phase2j",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -4207,6 +4207,79 @@
 			"security_status_reason": "P1: no resource document [EV-DOC-INVENTORY]",
 			"deviation_ids": [],
 			"independence": null
+		},
+		{
+			"id": "CR-RESOURCE-007",
+			"title": "Telegram cover lookups budgeted per chat and globally",
+			"domain": "CR-RESOURCE",
+			"source_refs": [
+				"SRC-API API4:2023",
+				"SRC-ASVS V2.4.1",
+				"SRC-ASVS V15.2.2"
+			],
+			"external_requirement_ids": [
+				"API4:2023",
+				"V2.4.1",
+				"V15.2.2"
+			],
+			"derivation_type": "EXTERNAL_STANDARD",
+			"external_requirement": "Anti-automation against excessive calls to application functions that could lead to quota exhaustion or overuse of costly resources (V2.4.1); bounded resource consumption (API4:2023, V15.2.2).",
+			"coverraccoon_requirement": "Every Telegram bot path that triggers cover provider work (getWalletCovers: Alchemy NFT index, Nexus, getCovers RPC) is admitted, before each lookup, by a per-chat budget (excessive calls by one actor) and by the global cover-provider budget (quota exhaustion across actors).",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Feature present in CoverRaccoon at the verified commit.",
+			"profile_level": "ASVS_L2",
+			"applies_to": [
+				"src/bot.mjs",
+				"api/telegram.mjs"
+			],
+			"threat": "cost amplification, provider quota exhaustion",
+			"expected_property": "budget denied -> no cover provider call",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "every Telegram cover lookup (command, button, AI intent) is admitted by a per-chat and the global cover budget before the provider call"
+				}
+			],
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-TG-COVER-BUDGET",
+				"EV-PROBE-TG-COVERS",
+				"EV-TG-COVER-BUDGET"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-TG-COVER-BUDGET",
+						"EV-KB-TG-COVER-BUDGET"
+					],
+					"partial_only": [],
+					"insufficient": [
+						"EV-PROBE-TG-COVERS(E2)"
+					]
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 1 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 1 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
 		},
 		{
 			"id": "CR-TELEGRAM-001",

@@ -231,8 +231,83 @@
 										"global_budget_used": {
 											"type": "string",
 											"minLength": 20
+										},
+										"affected_entry_points": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"minLength": 1
+											},
+											"minItems": 1
+										},
+										"multi_wallet_amplification": {
+											"type": "string",
+											"minLength": 20
+										},
+										"per_chat_budget": {
+											"type": "string",
+											"minLength": 20
+										},
+										"budget_charging_model": {
+											"type": "string",
+											"minLength": 20
 										}
 									}
+								},
+								"finding_class": {
+									"enum": [
+										"APPLICATION",
+										"FRAMEWORK",
+										"INFORMATIONAL"
+									]
+								},
+								"mapping": {
+									"oneOf": [
+										{
+											"type": "object",
+											"additionalProperties": false,
+											"required": [
+												"control",
+												"property",
+												"rationale"
+											],
+											"properties": {
+												"control": {
+													"type": "string",
+													"pattern": "^CR-[A-Z]+-[0-9]{3}$"
+												},
+												"property": {
+													"type": "string",
+													"pattern": "^P[0-9]+$"
+												},
+												"rationale": {
+													"type": "string",
+													"minLength": 40
+												}
+											}
+										},
+										{
+											"type": "object",
+											"additionalProperties": false,
+											"required": [
+												"unmapped",
+												"reason"
+											],
+											"properties": {
+												"unmapped": {
+													"const": true
+												},
+												"reason": {
+													"type": "string",
+													"minLength": 40
+												}
+											}
+										}
+									]
+								},
+								"resolution": {
+									"type": "string",
+									"minLength": 40
 								}
 							}
 						},

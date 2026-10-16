@@ -5823,6 +5823,323 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-007-P1-F2I1A",
+			"origin": "new (Phase 2J)",
+			"evidence_id": "EV-KB-TG-COVER-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-007",
+					"property": "P1"
+				}
+			],
+			"description": "/covers command bypasses the cover budget",
+			"edits": [
+				{
+					"file": "src/bot.mjs",
+					"find": "async function sendCovers(chatId, language) {",
+					"replace": "async function sendCovers(chatId, language, unbudgeted = false) {"
+				},
+				{
+					"file": "src/bot.mjs",
+					"find": "\tif (!await admitCoverLookups(chatId, wallets.length)) {\n\t\tawait sendMessage(chatId, coverLimitText(language));\n\t\treturn;\n\t}\n\tfor (const wallet of wallets) {\n\t\ttry {\n\t\t\tconst covers = await getWalletCovers(wallet.wallet);",
+					"replace": "\tif (!unbudgeted && !await admitCoverLookups(chatId, wallets.length)) {\n\t\tawait sendMessage(chatId, coverLimitText(language));\n\t\treturn;\n\t}\n\tfor (const wallet of wallets) {\n\t\ttry {\n\t\t\tconst covers = await getWalletCovers(wallet.wallet);"
+				},
+				{
+					"file": "src/bot.mjs",
+					"find": "case '/covers':\n\t\t\tawait sendCovers(message.chat.id, language);",
+					"replace": "case '/covers':\n\t\t\tawait sendCovers(message.chat.id, language, true);"
+				}
+			],
+			"tests": [
+				"test/telegram-cover-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^TG-COVER-BUDGET command (chat|global) denied (1|10)$",
+					"message": "^command (1|10): cover lookups [1-9]"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-007-P1-F2I1B",
+			"origin": "new (Phase 2J)",
+			"evidence_id": "EV-KB-TG-COVER-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-007",
+					"property": "P1"
+				}
+			],
+			"description": "global cover budget removed (all entry points)",
+			"edits": [
+				{
+					"file": "src/bot.mjs",
+					"find": "\t\t\tif (!await checkRateLimit(globalKey, COVER_LOOKUP_GLOBAL_LIMIT.max, COVER_LOOKUP_GLOBAL_LIMIT.windowSeconds)) return false;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/telegram-cover-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^TG-COVER-BUDGET (command|callback|ai-covers|ai-expiry) global (denied (1|10)|exhausted mid-sequence)$",
+					"message": "^(command|callback|ai-covers|ai-expiry) (1|10): cover lookups [1-9]"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-007-P1-F2I1B2",
+			"origin": "new (Phase 2J)",
+			"evidence_id": "EV-KB-TG-COVER-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-007",
+					"property": "P1"
+				}
+			],
+			"description": "per-chat cover budget removed (all entry points)",
+			"edits": [
+				{
+					"file": "src/bot.mjs",
+					"find": "\t\t\tif (!await checkRateLimit(chatKey, TELEGRAM_COVER_CHAT_LIMIT.max, TELEGRAM_COVER_CHAT_LIMIT.windowSeconds)) return false;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/telegram-cover-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^TG-COVER-BUDGET (command|callback|ai-covers|ai-expiry) chat (denied (1|10)|exhausted mid-sequence)$",
+					"message": "^(command|callback|ai-covers|ai-expiry) (1|10): cover lookups [1-9]"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-007-P1-F2I1C",
+			"origin": "new (Phase 2J)",
+			"evidence_id": "EV-KB-TG-COVER-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-007",
+					"property": "P1"
+				}
+			],
+			"description": "show_covers callback button bypasses the cover budget",
+			"edits": [
+				{
+					"file": "src/bot.mjs",
+					"find": "async function sendCovers(chatId, language) {",
+					"replace": "async function sendCovers(chatId, language, unbudgeted = false) {"
+				},
+				{
+					"file": "src/bot.mjs",
+					"find": "\tif (!await admitCoverLookups(chatId, wallets.length)) {\n\t\tawait sendMessage(chatId, coverLimitText(language));\n\t\treturn;\n\t}\n\tfor (const wallet of wallets) {\n\t\ttry {\n\t\t\tconst covers = await getWalletCovers(wallet.wallet);",
+					"replace": "\tif (!unbudgeted && !await admitCoverLookups(chatId, wallets.length)) {\n\t\tawait sendMessage(chatId, coverLimitText(language));\n\t\treturn;\n\t}\n\tfor (const wallet of wallets) {\n\t\ttry {\n\t\t\tconst covers = await getWalletCovers(wallet.wallet);"
+				},
+				{
+					"file": "src/bot.mjs",
+					"find": "await telegram('answerCallbackQuery', { callback_query_id: query.id });\n\t\tawait sendCovers(query.message.chat.id, language);",
+					"replace": "await telegram('answerCallbackQuery', { callback_query_id: query.id });\n\t\tawait sendCovers(query.message.chat.id, language, true);"
+				}
+			],
+			"tests": [
+				"test/telegram-cover-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^TG-COVER-BUDGET callback (chat|global) denied (1|10)$",
+					"message": "^callback (1|10): cover lookups [1-9]"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-007-P1-F2I1D",
+			"origin": "new (Phase 2J)",
+			"evidence_id": "EV-KB-TG-COVER-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-007",
+					"property": "P1"
+				}
+			],
+			"description": "AI intent show_covers bypasses the cover budget",
+			"edits": [
+				{
+					"file": "src/bot.mjs",
+					"find": "async function sendCovers(chatId, language) {",
+					"replace": "async function sendCovers(chatId, language, unbudgeted = false) {"
+				},
+				{
+					"file": "src/bot.mjs",
+					"find": "\tif (!await admitCoverLookups(chatId, wallets.length)) {\n\t\tawait sendMessage(chatId, coverLimitText(language));\n\t\treturn;\n\t}\n\tfor (const wallet of wallets) {\n\t\ttry {\n\t\t\tconst covers = await getWalletCovers(wallet.wallet);",
+					"replace": "\tif (!unbudgeted && !await admitCoverLookups(chatId, wallets.length)) {\n\t\tawait sendMessage(chatId, coverLimitText(language));\n\t\treturn;\n\t}\n\tfor (const wallet of wallets) {\n\t\ttry {\n\t\t\tconst covers = await getWalletCovers(wallet.wallet);"
+				},
+				{
+					"file": "src/bot.mjs",
+					"find": "case 'show_covers': await sendCovers(message.chat.id, language); return;",
+					"replace": "case 'show_covers': await sendCovers(message.chat.id, language, true); return;"
+				}
+			],
+			"tests": [
+				"test/telegram-cover-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^TG-COVER-BUDGET ai-covers (chat|global) denied (1|10)$",
+					"message": "^ai-covers (1|10): cover lookups [1-9]"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-007-P1-F2I1D2",
+			"origin": "new (Phase 2J)",
+			"evidence_id": "EV-KB-TG-COVER-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-007",
+					"property": "P1"
+				}
+			],
+			"description": "AI intent show_next_expiry bypasses the cover budget",
+			"edits": [
+				{
+					"file": "src/bot.mjs",
+					"find": "async function sendNextExpiry(chatId, language) {",
+					"replace": "async function sendNextExpiry(chatId, language, unbudgeted = false) {"
+				},
+				{
+					"file": "src/bot.mjs",
+					"find": "\tif (!await admitCoverLookups(chatId, wallets.length)) {\n\t\tawait sendMessage(chatId, coverLimitText(language));\n\t\treturn;\n\t}\n\ttry {\n\t\tconst active = [];",
+					"replace": "\tif (!unbudgeted && !await admitCoverLookups(chatId, wallets.length)) {\n\t\tawait sendMessage(chatId, coverLimitText(language));\n\t\treturn;\n\t}\n\ttry {\n\t\tconst active = [];"
+				},
+				{
+					"file": "src/bot.mjs",
+					"find": "case 'show_next_expiry': await sendNextExpiry(message.chat.id, language); return;",
+					"replace": "case 'show_next_expiry': await sendNextExpiry(message.chat.id, language, true); return;"
+				}
+			],
+			"tests": [
+				"test/telegram-cover-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^TG-COVER-BUDGET ai-expiry (chat|global) denied (1|10)$",
+					"message": "^ai-expiry (1|10): cover lookups [1-9]"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-007-P1-F2I1E",
+			"origin": "new (Phase 2J)",
+			"evidence_id": "EV-KB-TG-COVER-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-007",
+					"property": "P1"
+				}
+			],
+			"description": "cover budget checked after the lookups instead of before them (sendCovers)",
+			"edits": [
+				{
+					"file": "src/bot.mjs",
+					"find": "\tif (!await admitCoverLookups(chatId, wallets.length)) {\n\t\tawait sendMessage(chatId, coverLimitText(language));\n\t\treturn;\n\t}\n\tfor (const wallet of wallets) {\n\t\ttry {\n\t\t\tconst covers = await getWalletCovers(wallet.wallet);",
+					"replace": "\tfor (const wallet of wallets) {\n\t\ttry {\n\t\t\tconst covers = await getWalletCovers(wallet.wallet);"
+				},
+				{
+					"file": "src/bot.mjs",
+					"find": "\t}\n}\n\nasync function sendNextExpiry(chatId, language) {",
+					"replace": "\t}\n\tif (!await admitCoverLookups(chatId, wallets.length)) {\n\t\tawait sendMessage(chatId, coverLimitText(language));\n\t\treturn;\n\t}\n}\n\nasync function sendNextExpiry(chatId, language) {"
+				}
+			],
+			"tests": [
+				"test/telegram-cover-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^TG-COVER-BUDGET (command|callback|ai-covers) (chat|global) denied (1|10)$",
+					"message": "^(command|callback|ai-covers) (1|10): cover lookups [1-9]"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-007-P1-F2I1F",
+			"origin": "new (Phase 2J)",
+			"evidence_id": "EV-KB-TG-COVER-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-007",
+					"property": "P1"
+				}
+			],
+			"description": "only the first linked wallet is charged (one budget slot for up to 10 lookups)",
+			"edits": [
+				{
+					"file": "src/bot.mjs",
+					"find": "\t\tfor (let i = 0; i < count; i++) {",
+					"replace": "\t\tfor (let i = 0; i < Math.min(count, 1); i++) {"
+				}
+			],
+			"tests": [
+				"test/telegram-cover-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^TG-COVER-BUDGET (command|callback|ai-covers|ai-expiry) (allowed 10|(global|chat) exhausted mid-sequence)$",
+					"message": "^(command|callback|ai-covers|ai-expiry) 10: (budget charged once per wallet|cover lookups [1-9])"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

@@ -369,6 +369,26 @@ export function checkIntegrity(def, declared) {
 		if (def.evidence.evidence.some((e) => e.covers.some((c) => c.control === f.control && c.properties.includes(f.property) && c.result === 'VIOLATION'))) why.push(`a VIOLATION of ${f.control}.${f.property} is still recorded`);
 		if (why.length) err('FINDING_FIX_NOT_PROVEN', `${ch.id}: ${why.join('; ')}`);
 	}
+	// Phase 2J (F-2J-1): every finding is typed and every application finding is mapped or explicitly unmapped;
+	// a mapping must name a real control property, and an OPEN mapped finding must be visible as a VIOLATION there.
+	const knownProperty = (control, property) => Boolean(ctx.ctlById.get(control)?.properties.some((p) => p.id === property));
+	for (const ch of def['framework-changes'].versions.flatMap((v) => v.changes)) {
+		if (ch.kind === 'NEW_FINDING') {
+			const why = [];
+			if (!FINDING_CLASSES.includes(ch.finding_class)) why.push('finding_class missing');
+			if (ch.finding_class === 'APPLICATION' && !ch.mapping) why.push('mapping missing (map to a control property or declare it unmapped with a reason)');
+			if (why.length) err('FINDING_RECORD_INCOMPLETE', `${ch.id}: ${why.join('; ')}`);
+		}
+		if (['NEW_FINDING', 'FINDING_MAPPED'].includes(ch.kind) && ch.mapping?.control && !knownProperty(ch.mapping.control, ch.mapping.property)) err('FINDING_MAPPING_UNKNOWN', `${ch.id} -> ${ch.mapping.control}.${ch.mapping.property}`);
+		if (ch.kind === 'FINDING_MAPPED' && !ch.mapping?.control) err('FINDING_RECORD_INCOMPLETE', `${ch.id}: FINDING_MAPPED must name a control property`);
+		if (ch.finding && !knownProperty(ch.finding.control, ch.finding.property)) err('FINDING_MAPPING_UNKNOWN', `${ch.id} -> ${ch.finding.control}.${ch.finding.property}`);
+	}
+	const ledger = findingLedger(def);
+	for (const f of ledger.values()) {
+		if (f.duplicate) err('DUPLICATE_FINDING', f.id);
+		if (!blocksRelease(f) || !f.mapping?.control) continue;
+		if (!def.evidence.evidence.some((e) => e.covers.some((c) => c.control === f.mapping.control && c.properties.includes(f.mapping.property) && c.result === 'VIOLATION'))) err('FINDING_NOT_REFLECTED', `${f.id}: OPEN and mapped to ${f.mapping.control}.${f.mapping.property}, but no VIOLATION is recorded there`);
+	}
 	for (const d of def.deviations.deviations) {
 		for (const eid of d.evidence_ids) if (!ctx.evById.has(eid)) err('UNKNOWN_EVIDENCE_REFERENCE', `${d.id} -> ${eid}`);
 		if (d.manual_override_allowed !== false || d.status_computed !== true) err('MANUAL_OVERRIDE', d.id);
@@ -420,6 +440,43 @@ export function checkPinnedSources(def, read) {
 	return errors;
 }
 
+/* ========================================================= findings ledger */
+/**
+ * Phase 2J (F-2J-1): the findings ledger, replayed from framework-changes in version order.
+ * NEW_FINDING opens a finding (typed, application findings mapped or explicitly unmapped);
+ * FINDING_MAPPED changes its mapping; FINDING_FIXED closes it (an application finding only with a
+ * proven FIXED block); FINDING_WITHDRAWN closes it with a documented resolution.
+ */
+export const FINDING_CLASSES = ['APPLICATION', 'FRAMEWORK', 'INFORMATIONAL'];
+export function findingLedger(def) {
+	const ledger = new Map();
+	for (const v of def['framework-changes'].versions) for (const ch of v.changes) {
+		if (ch.kind === 'NEW_FINDING') {
+			if (ledger.has(ch.id)) { ledger.get(ch.id).duplicate = true; continue; }
+			ledger.set(ch.id, { id: ch.id, finding_class: ch.finding_class ?? null, mapping: ch.mapping ?? null, status: 'OPEN', opened_in: v.crsf_version, closed_in: null });
+			continue;
+		}
+		const f = ledger.get(ch.id);
+		if (!f) continue;
+		if (ch.kind === 'FINDING_MAPPED') f.mapping = ch.mapping ?? null;
+		else if (ch.kind === 'FINDING_FIXED' && (f.finding_class !== 'APPLICATION' || ch.finding?.status_after === 'FIXED')) {
+			Object.assign(f, { status: 'FIXED', closed_in: v.crsf_version });
+			if (ch.finding) f.mapping = { control: ch.finding.control, property: ch.finding.property };
+		} else if (ch.kind === 'FINDING_WITHDRAWN' && typeof ch.resolution === 'string' && ch.resolution.length >= 40) Object.assign(f, { status: 'WITHDRAWN', closed_in: v.crsf_version });
+	}
+	return ledger;
+}
+/** An OPEN application finding blocks the release; framework findings and informational notes do not. */
+export const blocksRelease = (f) => f.status === 'OPEN' && f.finding_class === 'APPLICATION';
+/** OPEN application findings without a control property: no control status can show them, so they fail the release directly. */
+export const openUnmappedFindings = (def) => [...findingLedger(def).values()].filter((f) => blocksRelease(f) && !f.mapping?.control).map((f) => f.id).sort();
+/** The release assertion. An open unmapped application finding is a FAIL regardless of control statuses. */
+export function releaseAssertion({ frameworkValid, releaseBlockingStatuses, evidenceFailures = 0, guardProblems = 0, openUnmapped = [] }) {
+	if (!frameworkValid) return 'NOT_EVALUABLE';
+	if (openUnmapped.length || releaseBlockingStatuses.includes('FAIL') || evidenceFailures || guardProblems) return 'FAIL';
+	return releaseBlockingStatuses.every((s) => s === 'PASS_AUTOMATED') ? 'PASS' : 'INCOMPLETE_EVIDENCE';
+}
+
 /* =========================================================== version lock */
 /** Phase 2D (CR-VERIFY-011): the derivation of a control - what it requires and from which source - is locked too, not only its threshold. */
 export const DERIVATION_FIELDS = ['title', 'domain', 'source_refs', 'derivation_type', 'external_requirement', 'coverraccoon_requirement', 'applicability_reason', 'profile_level', 'applies_to', 'threat', 'expected_property', 'automation'];
@@ -433,12 +490,22 @@ export function profileLockDigest(profile) {
 /** Change kinds that may alter what a control requires (properties or derivation) - each needs documented before/after wording. */
 export const REQUIREMENT_CHANGE_KINDS = ['REQUIREMENT_CLARIFICATION', 'PROPERTY_ADDED', 'EVIDENCE_BASIS_CHANGE'];
 export function buildLock(def) {
-	return { crsf_version: def.profile.crsf_version, profile_rules_digest: profileLockDigest(def.profile), controls: Object.fromEntries([...def.controls.controls].sort((a, b) => a.id.localeCompare(b.id)).map((c) => [c.id, lockEntry(c)])) };
+	return { crsf_version: def.profile.crsf_version, profile_rules_digest: profileLockDigest(def.profile), controls: Object.fromEntries([...def.controls.controls].sort((a, b) => a.id.localeCompare(b.id)).map((c) => [c.id, lockEntry(c)])),
+		findings: Object.fromEntries([...findingLedger(def).values()].sort((a, b) => a.id.localeCompare(b.id)).map((f) => [f.id, { finding_class: f.finding_class, opened_in: f.opened_in }])) };
 }
 function checkLock(def, ctx) {
 	const errors = []; const err = (code, detail) => errors.push({ code, detail });
 	const lock = def['framework-lock']; const version = def.profile.crsf_version;
 	const now = buildLock(def);
+	// Phase 2J (F-2J-1): findings are append-only. A finding once locked can be closed (fixed or withdrawn
+	// with a documented resolution) but never deleted or retyped - otherwise an open finding could vanish.
+	for (const [id, old] of Object.entries(lock.findings ?? {})) {
+		const cur = now.findings[id];
+		if (!cur) err('FINDING_DELETED_SILENTLY', id);
+		else if (cur.finding_class !== old.finding_class && old.finding_class !== null) err('FINDING_RECLASSIFIED_SILENTLY', `${id}: ${old.finding_class} -> ${cur.finding_class}`);
+	}
+	const findingsChanged = lock.findings !== undefined && canonical(lock.findings) !== canonical(now.findings);
+	if (findingsChanged && lock.crsf_version === version) err('FINDINGS_CHANGED_WITHOUT_VERSION', 'the findings ledger differs from framework-lock.json at the same crsf_version');
 	const changed = [];
 	for (const [id, old] of Object.entries(lock.controls)) {
 		const cur = now.controls[id];

@@ -26,7 +26,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadDefinition, loadSchemas, validateSchemas, checkIntegrity, checkPinnedSources, declaredOutcomes, evaluate, affectedDomains, sha256 } from '../security/crsf/lib/engine.mjs';
+import { loadDefinition, loadSchemas, validateSchemas, checkIntegrity, checkPinnedSources, declaredOutcomes, evaluate, affectedDomains, sha256, findingLedger, openUnmappedFindings, releaseAssertion } from '../security/crsf/lib/engine.mjs';
 import { detectCapabilities, childEnv, executeNodeTestEvidence, executeProbe, executeMutations, mutationClaimMismatches, gitInfo, changedPaths } from '../security/crsf/lib/exec.mjs';
 import { runSelfTests } from '../security/crsf/selftest/framework-selftest.mjs';
 
@@ -110,11 +110,10 @@ const rb = controls.filter((c) => c.release_class === 'RELEASE_BLOCKING');
 const evidenceFailures = evidenceResults.filter((e) => e.outcome === 'FAIL');
 const guardProblems = [...guard.failed, ...guard.cancelled, ...guard.todo, ...guard.unexpected_skips];
 const frameworkValid = framework.length === 0 && claimMismatches.length === 0 && (selftest?.passed ?? false) && mutationRun.baseline.ok;
-const rbFail = rb.filter((c) => c.security_status === 'FAIL');
-let assertion = 'INCOMPLETE_EVIDENCE';
-if (!frameworkValid) assertion = 'NOT_EVALUABLE';
-else if (rbFail.length || evidenceFailures.length || guardProblems.length) assertion = 'FAIL';
-else if (rb.every((c) => c.security_status === 'PASS_AUTOMATED')) assertion = 'PASS';
+// Phase 2J (F-2J-1): an OPEN application finding that no control property shows fails the release directly.
+const ledger = def['framework-changes'] ? [...findingLedger(def).values()] : [];
+const openUnmapped = def['framework-changes'] ? openUnmappedFindings(def) : [];
+const assertion = releaseAssertion({ frameworkValid, releaseBlockingStatuses: rb.map((c) => c.security_status), evidenceFailures: evidenceFailures.length, guardProblems: guardProblems.length, openUnmapped });
 
 /* --------------------------------------------------- 11: report */
 const devResults = obsEval ? obsEval.deviations : {};
@@ -150,6 +149,8 @@ const report = {
 		return { id, declared: m?.expected_result, observed, layering: m?.layering ?? null, reason: r.reason, intended_failures: r.intended };
 	}),
 	mutation_claim_mismatches: claimMismatches,
+	findings: ledger.map((f) => ({ id: f.id, finding_class: f.finding_class, status: f.status, mapping: f.mapping?.control ? `${f.mapping.control}.${f.mapping.property}` : f.finding_class === 'APPLICATION' ? 'UNMAPPED' : null, opened_in: f.opened_in, closed_in: f.closed_in })),
+	open_unmapped_findings: openUnmapped,
 	affected_domains: drift,
 	release_blocking_controls: rb.length,
 	verification_result: { FRAMEWORK_VALID: frameworkValid ? 'YES' : 'NO', RELEASE_SECURITY_ASSERTION: assertion }
@@ -180,7 +181,7 @@ const md = [
 	'## Result', '',
 	`- FRAMEWORK_VALID: ${report.verification_result.FRAMEWORK_VALID}`,
 	`- RELEASE_SECURITY_ASSERTION: ${assertion}`, '',
-	assertion === 'PASS' ? 'All release-blocking controls are PASS_AUTOMATED in this run.' : assertion === 'INCOMPLETE_EVIDENCE' ? `Not release-assertable: ${rb.filter((c) => c.security_status === 'MISSING_EVIDENCE').length} release-blocking control(s) lack sufficient evidence. This is a statement about evidence, not a finding of vulnerability.` : assertion === 'FAIL' ? 'A release-blocking control failed or an executed security test failed.' : 'The framework definition is invalid; no security statement is made.', '',
+	assertion === 'PASS' ? 'All release-blocking controls are PASS_AUTOMATED in this run.' : assertion === 'INCOMPLETE_EVIDENCE' ? `Not release-assertable: ${rb.filter((c) => c.security_status === 'MISSING_EVIDENCE').length} release-blocking control(s) lack sufficient evidence. This is a statement about evidence, not a finding of vulnerability.` : assertion === 'FAIL' ? (openUnmapped.length ? `Open application finding(s) not mapped to any control: ${openUnmapped.join(', ')}. ` : '') + 'A release-blocking control failed, an executed security test failed, or an open finding is unmapped.' : 'The framework definition is invalid; no security statement is made.', '',
 	'This report evaluates CoverRaccoon against the CRSF mapping of the pinned sources. It is not a certification or compliance claim.', ''
 ].join('\n');
 writeFileSync(path.join(OUT, 'crsf-report.md'), md);
@@ -190,5 +191,6 @@ if (!frameworkValid) for (const e of framework.slice(0, 20)) log(`  ${e.code} ${
 for (const m of claimMismatches) log(`  MUTATION_CLAIM_MISMATCH ${m.id}: declared ${m.declared}, observed ${m.observed} (${m.reason})`);
 
 /* ------------------------------------------------------ 13: exit */
-if (!frameworkValid || evidenceFailures.length || guardProblems.length || rbFail.length) process.exitCode = 1;
+// Exit 1 for an invalid framework or a FAIL assertion (failed control, failed evidence, guard problem, open unmapped finding).
+if (!frameworkValid || assertion === 'FAIL') process.exitCode = 1;
 else if (flag('--require-release-assertion') && assertion !== 'PASS') process.exitCode = 2;

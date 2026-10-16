@@ -1,4 +1,4 @@
-import { MAX_WALLETS_PER_CHAT, beginTelegramDelivery, getChatProductContext, saveChatProductContext, finishTelegramDelivery, forgetRememberedWallet, getLanguage, getMonitoredWallets, getRememberedWallets, getWalletLink, recordAgentEvent, rememberUnlinkedWallet, renameMonitoredWallet, revokeDashboardSessions, setLanguage, setPrimaryWallet, setWalletAlertSettings, snoozeLinkedCoverAlert, unlinkWallet } from './db.mjs';
+import { MAX_WALLETS_PER_CHAT, beginTelegramDelivery, checkRateLimit, getChatProductContext, saveChatProductContext, finishTelegramDelivery, forgetRememberedWallet, getLanguage, getMonitoredWallets, getRememberedWallets, getWalletLink, recordAgentEvent, rememberUnlinkedWallet, renameMonitoredWallet, revokeDashboardSessions, setLanguage, setPrimaryWallet, setWalletAlertSettings, snoozeLinkedCoverAlert, unlinkWallet } from './db.mjs';
 import { newDashboardAccess, newLinkRequest } from './linking.mjs';
 import { noContractCodeByQuorum } from './contract-signature.mjs';
 import { startWebServer } from './web.mjs';
@@ -7,6 +7,7 @@ import { checkExpiryAlerts } from './alerts.mjs';
 import { authenticPrivateMessage, isPrivateChatUpdate, telegramTimingMetadata } from './telegram-audit.mjs';
 import { classifyAgentIntent } from './agent-intent.mjs';
 import { allowAiRequest } from './ai-budget.mjs';
+import { rateKey } from './http-security.mjs';
 import { ANMELDUNG_PAUSIERT, PAUSE_TEXT, AGENT_ANTWORTEN_PAUSIERT, ANTWORT_PAUSE_TEXT } from './pause.mjs';
 import { answerProductQuestion } from './agent-knowledge.mjs';
 
@@ -265,10 +266,55 @@ function simulatedAlert(language) {
 	].join('\n');
 }
 
+/*
+	CRSF F-2I-1 / CR-RESOURCE-007, 17.10.2026: jede Cover-Abfrage aus Telegram (Befehl
+	/covers, Knopf "Meine Covers", KI-Absicht show_covers / show_next_expiry) kostet je
+	verbundener Wallet eine Provider-Abfrage (Alchemy-NFT-Index, Nexus, RPC getCovers).
+	Bis dahin stand davor keine Schranke - ein Chat mit zehn Wallets loeste zehn
+	Abfragen je Nachricht oder Knopfdruck aus, beliebig oft.
+
+	Jetzt, VOR der ersten Abfrage, fuer JEDE Wallet ein Platz in zwei Budgets:
+	- je Chat (telegram-cover-chat): 30 Abfragen in 10 Minuten - dieselbe Rate je
+	  Akteur wie das Wallet-Budget des Dashboard-Lesepfads (Restaudit M2);
+	- global (dashboard-read-global): das EINE Budget fuer echte Cover-Abfragen, das
+	  auch Dashboard und Zuordnungen ziehen (300 in 10 Minuten). Bewusst geteilt: es
+	  begrenzt die gemeinsame Provider-Quote; ein eigenes Telegram-Budget wuerde die
+	  Obergrenze verdoppeln. Folge wie bei M2: ist es erschoepft, pausieren auch
+	  Dashboard-Abfragen hoechstens 10 Minuten.
+	Engste Grenze zuerst (eine Chat-Ablehnung verbraucht nichts Globales). Alles oder
+	nichts: wird ein Platz verweigert, gibt es KEINE Abfrage - keine halbe Liste und
+	kein falsches "naechster Ablauf". Faellt die Zaehlung aus: gesperrt.
+*/
+const TELEGRAM_COVER_CHAT_LIMIT = Object.freeze({ max: 30, windowSeconds: 600 });
+const COVER_LOOKUP_GLOBAL_LIMIT = Object.freeze({ max: 300, windowSeconds: 600 });
+
+async function admitCoverLookups(chatId, count) {
+	try {
+		const chatKey = rateKey('telegram-cover-chat', chatId);
+		const globalKey = rateKey('dashboard-read-global', 'all');
+		if (!chatKey || !globalKey) return false;
+		for (let i = 0; i < count; i++) {
+			if (!await checkRateLimit(chatKey, TELEGRAM_COVER_CHAT_LIMIT.max, TELEGRAM_COVER_CHAT_LIMIT.windowSeconds)) return false;
+			if (!await checkRateLimit(globalKey, COVER_LOOKUP_GLOBAL_LIMIT.max, COVER_LOOKUP_GLOBAL_LIMIT.windowSeconds)) return false;
+		}
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+function coverLimitText(language) {
+	return language === 'zh' ? '目前保障查询过多。请几分钟后再试。' : language === 'en' ? 'There have been too many cover lookups right now. Please try again in a few minutes.' : 'Gerade gab es zu viele Cover-Abfragen. Bitte versuch es in ein paar Minuten erneut.';
+}
+
 async function sendCovers(chatId, language) {
 	const wallets = await getMonitoredWallets(chatId);
 	if (!wallets.length) {
 		await sendMessage(chatId, language === 'zh' ? '尚未绑定钱包。请发送 /start 并选择“绑定钱包”。' : language === 'en' ? 'No wallet linked yet. Send /start and use “Connect wallet”.' : 'Noch keine Wallet verbunden. Sende /start und nutze „Wallet verbinden“.');
+		return;
+	}
+	if (!await admitCoverLookups(chatId, wallets.length)) {
+		await sendMessage(chatId, coverLimitText(language));
 		return;
 	}
 	for (const wallet of wallets) {
@@ -286,6 +332,10 @@ async function sendNextExpiry(chatId, language) {
 	const wallets = await getMonitoredWallets(chatId);
 	if (!wallets.length) {
 		await sendMessage(chatId, language === 'en' ? 'No wallet is linked yet.' : language === 'zh' ? '尚未绑定钱包。' : 'Noch keine Wallet verbunden.');
+		return;
+	}
+	if (!await admitCoverLookups(chatId, wallets.length)) {
+		await sendMessage(chatId, coverLimitText(language));
 		return;
 	}
 	try {

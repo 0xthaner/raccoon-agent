@@ -71,6 +71,31 @@
 					}
 				}
 			}
+		},
+		"findings": {
+			"type": "object",
+			"additionalProperties": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": [
+					"finding_class",
+					"opened_in"
+				],
+				"properties": {
+					"finding_class": {
+						"enum": [
+							"APPLICATION",
+							"FRAMEWORK",
+							"INFORMATIONAL",
+							null
+						]
+					},
+					"opened_in": {
+						"type": "string",
+						"minLength": 1
+					}
+				}
+			}
 		}
 	}
 }

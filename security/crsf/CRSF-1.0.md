@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2i
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2j
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -11,20 +11,20 @@
 - FAIL: 19
 - INFORMATIONAL: 2
 - MISSING_EVIDENCE: 51
-- PASS_AUTOMATED: 50
+- PASS_AUTOMATED: 51
 - PASS_MANUAL: 24
 
 ### Release classes
 
 - INFORMATIONAL: 2
 - MANUAL_ASSURANCE: 30
-- RELEASE_BLOCKING: 53
+- RELEASE_BLOCKING: 54
 - SECURITY_DEBT: 61
 
 ### Release-blocking controls by security status
 
 - MISSING_EVIDENCE: 5
-- PASS_AUTOMATED: 48
+- PASS_AUTOMATED: 49
 
 ### Standard conformance (ASVS 5.0.0, applicable requirements)
 
@@ -155,6 +155,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-RESOURCE-004 | Dashboard provider amplification bounded | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
 | CR-RESOURCE-005 | Business-logic limits documented | SECURITY_DEBT | E1 | **FAIL** | NON_CONFORMANT | P1: limits only in code [EV-DOC-INVENTORY] |
 | CR-RESOURCE-006 | Resource-demanding functionality documented | SECURITY_DEBT | E1 | **FAIL** | NON_CONFORMANT | P1: no resource document [EV-DOC-INVENTORY] |
+| CR-RESOURCE-007 | Telegram cover lookups budgeted per chat and globally | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
 | CR-TELEGRAM-001 | Webhook authenticity, private chats only, update replay | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E4 |
 | CR-TELEGRAM-002 | Wallet-to-chat binding only via signed link flow | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E4 |
 | CR-TELEGRAM-003 | callback_data is untrusted input | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E4 |
@@ -350,10 +351,13 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-PROBE-ATTRIB-COVERS | behavioral | E2 | probe | PARTIAL | yes | regression proof (finding F-2H-1, fixed in Phase 2I): real createAttributionsHandler + real http-security guards + real getWalletPositions cache; with a denied global cover budget a POST reaches no cover provider for cold and warm positions caches (429), an admitted POST still reaches the provider and writes, and the warm request makes no positions RPC (cache intact). History: in Phase 2H it reproduced the defect (warm cache, every global budget denied -> cover provider reached and the attribution written). |
 | EV-ATTRIB-COVER-BUDGET | behavioral | E3 | node-test | PARTIAL | yes | real createAttributionsHandler + real http-security guards + real getWalletPositions cache + real getWalletCovers up to the wire: with the global cover budget (dashboard-read-global, 300/600 s) denied, POST and GET return 429 with Alchemy NFT 0 / Nexus 0 / getCovers 0 calls and no write, for cold, warm and failure positions caches; the limit order is identical across cache states except positions-lookup-global on a miss; admitted requests make exactly one cover lookup, charge the cover budget once and keep their previous results; paths without a cover lookup charge nothing |
 | EV-KB-ATTRIB-COVER-BUDGET | known-bad | E4 | mutation | PARTIAL | yes | bypassing the global cover budget on POST or on GET, charging it only on a positions-cache miss (the original F-2H-1 shape) or checking it after the lookup is each detected by the intended test and message |
+| EV-PROBE-TG-COVERS | behavioral | E2 | probe | FULL | yes | regression proof (finding F-2I-1, fixed in Phase 2J): real src/bot.mjs handleUpdate with an offline recording fetch; for every Telegram cover entry point and 1 and 10 linked wallets, a denied chat or global cover budget yields 0 cover lookups, and an admitted request makes one lookup per wallet after both budgets were charged once per wallet. History: before the fix (Phase 2J) it reproduced the defect - 1 -> 1 and 10 -> 10 lookups with no cover budget before them. |
+| EV-TG-COVER-BUDGET | behavioral | E3 | node-test | FULL | yes | real src/bot.mjs handleUpdate + real db/covers/cover-chain up to an offline wire: for the /covers command, the show_covers button and the AI intents show_covers and show_next_expiry, with 1 and 10 linked wallets: chat budget denied -> 0 cover lookups (global not charged); global budget denied -> 0 lookups; budget exhausted mid-sequence (global after 3, chat after 5) -> 0 lookups, stop at the first refusal; admitted -> exactly one lookup per wallet, both budgets charged once per wallet before the first lookup (30/600 s per chat, 300/600 s global = the dashboard cover budget key); AI route keeps its AI budget first; no wallet -> nothing charged; limiter failure fails closed |
+| EV-KB-TG-COVER-BUDGET | known-bad | E4 | mutation | FULL | yes | bypassing the cover budget on the command, the callback button or either AI intent, removing the chat or the global budget, checking the budget after the lookups, or charging only the first wallet is each detected by the intended test and message |
 
 ## 6. Mutation cases
 
-156 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+164 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -513,6 +517,14 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-RESOURCE-001-P4-F2H1B | CR-RESOURCE-001.P4 | behavioral | KILLED |
 | MUT-CR-RESOURCE-001-P4-F2H1C | CR-RESOURCE-001.P4 | behavioral | KILLED |
 | MUT-CR-RESOURCE-001-P4-F2H1D | CR-RESOURCE-001.P4 | behavioral | KILLED |
+| MUT-CR-RESOURCE-007-P1-F2I1A | CR-RESOURCE-007.P1 | behavioral | KILLED |
+| MUT-CR-RESOURCE-007-P1-F2I1B | CR-RESOURCE-007.P1 | behavioral | KILLED |
+| MUT-CR-RESOURCE-007-P1-F2I1B2 | CR-RESOURCE-007.P1 | behavioral | KILLED |
+| MUT-CR-RESOURCE-007-P1-F2I1C | CR-RESOURCE-007.P1 | behavioral | KILLED |
+| MUT-CR-RESOURCE-007-P1-F2I1D | CR-RESOURCE-007.P1 | behavioral | KILLED |
+| MUT-CR-RESOURCE-007-P1-F2I1D2 | CR-RESOURCE-007.P1 | behavioral | KILLED |
+| MUT-CR-RESOURCE-007-P1-F2I1E | CR-RESOURCE-007.P1 | behavioral | KILLED |
+| MUT-CR-RESOURCE-007-P1-F2I1F | CR-RESOURCE-007.P1 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -543,7 +555,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V2.3.3 | L2 | CR-CONC-001, CR-CONC-004 | CONFORMANT |
 | V2.3.4 | L2 | CR-CONC-002, CR-CONC-003 | CONFORMANT |
 | V2.3.5 | L3 | CR-API-010 | CONFORMANT |
-| V2.4.1 | L2 | CR-RESOURCE-001, CR-RESOURCE-002 | NOT_DEMONSTRATED |
+| V2.4.1 | L2 | CR-RESOURCE-001, CR-RESOURCE-002, CR-RESOURCE-007 | NOT_DEMONSTRATED |
 | V3.2.1 | L1 | CR-BROWSER-006 | CONFORMANT |
 | V3.2.2 | L1 | CR-BROWSER-004 | NOT_DEMONSTRATED |
 | V3.3.1 | L1 | CR-SESSION-004 | CONFORMANT |
@@ -653,7 +665,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V15.1.2 | L2 | CR-SUPPLY-006 | NOT_DEMONSTRATED |
 | V15.1.3 | L2 | CR-RESOURCE-006 | NON_CONFORMANT |
 | V15.2.1 | L1 | CR-SUPPLY-005 | NON_CONFORMANT |
-| V15.2.2 | L2 | CR-RESOURCE-001, CR-RESOURCE-003, CR-RESOURCE-004, CR-DOC-003 | NOT_DEMONSTRATED |
+| V15.2.2 | L2 | CR-RESOURCE-001, CR-RESOURCE-003, CR-RESOURCE-004, CR-RESOURCE-007, CR-DOC-003 | NOT_DEMONSTRATED |
 | V15.2.3 | L2 | CR-CONFIG-008 | CONFORMANT |
 | V15.3.1 | L1 | CR-API-007 | NOT_DEMONSTRATED |
 | V15.3.2 | L2 | CR-PROVIDER-003 | CONFORMANT |
@@ -756,4 +768,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2g** — Phase 2G: F-2F-1 fixed (dashboard action limits before the legacy provider lookup); CR-RESOURCE-001 recomputed (no FAIL; P1 evidence partial, P2-P4 unchanged).
 - **1.0-draft-phase2h** — Phase 2H: application finding F-2H-1 recorded as a VIOLATION of CR-RESOURCE-001 P4 (stop condition B, not fixed); remaining work not attempted.
 - **1.0-draft-phase2i** — Phase 2I: F-2H-1 fixed in api/position-attributions.mjs (global cover budget before every cover lookup), proven behaviourally and by four KILLED mutations; the VIOLATION probe is inverted to a regression proof. Same-root-cause search found a separate application finding F-2I-1 (Telegram cover lookups without any limit), recorded and not fixed (stop).
+- **1.0-draft-phase2j** — Phase 2J: findings ledger (F-2J-1) - every open application finding must map to a control property or fail the release; F-2I-1 mapped to the new control CR-RESOURCE-007 and fixed.
 

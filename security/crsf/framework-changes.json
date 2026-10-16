@@ -417,7 +417,8 @@
 				{
 					"id": "F-2C-1",
 					"kind": "NEW_FINDING",
-					"reason": "Test infrastructure (Low): node:test reports a test file without tests as one passing entry, so scripts/run-tests-guarded.mjs passes a security test file that lost all its tests. Reproduced in a throwaway project. Not fixed in this evidence pass; fix direction: count only non-file test events or require >= 1 test per file."
+					"reason": "Test infrastructure (Low): node:test reports a test file without tests as one passing entry, so scripts/run-tests-guarded.mjs passes a security test file that lost all its tests. Reproduced in a throwaway project. Not fixed in this evidence pass; fix direction: count only non-file test events or require >= 1 test per file.",
+					"finding_class": "FRAMEWORK"
 				},
 				{
 					"id": "F-2C-2",
@@ -809,7 +810,13 @@
 				{
 					"id": "F-2D-2",
 					"kind": "NEW_FINDING",
-					"reason": "Application, Low. noContractCodeByQuorum (src/contract-signature.mjs) uses viem getCode, which returns undefined both for a real 0x answer and for an answer without result; `?? '0x'` turns both into \"no contract code\". If both providers answer without result (missing, null, empty 200 body), a Safe/contract wallet is treated as EOA: api/dashboard.mjs freshAuthorityRequired skips the fresh Safe confirmation for legacy sessions without kind (Telegram disconnect, sign out everywhere), and src/bot.mjs walletWideFromChatAllowed lets a (possibly stale) Telegram chat run the wallet-wide unlink/revocation. Requires two independent TLS providers to return such answers simultaneously. Fix direction: call eth_getCode via client.request and accept only a hex string result (CODE_HEX), treating undefined/null as malformed (provider not ok). Not fixed in Phase 2D."
+					"reason": "Application, Low. noContractCodeByQuorum (src/contract-signature.mjs) uses viem getCode, which returns undefined both for a real 0x answer and for an answer without result; `?? '0x'` turns both into \"no contract code\". If both providers answer without result (missing, null, empty 200 body), a Safe/contract wallet is treated as EOA: api/dashboard.mjs freshAuthorityRequired skips the fresh Safe confirmation for legacy sessions without kind (Telegram disconnect, sign out everywhere), and src/bot.mjs walletWideFromChatAllowed lets a (possibly stale) Telegram chat run the wallet-wide unlink/revocation. Requires two independent TLS providers to return such answers simultaneously. Fix direction: call eth_getCode via client.request and accept only a hex string result (CODE_HEX), treating undefined/null as malformed (provider not ok). Not fixed in Phase 2D.",
+					"finding_class": "APPLICATION",
+					"mapping": {
+						"control": "CR-PROVIDER-001",
+						"property": "P2",
+						"rationale": "as recorded by its FINDING_FIXED record (Phase 2E) and its VIOLATION probe at the time it was opened"
+					}
 				},
 				{
 					"id": "CR-VERIFY-003",
@@ -893,7 +900,13 @@
 				{
 					"id": "F-2F-1",
 					"kind": "NEW_FINDING",
-					"reason": "Application, Low. api/dashboard.mjs: for dashboard sessions without kind (issued before 2026-10-14, valid at most 7 days, i.e. until about 2026-10-21), freshAuthorityRequired calls noContractCodeByQuorum (eth_getCode at Alchemy AND Infura). On POST {action} this runs after the per-IP limit (20/600 s) but BEFORE the per-wallet limit and with no global limit; on DELETE (sign-out everywhere, ?telegram=1) after only the per-IP limit (10/600 s). A holder of one valid legacy session can rotate IPs to drive unbounded provider requests (cost/quota amplification; exhausted quotas make Safe login and ERC-1271 checks fail closed for everyone). Fix direction: apply the per-wallet and a global action budget before freshAuthorityRequired on both paths (or decide legacy sessions without RPC). Not fixed in Phase 2F."
+					"reason": "Application, Low. api/dashboard.mjs: for dashboard sessions without kind (issued before 2026-10-14, valid at most 7 days, i.e. until about 2026-10-21), freshAuthorityRequired calls noContractCodeByQuorum (eth_getCode at Alchemy AND Infura). On POST {action} this runs after the per-IP limit (20/600 s) but BEFORE the per-wallet limit and with no global limit; on DELETE (sign-out everywhere, ?telegram=1) after only the per-IP limit (10/600 s). A holder of one valid legacy session can rotate IPs to drive unbounded provider requests (cost/quota amplification; exhausted quotas make Safe login and ERC-1271 checks fail closed for everyone). Fix direction: apply the per-wallet and a global action budget before freshAuthorityRequired on both paths (or decide legacy sessions without RPC). Not fixed in Phase 2F.",
+					"finding_class": "APPLICATION",
+					"mapping": {
+						"control": "CR-RESOURCE-001",
+						"property": "P1",
+						"rationale": "as recorded by its FINDING_FIXED record (Phase 2G) and its VIOLATION probe at the time it was opened"
+					}
 				},
 				{
 					"id": "CR-RESOURCE-001",
@@ -995,7 +1008,13 @@
 				{
 					"id": "F-2H-1",
 					"kind": "NEW_FINDING",
-					"reason": "Application, Low. api/position-attributions.mjs: currentState() calls getCovers = getWalletCovers (Alchemy NFT index + Nexus + getCovers RPC; no cache, no budget of its own) after only attributions-write (IP, 30/600 s) and attributions-write-wallet (30/600 s) on POST, or attributions-read / attributions-wallet on GET for wallets with stored rows. The only global budget on the path, positions-lookup-global (200/600 s), is consulted inside getWalletPositions ONLY on a positions cache miss (cache 60 s, failures 15 s, per instance). With cached positions, every syntactically valid POST triggers a full cover provider lookup with no global limit; many valid sessions multiply it without bound. The dashboard read path budgets exactly these lookups per wallet AND globally (Restaudit M2: dashboard-read-wallet / dashboard-read-global, plus cache and coalescing); this endpoint bypasses both. Fix direction: put a global cover-lookup budget (reuse the M2 budget or positions-lookup-global semantics) in front of getCovers on both methods, ideally through the same cached/coalesced cover lookup as the dashboard. Not fixed in Phase 2H."
+					"reason": "Application, Low. api/position-attributions.mjs: currentState() calls getCovers = getWalletCovers (Alchemy NFT index + Nexus + getCovers RPC; no cache, no budget of its own) after only attributions-write (IP, 30/600 s) and attributions-write-wallet (30/600 s) on POST, or attributions-read / attributions-wallet on GET for wallets with stored rows. The only global budget on the path, positions-lookup-global (200/600 s), is consulted inside getWalletPositions ONLY on a positions cache miss (cache 60 s, failures 15 s, per instance). With cached positions, every syntactically valid POST triggers a full cover provider lookup with no global limit; many valid sessions multiply it without bound. The dashboard read path budgets exactly these lookups per wallet AND globally (Restaudit M2: dashboard-read-wallet / dashboard-read-global, plus cache and coalescing); this endpoint bypasses both. Fix direction: put a global cover-lookup budget (reuse the M2 budget or positions-lookup-global semantics) in front of getCovers on both methods, ideally through the same cached/coalesced cover lookup as the dashboard. Not fixed in Phase 2H.",
+					"finding_class": "APPLICATION",
+					"mapping": {
+						"control": "CR-RESOURCE-001",
+						"property": "P4",
+						"rationale": "as recorded by its FINDING_FIXED record (Phase 2I) and its VIOLATION probe at the time it was opened"
+					}
 				},
 				{
 					"id": "CR-RESOURCE-001",
@@ -1091,12 +1110,123 @@
 				{
 					"id": "F-2I-1",
 					"kind": "NEW_FINDING",
-					"reason": "Application, Low. src/bot.mjs: sendCovers() and sendNextExpiry() call getWalletCovers (Alchemy NFT index + Nexus + getCovers RPC) once per linked wallet (up to MAX_WALLETS_PER_CHAT = 10) for /covers, the show_covers callback button and the AI intents show_covers / show_next_expiry. api/telegram.mjs checks the webhook secret, private chat and update_id dedupe; there is no per-chat and no global limit in front of the command/button paths (allowAiRequest limits only the AI intent route per chat, and no global cover budget exists there). A Telegram account with linked wallets can therefore trigger up to 10 cover provider lookups per message or button press, bounded only by Telegram-side message limits; many accounts multiply it. Separate from F-2H-1: different route (Telegram webhook, not the dashboard API), different root cause (no resource gate at all, not a cache-dependent one), and not covered by any CRSF control property (CR-RESOURCE-001 P1-P4 and CR-RESOURCE-004 name only dashboard/link/positions/attribution paths) - so it changes no computed status; mapping it needs a control decision. Fix direction: per-chat and global cover-lookup budget (e.g. the canonical dashboard-read-global) before each Telegram cover lookup, ideally through the same budgeted/cached cover lookup. Not fixed in Phase 2I."
+					"reason": "Application, Low. src/bot.mjs: sendCovers() and sendNextExpiry() call getWalletCovers (Alchemy NFT index + Nexus + getCovers RPC) once per linked wallet (up to MAX_WALLETS_PER_CHAT = 10) for /covers, the show_covers callback button and the AI intents show_covers / show_next_expiry. api/telegram.mjs checks the webhook secret, private chat and update_id dedupe; there is no per-chat and no global limit in front of the command/button paths (allowAiRequest limits only the AI intent route per chat, and no global cover budget exists there). A Telegram account with linked wallets can therefore trigger up to 10 cover provider lookups per message or button press, bounded only by Telegram-side message limits; many accounts multiply it. Separate from F-2H-1: different route (Telegram webhook, not the dashboard API), different root cause (no resource gate at all, not a cache-dependent one), and not covered by any CRSF control property (CR-RESOURCE-001 P1-P4 and CR-RESOURCE-004 name only dashboard/link/positions/attribution paths) - so it changes no computed status; mapping it needs a control decision. Fix direction: per-chat and global cover-lookup budget (e.g. the canonical dashboard-read-global) before each Telegram cover lookup, ideally through the same budgeted/cached cover lookup. Not fixed in Phase 2I.",
+					"finding_class": "APPLICATION",
+					"mapping": {
+						"unmapped": true,
+						"reason": "At Phase 2I no control property named Telegram provider work (CR-RESOURCE-001 P1-P4 and CR-RESOURCE-004 name dashboard, link, positions and attribution paths only); the mapping is a framework decision taken in Phase 2J."
+					}
 				},
 				{
 					"id": "STOP-2I",
 					"kind": "STOP_CONDITION",
 					"reason": "Phase 2I fixed F-2H-1; the same-root-cause search found the separate application finding F-2I-1, recorded and not fixed (task: \"If separate: record new finding and STOP\"). F-2I-1 is not mapped to any control property; adding coverage is a framework decision for the next phase."
+				}
+			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2j",
+			"summary": "Phase 2J: findings ledger (F-2J-1) - every open application finding must map to a control property or fail the release; F-2I-1 mapped to the new control CR-RESOURCE-007 and fixed.",
+			"changes": [
+				{
+					"id": "F-2J-1",
+					"kind": "FRAMEWORK_FIX",
+					"reason": "Framework, found by Phase 2I: an OPEN application finding (F-2I-1) that no control property covered changed no computed status, so the release assertion (INCOMPLETE_EVIDENCE) silently ignored it. Fix: security/crsf/lib/engine.mjs findingLedger() replays the finding records; NEW_FINDING records are typed (finding_class APPLICATION / FRAMEWORK / INFORMATIONAL) and an application finding must carry a mapping (control + property + rationale, or unmapped + reason) - else FINDING_RECORD_INCOMPLETE; a mapping must name a real control property (FINDING_MAPPING_UNKNOWN, also for FINDING_FIXED blocks); an OPEN mapped application finding must be visible as a VIOLATION on that property (FINDING_NOT_REFLECTED); releaseAssertion() returns FAIL for any OPEN unmapped application finding regardless of control statuses (scripts/security-verify.mjs reports findings and open_unmapped_findings); the version lock records every finding id and class, so a finding cannot be deleted (FINDING_DELETED_SILENTLY), retyped (FINDING_RECLASSIFIED_SILENTLY) or added/changed at the same version (FINDINGS_CHANGED_WITHOUT_VERSION); it can only be closed by a proven FINDING_FIXED or a FINDING_WITHDRAWN with a documented resolution. Self-tests Z1-Z10."
+				},
+				{
+					"id": "FINDING-MODEL",
+					"kind": "EVIDENCE_MODEL",
+					"reason": "The five historic NEW_FINDING records gain finding_class and mapping fields (annotations only; their ids, versions and reasons are unchanged). Mappings of F-2D-2, F-2F-1 and F-2H-1 are the control properties their FINDING_FIXED records already named; F-2C-1 is a test-infrastructure (framework) finding; F-2I-1 is recorded as it was at Phase 2I - an application finding without a mapping."
+				},
+				{
+					"id": "CR-RESOURCE-007",
+					"kind": "ADDED",
+					"reason": "New control for Telegram provider work (finding F-2I-1). Derivation: the pinned requirements are general - V2.4.1 \"anti-automation controls ... against excessive calls to application functions that could lead to ... quota exhaustion ... or overuse of costly resources\", API4:2023 unrestricted resource consumption, V15.2.2 resource-demanding functionality - so Telegram cover lookups are in scope of the external requirement. V2.4.1 names both threats: excessive calls by one actor (-> per-chat budget) and quota exhaustion (-> global budget), so both are required. Not added to CR-RESOURCE-001: its derived properties P1-P4 name specific HTTP paths with per-IP keys (dashboard login/action, link verify, challenge issuance, positions/attribution); Telegram requests all come from Telegram, so a per-IP key is meaningless there, and widening P1-P4 would retroactively change a locked control whose evidence was judged against those paths. A separate control keeps CR-RESOURCE-001 unchanged and makes the new obligation explicit; it is RELEASE_BLOCKING at the profile minimum for that class (E3), like CR-RESOURCE-001 and -004.",
+					"rationale": "The external requirement (V2.4.1/API4) covers every costly application function; the existing controls only derived HTTP-endpoint properties. Adding a control is an extension, never a weakening.",
+					"why_not_weakening": "No existing control, property, threshold or release class changes; one RELEASE_BLOCKING obligation is added and immediately evaluated (FAIL while F-2I-1 is open)."
+				},
+				{
+					"id": "F-2I-1",
+					"kind": "FINDING_MAPPED",
+					"reason": "F-2I-1 mapped from UNMAPPED to the new control property CR-RESOURCE-007 P1; the VIOLATION probe EV-PROBE-TG-COVERS makes it visible as a FAIL of that control.",
+					"mapping": {
+						"control": "CR-RESOURCE-007",
+						"property": "P1",
+						"rationale": "F-2I-1 is exactly the absence of the per-chat and global cover budget that CR-RESOURCE-007 P1 requires before every Telegram cover lookup."
+					}
+				},
+				{
+					"id": "F-2I-1",
+					"kind": "FINDING_FIXED",
+					"reason": "Application finding F-2I-1 (Low, Phase 2I) mapped to CR-RESOURCE-007 P1 and fixed in src/bot.mjs; proven behaviourally for every entry point with 1 and 10 wallets and by eight KILLED mutations; the VIOLATION probe is inverted to a regression proof.",
+					"finding": {
+						"control": "CR-RESOURCE-007",
+						"property": "P1",
+						"status_before": "OPEN",
+						"status_after": "FIXED",
+						"affected_entry_points": [
+							"/covers command (also the \"Meine Covers\" keyboard button text, routed to /covers)",
+							"show_covers callback button",
+							"AI intent show_covers (free text)",
+							"AI intent show_next_expiry (free text)"
+						],
+						"root_cause": "sendCovers() and sendNextExpiry() in src/bot.mjs called getWalletCovers once per linked wallet with no resource gate; the webhook checks authenticity, private chat and update dedupe only, and the AI budget (ai-privat / ai-gesamt) limits OpenAI calls on the free-text route, not cover provider work. The provider budgets existed only on the HTTP side (Restaudit M2), and no control property named Telegram provider work.",
+						"multi_wallet_amplification": "Up to MAX_WALLETS_PER_CHAT = 10 linked wallets: one message or button press caused up to 10 full cover lookups (Alchemy NFT index + Nexus + getCovers RPC each), repeatable without limit; many chats multiply it.",
+						"per_chat_budget": "telegram-cover-chat, key = HMAC of the chat id, 30 lookups per 600 s - the same per-actor rate as the dashboard per-wallet cover budget (DASHBOARD_READ_WALLET_LIMIT, Restaudit M2). New key because no existing Telegram limiter measures cover provider work (ai-privat counts OpenAI calls).",
+						"global_budget_used": "dashboard-read-global, key \"all\", 300 lookups per 600 s - the single global budget for real cover provider lookups (Restaudit M2), already shared by the dashboard read path and attributions (Phase 2I); the Telegram key is byte-identical. Shared on purpose: it caps the one provider quota all channels consume; a separate Telegram budget would double the global ceiling. Trade-off (as in M2): exhaustion by either channel pauses cover lookups for both for at most 10 minutes.",
+						"budget_charging_model": "Per wallet lookup, reserved up front: before the first lookup, for each linked wallet one slot in the chat budget and then one in the global budget (narrowest first, so a chat refusal consumes no global slot). Any refusal aborts the request with zero lookups (no partial list, no wrong \"next expiry\"); slots already taken by an aborted request stay consumed (fail closed). Limiter failure -> no lookup.",
+						"code_change": "src/bot.mjs: admitCoverLookups(chatId, count) and coverLimitText(language); sendCovers and sendNextExpiry call admitCoverLookups(chatId, wallets.length) after reading the linked wallets and before the first getWalletCovers, and answer with a limit notice when refused. All four entry points reach the lookups only through these two functions. checkRateLimit (db.mjs) and rateKey (http-security.mjs) are reused unchanged.",
+						"before_behavior": "Probe (Phase 2J, before the fix): every entry point made one cover lookup per linked wallet (1 -> 1, 10 -> 10) with no limiter before it; on the AI route only ai-privat and ai-gesamt ran.",
+						"after_behavior": "Chat or global cover budget refused (also mid-sequence) -> 0 cover lookups and a limit notice; admitted -> one lookup per wallet, exactly as before; no linked wallet -> nothing charged.",
+						"order_before": {
+							"command_and_button": "webhook secret -> private chat -> update dedupe -> getMonitoredWallets -> getWalletCovers x N",
+							"ai_intents": "webhook secret -> private chat -> update dedupe -> ai-privat -> ai-gesamt -> local/OpenAI intent -> getMonitoredWallets -> getWalletCovers x N"
+						},
+						"order_after": {
+							"command_and_button": "webhook secret -> private chat -> update dedupe -> getMonitoredWallets -> N x (telegram-cover-chat -> dashboard-read-global) -> getWalletCovers x N",
+							"ai_intents": "webhook secret -> private chat -> update dedupe -> ai-privat -> ai-gesamt -> intent -> getMonitoredWallets -> N x (telegram-cover-chat -> dashboard-read-global) -> getWalletCovers x N"
+						},
+						"application_files_changed": [
+							"src/bot.mjs"
+						],
+						"regression_tests": [
+							"test/telegram-cover-budget.test.mjs (TG-COVER-BUDGET: 4 entry points x {chat denied, global denied, allowed} x {1, 10 wallets}, mid-sequence exhaustion, AI budget first, no wallet, shared key, fail closed)",
+							"security/crsf/probes/telegram-cover-budget-probe.mjs (regression proof)"
+						],
+						"mutation_ids": [
+							"MUT-CR-RESOURCE-007-P1-F2I1A",
+							"MUT-CR-RESOURCE-007-P1-F2I1B",
+							"MUT-CR-RESOURCE-007-P1-F2I1B2",
+							"MUT-CR-RESOURCE-007-P1-F2I1C",
+							"MUT-CR-RESOURCE-007-P1-F2I1D",
+							"MUT-CR-RESOURCE-007-P1-F2I1D2",
+							"MUT-CR-RESOURCE-007-P1-F2I1E",
+							"MUT-CR-RESOURCE-007-P1-F2I1F"
+						],
+						"mutation_result": "KILLED",
+						"call_sites_proven": [
+							"src/bot.mjs handleMessage /covers -> sendCovers",
+							"src/bot.mjs handleCallbackQuery show_covers -> sendCovers",
+							"src/bot.mjs handleNaturalLanguage show_covers -> sendCovers",
+							"src/bot.mjs handleNaturalLanguage show_next_expiry -> sendNextExpiry"
+						],
+						"remaining_assumptions": "Limiter store and providers are offline stubs (limiter atomicity is CR-RESOURCE-002). The global budget is shared with the dashboard and attributions (accepted trade-off above). Same-root-cause search: getWalletCovers is otherwise called by the dashboard read path (budgeted, M2), the dashboard login (login budgets before verification, by design), attributions (budgeted, Phase 2I) and the expiry-alert cron (maxCoverLookups per run, CR-RESOURCE-003); the bot's only other provider call (noContractCodeByQuorum on unlink) was checked in Phase 2G. No other unbudgeted interactive cover path."
+					}
+				},
+				{
+					"id": "CR-RESOURCE-007",
+					"kind": "STATUS_CHANGE",
+					"old_status": "NEW (FAIL while F-2I-1 was open)",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E3",
+					"evidence_added": [
+						"test/telegram-cover-budget.test.mjs (EV-TG-COVER-BUDGET, behavioural E3, FULL)",
+						"security/mutation/cases.json (EV-KB-TG-COVER-BUDGET, 8 KILLED)",
+						"EV-PROBE-TG-COVERS inverted to SUPPORTS"
+					],
+					"why_sufficient": "P1 is the only property; the behavioural tests cover every Telegram cover entry point (all reach the lookups through sendCovers / sendNextExpiry) with 1 and 10 wallets, denial, mid-sequence exhaustion and the admitted path; eight behavioural mutations are KILLED by the intended tests.",
+					"remains_unproven": "real provider cost; limiter atomicity (CR-RESOURCE-002).",
+					"reason": "F-2I-1 fixed (Phase 2J)"
 				}
 			]
 		}

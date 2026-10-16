@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2i",
+	"crsf_version": "1.0-draft-phase2j",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -6147,6 +6147,151 @@
 			],
 			"coverage": "PARTIAL",
 			"reason_for_partial": "CR-RESOURCE-001[P4]: mutation cases: MUT-CR-RESOURCE-001-P4-F2H1A, MUT-CR-RESOURCE-001-P4-F2H1B, MUT-CR-RESOURCE-001-P4-F2H1C, MUT-CR-RESOURCE-001-P4-F2H1D"
+		},
+		{
+			"id": "EV-PROBE-TG-COVERS",
+			"type": "behavioral",
+			"level": "E2",
+			"source": "repository",
+			"artifact": "security/crsf/probes/telegram-cover-budget-probe.mjs",
+			"test_or_proof": "node security/crsf/probes/telegram-cover-budget-probe.mjs",
+			"property_proven": "regression proof (finding F-2I-1, fixed in Phase 2J): real src/bot.mjs handleUpdate with an offline recording fetch; for every Telegram cover entry point and 1 and 10 linked wallets, a denied chat or global cover budget yields 0 cover lookups, and an admitted request makes one lookup per wallet after both budgets were charged once per wallet. History: before the fix (Phase 2J) it reproduced the defect - 1 -> 1 and 10 -> 10 lookups with no cover budget before them.",
+			"property_not_proven": "real provider cost; Telegram-side delivery limits",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-007",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "Phase 2J: reproduced F-2I-1 (VIOLATION), inverted to a regression proof after the fix"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "probe",
+				"script": "security/crsf/probes/telegram-cover-budget-probe.mjs",
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 60000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			},
+			"control_ids": [
+				"CR-RESOURCE-007"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
+			"id": "EV-TG-COVER-BUDGET",
+			"control_ids": [
+				"CR-RESOURCE-007"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/telegram-cover-budget.test.mjs",
+			"test_or_proof": "test/telegram-cover-budget.test.mjs",
+			"property_proven": "real src/bot.mjs handleUpdate + real db/covers/cover-chain up to an offline wire: for the /covers command, the show_covers button and the AI intents show_covers and show_next_expiry, with 1 and 10 linked wallets: chat budget denied -> 0 cover lookups (global not charged); global budget denied -> 0 lookups; budget exhausted mid-sequence (global after 3, chat after 5) -> 0 lookups, stop at the first refusal; admitted -> exactly one lookup per wallet, both budgets charged once per wallet before the first lookup (30/600 s per chat, 300/600 s global = the dashboard cover budget key); AI route keeps its AI budget first; no wallet -> nothing charged; limiter failure fails closed",
+			"property_not_proven": "real provider cost; Telegram-side delivery limits; limiter store atomicity (CR-RESOURCE-002); the shared global budget can be exhausted by either channel (accepted trade-off, see F-2I-1)",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-RESOURCE-007",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/telegram-cover-budget.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-TG-COVER-BUDGET",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 8 case(s)",
+			"property_proven": "bypassing the cover budget on the command, the callback button or either AI intent, removing the chat or the global budget, checking the budget after the lookups, or charging only the first wallet is each detected by the intended test and message",
+			"property_not_proven": "real provider cost; Telegram-side delivery limits; limiter store atomicity (CR-RESOURCE-002); the shared global budget can be exhausted by either channel (accepted trade-off, see F-2I-1)",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-007",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-RESOURCE-007-P1-F2I1A, MUT-CR-RESOURCE-007-P1-F2I1B, MUT-CR-RESOURCE-007-P1-F2I1B2, MUT-CR-RESOURCE-007-P1-F2I1C, MUT-CR-RESOURCE-007-P1-F2I1D, MUT-CR-RESOURCE-007-P1-F2I1D2, MUT-CR-RESOURCE-007-P1-F2I1E, MUT-CR-RESOURCE-007-P1-F2I1F"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-RESOURCE-007-P1-F2I1A",
+					"MUT-CR-RESOURCE-007-P1-F2I1B",
+					"MUT-CR-RESOURCE-007-P1-F2I1B2",
+					"MUT-CR-RESOURCE-007-P1-F2I1C",
+					"MUT-CR-RESOURCE-007-P1-F2I1D",
+					"MUT-CR-RESOURCE-007-P1-F2I1D2",
+					"MUT-CR-RESOURCE-007-P1-F2I1E",
+					"MUT-CR-RESOURCE-007-P1-F2I1F"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-RESOURCE-007"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
 		}
 	]
 }
