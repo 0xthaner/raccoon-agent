@@ -1,16 +1,18 @@
 /*
-	CRSF evidence probe EV-PROBE-GETCODE (finding F-2D-2, CRSF Phase 2D).
+	CRSF evidence probe EV-PROBE-GETCODE (finding F-2D-2).
 
 	Question: does noContractCodeByQuorum (src/contract-signature.mjs) treat an
 	eth_getCode answer WITHOUT a result as "no contract code"?
 
+	History: in CRSF Phase 2D this probe reproduced the defect (exit 0 while the
+	answer was "yes", recorded as a VIOLATION of CR-PROVIDER-001 P2). Fixed in
+	Phase 2E; since then the probe is a regression proof: exit 0 only while
+	every answer without a positive, well-formed result is NOT read as "no code"
+	AND the controls behave normally (real code -> false, real 0x -> true, RPC
+	error -> false). A reintroduced defect makes it exit 1 and the evidence FAIL.
+
 	Both providers are viem clients with an offline fetch that answers each
 	JSON-RPC call in a fixed way; no network, no keys. Prints one JSON line.
-
-	Exit 0 only while the observation is the recorded defect AND the controls
-	behave normally (real code -> false, real 0x -> true, RPC error -> false).
-	Once the defect is fixed this probe exits 1, the evidence FAILs and the
-	VIOLATION record in evidence.json must be revisited - it cannot go stale.
 */
 import { createPublicClient, http } from 'viem';
 import { mainnet } from 'viem/chains';
@@ -36,4 +38,4 @@ const o = observation.viem_getCode_no_code_for;
 observation.controls_ok = o.contract_code === false && o.empty_code_0x === true && o.rpc_error === false;
 observation.missing_result_read_as_no_code = o.result_missing === true || o.result_null === true || o.empty_http_body === true;
 process.stdout.write(JSON.stringify(observation) + '\n');
-process.exitCode = observation.controls_ok && observation.missing_result_read_as_no_code ? 0 : 1;
+process.exitCode = observation.controls_ok && !observation.missing_result_read_as_no_code ? 0 : 1;

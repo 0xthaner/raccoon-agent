@@ -131,7 +131,9 @@ Exit codes:
 - **FAIL:** a release-blocking FAIL or an evidence failure.
 - **INCOMPLETE_EVIDENCE:** everything else.
 
-At CRSF 1.0-draft-phase2d the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: FAIL`, because finding F-2D-2 is recorded as a VIOLATION of CR-PROVIDER-001 P2 and the run therefore exits 1 until it is fixed.
+At CRSF 1.0-draft-phase2e the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE` (five release-blocking controls are still `MISSING_EVIDENCE`). Finding F-2D-2 is fixed; its probe is now a regression proof.
+
+A change record may carry a typed `finding` block. Marking a finding `FIXED` is checked rather than trusted (`FINDING_FIX_NOT_PROVEN`): the cited mutation cases must exist, be behavioural `KILLED` and target the violated property, and no `VIOLATION` of that property may remain.
 
 ## Framework versions
 

@@ -101,6 +101,96 @@
 								"why_not_weakening": {
 									"type": "string",
 									"minLength": 40
+								},
+								"finding": {
+									"type": "object",
+									"additionalProperties": false,
+									"required": [
+										"control",
+										"property",
+										"status_before",
+										"status_after",
+										"root_cause",
+										"code_change",
+										"before_behavior",
+										"after_behavior",
+										"regression_tests",
+										"mutation_ids",
+										"mutation_result",
+										"call_sites_proven",
+										"remaining_assumptions"
+									],
+									"properties": {
+										"control": {
+											"type": "string",
+											"pattern": "^CR-[A-Z]+-[0-9]{3}$"
+										},
+										"property": {
+											"type": "string",
+											"pattern": "^P[0-9]+$"
+										},
+										"status_before": {
+											"enum": [
+												"OPEN",
+												"FIXED"
+											]
+										},
+										"status_after": {
+											"enum": [
+												"OPEN",
+												"FIXED"
+											]
+										},
+										"root_cause": {
+											"type": "string",
+											"minLength": 20
+										},
+										"code_change": {
+											"type": "string",
+											"minLength": 20
+										},
+										"before_behavior": {
+											"type": "string",
+											"minLength": 20
+										},
+										"after_behavior": {
+											"type": "string",
+											"minLength": 20
+										},
+										"regression_tests": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"minLength": 1
+											},
+											"minItems": 1
+										},
+										"mutation_ids": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"minLength": 1
+											},
+											"minItems": 1
+										},
+										"mutation_result": {
+											"enum": [
+												"KILLED"
+											]
+										},
+										"call_sites_proven": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"minLength": 1
+											},
+											"minItems": 1
+										},
+										"remaining_assumptions": {
+											"type": "string",
+											"minLength": 20
+										}
+									}
 								}
 							}
 						},

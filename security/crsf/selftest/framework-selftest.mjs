@@ -35,6 +35,8 @@ function bump(d, records = []) {
 	d['framework-changes'].versions.push({ crsf_version: '1.0-draft-phase2z', summary: 'fixture', changes: records });
 	return d['framework-changes'].versions.at(-1);
 }
+/** The change record that declares finding F-2D-2 fixed (Phase 2E). */
+const fixRecord = (d) => d['framework-changes'].versions.flatMap((v) => v.changes).find((c) => c.id === 'F-2D-2' && c.finding);
 /** Removes every mutation case targeting `control` and keeps the known-bad evidence consistent (ids, covers). */
 function dropMutationsFor(d, control) {
 	d.mutations.cases = d.mutations.cases.filter((m) => !m.targets.some((t) => t.control === control));
@@ -106,6 +108,11 @@ export const DEFINITION_FIXTURES = [
 	// Phase 2D - CR-VERIFY-003 / CR-VERIFY-004: E4 needs a KILLED mutation, E5 needs real infrastructure.
 	['X1', 'E4 control keeps PASS with its behavioural test but every mutation case removed', 'STATUS_NOT_RECOMPUTABLE', /CR-TELEGRAM-001\.security_status/, (d) => { dropMutationsFor(d, 'CR-TELEGRAM-001'); }],
 	['X2', 'behavioural test relabelled E4 to replace the removed mutation proof', 'LEVEL_EXCEEDS_TYPE', /EV-FAKE-E4/, (d) => { dropMutationsFor(d, 'CR-TELEGRAM-001'); d.evidence.evidence.push({ ...clone(evi(d, 'EV-SIWE')), id: 'EV-FAKE-E4', level: 'E4', covers: [{ control: 'CR-TELEGRAM-001', properties: ctl(d, 'CR-TELEGRAM-001').properties.map((p) => p.id), scope: 'FULL', result: 'SUPPORTS', note: null }], control_ids: ['CR-TELEGRAM-001'], coverage: 'FULL', reason_for_partial: null }); }],
+	// Phase 2E - a finding cannot be declared FIXED: the record must point at behavioural KILLED proof and no VIOLATION may remain.
+	['Y1', 'finding marked FIXED citing a mutation case that does not exist', 'FINDING_FIX_NOT_PROVEN', /F-2D-2/, (d) => { fixRecord(d).finding.mutation_ids = ['MUT-DOES-NOT-EXIST']; }],
+	['Y2', 'finding marked FIXED citing a KILLED mutation of an unrelated control', 'FINDING_FIX_NOT_PROVEN', /F-2D-2/, (d) => { fixRecord(d).finding.mutation_ids = ['MUT-CR-SESSION-001-P2-NEW1']; }],
+	['Y3', 'finding marked FIXED while its VIOLATION evidence is still recorded', 'FINDING_FIX_NOT_PROVEN', /F-2D-2/, (d) => { evi(d, 'EV-PROBE-GETCODE').covers[0].result = 'VIOLATION'; }],
+	['Y4', 'finding marked FIXED whose mutation is downgraded to an expected SURVIVED gap', 'FINDING_FIX_NOT_PROVEN', /F-2D-2/, (d) => { for (const id of fixRecord(d).finding.mutation_ids) Object.assign(mut(d, id), { expected_result: 'SURVIVED', expected_failures: [] }); }],
 	['T2', 'sequential node test relabelled type real-system (fake real concurrency, E5 within the cap)', 'REAL_SYSTEM_WITHOUT_INFRASTRUCTURE', /EV-FAKE-REAL/, (d) => { d.evidence.evidence.push({ ...clone(evi(d, 'EV-L3')), id: 'EV-FAKE-REAL', type: 'real-system', level: 'E5', covers: [{ control: 'CR-CONC-001', properties: ['P1'], scope: 'FULL', result: 'SUPPORTS', note: 'claims real concurrency' }], control_ids: ['CR-CONC-001'], coverage: 'PARTIAL', reason_for_partial: 'CR-CONC-001[P1]: x' }); }]
 ];
 

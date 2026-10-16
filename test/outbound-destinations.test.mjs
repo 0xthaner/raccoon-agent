@@ -219,9 +219,8 @@ test('OUTBOUND failures (throw, 500, malformed, empty) never turn into a confirm
 		failure = mode;
 		try {
 			assert.equal(await linking.telegramTarget('4242'), null, `${mode}: no Telegram target`);
-			// 'empty' (and any JSON-RPC answer without `result`) is finding F-2D-2: noContractCodeByQuorum reads it as "no code".
-			// Recorded as a VIOLATION of CR-PROVIDER-001 P2 by security/crsf/probes/getcode-missing-result-probe.mjs, not fixed in Phase 2D.
-			if (mode !== 'empty') assert.notEqual(await contractSignature.noContractCodeByQuorum(WALLET).catch(() => 'ERROR'), true, `${mode}: "no contract code" is never concluded`);
+			// 'empty' covers F-2D-2 (fixed in Phase 2E): an answer without result is unknown, never "no code".
+			assert.notEqual(await contractSignature.noContractCodeByQuorum(WALLET).catch(() => 'ERROR'), true, `${mode}: "no contract code" is never concluded`);
 			const verdict = await contractSignature.verifyContractSiweSignature({ address: WALLET, message: 'x', signature: '0x' + '11'.repeat(65) }, { deadlineMs: 2_000 }).catch(() => 'ERROR');
 			assert.notEqual(verdict, 'VALID', `${mode}: no valid contract signature`);
 		} finally { failure = null; }

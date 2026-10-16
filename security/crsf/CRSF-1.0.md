@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2d
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2e
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -8,10 +8,10 @@
 
 ### Security assurance
 
-- FAIL: 20
+- FAIL: 19
 - INFORMATIONAL: 2
 - MISSING_EVIDENCE: 51
-- PASS_AUTOMATED: 49
+- PASS_AUTOMATED: 50
 - PASS_MANUAL: 24
 
 ### Release classes
@@ -23,17 +23,16 @@
 
 ### Release-blocking controls by security status
 
-- FAIL: 1
 - MISSING_EVIDENCE: 5
-- PASS_AUTOMATED: 47
+- PASS_AUTOMATED: 48
 
 ### Standard conformance (ASVS 5.0.0, applicable requirements)
 
 - ACCEPTED_PLATFORM_DEVIATION: 1
 - ACCEPTED_PROTOCOL_DEVIATION: 2
 - CONFORMANT: 73
-- NON_CONFORMANT: 23
-- NOT_DEMONSTRATED: 63
+- NON_CONFORMANT: 21
+- NOT_DEMONSTRATED: 65
 
 ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Profile: ASVS L2 (all applicable L1 + L2 requirements are in scope); selected L3: V6.7.2, V15.4.2, V15.4.3, V7.5.3, V3.5.8, V14.2.6, V14.2.7, V8.3.2, V2.3.5.
 
@@ -160,7 +159,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-TELEGRAM-002 | Wallet-to-chat binding only via signed link flow | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E4 |
 | CR-TELEGRAM-003 | callback_data is untrusted input | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E4 |
 | CR-TELEGRAM-004 | Unlink/disconnect scope | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
-| CR-PROVIDER-001 | External data validated; failures fail closed | RELEASE_BLOCKING | E3 | **FAIL** | NON_CONFORMANT | P2: F-2D-2: eth_getCode answers without a result are read as "0x" (no code) via viem getCode undefined -> ?? '0x'; used by api/dashboard.mjs freshAuthorityRequired (legacy sessions) and src/bot.mjs walletWideFromChatAllowed [EV-PROBE-GETCODE] |
+| CR-PROVIDER-001 | External data validated; failures fail closed | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E3 |
 | CR-PROVIDER-002 | Outbound timeouts and bounded retries | SECURITY_DEBT | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-NEXUS,EV-RPC-RETRIES); P2 unsatisfied (partial only: EV-RPC-RETRIES) |
 | CR-PROVIDER-003 | Outbound destinations allowlisted (SSRF) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
 | CR-DOC-001 | Remote document size, time and decompression bounds | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
@@ -341,11 +340,14 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-STRUCT-MAC-CMP | static | E1 | node-test | PARTIAL | yes | the MAC bytes are compared only by node:crypto.timingSafeEqual at src/dashboard-auth.mjs:106 after a public length check; no ===, equals or compare on the MAC |
 | EV-STRUCT-MAC-ALG | static | E1 | node-test | PARTIAL | yes | the only HMAC construction is node:crypto.createHmac('sha256', secret()) at src/dashboard-auth.mjs:39: literal algorithm, key from DASHBOARD_SESSION_SECRET, nothing parsed from the token |
 | EV-OUTBOUND | behavioral | E3 | node-test | PARTIAL | yes | every outbound call site in src/ and api/ (16 files, inventory test fails on a new one) is driven with hostile inputs (foreign URLs, //host, ../, @host, %2F, CRLF, metadata IP, file:, localhost) through the real code - Telegram (bot via the real webhook, getChat, operator alerts, alerts/link-verify/dashboard senders), OpenAI, Nexus API + IPFS, Alchemy RPC/NFT, Infura RPC, Supabase REST - and every request goes to a fixed https host on the default port with a fixed path template; inputs only appear in encoded query values or bodies; malformed inputs are refused before any request |
-| EV-PROBE-GETCODE | behavioral | E2 | probe | PARTIAL | yes | observation (finding F-2D-2): noContractCodeByQuorum returns true ("no contract code") when both providers answer eth_getCode without a result (result missing, result null, or an empty HTTP 200 body); controls behave normally (contract code -> false, 0x -> true, RPC error -> false) |
+| EV-PROBE-GETCODE | behavioral | E2 | probe | PARTIAL | yes | regression proof (F-2D-2 fixed in Phase 2E): noContractCodeByQuorum does NOT read an eth_getCode answer without result (missing, null, empty HTTP 200) as "no contract code", while real code -> false, real 0x -> true, RPC error -> false; the probe exits 1 if the defect returns |
+| EV-GETCODE | behavioral | E3 | node-test | PARTIAL | yes | noContractCodeByQuorum counts a provider for "no contract code" only on a positive, well-formed eth_getCode hex answer, through a real viem http transport (offline fetch): both "0x" -> true; both bytecode -> false; one provider 0x and the other (or both) answering with result omitted, null, undefined, "", "0", "0x0", number, boolean, object, array, malformed hex, malformed JSON, empty HTTP 200 (with and without JSON content type), JSON-RPC error, HTTP 500, wrong response shape, transport error or timeout -> false; disagreement -> false; missing provider -> false; exactly one eth_getCode per provider at "latest" |
+| EV-GETCODE-CALLSITES | behavioral | E3 | node-test | PARTIAL | yes | the two decisions that use noContractCodeByQuorum fail closed on unknown/ambiguous getCode answers, run through the real code (api/dashboard.mjs handler, src/bot.mjs unlinkWalletFor, real DB helpers on fake PostgREST, wire-level offline providers): a legacy Safe session (no kind) still needs fresh authority for session-revoke and Telegram disconnect, sign-out only clears this device, no wallet-wide revocation, no chat unlinked; the Telegram "fully disconnect" stays chat-local with no revocation; controls: both providers "0x" -> EOA behaviour unchanged |
+| EV-KB-GETCODE | known-bad | E4 | mutation | PARTIAL | yes | reintroducing F-2D-2 (getCode() ?? '0x') or coercing a missing raw eth_getCode result to "0x" is caught behaviourally by the quorum matrix and by both call-site regressions |
 
 ## 6. Mutation cases
 
-145 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+147 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -494,6 +496,8 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-SESSION-001-P2-NEW2 | CR-SESSION-001.P2 | behavioral | KILLED |
 | MUT-CR-SESSION-001-P3-NEW1 | CR-SESSION-001.P3 | behavioral | KILLED |
 | MUT-CR-SESSION-001-P3-NEW2 | CR-SESSION-001.P3 | behavioral | KILLED |
+| MUT-CR-PROVIDER-001-P2-F2D2A | CR-PROVIDER-001.P2 | behavioral | KILLED |
+| MUT-CR-PROVIDER-001-P2-F2D2B | CR-PROVIDER-001.P2 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -659,8 +663,8 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V16.4.2 | L2 | CR-LOG-008 | NOT_DEMONSTRATED |
 | V16.4.3 | L2 | CR-LOG-009 | NOT_DEMONSTRATED |
 | V16.5.1 | L2 | CR-API-006 | NOT_DEMONSTRATED |
-| V16.5.2 | L2 | CR-RESOURCE-003, CR-PROVIDER-001, CR-PROVIDER-002 | NON_CONFORMANT |
-| V16.5.3 | L2 | CR-AUTH-005, CR-API-006, CR-PROVIDER-001 | NON_CONFORMANT |
+| V16.5.2 | L2 | CR-RESOURCE-003, CR-PROVIDER-001, CR-PROVIDER-002 | NOT_DEMONSTRATED |
+| V16.5.3 | L2 | CR-AUTH-005, CR-API-006, CR-PROVIDER-001 | NOT_DEMONSTRATED |
 
 ## 8. Pinned sources
 
@@ -732,4 +736,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2b** — Evidence closure for release-blocking controls: 11 closed (CR-API-002, CR-TELEGRAM-001, CR-AUTH-001/002/003/007, CR-SESSION-002/003/005/007, CR-CONC-005); 6 new test files, 37 new mutation cases; the Phase 2A surviving cron mutation is now KILLED. No application code changed.
 - **1.0-draft-phase2c** — Evidence closure continued: 10 release-blocking controls closed (CR-DB-001/002, CR-AUTH-004/006/008, CR-API-001, CR-VERIFY-001/002/005/009); EQUIVALENT and MULTI_LAYER mutation semantics; two framework fixes; one test-infrastructure finding; two framework-policy gaps reported. No application code changed.
 - **1.0-draft-phase2d** — Phase 2D: F-2C-1 fixed (case-less test files fail the guard and the CRSF executor); CR-API-004 P1 clarified (reject or demonstrably ignore); property-specific structural rule for CR-SESSION-001 P2/P3; derivation locked (CR-VERIFY-011); real-system evidence must need real infrastructure (F-2D-1); application finding F-2D-2 recorded as a VIOLATION of CR-PROVIDER-001 P2 (stop condition B, not fixed).
+- **1.0-draft-phase2e** — Phase 2E: F-2D-2 fixed (fail closed on malformed eth_getCode answers); CR-PROVIDER-001 recomputed; finding-fix records must be proven (FINDING_FIX_NOT_PROVEN).
 

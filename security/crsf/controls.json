@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2d",
+	"crsf_version": "1.0-draft-phase2e",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -4607,6 +4607,9 @@
 			"current_evidence_ids": [
 				"EV-ATTRIB",
 				"EV-COVERCHAIN",
+				"EV-GETCODE",
+				"EV-GETCODE-CALLSITES",
+				"EV-KB-GETCODE",
 				"EV-KB-L4",
 				"EV-KB-L5",
 				"EV-L4",
@@ -4624,10 +4627,15 @@
 				"P2": {
 					"satisfied_by": [
 						"EV-KB-L4",
-						"EV-L4"
+						"EV-L4",
+						"EV-GETCODE",
+						"EV-GETCODE-CALLSITES",
+						"EV-KB-GETCODE"
 					],
 					"partial_only": [],
-					"insufficient": []
+					"insufficient": [
+						"EV-PROBE-GETCODE(E2)"
+					]
 				},
 				"P3": {
 					"satisfied_by": [
@@ -4646,10 +4654,10 @@
 					"insufficient": []
 				}
 			},
-			"conformance_status": "NON_CONFORMANT",
-			"conformance_status_reason": "P2: F-2D-2: eth_getCode answers without a result are read as \"0x\" (no code) via viem getCode undefined -> ?? '0x'; used by api/dashboard.mjs freshAuthorityRequired (legacy sessions) and src/bot.mjs walletWideFromChatAllowed [EV-PROBE-GETCODE]",
-			"security_status": "FAIL",
-			"security_status_reason": "P2: F-2D-2: eth_getCode answers without a result are read as \"0x\" (no code) via viem getCode undefined -> ?? '0x'; used by api/dashboard.mjs freshAuthorityRequired (legacy sessions) and src/bot.mjs walletWideFromChatAllowed [EV-PROBE-GETCODE]",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 4 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 4 sub-properties satisfied at >= E3",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
@@ -4658,7 +4666,9 @@
 					"real-system"
 				],
 				"independent_classes": 3,
-				"shared_fixture_groups": []
+				"shared_fixture_groups": [
+					"getcode"
+				]
 			}
 		},
 		{

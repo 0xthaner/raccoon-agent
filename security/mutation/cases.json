@@ -5406,6 +5406,92 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PROVIDER-001-P2-F2D2A",
+			"origin": "new (Phase 2E)",
+			"evidence_id": "EV-KB-GETCODE",
+			"targets": [
+				{
+					"control": "CR-PROVIDER-001",
+					"property": "P2"
+				}
+			],
+			"description": "F-2D-2 reintroduced exactly: viem getCode() (undefined for 0x AND for a missing result) with the ?? '0x' fallback",
+			"edits": [
+				{
+					"file": "src/contract-signature.mjs",
+					"find": "const code = await client.request({ method: 'eth_getCode', params: [address, 'latest'] });",
+					"replace": "const code = (await client.getCode({ address })) ?? '0x';"
+				}
+			],
+			"tests": [
+				"test/getcode-fail-closed.test.mjs",
+				"test/telegram-stale-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^GETCODE C/D/E",
+					"message": "result omitted|result null"
+				},
+				{
+					"test": "^GETCODE undefined result",
+					"message": "true !== false"
+				},
+				{
+					"test": "^F-2D-2 (dashboard|Telegram): ",
+					"message": "fresh authority required|revoked wallet-wide|only this device"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PROVIDER-001-P2-F2D2B",
+			"origin": "new (Phase 2E)",
+			"evidence_id": "EV-KB-GETCODE",
+			"targets": [
+				{
+					"control": "CR-PROVIDER-001",
+					"property": "P2"
+				}
+			],
+			"description": "raw eth_getCode kept, but a missing/null/undefined result is coerced to \"0x\" (unknown treated as no code)",
+			"edits": [
+				{
+					"file": "src/contract-signature.mjs",
+					"find": "const code = await client.request({ method: 'eth_getCode', params: [address, 'latest'] });",
+					"replace": "const code = (await client.request({ method: 'eth_getCode', params: [address, 'latest'] })) ?? '0x';"
+				}
+			],
+			"tests": [
+				"test/getcode-fail-closed.test.mjs",
+				"test/telegram-stale-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^GETCODE C/D/E",
+					"message": "result omitted|result null"
+				},
+				{
+					"test": "^GETCODE undefined result",
+					"message": "true !== false"
+				},
+				{
+					"test": "^F-2D-2 (dashboard|Telegram): ",
+					"message": "fresh authority required|revoked wallet-wide|only this device"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

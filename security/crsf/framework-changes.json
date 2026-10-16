@@ -827,6 +827,64 @@
 					"reason": "Stop condition B (real application finding F-2D-2) reached during CR-PROVIDER-003. Not attempted: CR-RESOURCE-001, CR-INPUT-004, CR-BROWSER-004."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2e",
+			"summary": "Phase 2E: F-2D-2 fixed (fail closed on malformed eth_getCode answers); CR-PROVIDER-001 recomputed; finding-fix records must be proven (FINDING_FIX_NOT_PROVEN).",
+			"changes": [
+				{
+					"id": "F-2D-2",
+					"kind": "FINDING_FIXED",
+					"reason": "Application finding F-2D-2 (Low, Phase 2D) fixed in application code; the fix is proven behaviourally and by two KILLED mutations, the VIOLATION evidence is converted to a regression proof.",
+					"finding": {
+						"control": "CR-PROVIDER-001",
+						"property": "P2",
+						"status_before": "OPEN",
+						"status_after": "FIXED",
+						"root_cause": "noContractCodeByQuorum used viem publicClient.getCode(), which returns undefined both for a real \"0x\" answer and for a JSON-RPC answer without result (missing, null, empty HTTP 200 body); the fallback `?? '0x'` then turned UNKNOWN into the positive statement \"no bytecode\".",
+						"code_change": "src/contract-signature.mjs noContractCodeByQuorum: read eth_getCode raw via client.request({ method: 'eth_getCode', params: [address, 'latest'] }) and accept only a string matching the existing strict CODE_HEX; no fallback. Same block tag, same dual-provider quorum, nothing else changed.",
+						"before_behavior": "Both providers answering without result -> true (\"no contract code\"): a legacy Safe dashboard session skipped fresh Safe authority for sign-out-everywhere and Telegram disconnect, and a (possibly stale) Telegram chat ran the wallet-wide revocation for the Safe.",
+						"after_behavior": "Any answer that is not a positive, well-formed code hex makes that provider not ok -> false: the dashboard requires fresh authority (sign-out clears only this device), the Telegram unlink stays chat-local. Real \"0x\" from both providers still yields true (EOA behaviour unchanged).",
+						"regression_tests": [
+							"test/getcode-fail-closed.test.mjs (GETCODE A-G + malformed matrix)",
+							"test/telegram-stale-authority.test.mjs (F-2D-2 dashboard / Telegram, with controls)",
+							"test/outbound-destinations.test.mjs (failure mode \"empty\" no longer exempted)",
+							"security/crsf/probes/getcode-missing-result-probe.mjs (regression proof)"
+						],
+						"mutation_ids": [
+							"MUT-CR-PROVIDER-001-P2-F2D2A",
+							"MUT-CR-PROVIDER-001-P2-F2D2B"
+						],
+						"mutation_result": "KILLED",
+						"call_sites_proven": [
+							"api/dashboard.mjs freshAuthorityRequired (POST action, DELETE sign-out, DELETE ?telegram=1)",
+							"src/bot.mjs walletWideFromChatAllowed (unlinkWalletFor)"
+						],
+						"remaining_assumptions": "Offline wire simulation, not the real Alchemy/Infura endpoints. The ERC-1271 consensus() keeps the same getCode() ?? '0x' pattern; there UNKNOWN maps to NO_CONTRACT -> INVALID_SIGNATURE / NOT_CONTRACT (a denial, never authority), so it was left unchanged in this phase and is not F-2D-2. Sessions with an explicit kind never consult getCode."
+					}
+				},
+				{
+					"id": "CR-PROVIDER-001",
+					"kind": "STATUS_CHANGE",
+					"old_status": "FAIL",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E3",
+					"evidence_added": [
+						"test/getcode-fail-closed.test.mjs (EV-GETCODE)",
+						"test/telegram-stale-authority.test.mjs F-2D-2 (EV-GETCODE-CALLSITES)",
+						"EV-KB-GETCODE: MUT-CR-PROVIDER-001-P2-F2D2A/B",
+						"EV-PROBE-GETCODE now SUPPORTS"
+					],
+					"why_sufficient": "P2 (getCode answers strictly validated): the remaining VIOLATION was removed only because the probe now observes fail-closed behaviour; the full malformed/missing matrix and both security-sensitive call sites are tested behaviourally, and reintroducing the defect is killed. P1/P3/P4 evidence unchanged.",
+					"remains_unproven": "Real provider behaviour; consensus() getCode coercion (denial-only, see F-2D-2 record).",
+					"reason": "finding F-2D-2 fixed (Phase 2E); status recomputed"
+				},
+				{
+					"id": "CHANGE_RECORD_FORMAT",
+					"kind": "FRAMEWORK_FIX",
+					"reason": "framework-changes records may carry a typed `finding` block (root cause, code change, before/after behaviour, regression tests, mutation ids, call sites, remaining assumptions). A finding with status_after FIXED is checked by the engine (FINDING_FIX_NOT_PROVEN): its mutation cases must exist, be behavioural KILLED and target the violated property, and no VIOLATION of that property may remain. Self-test fixtures Y1-Y4."
+				}
+			]
 		}
 	]
 }

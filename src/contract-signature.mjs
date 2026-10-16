@@ -285,7 +285,9 @@ export async function noContractCodeByQuorum(address, { providers } = {}) {
 	const p = providers === undefined ? erc1271Providers() : providers;
 	if (!p?.alchemy || !p?.infura) return false;
 	const codes = await perProvider(p, async (client) => {
-		const code = (await client.getCode({ address })) ?? '0x';
+		// F-2D-2: roh lesen. viem getCode() liefert fuer "0x" UND fuer eine Antwort ohne
+		// result undefined - nur ein positiv gemeldetes, wohlgeformtes Hex zaehlt.
+		const code = await client.request({ method: 'eth_getCode', params: [address, 'latest'] });
 		if (typeof code !== 'string' || !CODE_HEX.test(code)) throw new Error('malformed code');
 		return code;
 	});

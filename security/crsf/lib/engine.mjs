@@ -357,6 +357,18 @@ export function checkIntegrity(def, declared) {
 		if (m.layering === 'MULTI_LAYER' && (m.edits.length < 2 || !(typeof m.layering_rationale === 'string' && m.layering_rationale.length >= 40))) err('MULTI_LAYER_WITHOUT_RATIONALE', m.id);
 		if (m.layering !== 'MULTI_LAYER' && m.layering_rationale) err('RATIONALE_WITHOUT_MULTI_LAYER', m.id);
 	}
+	// Phase 2E: a finding recorded as FIXED must cite behavioural KILLED mutation cases that target exactly the
+	// violated property, and no VIOLATION for that property may remain - "fixed" cannot be declared, only proven.
+	for (const ch of def['framework-changes'].versions.flatMap((v) => v.changes)) {
+		const f = ch.finding;
+		if (!f || f.status_after !== 'FIXED') continue;
+		const why = [];
+		if (ch.kind !== 'FINDING_FIXED') why.push(`kind ${ch.kind} is not FINDING_FIXED`);
+		const cases = f.mutation_ids.map((id) => def.mutations.cases.find((m) => m.id === id));
+		if (cases.some((m) => !m || m.expected_result !== 'KILLED' || m.detection !== 'behavioral' || !m.targets.some((t) => t.control === f.control && t.property === f.property))) why.push(`mutation cases must exist, be behavioural KILLED and target ${f.control}.${f.property}`);
+		if (def.evidence.evidence.some((e) => e.covers.some((c) => c.control === f.control && c.properties.includes(f.property) && c.result === 'VIOLATION'))) why.push(`a VIOLATION of ${f.control}.${f.property} is still recorded`);
+		if (why.length) err('FINDING_FIX_NOT_PROVEN', `${ch.id}: ${why.join('; ')}`);
+	}
 	for (const d of def.deviations.deviations) {
 		for (const eid of d.evidence_ids) if (!ctx.evById.has(eid)) err('UNKNOWN_EVIDENCE_REFERENCE', `${d.id} -> ${eid}`);
 		if (d.manual_override_allowed !== false || d.status_computed !== true) err('MANUAL_OVERRIDE', d.id);

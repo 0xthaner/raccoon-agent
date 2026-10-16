@@ -159,7 +159,7 @@ const db = await import('../src/db.mjs');
 const OTHER_SAFE = '0x5afe00000000000000000000000000000000b00b';
 
 /** Echte Tabellenzeilen; die echten Helfer aus src/db.mjs laufen dagegen. */
-function world({ providerA = {}, providerB = {} } = {}) {
+function world({ providerA = {}, providerB = {}, providers: override } = {}) {
 	const row = (chat_id, wallet, is_primary) => ({ chat_id, wallet, label: 'W', is_primary, alerts_enabled: true, alert_thresholds: [7, 3, 1], weekly_summary: false, linked_at: '2026-10-01T00:00:00Z' });
 	const client = fakePostgrest({
 		monitored_wallets: [row(CHAT_A, SAFE, true), row(CHAT_A, EOA, false), row(CHAT_B, SAFE, true)],
@@ -181,7 +181,7 @@ function world({ providerA = {}, providerB = {} } = {}) {
 		revokeDashboardSessions: async (wallet) => { const now = Date.now(); revokes.push(wallet.toLowerCase()); revokedAt.set(wallet.toLowerCase(), now); return now; },
 		isDashboardSessionRevoked: async (wallet, iat) => { const cut = revokedAt.get(wallet.toLowerCase()); return cut != null && iat <= cut; }
 	};
-	const { providers } = dualProviders(chain(), providerA, providerB);
+	const providers = override ?? dualProviders(chain(), providerA, providerB).providers;
 	// Restaudit M1: der Lauf liest seitenweise per RPC (alert_subscriptions_page: alerts_enabled, siehe
 	// m1-wallet-limit-db.test.mjs gegen echten Postgres). Hier dieselbe Bedingung direkt auf den Zeilen.
 	const subs = async () => client.rows('monitored_wallets').filter((s) => s.alerts_enabled === true).map((s) => `${s.chat_id}:${s.wallet}`).sort();
@@ -323,4 +323,67 @@ test('M-1: no Telegram code path reaches revokeDashboardSessions without the EOA
 	const calls = [...source.matchAll(/revokeDashboardSessions\(/g)].length;
 	assert.equal(calls, 1, 'genau eine Aufrufstelle');
 	assert.match(source, /const revokable = walletAddresses\.filter\(\(_, i\) => allowed\[i\]\);\n\tconst chatOnly = walletAddresses\.length - revokable\.length;\n\tawait Promise\.all\(revokable\.map\(\(item\) => revokeDashboardSessions\(item\)\)\);/);
+});
+
+/* ===================== F-2D-2 (CRSF Phase 2E): unbekannter Code ist keine EOA */
+
+const { createHmac } = await import('node:crypto');
+const { wireProvider, rpcResult, OMIT } = await import('../test-support/rpc-wire.mjs');
+/** Beide Provider auf Draht-Ebene (offline); jeder beantwortet eth_getCode wie angegeben. */
+const wire = (a, b) => ({ alchemy: wireProvider(a).client, infura: wireProvider(b, { url: 'https://mainnet.infura.io/v3/offline' }).client });
+const UNKNOWN = {
+	'both: result omitted': [rpcResult(OMIT), rpcResult(OMIT)],
+	'both: result null': [rpcResult(null), rpcResult(null)],
+	'both: empty HTTP 200': [() => ({ text: '' }), () => ({ text: '' })],
+	'P1 0x, P2 result omitted': [rpcResult('0x'), rpcResult(OMIT)],
+	'P1 result null, P2 0x': [rpcResult(null), rpcResult('0x')],
+	'P1 0x, P2 malformed hex': [rpcResult('0x'), rpcResult('0x0')]
+};
+/** Alt-Sitzung OHNE Art (vor AUDIT SA-L1): nur hier entscheidet getCode ueber die frische Bestaetigung. */
+function legacyCookie(wallet) {
+	const now = Date.now();
+	const payload = Buffer.from(JSON.stringify({ type: 'session', wallet: wallet.toLowerCase(), iat: now, exp: now + 3_600_000 })).toString('base64url');
+	const token = `${payload}.${createHmac('sha256', process.env.DASHBOARD_SESSION_SECRET).update(payload).digest('base64url')}`;
+	assert.equal(auth.verifyDashboardToken(token)?.kind, undefined, 'a valid legacy session without kind');
+	return { cookie: `${auth.SESSION_COOKIE}=${encodeURIComponent(token)}` };
+}
+
+test('F-2D-2 dashboard: a legacy Safe session with unknown/ambiguous getCode still needs fresh authority - nothing destructive happens', async () => {
+	for (const [label, [a, b]] of Object.entries(UNKNOWN)) {
+		const w = world({ providers: wire(a, b) });
+		const handler = loadDashboard(w.helpers, w.providers, w.state);
+		const ask = await call(handler, { method: 'POST', headers: legacyCookie(SAFE), body: { action: 'session-revoke' } });
+		assert.equal(ask.body?.freshSignatureRequired, true, `${label}: fresh authority required`);
+		const signOut = await call(handler, { method: 'DELETE', headers: legacyCookie(SAFE) });
+		assert.deepEqual(signOut.body, { ok: true, revoked: false, freshSignatureRequired: true }, `${label}: only this device signs out`);
+		assert.deepEqual(w.revokes, [], `${label}: no wallet-wide session revocation`);
+		const tg = await call(handler, { method: 'DELETE', url: '/api/dashboard?telegram=1', headers: legacyCookie(SAFE) });
+		assert.notEqual(tg.statusCode, 200, `${label}: Telegram disconnect without fresh authority is refused`);
+		assert.equal((await w.subs()).length, 3, `${label}: no chat unlinked`);
+	}
+});
+
+test('F-2D-2 dashboard control: with both providers positively reporting "0x", a legacy session needs no fresh signature (EOA path unchanged)', async () => {
+	const w = world({ providers: wire(rpcResult('0x'), rpcResult('0x')) });
+	const handler = loadDashboard(w.helpers, w.providers, w.state);
+	const ask = await call(handler, { method: 'POST', headers: legacyCookie(EOA), body: { action: 'session-revoke' } });
+	assert.deepEqual(ask.body, { ok: true, freshSignatureRequired: false });
+	const signOut = await call(handler, { method: 'DELETE', headers: legacyCookie(EOA) });
+	assert.equal(signOut.statusCode, 200);
+	assert.deepEqual(w.revokes, [EOA], 'EOA sign-out everywhere still revokes server-side');
+});
+
+test('F-2D-2 Telegram: "fully disconnect" with unknown/ambiguous getCode is chat-local only - no wallet-wide revocation', async () => {
+	for (const [label, [a, b]] of Object.entries(UNKNOWN)) {
+		const w = world({ providers: wire(a, b) });
+		await loadBot(w.helpers, w.providers).unlinkWalletFor(CHAT_A, 'de');
+		assert.deepEqual(w.revokes, [], `${label}: neither the Safe nor the EOA is revoked wallet-wide`);
+		assert.deepEqual(await w.subs(), [`${CHAT_B}:${SAFE}`], `${label}: chat B untouched, only chat A unlinked`);
+	}
+});
+
+test('F-2D-2 Telegram control: with both providers positively reporting "0x", the wallet-wide revocation path still runs', async () => {
+	const w = world({ providers: wire(rpcResult('0x'), rpcResult('0x')) });
+	await loadBot(w.helpers, w.providers).unlinkWalletFor(CHAT_A, 'de');
+	assert.deepEqual(w.revokes.sort(), [EOA, SAFE].sort());
 });
