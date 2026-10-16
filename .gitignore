@@ -46,3 +46,6 @@ tmp/
 # Selbst gehostete Fonts: holt `npm run fonts`. Nicht committen - dieses Repo ist
 # oeffentlich, und die ITF-FFL untersagt Weitergabe ueber oeffentliche Repositories.
 web/public/fonts/
+
+# CRSF-Berichte: erzeugt von `npm run security:verify`, je Commit reproduzierbar, nicht committen.
+security/reports/out/

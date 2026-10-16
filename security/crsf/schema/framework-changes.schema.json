@@ -1,0 +1,67 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"title": "CRSF framework change record",
+	"type": "object",
+	"additionalProperties": false,
+	"required": [
+		"versions"
+	],
+	"properties": {
+		"versions": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": [
+					"crsf_version",
+					"summary",
+					"changes"
+				],
+				"properties": {
+					"crsf_version": {
+						"type": "string",
+						"minLength": 1
+					},
+					"summary": {
+						"type": "string",
+						"minLength": 1
+					},
+					"changes": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": [
+								"id",
+								"kind",
+								"reason"
+							],
+							"properties": {
+								"id": {
+									"type": "string",
+									"minLength": 1
+								},
+								"kind": {
+									"type": "string",
+									"minLength": 1
+								},
+								"reason": {
+									"type": "string"
+								},
+								"asvs_reconciliation": {
+									"type": "array",
+									"items": {
+										"type": "object"
+									},
+									"minItems": 0
+								}
+							}
+						},
+						"minItems": 0
+					}
+				}
+			},
+			"minItems": 1
+		}
+	}
+}

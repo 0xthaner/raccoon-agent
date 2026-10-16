@@ -1,0 +1,97 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"title": "ASVS 5.0.0 applicability",
+	"type": "object",
+	"additionalProperties": false,
+	"required": [
+		"crsf_version",
+		"asvs",
+		"input",
+		"input_sha256",
+		"count",
+		"items"
+	],
+	"properties": {
+		"crsf_version": {
+			"type": "string",
+			"pattern": "^1\\.0-draft-[a-z0-9]+$"
+		},
+		"asvs": {
+			"const": "5.0.0"
+		},
+		"input": {
+			"type": "string",
+			"minLength": 1
+		},
+		"input_sha256": {
+			"type": "string",
+			"pattern": "^[0-9a-f]{64}$"
+		},
+		"count": {
+			"type": "integer",
+			"minimum": 1
+		},
+		"items": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": [
+					"req_id",
+					"level",
+					"applicability",
+					"reason",
+					"controls",
+					"conformance_status"
+				],
+				"properties": {
+					"req_id": {
+						"type": "string",
+						"pattern": "^V\\d+\\.\\d+\\.\\d+$"
+					},
+					"level": {
+						"enum": [
+							"L1",
+							"L2",
+							"L3"
+						]
+					},
+					"applicability": {
+						"enum": [
+							"APPLICABLE",
+							"NOT_APPLICABLE",
+							"DEFERRED"
+						]
+					},
+					"reason": {
+						"type": "string"
+					},
+					"controls": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"pattern": "^CR-[A-Z]+-[0-9]{3}$"
+						},
+						"minItems": 0
+					},
+					"conformance_status": {
+						"enum": [
+							"CONFORMANT",
+							"NON_CONFORMANT",
+							"NOT_DEMONSTRATED",
+							"ACCEPTED_PROTOCOL_DEVIATION",
+							"ACCEPTED_PLATFORM_DEVIATION",
+							"NOT_APPLICABLE",
+							"DEFERRED",
+							"UNMAPPED"
+						]
+					},
+					"release_relevance": {
+						"type": "string"
+					}
+				}
+			},
+			"minItems": 1
+		}
+	}
+}

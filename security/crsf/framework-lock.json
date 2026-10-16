@@ -1,0 +1,1388 @@
+{
+	"crsf_version": "1.0-draft-phase2a",
+	"profile_rules_digest": "468dabfd847fd0b28209af6e8f79b58b07643d55b9364223f94842bd91e91a72",
+	"controls": {
+		"CR-API-001": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"API1:2023",
+				"V8.2.2",
+				"V8.3.1",
+				"V8.4.1"
+			],
+			"properties_digest": "135a8eb4e9cdacfdfd91178688af39afc56d4090f5ecfa31698189b51515b940"
+		},
+		"CR-API-002": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"API5:2023",
+				"V8.2.1",
+				"TG:secret_token"
+			],
+			"properties_digest": "ca4c3658a0253172df6aa14f05053df5ba1706ffb205ae9bf99868bf31865cd2"
+		},
+		"CR-API-003": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"API3:2023",
+				"V15.3.3",
+				"V8.2.3",
+				"V2.2.1",
+				"V2.2.2"
+			],
+			"properties_digest": "5226ef070cff7e815338136347139e9eb3d9a846fa02eca8153590bcfccaeec5"
+		},
+		"CR-API-004": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V15.3.7"
+			],
+			"properties_digest": "e15e231b269b0a5f1bb4c6da207e6efd1674353b67b7f46e4acc241bb644a459"
+		},
+		"CR-API-005": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V4.1.1",
+				"API4:2023"
+			],
+			"properties_digest": "0faae7a290e3425761cb189a24c8dd7e0645aa6a63aa9c02f27bcf558bb93f11"
+		},
+		"CR-API-006": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V16.5.1",
+				"V16.5.3"
+			],
+			"properties_digest": "45d86a7b41e75b2e7f70bab5e754bb64b526bf4d1b5f8946e26161d84c985953"
+		},
+		"CR-API-007": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V15.3.1",
+				"V14.2.6"
+			],
+			"properties_digest": "4412e18ec1d5422407f65c5bffcefde227bb9be3190f29537ac55a8c949c4fe4"
+		},
+		"CR-API-008": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V3.5.3"
+			],
+			"properties_digest": "b7ffb53969e2585b49f8377e0821a87105c0dc7255084b11e51dcec3ffbc5ecc"
+		},
+		"CR-API-009": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.3.1"
+			],
+			"properties_digest": "a2f0dab933420cd970174965e33eed2fdcb096f7eae82948d4a68bbf736a46d2"
+		},
+		"CR-API-010": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.3.5"
+			],
+			"properties_digest": "2d902006fa2aaa9e9fc8cad7ab2580ab638fc07ac05211129ddddcddc41ed61c"
+		},
+		"CR-API-011": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V4.1.3",
+				"V15.3.4"
+			],
+			"properties_digest": "1710a2dd60fc337a6359b5bcc48b67b28d897d42cff22852e971b8ccaae8cf93"
+		},
+		"CR-API-012": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V8.1.1",
+				"V8.1.2"
+			],
+			"properties_digest": "ad192154226a1d8843880f5d875d8b7b0e0eabf0b504757f6655a1ef456c1161"
+		},
+		"CR-AUTH-001": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"ERC-4361:verify-message",
+				"ERC-4361:request-origin"
+			],
+			"properties_digest": "03629ca1a90f4c0be8aafc79f2f7cbc1d3fd881419462b3f4c857a513e23be0b"
+		},
+		"CR-AUTH-002": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"ERC-4361:eoa-erc191",
+				"V6.3.4"
+			],
+			"properties_digest": "179aab29a9d71ac2a7f5ce9c413048c744f94589e86d9d13421438ab2aa526ea"
+		},
+		"CR-AUTH-003": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"ERC-4361:contract-erc1271",
+				"ERC-1271:magic-value"
+			],
+			"properties_digest": "817d63f3dfae3fc580278685665338ecca561191fa5514325ed5a68bf93b69d2"
+		},
+		"CR-AUTH-004": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"SAFE-1.4.1:signedMessages-persistent",
+				"ERC-4361:replay"
+			],
+			"properties_digest": "805a171960003ebfdd33cf9a92dca9db0ef69980078a0f72f0c2a5cdc6cff1a3"
+		},
+		"CR-AUTH-005": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"API10:2023",
+				"V16.5.3"
+			],
+			"properties_digest": "4ddda268e64742f217961ecd6b952b5317cb443358dd9ee554565f2f59478552"
+		},
+		"CR-AUTH-006": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"ERC-4361:session-binding",
+				"V7.2.4",
+				"V7.2.2"
+			],
+			"properties_digest": "71e97a40a0748970afdde2e79d1bf9ae7f9b7130ae348ac3a9be9e0799b7eb16"
+		},
+		"CR-AUTH-007": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"ERC-4361:session-invalidation",
+				"V7.5.3"
+			],
+			"properties_digest": "0033c25afe1ea9d9a6ca0f8066f01b889c62b5468b587f7a5080b13f0a43561e"
+		},
+		"CR-AUTH-008": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V6.7.2",
+				"V11.5.1",
+				"ERC-4361:nonce"
+			],
+			"properties_digest": "4845cd1ec2ed6242208b624fb6a2d1a15d856cce1533efe9b3b81ef56a3648e2"
+		},
+		"CR-AUTH-009": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V6.1.3"
+			],
+			"properties_digest": "2dcd21e655432db0e6eeb88918f5ffe21222926ea49b741ff8cf006114d9e3f7"
+		},
+		"CR-AUTH-010": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V6.3.3"
+			],
+			"properties_digest": "1a6d5eb26728ad13f173c1d56824b2199cdbc700310e2ab9428fddc9fa523d03"
+		},
+		"CR-AUTH-011": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V6.1.1"
+			],
+			"properties_digest": "968dfce6e9a834459845941bf25c91dbae08908d48eceb7022d12d3a0d6b6223"
+		},
+		"CR-AUTH-012": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V6.3.2"
+			],
+			"properties_digest": "a0a0e4504682c3d93e857b218107c0930281fc21cf05928eec837adc803f87d2"
+		},
+		"CR-BROWSER-001": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V3.4.1",
+				"V3.4.3",
+				"V3.4.4",
+				"V3.4.5",
+				"V3.4.6"
+			],
+			"properties_digest": "8aaa83bf456e704a461090352dd17718c1b38d9653ac338b72993774e6bc12bb"
+		},
+		"CR-BROWSER-002": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V3.5.1",
+				"V3.5.2"
+			],
+			"properties_digest": "f62f197aaceae15612cda8d1ea36ac509a612bb1465abebfc05e2a366256719f"
+		},
+		"CR-BROWSER-003": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V3.4.2"
+			],
+			"properties_digest": "d6da6bd6d0bb233fc664422e887943b3157ace94bc1197592cc2d947ac5d9d5a"
+		},
+		"CR-BROWSER-004": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V3.2.2",
+				"V1.2.1",
+				"V1.3.2"
+			],
+			"properties_digest": "78074f5585fe56ebdd005bd1e2a3152727a0a1940d300cd21fba3a7db070dad1"
+		},
+		"CR-BROWSER-005": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V3.5.5"
+			],
+			"properties_digest": "21c2653bdfd740848b73808a24277d5ec11cb382742c11fb10699d3b374bc395"
+		},
+		"CR-BROWSER-006": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V3.2.1"
+			],
+			"properties_digest": "b87e1bc7022f6a59dfae76ccef6f2ccd231802cb410e43d7ed76b3eaf702f880"
+		},
+		"CR-BROWSER-007": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V3.5.4"
+			],
+			"properties_digest": "b1342722458417d09ae1ec6d0ade728b218369c9bb4c279124dd1f5d6446ae97"
+		},
+		"CR-BROWSER-008": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V3.5.8"
+			],
+			"properties_digest": "69d893e71b25b59474f886bc783f3282a9bf56c6f31597b628c9efada49827aa"
+		},
+		"CR-BROWSER-009": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V3.7.1"
+			],
+			"properties_digest": "b21e7018f97350697662a3975183c2b6570f66db8d9090c453b466a26bb9ccd5"
+		},
+		"CR-BROWSER-010": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V3.7.2"
+			],
+			"properties_digest": "cd8b5bb464a6f9e7be238f1d9b6c83b8809ea771d6586c0847c2e418d5ac3fc0"
+		},
+		"CR-CONC-001": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E5",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"ERC-4361:replay",
+				"V15.4.2",
+				"V2.3.3"
+			],
+			"properties_digest": "ebcd21e14cc1d8d6ea0480f496902e8bec47a195f2b9fe9f5deabfa9af553251"
+		},
+		"CR-CONC-002": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E5",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.3.4",
+				"V15.4.2",
+				"V2.3.2"
+			],
+			"properties_digest": "5022fd6cf51b5840d7a7ad115e4fabe636eaad9f6c971d99001bd74d34b7d1dc"
+		},
+		"CR-CONC-003": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E5",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.3.4",
+				"V15.4.2",
+				"API4:2023"
+			],
+			"properties_digest": "e15062260aa4451d80e3958238621dedd1b3d093e81e54b54fe1b7f4b0e37c01"
+		},
+		"CR-CONC-004": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E5",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V15.4.2",
+				"V2.3.3"
+			],
+			"properties_digest": "6248297245dc2d70505fafbcc6cb26b2619cfb274192fa35d54364d7288b5ad3"
+		},
+		"CR-CONC-005": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E5",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V15.4.2",
+				"V7.4.1"
+			],
+			"properties_digest": "5a52851d8df9569e2dbb94b8bfe127ec7c09e004f84003eea32240990692a77a"
+		},
+		"CR-CONC-006": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V15.4.3"
+			],
+			"properties_digest": "0477a0f6e169172c8abe9ed3806f40a640ac3b8cdf9dd31411de95fcd505cce7"
+		},
+		"CR-CONFIG-001": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V13.1.1"
+			],
+			"properties_digest": "d0d834507de0db5175a01d845bb047692592c80c7551767324cf3bad168bcc87"
+		},
+		"CR-CONFIG-002": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V13.2.3"
+			],
+			"properties_digest": "28ac5a80e33e398a146eee5d8ff744d8593e421f9db2996b220e0c82b024c423"
+		},
+		"CR-CONFIG-003": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V13.4.2"
+			],
+			"properties_digest": "b788f4e5f83e4e4508d6986f689982e884ea9c689b3aba7ef3df23e2a0573e10"
+		},
+		"CR-CONFIG-004": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V13.4.3"
+			],
+			"properties_digest": "b5e0a53b020d01aab5f070cd8a211627c9013ed4f4d09a8ed01357e61f6ea39d"
+		},
+		"CR-CONFIG-005": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V13.4.4"
+			],
+			"properties_digest": "d4c73b722e375d5aa0fe925c87ac772951db1eccce1471d4da91f2832d34d7f0"
+		},
+		"CR-CONFIG-006": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V13.4.5"
+			],
+			"properties_digest": "a57427e4692ddbb67b9e23db0c145301d0cae5ed7870ce67939a0f88737daa2a"
+		},
+		"CR-CONFIG-007": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V4.2.1"
+			],
+			"properties_digest": "aaa77a4ea6827088ef6b17084c795f4b81d12f73d4c99c06bc7fa0ccb098b01a"
+		},
+		"CR-CONFIG-008": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V15.2.3"
+			],
+			"properties_digest": "45a2453dc43ff27b26fa4f0ab01ca9235ddcbbdacda8d36a4d1226575a93a790"
+		},
+		"CR-CRYPTO-001": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V11.1.1"
+			],
+			"properties_digest": "7d39c0b3b25b961116b4bc98ce1469279799c8245e81a1c7827f0c8d13061c56"
+		},
+		"CR-CRYPTO-002": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V11.1.2"
+			],
+			"properties_digest": "5f501bb73f2a017aa29b3ad1ca66d05856fd4496ed61816bd3b1ff99b5732703"
+		},
+		"CR-CRYPTO-003": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V11.2.1"
+			],
+			"properties_digest": "79d2baba64479d9ab816ee2e1dd4cb2902a12b31872315e3b10ee041586a2a08"
+		},
+		"CR-CRYPTO-004": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V11.2.2"
+			],
+			"properties_digest": "ca15f712916c3fdeeef9f4313f83c532b67d267c62bfca5473d8251f67e089dd"
+		},
+		"CR-CRYPTO-005": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V11.2.3"
+			],
+			"properties_digest": "0b706020cce3535961c9fbb96f861d3388b16c27bf1c9d0534cc924f63b36bcc"
+		},
+		"CR-CRYPTO-006": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V11.3.1",
+				"V11.3.2",
+				"V11.3.3"
+			],
+			"properties_digest": "8fa6c34904981198565b0fc463e35146180d000cc029c9333283844fd45d0767"
+		},
+		"CR-CRYPTO-007": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V11.4.1",
+				"V11.4.3"
+			],
+			"properties_digest": "7bc0a1a9c93beddc515ccf1f3616a67f551c018ad0b85f260eb68481c0d1734a"
+		},
+		"CR-CRYPTO-008": {
+			"release_class": "INFORMATIONAL",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V11.6.1"
+			],
+			"properties_digest": "ed1f3161ac3a6acf6ac6e5e536c1bbd5b59b4a8f8cbc96cee390df2e5f234853"
+		},
+		"CR-CRYPTO-009": {
+			"release_class": "INFORMATIONAL",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V11.4.1"
+			],
+			"properties_digest": "11021889b27abed9a83b5f9c9f72aafa499898f74c45778f520ffb6b3fcb68c9"
+		},
+		"CR-DB-001": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E5",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V13.2.2"
+			],
+			"properties_digest": "cb5da0e6093d1ff5d255fbc6980fb47c6a3235839b79b5d3736bf1a39468c2a6"
+		},
+		"CR-DB-002": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E5",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V13.2.2",
+				"V8.2.1"
+			],
+			"properties_digest": "53fef4cf0c494557e3ebe466e9b994107e951253446d80d65976fffc0b8b8d86"
+		},
+		"CR-DB-003": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"PG17:security-definer-search-path (SHOULD)"
+			],
+			"properties_digest": "1d2773790fabe38a76ac3cedeba591773f9952197739023b09028a9dd4e7843b"
+		},
+		"CR-DB-004": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [],
+			"properties_digest": "3de4960c6dd62d498bea1568ef275c95c438d009a1cc8b6fe89d3eca1de3df51"
+		},
+		"CR-DOC-001": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V5.2.1",
+				"V5.2.3",
+				"API4:2023"
+			],
+			"properties_digest": "6e920b9ec5549bde4709f8095a51483e38fa3f0c440753c9d9f9382891a7fc68"
+		},
+		"CR-DOC-002": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V1.5.2"
+			],
+			"properties_digest": "002027d617477f937d5d87a00e99373c20bb20a48d66bef1f5cdba1c89dde4fc"
+		},
+		"CR-DOC-003": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V15.2.2",
+				"API4:2023"
+			],
+			"properties_digest": "c1f0e47780c7308980b811a9f5ea4f71b5132c3ab4642b3622c1ba34143fc0b9"
+		},
+		"CR-DOC-004": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [],
+			"properties_digest": "09a6a50352592c32cc993cc6e420cff57a08903fd60f5304db08e59b13347b13"
+		},
+		"CR-DOC-005": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V5.1.1"
+			],
+			"properties_digest": "f0611a3e1edfce0b868a1a9f07e644a8a859b34d6728323407c175966d156fad"
+		},
+		"CR-INPUT-001": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V1.1.1"
+			],
+			"properties_digest": "35c3159a702d2a93634cb0d75ebb2fdba7b94f6926022e89b9f37758db33d4f2"
+		},
+		"CR-INPUT-002": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V1.1.2",
+				"V1.2.3"
+			],
+			"properties_digest": "f310883b85f6f1a4b9b5d4a81d0a5270fba080a12e773cb4016536f0030fd0b4"
+		},
+		"CR-INPUT-003": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V1.2.2"
+			],
+			"properties_digest": "b04e30cbe4287e9fb68456815d87aea7ee2da529b273387ab6eb1f6c02754160"
+		},
+		"CR-INPUT-004": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V1.2.4"
+			],
+			"properties_digest": "2e407477de54e4d257b7ed3f93739598f67f453e918885ec245c0d140eb70800"
+		},
+		"CR-INPUT-005": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V1.2.5"
+			],
+			"properties_digest": "1e53c1c5292a4e4dd0d3fad69b2188f55f95a3e4556095cd12e5f2ead030632b"
+		},
+		"CR-INPUT-006": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V1.2.9"
+			],
+			"properties_digest": "c9ae24a3f63bd041ead044ccaaa6ecd0dfcc3ea93eecc86ba8f8e888217b34d4"
+		},
+		"CR-INPUT-007": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V1.3.3"
+			],
+			"properties_digest": "770efec69916e1bf10469e5d036ed91d5f4f171bb19ed915e4d343e4ac23d101"
+		},
+		"CR-INPUT-008": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V1.3.10"
+			],
+			"properties_digest": "447b3907c92db73b93c3a09164aab72f595014d616547fb10c0bb3e19a3549d3"
+		},
+		"CR-INPUT-009": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.1.1",
+				"V2.1.2"
+			],
+			"properties_digest": "59359c0f1b4eb9239014c34ddd1fa86048afb865bf663010bad88dcdb07578d8"
+		},
+		"CR-INPUT-010": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.2.3"
+			],
+			"properties_digest": "f2113728f4d5c0db04ef5b927e77f79f845114c730373990784e628ffcde3354"
+		},
+		"CR-INPUT-011": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V15.3.5"
+			],
+			"properties_digest": "3488f61ef19674f3e2bfaa400ae195b91fb3f2a2f63800e8a55a40df267ccb2e"
+		},
+		"CR-INPUT-012": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V15.3.6"
+			],
+			"properties_digest": "16e2b8825d905768ce50ca7b73bf647981f20190e0db24feaa71b2cdc10e7abb"
+		},
+		"CR-INPUT-013": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V1.3.7"
+			],
+			"properties_digest": "f39232bb0a55342dfd8de4baf62408ea71b2abd4f58c6a0cd1ac5e80dfe7a916"
+		},
+		"CR-LOG-001": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V16.1.1",
+				"V16.2.3"
+			],
+			"properties_digest": "c52205d6cb9c892f82e6e748408025154d2ad142243a3c3a46b1d9764fcac004"
+		},
+		"CR-LOG-002": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V16.2.1"
+			],
+			"properties_digest": "b8e69eddd3fb3feaea2246b4badfd2cc8dcdb471044a85de9ef27dfa1af8b3cf"
+		},
+		"CR-LOG-003": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V16.2.2"
+			],
+			"properties_digest": "c0f69e7f9353e0784a933fa26641442a66149da803563db540ddbf09dd99ea9a"
+		},
+		"CR-LOG-004": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V16.2.4"
+			],
+			"properties_digest": "6099d0831196a5b5c20e82c2c8c037de96629f65789092ab1fef332ff97f0c51"
+		},
+		"CR-LOG-005": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V16.2.5"
+			],
+			"properties_digest": "70d6ec5a1c84ff7cca946410af860be0a9508c4067c470bdaeb71271af5a5d25"
+		},
+		"CR-LOG-006": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V16.3.4"
+			],
+			"properties_digest": "502319e5b35ea81f4320a217dde03f38970a6701e441319322273616a4c07da9"
+		},
+		"CR-LOG-007": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V16.4.1"
+			],
+			"properties_digest": "e8a9814ca458863ecafe180a83d37e9697e1fd41c5913bdad8ee690df6ec4a65"
+		},
+		"CR-LOG-008": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V16.4.2"
+			],
+			"properties_digest": "44eee52ee4f178c3185a64952454dda3d6b5ae5acf64764f8b9e47872ff20d3a"
+		},
+		"CR-LOG-009": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V16.4.3"
+			],
+			"properties_digest": "2d1655df077dcd25512c4d97a307317060a71f9201c69535d796e0f2a0d5ff76"
+		},
+		"CR-PRIV-001": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V14.2.6"
+			],
+			"properties_digest": "a88a0604ffe7299a1e085db49c0af889b85ddb62425f2e482b0aa509fade1a97"
+		},
+		"CR-PRIV-002": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V14.2.7"
+			],
+			"properties_digest": "d816d3c30194b1961916ac9e2e2edcf1857979f6c6f5e10040c5a76bf5793c80"
+		},
+		"CR-PRIV-003": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V14.2.3"
+			],
+			"properties_digest": "09d6b0c72aff334590d555f0947f647e2359b06a3c4963847ca8af1315a14157"
+		},
+		"CR-PRIV-004": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V14.2.1"
+			],
+			"properties_digest": "4fa98cc1de2e49f85908ee406c86f79ad85b357a765c3e34d28b5f6c75cf5a69"
+		},
+		"CR-PRIV-005": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V16.3.1",
+				"V16.3.2",
+				"V16.3.3"
+			],
+			"properties_digest": "1e1f4a1995a1287707d9bd922a0e81063c030cae6edf8553cf4b9ce3c2fb0b88"
+		},
+		"CR-PRIV-006": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V14.1.1",
+				"V14.1.2",
+				"V14.2.4"
+			],
+			"properties_digest": "8941104e75eacd3f3e4498f3abe7f02c82fbba38514d6dfe4dce1182cbaf1d94"
+		},
+		"CR-PRIV-007": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V14.2.2"
+			],
+			"properties_digest": "f4610ddddad9d8b8cff9dd8f34efed49890183da697159ebf35e11fbc0753cb1"
+		},
+		"CR-PRIV-008": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V14.3.1"
+			],
+			"properties_digest": "4b539e0d9a244ff6f95255e153aabb083028282652448c69d9a7a28955e2a83c"
+		},
+		"CR-PRIV-009": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V14.3.2"
+			],
+			"properties_digest": "ce3548af4fbe8cab0ee73d02fe238f09a5b6edb4f2faf766619d70ae58499265"
+		},
+		"CR-PROVIDER-001": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"API10:2023",
+				"V16.5.2",
+				"V16.5.3"
+			],
+			"properties_digest": "c3ff9b9fe44d0451f5d091388e7b68a584104f58ab408b6fa591e2301fcf82a0"
+		},
+		"CR-PROVIDER-002": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V16.5.2"
+			],
+			"properties_digest": "d0e17107db4e0b47b526763b1d3f53afd334667bed9b49dad693e433e9f1bdb9"
+		},
+		"CR-PROVIDER-003": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"API7:2023",
+				"V1.3.6",
+				"V13.2.4",
+				"V13.2.5",
+				"V15.3.2"
+			],
+			"properties_digest": "1faa323eb15af08cf5a141229bdf265ef5b6112dd713eb396ecadd7232ef1dce"
+		},
+		"CR-RESOURCE-001": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"API4:2023",
+				"API6:2023",
+				"V2.4.1",
+				"V15.2.2",
+				"V6.3.1"
+			],
+			"properties_digest": "dcc96d1d19921dc862958fc1b6b3cbec03798df67fff9b85c17b4d8ff8b6edc5"
+		},
+		"CR-RESOURCE-002": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E5",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V15.4.2",
+				"V2.4.1"
+			],
+			"properties_digest": "5d8bc90e112689aaaa868f01a5bfa1d970fa71898bf5b71329cd6088f06375e8"
+		},
+		"CR-RESOURCE-003": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"API4:2023",
+				"V15.2.2",
+				"V16.5.2"
+			],
+			"properties_digest": "a33d17962cd461501640c2dbf993bb25639105fa7bd3b4928c30b316a5958c36"
+		},
+		"CR-RESOURCE-004": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"API4:2023",
+				"V15.2.2"
+			],
+			"properties_digest": "1b4189da64052ca51e68ea508f96c5bf85fa6494c890f8de294f9d07e86848aa"
+		},
+		"CR-RESOURCE-005": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.1.3"
+			],
+			"properties_digest": "6ac1f51026d7facedd0c65317af2e800b462e43eae650e7dd1e49e9e349df57c"
+		},
+		"CR-RESOURCE-006": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V15.1.3"
+			],
+			"properties_digest": "411fbe559ca795132ab3a332f4515330e401c8fba851be55e4f7488c2ff65180"
+		},
+		"CR-SESSION-001": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V9.1.1",
+				"V9.1.2",
+				"V9.1.3",
+				"V7.2.1"
+			],
+			"properties_digest": "207fb47f92d4d7c48ef80f981e11435058f620ce6cc3efa315882f358f7b2b3b"
+		},
+		"CR-SESSION-002": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V9.2.1",
+				"ERC-4361:expiration-time"
+			],
+			"properties_digest": "a9eb38a11adf939985e03acbbb0b4540578b4a7d91b7e6b3d8844f5fc9748c5b"
+		},
+		"CR-SESSION-003": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V9.2.2"
+			],
+			"properties_digest": "cb00424253b64b0828a29a7adca3cfa20aa5219eb9d0d39bb12bfbda62545bd0"
+		},
+		"CR-SESSION-004": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V3.3.1",
+				"V3.3.2",
+				"V3.3.3",
+				"V3.3.4"
+			],
+			"properties_digest": "94c1438c86ce74867c325af2d4ba8c0a7df0bab39a9176542e568c38718e6d14"
+		},
+		"CR-SESSION-005": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V3.3.4",
+				"V14.3.3"
+			],
+			"properties_digest": "2956bc82b61762825ca1316a866c6223a7a4da3e6b39fa6cdb3eec4a3d3011e2"
+		},
+		"CR-SESSION-006": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V7.3.1",
+				"V7.3.2",
+				"V7.1.1"
+			],
+			"properties_digest": "649cb32d2a6d1f7a58ccd77c9913e1c02047d62567d622690e86f279222582f9"
+		},
+		"CR-SESSION-007": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E5",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V7.4.1",
+				"V7.4.3",
+				"V8.3.2"
+			],
+			"properties_digest": "d03efac2a873d25bad084f35985df16ad9a362bd9fb22ff2331f041abbaacc57"
+		},
+		"CR-SESSION-008": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V7.5.2"
+			],
+			"properties_digest": "cb5766051624079426997ece3627025932ba75e73592f77cfe0bf2ff6e59fe26"
+		},
+		"CR-SESSION-009": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V7.1.2"
+			],
+			"properties_digest": "f10e24d6f9e328b0a743f39e0f2832fe193b035a61d7c0c6f2a8667870e2ef03"
+		},
+		"CR-SESSION-010": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V7.4.4"
+			],
+			"properties_digest": "005b4da8e32377220cc6fbc47861a1b821cc247511bb79adbee501f483945e29"
+		},
+		"CR-SESSION-011": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V9.2.3",
+				"V9.2.4"
+			],
+			"properties_digest": "3603c32ed11b2aa2eef2eef532482b96bf9ea8e9ba179a73c55abcba02d187c7"
+		},
+		"CR-SUPPLY-001": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"OSSF-NPM:reproducible-installation",
+				"SSDF:PW.4.1"
+			],
+			"properties_digest": "e70f8dac9826a6683ba9db13cd2a4d2a1915a5387e7611d4618cc08060dbe17b"
+		},
+		"CR-SUPPLY-002": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"SCORECARD:Pinned-Dependencies"
+			],
+			"properties_digest": "852ab5498f9a48b0f1d31aa8f6f1ed4e68d35c72768b3c43859993af3c9655db"
+		},
+		"CR-SUPPLY-003": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"SCORECARD:Token-Permissions"
+			],
+			"properties_digest": "f6206ceef663e269cf139fca6466e032d1e81331e681fb775f85683068b860dc"
+		},
+		"CR-SUPPLY-004": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"OSSF-NPM:signing-verification",
+				"SSDF:PS.2"
+			],
+			"properties_digest": "f98b2b8616fa5f6acfd2c25222582d67ad6c1b8db89c50124ce6c47627f5f4f2"
+		},
+		"CR-SUPPLY-005": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V15.1.1",
+				"V15.2.1",
+				"SCORECARD:Dependency-Update-Tool",
+				"SSDF:RV.1"
+			],
+			"properties_digest": "0b84971e1364d26ad5b8ea3b0c44a109a7f7523bda73c010a30b56ca40da6973"
+		},
+		"CR-SUPPLY-006": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V15.1.2",
+				"SCORECARD:SBOM"
+			],
+			"properties_digest": "0f7c12174c7e061a06fd8a25fca850c19da262f9dc3446b67f3926b2ea9ffcd6"
+		},
+		"CR-SUPPLY-007": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"SLSA-1.2:build-L1-provenance"
+			],
+			"properties_digest": "7ccbd2776ad6345225006ffe1e82aba2739c974dbed4dad4cc520d1d50b25d08"
+		},
+		"CR-SUPPLY-008": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V13.3.1",
+				"V13.3.2",
+				"V13.4.1"
+			],
+			"properties_digest": "61a5112e5a44d7bd513aec1275af703aed321fc0fbe16b0ec7a1fcf604d12852"
+		},
+		"CR-SUPPLY-009": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [],
+			"properties_digest": "3adfa73355a3061c5cce4a5112404a9194b954ac19665c0ffc9111e7c16b2587"
+		},
+		"CR-TELEGRAM-001": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"TG:secret_token",
+				"TG:update_id",
+				"V13.2.1"
+			],
+			"properties_digest": "658d195d88aaa47ff62de98c1f5929f182256242d706992b8f7c2c16617c2190"
+		},
+		"CR-TELEGRAM-002": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"ERC-4361:verify-message",
+				"API1:2023"
+			],
+			"properties_digest": "970e925ff53c23697c50e6e5c173f9294c6f9bde9bac8345cea6cfa453e97b1c"
+		},
+		"CR-TELEGRAM-003": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"TG:callback_data-untrusted",
+				"API1:2023"
+			],
+			"properties_digest": "78f44f0da0399a535fbe10a94956f40397ceb2e3b1701ce2a7d7781b1c42ea56"
+		},
+		"CR-TELEGRAM-004": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"API1:2023",
+				"V8.4.1"
+			],
+			"properties_digest": "63f854093bbebcb2a24b7c08f32f1cf0ae0a7fea1cd9c4e05f2e105be47be7bf"
+		},
+		"CR-TLS-001": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V12.1.1",
+				"V12.1.2"
+			],
+			"properties_digest": "a6ffda053bff95e1dbc1a942a159fcab6366f778922e652b1a9d52f0a72eaf31"
+		},
+		"CR-TLS-002": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V12.2.1",
+				"V12.2.2"
+			],
+			"properties_digest": "56f6a4e39ccb13c242e188c65bd6cfd8561462b09923ea1922891654d64244fd"
+		},
+		"CR-TLS-003": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V4.1.2"
+			],
+			"properties_digest": "65bb44d60f5ab3b46f328a309343d6300c9e34a2feb04900b2081f79051cf64e"
+		},
+		"CR-TLS-004": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V12.3.1",
+				"V12.3.2",
+				"V12.3.3",
+				"V12.3.4"
+			],
+			"properties_digest": "8bfd226167bb7c1f3b24b0b1dcdfec51af11a0ba87838899079618d0b241bb71"
+		},
+		"CR-VERIFY-001": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [],
+			"properties_digest": "55cd8b42401cb13eb0cff5dd905f0a5e6e352b626cda928f267dfd64f8db7d38"
+		},
+		"CR-VERIFY-002": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [],
+			"properties_digest": "4c1afe95dd79bfb2e5186950600aa1618cfe0a126155e98f2a592b8cce8ac7c6"
+		},
+		"CR-VERIFY-003": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [],
+			"properties_digest": "1524f8d5c583fe9cdbd5744b53824641dc33446a3d816cb7598c35e933556003"
+		},
+		"CR-VERIFY-004": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E5",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [],
+			"properties_digest": "cd1709e8067a6027242f32e47bcd5a319243dc61906ebaf30ff2c40d889b6b18"
+		},
+		"CR-VERIFY-005": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [],
+			"properties_digest": "556bd64833ed887c063dbcd6b22dc53c523fe613c840b6ff4d3b0ddfc097df52"
+		},
+		"CR-VERIFY-006": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [],
+			"properties_digest": "12542f63011f3cc021b17adbe4c563059d30fc2f6ee7a599bb8c4fe758208eae"
+		},
+		"CR-VERIFY-007": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [],
+			"properties_digest": "c7b01b510e84099cc210ab4c0d67de63dc7a189012b90af2c46483bd2702453f"
+		},
+		"CR-VERIFY-008": {
+			"release_class": "MANUAL_ASSURANCE",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [],
+			"properties_digest": "16d2d23b1a6924cc9d6975531d8ca621193cda4bd03560fc3fd2c4ed5cea0430"
+		},
+		"CR-VERIFY-009": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E4",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [],
+			"properties_digest": "e48f67ea6820576db6c11bb8f12ec72645b1ca0fb5901401ef053e36bc46a164"
+		},
+		"CR-VERIFY-010": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [],
+			"properties_digest": "3c7affcb05a44e27240abbaf0821bdaf920600b8889120357c9b71db6f6b28a6"
+		},
+		"CR-VERIFY-011": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [],
+			"properties_digest": "ae7e6a940c76240489a6a1fa9ca3b51cd5d86e0edc048e450f2a80eeba9bdf72"
+		},
+		"CR-VERIFY-012": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [],
+			"properties_digest": "a6956fb146becf67f74fb0b67a11d51e2a64368aa73af85dbb8c720a655e703f"
+		}
+	}
+}

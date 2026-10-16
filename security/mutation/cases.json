@@ -1,0 +1,2551 @@
+{
+	"framework": "CRSF",
+	"schema": "security/crsf/schema/mutations.schema.json",
+	"cases": [
+		{
+			"id": "MUT-CR-API-001-P3-L5A",
+			"origin": "scratchpad l5mut A (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-API-001",
+					"property": "P3"
+				}
+			],
+			"description": "no wallet filter in the stale delete",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": ".match({ wallet: wallet.toLowerCase(), deployment_key: deploymentKey, cover_id: coverId, confirmed_at: confirmedAt }).select('cover_id'));",
+					"replace": ".match({ deployment_key: deploymentKey, cover_id: coverId }).select('cover_id'));"
+				}
+			],
+			"tests": [
+				"test/l5-attribution-cleanup-db.test.mjs",
+				"test/position-attributions-api.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^L5-A:"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L5"
+		},
+		{
+			"id": "MUT-CR-API-001-P3-L5B",
+			"origin": "scratchpad l5mut B (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-API-001",
+					"property": "P3"
+				}
+			],
+			"description": "delete stale rows globally (only cover id)",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": ".match({ wallet: wallet.toLowerCase(), deployment_key: deploymentKey, cover_id: coverId, confirmed_at: confirmedAt }).select('cover_id'));",
+					"replace": ".match({ cover_id: coverId }).select('cover_id'));"
+				}
+			],
+			"tests": [
+				"test/l5-attribution-cleanup-db.test.mjs",
+				"test/position-attributions-api.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^L5-A:"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L5"
+		},
+		{
+			"id": "MUT-CR-API-001-P3-L5G",
+			"origin": "scratchpad l5mut G (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-API-001",
+					"property": "P3"
+				}
+			],
+			"description": "trust a wallet from the query",
+			"edits": [
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\t\tif (queryKeys(queryParams(request)).length) {",
+					"replace": "\t\tif (queryKeys(queryParams(request)).filter((k) => k !== 'wallet').length) {"
+				},
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\t\t\tif (!await rateLimit(request, response, 'attributions-read', 60, 600)) return;\n\t\t\tconst wallet = await sessionWallet(request, response);",
+					"replace": "\t\t\tif (!await rateLimit(request, response, 'attributions-read', 60, 600)) return;\n\t\t\tconst wallet = queryParams(request).get('wallet')?.toLowerCase() || await sessionWallet(request, response);"
+				}
+			],
+			"tests": [
+				"test/l5-attribution-cleanup-db.test.mjs",
+				"test/position-attributions-api.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^L5-B:"
+				},
+				{
+					"test": "^4/5:"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L5"
+		},
+		{
+			"id": "MUT-CR-API-001-P4-L3Y4",
+			"origin": "scratchpad l3mut Y4 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-API-001",
+					"property": "P4"
+				}
+			],
+			"description": "authorize if wallet linked to ANY chat",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\tconst linked = value(await client.from('monitored_wallets').select('wallet').match({ chat_id: chat, wallet: normalized }).maybeSingle());\n",
+					"replace": "\tconst linked = value(await client.from('monitored_wallets').select('wallet').match({ wallet: normalized }).limit(1)).at(0);\n"
+				}
+			],
+			"tests": [
+				"test/l3-snooze-authorization.test.mjs",
+				"test/m1-alert-run-budget.test.mjs",
+				"test/telegram-private-only.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L3-A/B/C/D"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L3"
+		},
+		{
+			"id": "MUT-CR-API-002-P1-NEW1",
+			"origin": "new (Phase 2A)",
+			"targets": [
+				{
+					"control": "CR-API-002",
+					"property": "P1"
+				}
+			],
+			"description": "cron secret not checked",
+			"edits": [
+				{
+					"file": "api/alerts.mjs",
+					"find": "\tif (!authorized(request.headers.authorization)) return response.status(401).json({ ok: false });\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/m1-alert-run-budget.test.mjs",
+				"test/api-hardening.test.mjs",
+				"test/alerts.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [],
+			"expected_result": "SURVIVED",
+			"detection": "behavioral",
+			"note": "Known test gap found in Phase 2A: no mapped test calls /api/alerts without CRON_SECRET. Recorded as SURVIVED; blocks E4 for CR-API-002 P1 until a test kills it.",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-CRON"
+		},
+		{
+			"id": "MUT-CR-API-002-P2-NEW1",
+			"origin": "new (Phase 2A)",
+			"targets": [
+				{
+					"control": "CR-API-002",
+					"property": "P2"
+				}
+			],
+			"description": "webhook secret not checked",
+			"edits": [
+				{
+					"file": "api/telegram.mjs",
+					"find": "if (!validSecret(request.headers['x-telegram-bot-api-secret-token'])) {",
+					"replace": "if (false) {"
+				}
+			],
+			"tests": [
+				"test/telegram-private-only.test.mjs",
+				"test/telegram-stale-authority.test.mjs",
+				"test/telegram-reconnect.test.mjs",
+				"test/api-hardening.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^H: authentication still comes first"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-AUTH"
+		},
+		{
+			"id": "MUT-CR-AUTH-001-P1-NEW1",
+			"origin": "new (Phase 2A)",
+			"targets": [
+				{
+					"control": "CR-AUTH-001",
+					"property": "P1"
+				}
+			],
+			"description": "SIWE domain not compared",
+			"edits": [
+				{
+					"file": "src/siwe-auth.mjs",
+					"find": "\tif (parsed.domain !== expected.domain) return 'DOMAIN_MISMATCH';\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/siwe-auth.test.mjs",
+				"test/siwe-signature.test.mjs",
+				"test/dashboard-login-behavior.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^25 bis 32",
+					"message": "DOMAIN_MISMATCH"
+				},
+				{
+					"test": "^8 bis 14",
+					"message": "DOMAIN_MISMATCH"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-AUTH"
+		},
+		{
+			"id": "MUT-CR-AUTH-001-P1-NEW2",
+			"origin": "new (Phase 2A)",
+			"targets": [
+				{
+					"control": "CR-AUTH-001",
+					"property": "P1"
+				}
+			],
+			"description": "SIWE uri not compared",
+			"edits": [
+				{
+					"file": "src/siwe-auth.mjs",
+					"find": "\tif (parsed.uri !== expected.uri) return 'URI_MISMATCH';\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/siwe-auth.test.mjs",
+				"test/siwe-signature.test.mjs",
+				"test/dashboard-login-behavior.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^25 bis 32",
+					"message": "URI_MISMATCH"
+				},
+				{
+					"test": "^8 bis 14",
+					"message": "URI_MISMATCH"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-AUTH"
+		},
+		{
+			"id": "MUT-CR-AUTH-001-P2-NEW1",
+			"origin": "new (Phase 2A)",
+			"targets": [
+				{
+					"control": "CR-AUTH-001",
+					"property": "P2"
+				}
+			],
+			"description": "SIWE chain-id not compared",
+			"edits": [
+				{
+					"file": "src/siwe-auth.mjs",
+					"find": "\tif (parsed.chainId !== SIWE_CHAIN_ID) return 'CHAIN_MISMATCH';\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/siwe-auth.test.mjs",
+				"test/siwe-signature.test.mjs",
+				"test/dashboard-login-behavior.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^27 eine fremde Chain"
+				},
+				{
+					"test": "^8 bis 14",
+					"message": "CHAIN_MISMATCH"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-AUTH"
+		},
+		{
+			"id": "MUT-CR-AUTH-001-P3-NEW1",
+			"origin": "new (Phase 2A)",
+			"targets": [
+				{
+					"control": "CR-AUTH-001",
+					"property": "P3"
+				}
+			],
+			"description": "SIWE nonce not compared",
+			"edits": [
+				{
+					"file": "src/siwe-auth.mjs",
+					"find": "\tif (parsed.nonce !== expected.nonce) return 'NONCE_MISMATCH';\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/siwe-auth.test.mjs",
+				"test/siwe-signature.test.mjs",
+				"test/dashboard-login-behavior.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^25 bis 32",
+					"message": "NONCE_MISMATCH"
+				},
+				{
+					"test": "^8 bis 14",
+					"message": "NONCE_MISMATCH"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-AUTH"
+		},
+		{
+			"id": "MUT-CR-AUTH-002-P1-NEW1",
+			"origin": "new (Phase 2A)",
+			"targets": [
+				{
+					"control": "CR-AUTH-002",
+					"property": "P1"
+				}
+			],
+			"description": "EOA signature result ignored",
+			"edits": [
+				{
+					"file": "src/siwe-auth.mjs",
+					"find": "return valid ? 'VALID' : 'INVALID_SIGNATURE';",
+					"replace": "return 'VALID';"
+				}
+			],
+			"tests": [
+				"test/siwe-auth.test.mjs",
+				"test/siwe-signature.test.mjs",
+				"test/dashboard-login-behavior.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "signature by another key"
+				},
+				{
+					"test": "^7 die Signatur einer anderen Wallet"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-AUTH"
+		},
+		{
+			"id": "MUT-CR-AUTH-003-P1-NEW1",
+			"origin": "new (Phase 2A)",
+			"targets": [
+				{
+					"control": "CR-AUTH-003",
+					"property": "P1"
+				}
+			],
+			"description": "any ERC-1271 return value counts as valid",
+			"edits": [
+				{
+					"file": "src/contract-signature.mjs",
+					"find": "return typeof result === 'string' && result.toLowerCase() === ERC1271_MAGIC ? 'VALID' : 'INVALID';",
+					"replace": "return typeof result === 'string' ? 'VALID' : 'INVALID';"
+				}
+			],
+			"tests": [
+				"test/erc1271.test.mjs",
+				"test/dual-rpc-erc1271.test.mjs",
+				"test/safe-session-authority.test.mjs",
+				"test/onchain-safe-login.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "must be exactly the magic value"
+				},
+				{
+					"test": "falsche Magic"
+				},
+				{
+					"test": "^DUAL 9/10"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-AUTH"
+		},
+		{
+			"id": "MUT-CR-AUTH-003-P2-NEW1",
+			"origin": "new (Phase 2A)",
+			"targets": [
+				{
+					"control": "CR-AUTH-003",
+					"property": "P2"
+				}
+			],
+			"description": "one provider suffices",
+			"edits": [
+				{
+					"file": "src/contract-signature.mjs",
+					"find": "if (alchemy === 'VALID' && infura === 'VALID') return 'VALID';",
+					"replace": "if (alchemy === 'VALID' || infura === 'VALID') return 'VALID';"
+				}
+			],
+			"tests": [
+				"test/erc1271.test.mjs",
+				"test/dual-rpc-erc1271.test.mjs",
+				"test/safe-session-authority.test.mjs",
+				"test/onchain-safe-login.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "consensus table"
+				},
+				{
+					"test": "^DUAL 2/20"
+				},
+				{
+					"test": "^DUAL 3/20"
+				},
+				{
+					"test": "only ONE provider"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-AUTH"
+		},
+		{
+			"id": "MUT-CR-AUTH-005-P1-L4A",
+			"origin": "scratchpad l4mut A (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-AUTH-005",
+					"property": "P1"
+				}
+			],
+			"description": "provider result directly marks auth valid",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "if (verified !== 'VALID') {",
+					"replace": "if (verified !== 'VALID' && !(await isDeployedContract(wallet).catch(() => false))) {"
+				}
+			],
+			"tests": [
+				"test/l4-contract-detect-ttl.test.mjs",
+				"test/dashboard-login-behavior.test.mjs",
+				"test/safe-session-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L4-B"
+				},
+				{
+					"test": "^L4-A"
+				},
+				{
+					"test": "^L4-C/D/E"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L4"
+		},
+		{
+			"id": "MUT-CR-AUTH-005-P1-L4B",
+			"origin": "scratchpad l4mut B (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-AUTH-005",
+					"property": "P1"
+				}
+			],
+			"description": "skip signature verification when classified contract",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "const { result: verified, authority } = await verifyWalletSiweAuthority({",
+					"replace": "const { result: verified, authority } = (await isDeployedContract(wallet).catch(() => false)) ? { result: 'VALID', authority: 'contract' } : await verifyWalletSiweAuthority({"
+				}
+			],
+			"tests": [
+				"test/l4-contract-detect-ttl.test.mjs",
+				"test/dashboard-login-behavior.test.mjs",
+				"test/safe-session-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L4-B"
+				},
+				{
+					"test": "^L4-A"
+				},
+				{
+					"test": "^L4-C/D/E"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L4"
+		},
+		{
+			"id": "MUT-CR-AUTH-005-P1-L4C",
+			"origin": "scratchpad l4mut C (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-AUTH-005",
+					"property": "P1"
+				}
+			],
+			"description": "skip ERC-1271 when classified EOA",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "const { result: verified, authority } = await verifyWalletSiweAuthority({",
+					"replace": "const { result: verified, authority } = (await isDeployedContract(wallet).catch(() => true)) === false ? { result: 'VALID', authority: 'eoa' } : await verifyWalletSiweAuthority({"
+				}
+			],
+			"tests": [
+				"test/l4-contract-detect-ttl.test.mjs",
+				"test/dashboard-login-behavior.test.mjs",
+				"test/safe-session-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L4-B"
+				},
+				{
+					"test": "^L4-A"
+				},
+				{
+					"test": "^L4-C/D/E"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L4"
+		},
+		{
+			"id": "MUT-CR-AUTH-005-P2-NEW1",
+			"origin": "new (Phase 2A)",
+			"targets": [
+				{
+					"control": "CR-AUTH-005",
+					"property": "P2"
+				}
+			],
+			"description": "login consults the contract classifier without using its result",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "const { result: verified, authority } = await verifyWalletSiweAuthority({",
+					"replace": "await isDeployedContract(wallet).catch(() => null);\n\t\tconst { result: verified, authority } = await verifyWalletSiweAuthority({"
+				}
+			],
+			"tests": [
+				"test/l4-contract-detect-ttl.test.mjs",
+				"test/dashboard-login-behavior.test.mjs",
+				"test/safe-session-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "classification is never consulted"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-AUTH"
+		},
+		{
+			"id": "MUT-CR-CONC-001-P1-H2A",
+			"origin": "scratchpad h2mut A (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-001",
+					"property": "P1"
+				}
+			],
+			"description": "challenge: remove used_at IS NULL guard",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "export async function consumeDashboardChallenge(nonce, wallet) {\n\tconst rows = value(await db.from('dashboard_challenges')\n\t\t.update({ used_at: new Date().toISOString() })\n\t\t.eq('nonce', nonce)\n\t\t.eq('wallet', wallet.toLowerCase())\n\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows.length === 1;\n}",
+					"replace": "export async function consumeDashboardChallenge(nonce, wallet) {\n\tconst rows = value(await db.from('dashboard_challenges')\n\t\t.update({ used_at: new Date().toISOString() })\n\t\t.eq('nonce', nonce)\n\t\t.eq('wallet', wallet.toLowerCase())\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows.length === 1;\n}"
+				}
+			],
+			"tests": [
+				"test/h2-challenge-concurrency-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "exactly one succeeds"
+				},
+				{
+					"test": "exactly one session"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-H2"
+		},
+		{
+			"id": "MUT-CR-CONC-001-P1-H2B",
+			"origin": "scratchpad h2mut B (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-001",
+					"property": "P1"
+				}
+			],
+			"description": "challenge: SELECT first, then unconditional UPDATE",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "export async function consumeDashboardChallenge(nonce, wallet) {\n\tconst rows = value(await db.from('dashboard_challenges')\n\t\t.update({ used_at: new Date().toISOString() })\n\t\t.eq('nonce', nonce)\n\t\t.eq('wallet', wallet.toLowerCase())\n\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows.length === 1;\n}",
+					"replace": "export async function consumeDashboardChallenge(nonce, wallet) {\n\tif (!await isDashboardChallengeOpen(nonce, wallet)) return false;\n\tvalue(await db.from('dashboard_challenges').update({ used_at: new Date().toISOString() }).eq('nonce', nonce).select('nonce'));\n\treturn true;\n}"
+				}
+			],
+			"tests": [
+				"test/h2-challenge-concurrency-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "exactly one succeeds"
+				},
+				{
+					"test": "exactly one session"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-H2"
+		},
+		{
+			"id": "MUT-CR-CONC-001-P1-H2C",
+			"origin": "scratchpad h2mut C (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-001",
+					"property": "P1"
+				}
+			],
+			"description": "challenge: ignore returned rows",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "export async function consumeDashboardChallenge(nonce, wallet) {\n\tconst rows = value(await db.from('dashboard_challenges')\n\t\t.update({ used_at: new Date().toISOString() })\n\t\t.eq('nonce', nonce)\n\t\t.eq('wallet', wallet.toLowerCase())\n\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows.length === 1;\n}",
+					"replace": "export async function consumeDashboardChallenge(nonce, wallet) {\n\tconst rows = value(await db.from('dashboard_challenges')\n\t\t.update({ used_at: new Date().toISOString() })\n\t\t.eq('nonce', nonce)\n\t\t.eq('wallet', wallet.toLowerCase())\n\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn Array.isArray(rows);\n}"
+				}
+			],
+			"tests": [
+				"test/h2-challenge-concurrency-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "exactly one succeeds"
+				},
+				{
+					"test": "exactly one session"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-H2"
+		},
+		{
+			"id": "MUT-CR-CONC-001-P1-H2D",
+			"origin": "scratchpad h2mut D (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-001",
+					"property": "P1"
+				}
+			],
+			"description": "challenge: always success after UPDATE",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "export async function consumeDashboardChallenge(nonce, wallet) {\n\tconst rows = value(await db.from('dashboard_challenges')\n\t\t.update({ used_at: new Date().toISOString() })\n\t\t.eq('nonce', nonce)\n\t\t.eq('wallet', wallet.toLowerCase())\n\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows.length === 1;\n}",
+					"replace": "export async function consumeDashboardChallenge(nonce, wallet) {\n\tconst rows = value(await db.from('dashboard_challenges')\n\t\t.update({ used_at: new Date().toISOString() })\n\t\t.eq('nonce', nonce)\n\t\t.eq('wallet', wallet.toLowerCase())\n\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn true;\n}"
+				}
+			],
+			"tests": [
+				"test/h2-challenge-concurrency-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "exactly one succeeds"
+				},
+				{
+					"test": "exactly one session"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-H2"
+		},
+		{
+			"id": "MUT-CR-CONC-001-P1-H2E",
+			"origin": "scratchpad h2mut E (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-001",
+					"property": "P1"
+				}
+			],
+			"description": "challenge: two statements - unconditional UPDATE, then re-read used_at",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "export async function consumeDashboardChallenge(nonce, wallet) {\n\tconst rows = value(await db.from('dashboard_challenges')\n\t\t.update({ used_at: new Date().toISOString() })\n\t\t.eq('nonce', nonce)\n\t\t.eq('wallet', wallet.toLowerCase())\n\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows.length === 1;\n}",
+					"replace": "export async function consumeDashboardChallenge(nonce, wallet) {\n\tconst stamp = new Date().toISOString();\n\tconst open = await isDashboardChallengeOpen(nonce, wallet);\n\tvalue(await db.from('dashboard_challenges').update({ used_at: stamp }).eq('nonce', nonce).eq('wallet', wallet.toLowerCase()).select('nonce'));\n\treturn open;\n}"
+				}
+			],
+			"tests": [
+				"test/h2-challenge-concurrency-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "exactly one succeeds"
+				},
+				{
+					"test": "exactly one session"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-H2"
+		},
+		{
+			"id": "MUT-CR-CONC-001-P1-H2F",
+			"origin": "scratchpad h2mut F (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-001",
+					"property": "P1"
+				}
+			],
+			"description": "challenge: consume becomes a plain read",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "export async function consumeDashboardChallenge(nonce, wallet) {\n\tconst rows = value(await db.from('dashboard_challenges')\n\t\t.update({ used_at: new Date().toISOString() })\n\t\t.eq('nonce', nonce)\n\t\t.eq('wallet', wallet.toLowerCase())\n\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows.length === 1;\n}",
+					"replace": "export async function consumeDashboardChallenge(nonce, wallet) {\n\treturn isDashboardChallengeOpen(nonce, wallet);\n}"
+				}
+			],
+			"tests": [
+				"test/h2-challenge-concurrency-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "exactly one succeeds"
+				},
+				{
+					"test": "exactly one session"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-H2"
+		},
+		{
+			"id": "MUT-CR-CONC-001-P2-H2I",
+			"origin": "scratchpad h2mut I (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-001",
+					"property": "P2"
+				}
+			],
+			"description": "access: remove used_at IS NULL guard",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\t\t.like('chat_id', 'dashboard:%')\n\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows[0]?.nonce ?? null;",
+					"replace": "\t\t.like('chat_id', 'dashboard:%')\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows[0]?.nonce ?? null;"
+				}
+			],
+			"tests": [
+				"test/h2-challenge-concurrency-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "consumeDashboardAccess: one dashboard access code"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-H2"
+		},
+		{
+			"id": "MUT-CR-CONC-001-P2-H2J",
+			"origin": "scratchpad h2mut J (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-001",
+					"property": "P2"
+				}
+			],
+			"description": "access: return wallet even when nothing changed",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\t\t.like('chat_id', 'dashboard:%')\n\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows[0]?.nonce ?? null;",
+					"replace": "\t\t.like('chat_id', 'dashboard:%')\n\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows[0]?.nonce ?? (await db.from('pending_links').select('nonce').eq('code', code)).data?.[0]?.nonce ?? null;"
+				}
+			],
+			"tests": [
+				"test/h2-challenge-concurrency-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "consumeDashboardAccess: one dashboard access code"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-H2"
+		},
+		{
+			"id": "MUT-CR-CONC-002-P1-L2X15",
+			"origin": "scratchpad l2mut X15 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-002",
+					"property": "P1"
+				}
+			],
+			"description": "SQL: remove M1 wallet limit (needs real Postgres)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261015200000_m1_wallet_limit_alert_budget.sql",
+					"find": "  if not already_linked and wallet_count >= max_wallets then return 'wallet_limit'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/m1-wallet-limit-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^C: 40 concurrent link attempts"
+				},
+				{
+					"test": "wallet 11 is rejected"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L2"
+		},
+		{
+			"id": "MUT-CR-CONC-003-P1-L1A",
+			"origin": "scratchpad l1mut A (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-003",
+					"property": "P1"
+				}
+			],
+			"description": "remove advisory lock",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261016150000_l1_attribution_limit.sql",
+					"find": "  perform pg_advisory_xact_lock(hashtextextended('position_cover_attributions:' || normalized, 0));\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/l1-attribution-limit-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "never more than 60"
+				},
+				{
+					"test": "-> exactly 60 stored"
+				},
+				{
+					"test": "-> nothing stored"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L1"
+		},
+		{
+			"id": "MUT-CR-CONC-003-P1-L1B",
+			"origin": "scratchpad l1mut B (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-003",
+					"property": "P1"
+				}
+			],
+			"description": "count before taking the lock",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261016150000_l1_attribution_limit.sql",
+					"find": "  perform pg_advisory_xact_lock(hashtextextended('position_cover_attributions:' || normalized, 0));\n",
+					"replace": ""
+				},
+				{
+					"file": "supabase/migrations/20261016150000_l1_attribution_limit.sql",
+					"find": "  select count(*) into stored from public.position_cover_attributions a where a.wallet = normalized;\n",
+					"replace": "  select count(*) into stored from public.position_cover_attributions a where a.wallet = normalized;\n  perform pg_advisory_xact_lock(hashtextextended('position_cover_attributions:' || normalized, 0));\n"
+				}
+			],
+			"tests": [
+				"test/l1-attribution-limit-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "never more than 60"
+				},
+				{
+					"test": "-> exactly 60 stored"
+				},
+				{
+					"test": "-> nothing stored"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L1"
+		},
+		{
+			"id": "MUT-CR-CONC-003-P1-L1C",
+			"origin": "scratchpad l1mut C (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-003",
+					"property": "P1"
+				}
+			],
+			"description": ">= 60 becomes > 60",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261016150000_l1_attribution_limit.sql",
+					"find": "if stored >= max_rows",
+					"replace": "if stored > max_rows"
+				}
+			],
+			"tests": [
+				"test/l1-attribution-limit-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "never more than 60"
+				},
+				{
+					"test": "-> exactly 60 stored"
+				},
+				{
+					"test": "-> nothing stored"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L1"
+		},
+		{
+			"id": "MUT-CR-CONC-003-P1-L1D",
+			"origin": "scratchpad l1mut D (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-003",
+					"property": "P1"
+				}
+			],
+			"description": "ignore the limit result and insert anyway",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261016150000_l1_attribution_limit.sql",
+					"find": "  if stored >= max_rows then return jsonb_build_object('status', 'limit'); end if;\n",
+					"replace": "  if stored >= max_rows then null; end if;\n"
+				}
+			],
+			"tests": [
+				"test/l1-attribution-limit-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "never more than 60"
+				},
+				{
+					"test": "-> exactly 60 stored"
+				},
+				{
+					"test": "-> nothing stored"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L1"
+		},
+		{
+			"id": "MUT-CR-CONC-003-P1-L1E",
+			"origin": "scratchpad l1mut E (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-003",
+					"property": "P1"
+				}
+			],
+			"description": "count wrong scope (per market instead of per wallet)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261016150000_l1_attribution_limit.sql",
+					"find": "  select count(*) into stored from public.position_cover_attributions a where a.wallet = normalized;\n",
+					"replace": "  select count(*) into stored from public.position_cover_attributions a where a.wallet = normalized and a.deployment_key = p_deployment_key;\n"
+				}
+			],
+			"tests": [
+				"test/l1-attribution-limit-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "never more than 60"
+				},
+				{
+					"test": "-> exactly 60 stored"
+				},
+				{
+					"test": "-> nothing stored"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L1"
+		},
+		{
+			"id": "MUT-CR-CONC-003-P1-L1F",
+			"origin": "scratchpad l1mut F (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-003",
+					"property": "P1"
+				}
+			],
+			"description": "lock wrong scope (per relation instead of per wallet)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261016150000_l1_attribution_limit.sql",
+					"find": "  perform pg_advisory_xact_lock(hashtextextended('position_cover_attributions:' || normalized, 0));\n",
+					"replace": "  perform pg_advisory_xact_lock(hashtextextended('position_cover_attributions:' || normalized || ':' || p_deployment_key || ':' || p_cover_id, 0));\n"
+				}
+			],
+			"tests": [
+				"test/l1-attribution-limit-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "never more than 60"
+				},
+				{
+					"test": "-> exactly 60 stored"
+				},
+				{
+					"test": "-> nothing stored"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L1"
+		},
+		{
+			"id": "MUT-CR-CONC-003-P1-L1G",
+			"origin": "scratchpad l1mut G (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-003",
+					"property": "P1"
+				}
+			],
+			"description": "insert before count",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261016150000_l1_attribution_limit.sql",
+					"find": "  select count(*) into stored from public.position_cover_attributions a where a.wallet = normalized;\n  if stored >= max_rows then return jsonb_build_object('status', 'limit'); end if;\n",
+					"replace": ""
+				},
+				{
+					"file": "supabase/migrations/20261016150000_l1_attribution_limit.sql",
+					"find": "  return jsonb_build_object('status', 'inserted', 'row', saved);\n",
+					"replace": "  select count(*) into stored from public.position_cover_attributions a where a.wallet = normalized;\n  if stored > max_rows then return jsonb_build_object('status', 'limit'); end if;\n  return jsonb_build_object('status', 'inserted', 'row', saved);\n"
+				}
+			],
+			"tests": [
+				"test/l1-attribution-limit-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "never more than 60"
+				},
+				{
+					"test": "-> exactly 60 stored"
+				},
+				{
+					"test": "-> nothing stored"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L1"
+		},
+		{
+			"id": "MUT-CR-CONC-003-P1-L1H",
+			"origin": "scratchpad l1mut H (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-003",
+					"property": "P1"
+				}
+			],
+			"description": "duplicate path bypasses the limit (market already used -> no count)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261016150000_l1_attribution_limit.sql",
+					"find": "  select count(*) into stored from public.position_cover_attributions a where a.wallet = normalized;\n",
+					"replace": "  if exists (select 1 from public.position_cover_attributions a where a.wallet = normalized and a.deployment_key = p_deployment_key) then stored := 0; else\n  select count(*) into stored from public.position_cover_attributions a where a.wallet = normalized;\n  end if;\n"
+				}
+			],
+			"tests": [
+				"test/l1-attribution-limit-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "never more than 60"
+				},
+				{
+					"test": "-> exactly 60 stored"
+				},
+				{
+					"test": "-> nothing stored"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L1"
+		},
+		{
+			"id": "MUT-CR-CONC-003-P1-L1I",
+			"origin": "scratchpad l1mut I (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-003",
+					"property": "P1"
+				}
+			],
+			"description": "JS pre-check instead of DB check",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261016150000_l1_attribution_limit.sql",
+					"find": "  if stored >= max_rows then return jsonb_build_object('status', 'limit'); end if;\n",
+					"replace": ""
+				},
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\t\tlet saved;\n\t\ttry { saved = await upsertRow({ ...check.relation, now: now() }); } catch { return unavailable(response); }",
+					"replace": "\t\tlet existing;\n\t\ttry { existing = await listRows(wallet); } catch { return unavailable(response); }\n\t\tconst already = existing.some((row) => row.deployment_key === relation.deploymentKey && Number(row.cover_id) === relation.coverId);\n\t\tif (!already && existing.length >= 60) return response.status(409).json({ ok: false, code: 'TOO_MANY_ATTRIBUTIONS', error: 'Zu viele gespeicherte Zuordnungen.' });\n\t\tlet saved;\n\t\ttry { saved = await upsertRow({ ...check.relation, now: now() }); } catch { return unavailable(response); }"
+				}
+			],
+			"tests": [
+				"test/l1-attribution-limit-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "never more than 60"
+				},
+				{
+					"test": "-> exactly 60 stored"
+				},
+				{
+					"test": "-> nothing stored"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L1"
+		},
+		{
+			"id": "MUT-CR-CONC-003-P3-L1J",
+			"origin": "scratchpad l1mut J (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-003",
+					"property": "P3"
+				}
+			],
+			"description": "no idempotent update branch",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261016150000_l1_attribution_limit.sql",
+					"find": "  if saved is not null then return jsonb_build_object('status', 'updated', 'row', saved); end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/l1-attribution-limit-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "re-confirmed \\(idempotent\\)"
+				},
+				{
+					"test": "stored once; the others confirm it"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L1"
+		},
+		{
+			"id": "MUT-CR-CONC-004-P1-L5F",
+			"origin": "scratchpad l5mut F (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-004",
+					"property": "P1"
+				}
+			],
+			"description": "ignore confirmed_at (delete a freshly confirmed row)",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": ".match({ wallet: wallet.toLowerCase(), deployment_key: deploymentKey, cover_id: coverId, confirmed_at: confirmedAt }).select('cover_id'));",
+					"replace": ".match({ wallet: wallet.toLowerCase(), deployment_key: deploymentKey, cover_id: coverId }).select('cover_id'));"
+				}
+			],
+			"tests": [
+				"test/l5-attribution-cleanup-db.test.mjs",
+				"test/position-attributions-api.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^L5-H/I: a re-confirmation"
+				},
+				{
+					"test": "never lose a confirmation"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L5"
+		},
+		{
+			"id": "MUT-CR-CONC-004-P1-L5H",
+			"origin": "scratchpad l5mut H (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-CONC-004",
+					"property": "P1"
+				}
+			],
+			"description": "freshness taken at delete time (read-then-delete)",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\tif (typeof confirmedAt !== 'string' || !confirmedAt) return 0;\n",
+					"replace": "\tif (typeof confirmedAt !== 'string' || !confirmedAt) return 0;\n\tconfirmedAt = value(await db.from('position_cover_attributions').select('confirmed_at').match({ wallet: wallet.toLowerCase(), deployment_key: deploymentKey, cover_id: coverId }))[0]?.confirmed_at ?? confirmedAt;\n"
+				}
+			],
+			"tests": [
+				"test/l5-attribution-cleanup-db.test.mjs",
+				"test/position-attributions-api.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^L5-H/I: a re-confirmation"
+				},
+				{
+					"test": "never lose a confirmation"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L5"
+		},
+		{
+			"id": "MUT-CR-INPUT-010-P2-L3Y3",
+			"origin": "scratchpad l3mut Y3 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-INPUT-010",
+					"property": "P2"
+				}
+			],
+			"description": "cover check ignores the chat",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\tconst known = value(await client.from('cover_snapshots').select('cover_id').match({ chat_id: chat, wallet: normalized, cover_id: cover }).maybeSingle());\n",
+					"replace": "\tconst known = value(await client.from('cover_snapshots').select('cover_id').match({ wallet: normalized, cover_id: cover }).limit(1)).at(0);\n"
+				}
+			],
+			"tests": [
+				"test/l3-snooze-authorization.test.mjs",
+				"test/m1-alert-run-budget.test.mjs",
+				"test/telegram-private-only.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L3-E"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L3"
+		},
+		{
+			"id": "MUT-CR-INPUT-010-P2-L3Y9",
+			"origin": "scratchpad l3mut Y9 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-INPUT-010",
+					"property": "P2"
+				}
+			],
+			"description": "remove cover check",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\tif (!known) return 'unknown_cover';\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/l3-snooze-authorization.test.mjs",
+				"test/m1-alert-run-budget.test.mjs",
+				"test/telegram-private-only.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L3-E"
+				},
+				{
+					"test": "^L3-A/B/C/D",
+					"message": "C: own wallet, nonexistent cover"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L3"
+		},
+		{
+			"id": "MUT-CR-PROVIDER-001-P2-L4J",
+			"origin": "scratchpad l4mut J (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-PROVIDER-001",
+					"property": "P2"
+				}
+			],
+			"description": "malformed provider answer counts as contract (pre-L4 behaviour)",
+			"edits": [
+				{
+					"file": "src/contract-detect.mjs",
+					"find": "\tif (code != null && code !== '0x' && !(typeof code === 'string' && BYTECODE.test(code))) throw new Error('Unerwartete getCode-Antwort.');\n",
+					"replace": ""
+				},
+				{
+					"file": "src/contract-detect.mjs",
+					"find": "\tconst isContract = typeof code === 'string' && BYTECODE.test(code);",
+					"replace": "\tconst isContract = Boolean(code && code !== '0x');"
+				}
+			],
+			"tests": [
+				"test/l4-contract-detect-ttl.test.mjs",
+				"test/dashboard-login-behavior.test.mjs",
+				"test/safe-session-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L4 TTL"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L4"
+		},
+		{
+			"id": "MUT-CR-PROVIDER-001-P4-L5C",
+			"origin": "scratchpad l5mut C (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-PROVIDER-001",
+					"property": "P4"
+				}
+			],
+			"description": "provider error treated as empty positions",
+			"edits": [
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\t\t\tif (error instanceof LookupNotAdmittedError) return { aborted: true };\n\t\t\tpositions = null;",
+					"replace": "\t\t\tif (error instanceof LookupNotAdmittedError) return { aborted: true };\n\t\t\tpositions = { ok: true, wallet, complete: true, positions: [], checkedDeployments: ['aave-v3-ethereum-core', 'aave-v3-ethereum-lido', 'aave-v3-ethereum-etherfi'].map((deploymentKey) => ({ deploymentKey, status: 'OK' })) };"
+				}
+			],
+			"tests": [
+				"test/l5-attribution-cleanup-db.test.mjs",
+				"test/position-attributions-api.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^L5-C/D/E"
+				},
+				{
+					"test": "^25: a failed or partial read"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L5"
+		},
+		{
+			"id": "MUT-CR-PROVIDER-001-P4-L5D",
+			"origin": "scratchpad l5mut D (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-PROVIDER-001",
+					"property": "P4"
+				}
+			],
+			"description": "provider error treated as empty covers",
+			"edits": [
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\t\t} catch {\n\t\t\tcovers = null;\n\t\t}",
+					"replace": "\t\t} catch {\n\t\t\tcovers = { wallet, covers: [] };\n\t\t}"
+				}
+			],
+			"tests": [
+				"test/l5-attribution-cleanup-db.test.mjs",
+				"test/position-attributions-api.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^L5-C/D/E"
+				},
+				{
+					"test": "^25: a failed or partial read"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L5"
+		},
+		{
+			"id": "MUT-CR-PROVIDER-001-P4-L5E",
+			"origin": "scratchpad l5mut E (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-PROVIDER-001",
+					"property": "P4"
+				}
+			],
+			"description": "delete before provider validation",
+			"edits": [
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\t\t\tconst state = await currentState(wallet, response);\n\t\t\tif (state.aborted) return;\n\t\t\tconst { valid, stale, unknown }",
+					"replace": "\t\t\tfor (const row of rows) await deleteStaleRow(wallet, row.deployment_key, Number(row.cover_id), row.confirmed_at);\n\t\t\tconst state = await currentState(wallet, response);\n\t\t\tif (state.aborted) return;\n\t\t\tconst { valid, stale, unknown }"
+				}
+			],
+			"tests": [
+				"test/l5-attribution-cleanup-db.test.mjs",
+				"test/position-attributions-api.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^L5-C/D/E"
+				},
+				{
+					"test": "^25: a failed or partial read"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L5"
+		},
+		{
+			"id": "MUT-CR-PROVIDER-001-P4-L5I",
+			"origin": "scratchpad l5mut I (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-PROVIDER-001",
+					"property": "P4"
+				}
+			],
+			"description": "cleanup also when reconciliation is uncertain",
+			"edits": [
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\t\t\tfor (const { row } of stale) {",
+					"replace": "\t\t\tfor (const { row } of [...stale, ...unknown]) {"
+				}
+			],
+			"tests": [
+				"test/l5-attribution-cleanup-db.test.mjs",
+				"test/position-attributions-api.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^L5-C/D/E"
+				},
+				{
+					"test": "^25: a failed or partial read"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L5"
+		},
+		{
+			"id": "MUT-CR-SESSION-001-P1-L4I",
+			"origin": "scratchpad l4mut I (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-SESSION-001",
+					"property": "P1"
+				}
+			],
+			"description": "accept an expired challenge after reclassification as contract",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\tconst challenge = verifyDashboardToken(token);\n\tif (challenge?.type !== 'challenge'",
+					"replace": "\tconst challenge = verifyDashboardToken(token) ?? ((await isDeployedContract(wallet).catch(() => false)) ? JSON.parse(Buffer.from(String(token).split('.')[0], 'base64url').toString()) : null);\n\tif (challenge?.type !== 'challenge'"
+				}
+			],
+			"tests": [
+				"test/l4-contract-detect-ttl.test.mjs",
+				"test/dashboard-login-behavior.test.mjs",
+				"test/safe-session-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "forged \\(unsigned\\) challenge token"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L4"
+		},
+		{
+			"id": "MUT-CR-SESSION-001-P1-NEW1",
+			"origin": "new (Phase 2A)",
+			"targets": [
+				{
+					"control": "CR-SESSION-001",
+					"property": "P1"
+				}
+			],
+			"description": "token MAC not checked",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return null;",
+					"replace": "if (false) return null;"
+				}
+			],
+			"tests": [
+				"test/dashboard-auth-boundaries.test.mjs",
+				"test/eoa-session-transport.test.mjs",
+				"test/l4-contract-detect-ttl.test.mjs",
+				"test/dashboard-login-behavior.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^C21 ein mit dem Telegram-Secret"
+				},
+				{
+					"test": "forged \\(unsigned\\) challenge token"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-AUTH"
+		},
+		{
+			"id": "MUT-CR-SESSION-002-P1-L4D",
+			"origin": "scratchpad l4mut D (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-SESSION-002",
+					"property": "P1"
+				}
+			],
+			"description": "recompute challenge expiry at verification (iat + contract TTL)",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "|| Date.now() > data.exp) return null;",
+					"replace": "|| Date.now() > (data.type === 'challenge' ? data.iat + DASHBOARD_CHALLENGE_TTL_CONTRACT_MS : data.exp)) return null;"
+				}
+			],
+			"tests": [
+				"test/l4-contract-detect-ttl.test.mjs",
+				"test/dashboard-login-behavior.test.mjs",
+				"test/safe-session-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "challenge expiry comes from the signed exp alone"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L4"
+		},
+		{
+			"id": "MUT-CR-SESSION-002-P4-H2H",
+			"origin": "scratchpad h2mut H (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-SESSION-002",
+					"property": "P4"
+				}
+			],
+			"description": "challenge: drop expiry predicate",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "export async function consumeDashboardChallenge(nonce, wallet) {\n\tconst rows = value(await db.from('dashboard_challenges')\n\t\t.update({ used_at: new Date().toISOString() })\n\t\t.eq('nonce', nonce)\n\t\t.eq('wallet', wallet.toLowerCase())\n\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows.length === 1;\n}",
+					"replace": "export async function consumeDashboardChallenge(nonce, wallet) {\n\tconst rows = value(await db.from('dashboard_challenges')\n\t\t.update({ used_at: new Date().toISOString() })\n\t\t.eq('nonce', nonce)\n\t\t.eq('wallet', wallet.toLowerCase())\n\t\t.is('used_at', null)\n\t\t.select('nonce'));\n\treturn rows.length === 1;\n}"
+				}
+			],
+			"tests": [
+				"test/h2-challenge-concurrency-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "stays bound to wallet and expiry",
+					"message": "abgelaufen: niemand"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-H2"
+		},
+		{
+			"id": "MUT-CR-SESSION-002-P4-L4E",
+			"origin": "scratchpad l4mut E (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-SESSION-002",
+					"property": "P4"
+				}
+			],
+			"description": "ignore stored expires_at when consuming",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows.length === 1;",
+					"replace": "\t\t.is('used_at', null)\n\t\t.select('nonce'));\n\treturn rows.length === 1;"
+				}
+			],
+			"tests": [
+				"test/l4-contract-detect-ttl.test.mjs",
+				"test/dashboard-login-behavior.test.mjs",
+				"test/safe-session-authority.test.mjs",
+				"test/h2-challenge-concurrency-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "stays bound to wallet and expiry",
+					"message": "abgelaufen: niemand"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L4"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-001-P3-NEW1",
+			"origin": "new (Phase 2A)",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-001",
+					"property": "P3"
+				}
+			],
+			"description": "update_id deduplication skipped",
+			"edits": [
+				{
+					"file": "api/telegram.mjs",
+					"find": "if (!await claimTelegramUpdate(request.body.update_id)) return",
+					"replace": "if (false) return"
+				}
+			],
+			"tests": [
+				"test/telegram-private-only.test.mjs",
+				"test/telegram-stale-authority.test.mjs",
+				"test/telegram-reconnect.test.mjs",
+				"test/api-hardening.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^webhook order"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "static",
+			"note": "Killed only by source-text/export-surface checks; recorded but never counted as E4 known-bad proof.",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-AUTH"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-002-P1-L2X4",
+			"origin": "scratchpad l2mut X4 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-002",
+					"property": "P1"
+				}
+			],
+			"description": "verify endpoint skips signature result",
+			"edits": [
+				{
+					"file": "api/link/verify.mjs",
+					"find": "\tif (verified !== 'VALID') {",
+					"replace": "\tif (false) {"
+				}
+			],
+			"tests": [
+				"test/l2-telegram-handoff-removed.test.mjs",
+				"test/m1-link-limits.test.mjs",
+				"test/link-row-kind.test.mjs",
+				"test/hard004.test.mjs",
+				"test/telegram-reconnect.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L2-C/E: POST"
+				},
+				{
+					"test": "^signed Telegram binding"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L2"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-002-P1-L2X5",
+			"origin": "scratchpad l2mut X5 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-002",
+					"property": "P1"
+				}
+			],
+			"description": "verify endpoint never checks the signature",
+			"edits": [
+				{
+					"file": "api/link/verify.mjs",
+					"find": "\tconst verified = await verifyWalletSiweSignature({ message, signature, expected });",
+					"replace": "\tconst verified = 'VALID';"
+				}
+			],
+			"tests": [
+				"test/l2-telegram-handoff-removed.test.mjs",
+				"test/m1-link-limits.test.mjs",
+				"test/link-row-kind.test.mjs",
+				"test/hard004.test.mjs",
+				"test/telegram-reconnect.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L2-C/E: POST"
+				},
+				{
+					"test": "^signed Telegram binding"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L2"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-002-P1-L2X6",
+			"origin": "scratchpad l2mut X6 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-002",
+					"property": "P1"
+				}
+			],
+			"description": "local link server skips signature",
+			"edits": [
+				{
+					"file": "src/web.mjs",
+					"find": "if (await verifyWalletSiweSignature({ message, signature, expected }) !== 'VALID') {",
+					"replace": "if (false && await verifyWalletSiweSignature({ message, signature, expected }) !== 'VALID') {"
+				}
+			],
+			"tests": [
+				"test/l2-telegram-handoff-removed.test.mjs",
+				"test/m1-link-limits.test.mjs",
+				"test/link-row-kind.test.mjs",
+				"test/hard004.test.mjs",
+				"test/telegram-reconnect.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "local link server"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L2"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-002-P2-L2X1",
+			"origin": "scratchpad l2mut X1 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-002",
+					"property": "P2"
+				}
+			],
+			"description": "reintroduce unsigned handoff helper (linking)",
+			"edits": [
+				{
+					"file": "src/linking.mjs",
+					"find": "export async function newDashboardAccess(wallet) {",
+					"replace": "export async function newTelegramHandoff(wallet) {\n\tconst code = randomBytes(18).toString('base64url');\n\treturn { code, expiresAt: Date.now() + LINK_LIFETIME_MS };\n}\n\nexport async function newDashboardAccess(wallet) {"
+				}
+			],
+			"tests": [
+				"test/l2-telegram-handoff-removed.test.mjs",
+				"test/m1-link-limits.test.mjs",
+				"test/link-row-kind.test.mjs",
+				"test/hard004.test.mjs",
+				"test/telegram-reconnect.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L2-A/B"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "static",
+			"note": "Killed only by source-text/export-surface checks; recorded but never counted as E4 known-bad proof.",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L2"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-002-P2-L2X2",
+			"origin": "scratchpad l2mut X2 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-002",
+					"property": "P2"
+				}
+			],
+			"description": "runtime calls the old RPC (renamed helper)",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "export async function createDashboardAccess(",
+					"replace": "export async function bindWalletDirect(code, chatId) {\n\treturn value(await db.rpc('consume_telegram_handoff', { handoff_code: code, telegram_chat_id: String(chatId) }));\n}\n\nexport async function createDashboardAccess("
+				}
+			],
+			"tests": [
+				"test/l2-telegram-handoff-removed.test.mjs",
+				"test/m1-link-limits.test.mjs",
+				"test/link-row-kind.test.mjs",
+				"test/hard004.test.mjs",
+				"test/telegram-reconnect.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L2-A/B"
+				},
+				{
+					"test": "^L2-D"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "static",
+			"note": "Killed only by source-text/export-surface checks; recorded but never counted as E4 known-bad proof.",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L2"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-002-P2-L2X3",
+			"origin": "scratchpad l2mut X3 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-002",
+					"property": "P2"
+				}
+			],
+			"description": "reintroduce consumeTelegramHandoff export",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "export async function createDashboardAccess(",
+					"replace": "export async function consumeTelegramHandoff(code, chatId) {\n\treturn value(await db.rpc('consume_wallet_link_v2', { link_code: code, linked_wallet: String(chatId) }));\n}\n\nexport async function createDashboardAccess("
+				}
+			],
+			"tests": [
+				"test/l2-telegram-handoff-removed.test.mjs",
+				"test/m1-link-limits.test.mjs",
+				"test/link-row-kind.test.mjs",
+				"test/hard004.test.mjs",
+				"test/telegram-reconnect.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L2-A/B"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "static",
+			"note": "Killed only by source-text/export-surface checks; recorded but never counted as E4 known-bad proof.",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L2"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-002-P2-L2X7",
+			"origin": "scratchpad l2mut X7 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-002",
+					"property": "P2"
+				}
+			],
+			"description": "binding via obsolete consume_wallet_link",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "client.rpc('consume_wallet_link_v2', { link_code: code, linked_wallet: wallet.toLowerCase() })",
+					"replace": "client.rpc('consume_wallet_link', { link_code: code, linked_wallet: wallet.toLowerCase() })"
+				}
+			],
+			"tests": [
+				"test/l2-telegram-handoff-removed.test.mjs",
+				"test/m1-link-limits.test.mjs",
+				"test/link-row-kind.test.mjs",
+				"test/hard004.test.mjs",
+				"test/telegram-reconnect.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^consumePendingLink calls the limited DB function"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L2"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-002-P2-L2X8",
+			"origin": "scratchpad l2mut X8 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-002",
+					"property": "P2"
+				}
+			],
+			"description": "binding via removed handoff RPC",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "client.rpc('consume_wallet_link_v2', { link_code: code, linked_wallet: wallet.toLowerCase() })",
+					"replace": "client.rpc('consume_telegram_handoff', { handoff_code: code, telegram_chat_id: wallet.toLowerCase() })"
+				}
+			],
+			"tests": [
+				"test/l2-telegram-handoff-removed.test.mjs",
+				"test/m1-link-limits.test.mjs",
+				"test/link-row-kind.test.mjs",
+				"test/hard004.test.mjs",
+				"test/telegram-reconnect.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^consumePendingLink calls the limited DB function"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L2"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-003-P1-L3Y1",
+			"origin": "scratchpad l3mut Y1 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-003",
+					"property": "P1"
+				}
+			],
+			"description": "remove chat-wallet authorization check",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\tif (!linked) return 'not_linked';\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/l3-snooze-authorization.test.mjs",
+				"test/m1-alert-run-budget.test.mjs",
+				"test/telegram-private-only.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L3-A/B/C/D"
+				},
+				{
+					"test": "^L3-F"
+				},
+				{
+					"test": "^L3-G"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L3"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-003-P1-L3Y2",
+			"origin": "scratchpad l3mut Y2 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-003",
+					"property": "P1"
+				}
+			],
+			"description": "always authorized",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\tconst linked = value(await client.from('monitored_wallets').select('wallet').match({ chat_id: chat, wallet: normalized }).maybeSingle());\n",
+					"replace": "\tconst linked = { wallet: normalized };\n"
+				}
+			],
+			"tests": [
+				"test/l3-snooze-authorization.test.mjs",
+				"test/m1-alert-run-budget.test.mjs",
+				"test/telegram-private-only.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L3-A/B/C/D"
+				},
+				{
+					"test": "^L3-F"
+				},
+				{
+					"test": "^L3-G"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L3"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-003-P1-L3Y5",
+			"origin": "scratchpad l3mut Y5 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-003",
+					"property": "P1"
+				}
+			],
+			"description": "stale state: an existing snooze re-authorizes",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\tif (!linked) return 'not_linked';\n",
+					"replace": "\tconst earlier = value(await client.from('alert_snoozes').select('cover_id').match({ chat_id: chat, wallet: normalized, cover_id: cover }).maybeSingle());\n\tif (!linked && !earlier) return 'not_linked';\n"
+				}
+			],
+			"tests": [
+				"test/l3-snooze-authorization.test.mjs",
+				"test/m1-alert-run-budget.test.mjs",
+				"test/telegram-private-only.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L3-G"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L3"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-003-P1-L3Y6",
+			"origin": "scratchpad l3mut Y6 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-003",
+					"property": "P1"
+				}
+			],
+			"description": "write snooze before authorization",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\tvalue(await client.from('alert_snoozes').upsert({ chat_id: chat, wallet: normalized, cover_id: cover, remind_at: new Date(remindAt).toISOString(), created_at: new Date().toISOString() }));\n",
+					"replace": ""
+				},
+				{
+					"file": "src/db.mjs",
+					"find": "\tconst linked = value(await client.from('monitored_wallets').select('wallet').match({ chat_id: chat, wallet: normalized }).maybeSingle());\n",
+					"replace": "\tvalue(await client.from('alert_snoozes').upsert({ chat_id: chat, wallet: normalized, cover_id: cover, remind_at: new Date(remindAt).toISOString(), created_at: new Date().toISOString() }));\n\tconst linked = value(await client.from('monitored_wallets').select('wallet').match({ chat_id: chat, wallet: normalized }).maybeSingle());\n"
+				}
+			],
+			"tests": [
+				"test/l3-snooze-authorization.test.mjs",
+				"test/m1-alert-run-budget.test.mjs",
+				"test/telegram-private-only.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L3-A/B/C/D"
+				},
+				{
+					"test": "^L3-F"
+				},
+				{
+					"test": "^L3-G"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L3"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-003-P1-L3Y8",
+			"origin": "scratchpad l3mut Y8 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-003",
+					"property": "P1"
+				}
+			],
+			"description": "use callback wallet without DB lookup",
+			"edits": [
+				{
+					"file": "src/bot.mjs",
+					"find": "snoozeLinkedCoverAlert, ",
+					"replace": "snoozeLinkedCoverAlert, snoozeCoverAlert, "
+				},
+				{
+					"file": "src/bot.mjs",
+					"find": "const outcome = wallet ? await snoozeLinkedCoverAlert(chatId, wallet, later[1], nextDailyAgentRun()) : 'not_linked';",
+					"replace": "const outcome = later[2] ? (await snoozeCoverAlert(chatId, later[2], later[1], nextDailyAgentRun()), 'snoozed') : wallet ? await snoozeLinkedCoverAlert(chatId, wallet, later[1], nextDailyAgentRun()) : 'not_linked';"
+				}
+			],
+			"tests": [
+				"test/l3-snooze-authorization.test.mjs",
+				"test/m1-alert-run-budget.test.mjs",
+				"test/telegram-private-only.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L3-A/B/C/D"
+				},
+				{
+					"test": "^L3-F"
+				},
+				{
+					"test": "^L3-G"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L3"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-003-P2-L3Y10",
+			"origin": "scratchpad l3mut Y10 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-003",
+					"property": "P2"
+				}
+			],
+			"description": "non-canonical cover id (leading zeros)",
+			"edits": [
+				{
+					"file": "src/bot.mjs",
+					"find": "const later = /^renew_later:(0|[1-9][0-9]{0,19})(?::(0x[a-fA-F0-9]{40}))?$/.exec(query?.data ?? '');",
+					"replace": "const later = /^renew_later:([0-9]{1,20})(?::(0x[a-fA-F0-9]{40}))?$/.exec(query?.data ?? '');"
+				}
+			],
+			"tests": [
+				"test/l3-snooze-authorization.test.mjs",
+				"test/m1-alert-run-budget.test.mjs",
+				"test/telegram-private-only.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "malformed or tampered callback"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L3"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-003-P2-L3Y7",
+			"origin": "scratchpad l3mut Y7 (rebuilt)",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-003",
+					"property": "P2"
+				}
+			],
+			"description": "accept malformed callback (old loose regex)",
+			"edits": [
+				{
+					"file": "src/bot.mjs",
+					"find": "const later = /^renew_later:(0|[1-9][0-9]{0,19})(?::(0x[a-fA-F0-9]{40}))?$/.exec(query?.data ?? '');",
+					"replace": "const later = /^renew_later:(\\d+)(?::(0x[a-fA-F0-9]{40}))?/.exec(query?.data ?? '');"
+				}
+			],
+			"tests": [
+				"test/l3-snooze-authorization.test.mjs",
+				"test/m1-alert-run-budget.test.mjs",
+				"test/telegram-private-only.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "malformed or tampered callback"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"evidence_id": "EV-KB-L3"
+		}
+	]
+}

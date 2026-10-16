@@ -16,7 +16,11 @@
     "//check:ci": "Wie 'check', aber ohne 'build:web'. Der Build zieht zuerst die Schrift von fontshare - eine Netzabhaengigkeit, die in einer CI nur Flackern bringt und fuer die Waechter nichts beitraegt.",
     "check:ci": "npm run check:quellen && node scripts/check-frontend.mjs && npm run check:signaturen",
     "check": "npm run check:quellen && node scripts/check-frontend.mjs && npm run build:web && npm run check:signaturen",
-    "check:signaturen": "npm audit signatures"
+    "check:signaturen": "npm audit signatures",
+    "//security:verify": "CRSF (security/crsf/README.md): berechnet jeden Kontrollstatus aus den ausgefuehrten Nachweisen neu - Tests, Mutationen in einer Wegwerfkopie, Selbsttests - und schreibt security/reports/out/. Kein Zertifikat.",
+    "security:verify": "node scripts/security-verify.mjs",
+    "//security:framework-test": "CRSF-Selbsttest: generierte Felder aktuell, und der Pruefer lehnt jede bekannt-falsche Definition ab.",
+    "security:framework-test": "node security/crsf/generator/crsf-gen.mjs --check && node security/crsf/selftest/framework-selftest.mjs"
   },
   "engines": {
     "node": "24.x"

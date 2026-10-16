@@ -1,0 +1,257 @@
+{
+	"crsf_version": "1.0-draft-phase2a",
+	"rules": [
+		{
+			"pattern": "src/*auth*",
+			"domains": [
+				"CR-AUTH",
+				"CR-SESSION",
+				"CR-CONC"
+			]
+		},
+		{
+			"pattern": "src/siwe-auth.mjs",
+			"domains": [
+				"CR-AUTH",
+				"CR-SESSION",
+				"CR-CRYPTO"
+			]
+		},
+		{
+			"pattern": "src/contract-*.mjs",
+			"domains": [
+				"CR-AUTH",
+				"CR-PROVIDER",
+				"CR-CRYPTO"
+			]
+		},
+		{
+			"pattern": "src/db.mjs",
+			"domains": [
+				"CR-DB",
+				"CR-CONC",
+				"CR-RESOURCE",
+				"CR-API",
+				"CR-INPUT"
+			]
+		},
+		{
+			"pattern": "src/http-security.mjs",
+			"domains": [
+				"CR-BROWSER",
+				"CR-API",
+				"CR-RESOURCE"
+			]
+		},
+		{
+			"pattern": "api/dashboard*",
+			"domains": [
+				"CR-AUTH",
+				"CR-SESSION",
+				"CR-API",
+				"CR-BROWSER",
+				"CR-RESOURCE"
+			]
+		},
+		{
+			"pattern": "api/link/*",
+			"domains": [
+				"CR-AUTH",
+				"CR-TELEGRAM",
+				"CR-API"
+			]
+		},
+		{
+			"pattern": "api/link.mjs",
+			"domains": [
+				"CR-TELEGRAM",
+				"CR-API"
+			]
+		},
+		{
+			"pattern": "api/telegram*",
+			"domains": [
+				"CR-TELEGRAM",
+				"CR-API",
+				"CR-RESOURCE"
+			]
+		},
+		{
+			"pattern": "api/positions*",
+			"domains": [
+				"CR-API",
+				"CR-PROVIDER",
+				"CR-RESOURCE"
+			]
+		},
+		{
+			"pattern": "api/position-attributions*",
+			"domains": [
+				"CR-API",
+				"CR-CONC",
+				"CR-PROVIDER",
+				"CR-PRIV"
+			]
+		},
+		{
+			"pattern": "api/alerts*",
+			"domains": [
+				"CR-API",
+				"CR-RESOURCE"
+			]
+		},
+		{
+			"pattern": "src/alerts*",
+			"domains": [
+				"CR-RESOURCE",
+				"CR-TELEGRAM",
+				"CR-PROVIDER"
+			]
+		},
+		{
+			"pattern": "src/bot.mjs",
+			"domains": [
+				"CR-TELEGRAM",
+				"CR-API",
+				"CR-INPUT"
+			]
+		},
+		{
+			"pattern": "src/nexus*",
+			"domains": [
+				"CR-DOC",
+				"CR-PROVIDER"
+			]
+		},
+		{
+			"pattern": "src/pdf-text.mjs",
+			"domains": [
+				"CR-DOC"
+			]
+		},
+		{
+			"pattern": "src/agent-*.mjs",
+			"domains": [
+				"CR-DOC",
+				"CR-PRIV"
+			]
+		},
+		{
+			"pattern": "src/positions/*",
+			"domains": [
+				"CR-PROVIDER",
+				"CR-RESOURCE"
+			]
+		},
+		{
+			"pattern": "src/cover*.mjs",
+			"domains": [
+				"CR-PROVIDER"
+			]
+		},
+		{
+			"pattern": "src/security-events.mjs",
+			"domains": [
+				"CR-LOG",
+				"CR-PRIV"
+			]
+		},
+		{
+			"pattern": "web/*",
+			"domains": [
+				"CR-BROWSER",
+				"CR-SESSION",
+				"CR-CONFIG"
+			]
+		},
+		{
+			"pattern": "supabase/migrations/*",
+			"domains": [
+				"CR-DB",
+				"CR-CONC",
+				"CR-RESOURCE"
+			]
+		},
+		{
+			"pattern": "package.json",
+			"domains": [
+				"CR-SUPPLY",
+				"CR-VERIFY",
+				"CR-CRYPTO"
+			]
+		},
+		{
+			"pattern": "package-lock.json",
+			"domains": [
+				"CR-SUPPLY",
+				"CR-CRYPTO"
+			]
+		},
+		{
+			"pattern": ".github/workflows/*",
+			"domains": [
+				"CR-SUPPLY",
+				"CR-VERIFY"
+			]
+		},
+		{
+			"pattern": "vercel.json",
+			"domains": [
+				"CR-BROWSER",
+				"CR-SUPPLY",
+				"CR-CONFIG",
+				"CR-TLS"
+			]
+		},
+		{
+			"pattern": "scripts/run-tests-guarded.mjs",
+			"domains": [
+				"CR-VERIFY"
+			]
+		},
+		{
+			"pattern": "test/*",
+			"domains": [
+				"CR-VERIFY"
+			]
+		},
+		{
+			"pattern": "test-support/*",
+			"domains": [
+				"CR-VERIFY"
+			]
+		},
+		{
+			"pattern": "*.md",
+			"domains": [
+				"CR-AUTH",
+				"CR-API",
+				"CR-CRYPTO",
+				"CR-LOG",
+				"CR-INPUT",
+				"CR-RESOURCE",
+				"CR-PRIV"
+			]
+		},
+		{
+			"pattern": "security/**",
+			"domains": [
+				"CR-VERIFY"
+			]
+		},
+		{
+			"pattern": "scripts/security-*.mjs",
+			"domains": [
+				"CR-VERIFY"
+			]
+		},
+		{
+			"pattern": "scripts/skip-policy.mjs",
+			"domains": [
+				"CR-VERIFY"
+			]
+		}
+	],
+	"mandatory_global": "Drift output only prioritises review. security:verify always evaluates every control; no control is skipped because of drift.",
+	"note": "A changed path maps to CRSF domains; paths that match no rule require a full re-run."
+}

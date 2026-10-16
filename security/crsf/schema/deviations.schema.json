@@ -1,0 +1,404 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"title": "CRSF deviations",
+	"type": "object",
+	"additionalProperties": false,
+	"required": [
+		"crsf_version",
+		"deviations"
+	],
+	"properties": {
+		"crsf_version": {
+			"type": "string",
+			"pattern": "^1\\.0-draft-[a-z0-9]+$"
+		},
+		"deviations": {
+			"type": "array",
+			"items": {
+				"$ref": "#/$defs/deviation"
+			},
+			"minItems": 0
+		},
+		"validator_self_tests_phase1c": {
+			"type": "array",
+			"items": {
+				"type": "object"
+			},
+			"minItems": 0
+		}
+	},
+	"$defs": {
+		"deviation": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"id",
+				"type",
+				"control_ids",
+				"deviated_properties",
+				"external_requirement_ids",
+				"external_standard_source",
+				"external_standard_requirement",
+				"conflicting_requirement",
+				"required_protocol_source",
+				"required_protocol_requirement",
+				"reason",
+				"security_impact",
+				"risk_assessment",
+				"mitigations",
+				"alternatives_considered",
+				"why_alternatives_not_viable",
+				"implementation_constraints",
+				"evidence_ids",
+				"independent_defect_check_controls",
+				"review_triggers",
+				"owner",
+				"criteria",
+				"owner_signoff",
+				"status",
+				"status_computed",
+				"manual_override_allowed",
+				"validation"
+			],
+			"properties": {
+				"id": {
+					"type": "string",
+					"pattern": "^DEV-(PROTO|PLAT|CAND)-[0-9]{3}$"
+				},
+				"type": {
+					"enum": [
+						"PROTOCOL",
+						"PLATFORM"
+					]
+				},
+				"control_ids": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"pattern": "^CR-[A-Z]+-[0-9]{3}$"
+					},
+					"minItems": 1
+				},
+				"deviated_properties": {
+					"type": "object",
+					"additionalProperties": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"pattern": "^P[0-9]+$"
+						},
+						"minItems": 1
+					}
+				},
+				"external_requirement_ids": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 1
+				},
+				"external_standard_source": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 1
+				},
+				"external_standard_requirement": {
+					"type": "string",
+					"minLength": 1
+				},
+				"conflicting_requirement": {
+					"type": "string",
+					"minLength": 1
+				},
+				"required_protocol_source": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 1
+				},
+				"required_protocol_requirement": {
+					"type": "string",
+					"minLength": 1
+				},
+				"reason": {
+					"type": "string"
+				},
+				"security_impact": {
+					"type": "string",
+					"minLength": 1
+				},
+				"risk_assessment": {
+					"type": "string",
+					"minLength": 1
+				},
+				"mitigations": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 0
+				},
+				"alternatives_considered": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 0
+				},
+				"why_alternatives_not_viable": {
+					"type": "string",
+					"minLength": 1
+				},
+				"implementation_constraints": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 0
+				},
+				"evidence_ids": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"pattern": "^EV-[A-Z0-9-]+$"
+					},
+					"minItems": 0
+				},
+				"independent_defect_check_controls": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"pattern": "^CR-[A-Z]+-[0-9]{3}$"
+					},
+					"minItems": 0
+				},
+				"review_triggers": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": [
+							"code",
+							"text"
+						],
+						"properties": {
+							"code": {
+								"type": "string",
+								"pattern": "^[A-Z_]+$"
+							},
+							"text": {
+								"type": "string",
+								"minLength": 1
+							}
+						}
+					},
+					"minItems": 1
+				},
+				"owner": {
+					"type": "string",
+					"minLength": 1
+				},
+				"criteria": {
+					"type": "object",
+					"additionalProperties": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": [
+							"met",
+							"basis",
+							"refs"
+						],
+						"properties": {
+							"met": {
+								"type": "boolean"
+							},
+							"basis": {
+								"type": "string"
+							},
+							"refs": {
+								"type": "array",
+								"items": {
+									"type": "string",
+									"minLength": 1
+								},
+								"minItems": 0
+							}
+						}
+					}
+				},
+				"trust_assumption": {
+					"type": "string",
+					"minLength": 1
+				},
+				"ambiguities": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 0
+				},
+				"evidence_questions": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": [
+							"id",
+							"question",
+							"status",
+							"answer",
+							"impact_classification",
+							"review_if"
+						],
+						"properties": {
+							"id": {
+								"type": "string",
+								"minLength": 1
+							},
+							"question": {
+								"type": "string",
+								"minLength": 1
+							},
+							"status": {
+								"enum": [
+									"OPEN",
+									"ANSWERED"
+								]
+							},
+							"answer": {
+								"type": "string",
+								"minLength": 1
+							},
+							"impact_classification": {
+								"type": "string",
+								"minLength": 1
+							},
+							"review_if": {
+								"type": "string",
+								"minLength": 1
+							}
+						}
+					},
+					"minItems": 0
+				},
+				"evidence_properties": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": [
+							"id",
+							"property",
+							"evidence",
+							"counts_for_security_status",
+							"why"
+						],
+						"properties": {
+							"id": {
+								"type": "string",
+								"minLength": 1
+							},
+							"property": {
+								"type": [
+									"string",
+									"null"
+								]
+							},
+							"evidence": {
+								"type": "string",
+								"minLength": 1
+							},
+							"counts_for_security_status": {
+								"type": "boolean"
+							},
+							"why": {
+								"type": "string",
+								"minLength": 1
+							}
+						}
+					},
+					"minItems": 0
+				},
+				"owner_signoff": {
+					"enum": [
+						"PENDING",
+						"APPROVED",
+						"NOT_REQUIRED"
+					]
+				},
+				"owner_signoff_record": {
+					"type": "object",
+					"additionalProperties": false,
+					"required": [
+						"by",
+						"date",
+						"reference"
+					],
+					"properties": {
+						"by": {
+							"type": "string",
+							"minLength": 1
+						},
+						"date": {
+							"type": "string",
+							"minLength": 1
+						},
+						"reference": {
+							"type": "string",
+							"minLength": 1
+						}
+					}
+				},
+				"status": {
+					"enum": [
+						"ACCEPTED",
+						"REJECTED",
+						"REQUIRES_REVIEW"
+					]
+				},
+				"status_computed": {
+					"const": true
+				},
+				"manual_override_allowed": {
+					"const": false
+				},
+				"validation": {
+					"type": "object",
+					"additionalProperties": false,
+					"required": [
+						"unmet_criteria",
+						"machine_check_failures"
+					],
+					"properties": {
+						"unmet_criteria": {
+							"type": "array",
+							"items": {
+								"type": "string",
+								"minLength": 1
+							},
+							"minItems": 0
+						},
+						"machine_check_failures": {
+							"type": "array",
+							"items": {
+								"type": "string",
+								"minLength": 1
+							},
+							"minItems": 0
+						}
+					}
+				}
+			}
+		}
+	}
+}

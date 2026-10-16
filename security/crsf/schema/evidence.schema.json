@@ -1,0 +1,418 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"title": "CRSF evidence",
+	"type": "object",
+	"additionalProperties": false,
+	"required": [
+		"crsf_version",
+		"evidence"
+	],
+	"properties": {
+		"crsf_version": {
+			"type": "string",
+			"pattern": "^1\\.0-draft-[a-z0-9]+$"
+		},
+		"evidence": {
+			"type": "array",
+			"items": {
+				"$ref": "#/$defs/evidence"
+			},
+			"minItems": 1
+		}
+	},
+	"$defs": {
+		"evidence": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"id",
+				"control_ids",
+				"type",
+				"level",
+				"source",
+				"artifact",
+				"test_or_proof",
+				"property_proven",
+				"property_not_proven",
+				"coverage",
+				"reason_for_partial",
+				"covers",
+				"reproducible",
+				"environment_requirements",
+				"known_bad_checked",
+				"known_bad_result",
+				"weakness",
+				"recorded",
+				"fixture_group",
+				"execution"
+			],
+			"properties": {
+				"id": {
+					"type": "string",
+					"pattern": "^EV-[A-Z0-9-]+$"
+				},
+				"control_ids": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"pattern": "^CR-[A-Z]+-[0-9]{3}$"
+					},
+					"minItems": 0
+				},
+				"type": {
+					"enum": [
+						"behavioral",
+						"known-bad",
+						"real-system",
+						"static",
+						"config",
+						"manual-inspection",
+						"document-inspection",
+						"manual-production"
+					]
+				},
+				"level": {
+					"enum": [
+						"E0",
+						"E1",
+						"E2",
+						"E3",
+						"E4",
+						"E5",
+						"E6"
+					]
+				},
+				"source": {
+					"type": "string",
+					"minLength": 1
+				},
+				"artifact": {
+					"type": "string",
+					"minLength": 1
+				},
+				"test_or_proof": {
+					"type": "string",
+					"minLength": 1
+				},
+				"property_proven": {
+					"type": "string",
+					"minLength": 1
+				},
+				"property_not_proven": {
+					"type": "string",
+					"minLength": 1
+				},
+				"coverage": {
+					"enum": [
+						"FULL",
+						"PARTIAL"
+					]
+				},
+				"reason_for_partial": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"covers": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": [
+							"control",
+							"properties",
+							"scope",
+							"result",
+							"note"
+						],
+						"properties": {
+							"control": {
+								"type": "string",
+								"pattern": "^CR-[A-Z]+-[0-9]{3}$"
+							},
+							"properties": {
+								"type": "array",
+								"items": {
+									"type": "string",
+									"pattern": "^P[0-9]+$"
+								},
+								"minItems": 1
+							},
+							"scope": {
+								"enum": [
+									"FULL",
+									"PARTIAL"
+								]
+							},
+							"result": {
+								"enum": [
+									"SUPPORTS",
+									"VIOLATION"
+								]
+							},
+							"note": {
+								"type": [
+									"string",
+									"null"
+								]
+							}
+						}
+					},
+					"minItems": 0
+				},
+				"reproducible": {
+					"type": "boolean"
+				},
+				"environment_requirements": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 1
+				},
+				"known_bad_checked": {
+					"type": "boolean"
+				},
+				"known_bad_result": {
+					"enum": [
+						"KILLED",
+						"SURVIVED",
+						"NOT_RUN",
+						"NOT_APPLICABLE"
+					]
+				},
+				"weakness": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"recorded": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"fixture_group": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"execution": {
+					"oneOf": [
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"required": [
+								"runner",
+								"test_files",
+								"environment",
+								"timeout_ms",
+								"expected_result",
+								"known_bad_required"
+							],
+							"properties": {
+								"runner": {
+									"const": "node-test"
+								},
+								"test_files": {
+									"type": "array",
+									"items": {
+										"type": "string",
+										"pattern": "^test/[a-z0-9-]+\\.test\\.mjs$"
+									},
+									"minItems": 1
+								},
+								"test_names": {
+									"type": "array",
+									"items": {
+										"type": "string",
+										"minLength": 1
+									},
+									"minItems": 1
+								},
+								"environment": {
+									"type": "array",
+									"items": {
+										"enum": [
+											"node",
+											"postgres"
+										]
+									},
+									"minItems": 1
+								},
+								"timeout_ms": {
+									"type": "integer",
+									"minimum": 1000
+								},
+								"expected_result": {
+									"const": "PASS"
+								},
+								"known_bad_required": {
+									"const": false
+								}
+							}
+						},
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"required": [
+								"runner",
+								"mutation_ids",
+								"environment",
+								"expected_result",
+								"known_bad_required"
+							],
+							"properties": {
+								"runner": {
+									"const": "mutation"
+								},
+								"mutation_ids": {
+									"type": "array",
+									"items": {
+										"type": "string",
+										"pattern": "^MUT-"
+									},
+									"minItems": 1
+								},
+								"environment": {
+									"type": "array",
+									"items": {
+										"enum": [
+											"node",
+											"postgres"
+										]
+									},
+									"minItems": 1
+								},
+								"expected_result": {
+									"enum": [
+										"KILLED",
+										"SURVIVED"
+									]
+								},
+								"known_bad_required": {
+									"const": true
+								}
+							}
+						},
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"required": [
+								"runner",
+								"environment",
+								"timeout_ms",
+								"expected_result",
+								"known_bad_required"
+							],
+							"properties": {
+								"runner": {
+									"const": "crsf-selftest"
+								},
+								"environment": {
+									"type": "array",
+									"items": {
+										"enum": [
+											"node"
+										]
+									},
+									"minItems": 1
+								},
+								"timeout_ms": {
+									"type": "integer",
+									"minimum": 1000
+								},
+								"expected_result": {
+									"const": "PASS"
+								},
+								"known_bad_required": {
+									"const": false
+								}
+							}
+						},
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"required": [
+								"runner",
+								"script",
+								"environment",
+								"timeout_ms",
+								"expected_result",
+								"known_bad_required"
+							],
+							"properties": {
+								"runner": {
+									"const": "probe"
+								},
+								"script": {
+									"type": "string",
+									"pattern": "^security/crsf/probes/[a-z0-9-]+\\.mjs$"
+								},
+								"environment": {
+									"type": "array",
+									"items": {
+										"enum": [
+											"node"
+										]
+									},
+									"minItems": 1
+								},
+								"timeout_ms": {
+									"type": "integer",
+									"minimum": 1000
+								},
+								"expected_result": {
+									"const": "PASS"
+								},
+								"known_bad_required": {
+									"const": false
+								}
+							}
+						},
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"required": [
+								"runner",
+								"note"
+							],
+							"properties": {
+								"runner": {
+									"const": "static"
+								},
+								"note": {
+									"type": "string",
+									"minLength": 1
+								}
+							}
+						},
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"required": [
+								"runner",
+								"recorded"
+							],
+							"properties": {
+								"runner": {
+									"const": "manual"
+								},
+								"recorded": {
+									"type": [
+										"string",
+										"null"
+									]
+								}
+							}
+						}
+					]
+				}
+			}
+		}
+	}
+}

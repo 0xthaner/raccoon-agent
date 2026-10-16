@@ -1,0 +1,909 @@
+{
+	"crsf_version": "1.0-draft-phase2a",
+	"deviations": [
+		{
+			"id": "DEV-PROTO-001",
+			"type": "PROTOCOL",
+			"control_ids": [
+				"CR-CRYPTO-008"
+			],
+			"deviated_properties": {
+				"CR-CRYPTO-008": [
+					"P1"
+				]
+			},
+			"external_requirement_ids": [
+				"V11.6.1"
+			],
+			"external_standard_source": [
+				"SRC-ASVS V11.6.1",
+				"SRC-ASVS-APPC §Digital Signatures"
+			],
+			"external_standard_requirement": "V11.6.1: only approved cryptographic algorithms and modes for key generation and seeding, and digital signature generation and verification.",
+			"conflicting_requirement": "Appendix C Digital Signatures approves EdDSA (Ed25519, Ed448), XEdDSA, ECDSA (P-256, P-384, P-521), RSA-PSS; ECDSA over secp256k1 is not listed. Appendix C also states: \"This list may be overridden in the context of a given application for various reasons including: new evolutions in the field of cryptography; compliance with regulation.\"",
+			"required_protocol_source": [
+				"SRC-ERC4361 §Signing and Verifying Messages with Ethereum Accounts",
+				"SRC-ERC191",
+				"SRC-ETH-YP Appendix F (Signing Transactions)",
+				"SRC-ETH-EXECSPECS crypto/elliptic_curve.py secp256k1_recover"
+			],
+			"required_protocol_requirement": "ERC-4361: \"For Externally Owned Accounts (EOAs), the verification method specified in ERC-191 MUST be used.\" ERC-191 verification recovers the signer with ecrecover. Yellow Paper Appendix F: \"Transactions are signed using recoverable ECDSA signatures. This method utilises the SECP-256k1 curve\"; an Ethereum address is the rightmost 160 bits of the Keccak-256 hash of that ECDSA public key; ECREC = ECDSARECOVER over secp256k1n.",
+			"reason": "An EOA is defined by a secp256k1 key pair. Proving control of an EOA (the purpose of SIWE login and wallet linking) is only possible by verifying a secp256k1 ECDSA signature. CoverRaccoon does not choose the curve; the wallet and the Ethereum protocol do.",
+			"security_impact": "No standalone weakness demonstrated. secp256k1 gives ~128-bit security (V11.2.3 satisfied by CR-CRYPTO-005); it is not a NIST/FIPS curve, and no practical attack against it is known.",
+			"risk_assessment": "Conformance-level deviation, low residual risk: (1) future cryptanalysis of secp256k1, shared with the whole Ethereum ecosystem; (2) no crypto agility for EOA verification (tracked separately by CR-CRYPTO-004, not hidden here); (3) signature malleability: the recovery stack accepts the high-s twin of a valid signature (Q-CRYPTO-LOW-S, EV-PROBE-LOW-S); no impact found because a malleated signature recovers the same signer, signatures are never stored or used as identifiers, and every challenge is single-use (CR-CONC-001).",
+			"mitigations": [
+				"verification only through viem 2.55.13 -> @noble/curves 1.9.1 (no custom curve arithmetic), lockfile-pinned with integrity hashes and CI registry-signature verification (CR-SUPPLY-001/004)",
+				"field checks (domain, uri, chain-id, nonce, times, address) before any signature check (CR-AUTH-001)",
+				"single-use, short-lived server challenges (CR-CONC-001, CR-SESSION-002)",
+				"exact 65-byte EOA signature format checked before recovery",
+				"contract wallets verified by the wallet contract via ERC-1271 with two providers at one block (CR-AUTH-003)"
+			],
+			"alternatives_considered": [
+				"ECDSA P-256 / EdDSA for EOA login: impossible, EOA keys are secp256k1 and wallets cannot sign for that account with another curve",
+				"EIP-712 typed-data signatures: same curve and hash, no change in conformance",
+				"P-256 (passkey) smart accounts via ERC-1271 / P256VERIFY: possible for some contract wallets, cannot be required of users, and verification happens in the contract, not in CoverRaccoon",
+				"non-wallet authentication: removes the required functionality (proof of wallet ownership)"
+			],
+			"why_alternatives_not_viable": "Every standards-conformant alternative either cannot verify control of an existing Ethereum EOA or excludes EOA users, which breaks the product function (monitoring and protecting a user's own wallet).",
+			"implementation_constraints": [
+				"EOA address derivation and signature scheme fixed by the Ethereum protocol",
+				"wallet software determines the signing scheme",
+				"SIWE (ERC-4361) mandates ERC-191 verification for EOAs"
+			],
+			"evidence_ids": [
+				"EV-INSPECT-CRYPTO-PROTOCOL",
+				"EV-SIWE",
+				"EV-LOGIN",
+				"EV-PROBE-LOW-S"
+			],
+			"independent_defect_check_controls": [
+				"CR-AUTH-001",
+				"CR-AUTH-002",
+				"CR-AUTH-003",
+				"CR-CRYPTO-003",
+				"CR-CRYPTO-005"
+			],
+			"review_triggers": [
+				{
+					"code": "ERC_EIP_REQUIREMENT_CHANGE",
+					"text": "ERC-4361, ERC-191 or ERC-1271 revised, superseded or withdrawn"
+				},
+				{
+					"code": "ETH_SIGNATURE_PRIMITIVE_CHANGE",
+					"text": "Ethereum account/signature model changes (new EOA key types, native account abstraction making other schemes the default)"
+				},
+				{
+					"code": "SAFE_SIGNATURE_MODEL_CHANGE",
+					"text": "Safe signature validation model changes (CompatibilityFallbackHandler / SignMessageLib in a new Safe release)"
+				},
+				{
+					"code": "CRYPTANALYSIS",
+					"text": "new cryptanalytic results against ECDSA over secp256k1 or Keccak-256"
+				},
+				{
+					"code": "LIBRARY_REPLACEMENT",
+					"text": "replacement or major upgrade of viem, @noble/curves or @noble/hashes"
+				},
+				{
+					"code": "CHAIN_OR_SCHEME_MIGRATION",
+					"text": "support for another chain, another signature scheme or non-mainnet verification"
+				},
+				{
+					"code": "ASVS_CRYPTO_GUIDANCE_CHANGE",
+					"text": "ASVS Appendix C / V11 approved-algorithm guidance changes (new version, errata, explicit protocol exception)"
+				}
+			],
+			"owner": "CoverRaccoon maintainer (repository owner); sign-off to be recorded when the record is committed in Phase 2",
+			"criteria": {
+				"A": {
+					"met": true,
+					"basis": "ERC-4361 (Final) mandates ERC-191 verification for EOAs; ERC-191 verification is ecrecover; the Yellow Paper and execution-specs define ecrecover and EOA addresses over secp256k1.",
+					"refs": [
+						"SRC-ERC4361",
+						"SRC-ERC191",
+						"SRC-ETH-YP",
+						"SRC-ETH-EXECSPECS"
+					]
+				},
+				"B": {
+					"met": true,
+					"basis": "Dashboard login and Telegram wallet linking are SIWE flows; proof of wallet ownership is the product's authentication model.",
+					"refs": [
+						"SRC-ERC4361"
+					]
+				},
+				"C": {
+					"met": true,
+					"basis": "No approved scheme can prove control of an existing EOA (see alternatives).",
+					"refs": [
+						"SRC-ETH-YP"
+					]
+				},
+				"D": {
+					"met": true,
+					"basis": "Only V11.6.1 and only the algorithm-list property P1; P2-P4 remain enforced security properties.",
+					"refs": []
+				},
+				"E": {
+					"met": true,
+					"basis": "Implementation controls listed in independent_defect_check_controls are machine-checked for FAIL; inspection found no custom crypto and correct message binding.",
+					"refs": []
+				},
+				"F": {
+					"met": true,
+					"basis": "ERC-4361 and ERC-191 have status Final; the Yellow Paper is the formal protocol specification and execution-specs the executable reference specification; secp256k1 is a SEC 2 curve.",
+					"refs": [
+						"SRC-ERC4361",
+						"SRC-ERC191",
+						"SRC-ETH-YP",
+						"SRC-ETH-EXECSPECS"
+					]
+				},
+				"G": {
+					"met": true,
+					"basis": "This record carries standard reference, conflicting requirement, protocol requirement, reason, threat/risk analysis, mitigations and review triggers.",
+					"refs": []
+				}
+			},
+			"owner_signoff": "PENDING",
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"evidence_questions": [
+				{
+					"id": "Q-CRYPTO-LOW-S",
+					"question": "Does the current ECDSA recovery stack enforce or normalise low-s signatures?",
+					"status": "ANSWERED",
+					"answer": "No. viem 2.55.13 verifyMessage -> @noble/curves 1.9.1 recovery accepts the high-s twin (n - s, flipped v) of a valid signature for the same address (EV-PROBE-LOW-S, reproducible).",
+					"impact_classification": "INFORMATIONAL - not an authentication bypass: the twin proves the same key; replay protection is the single-use server nonce, not signature uniqueness; signatures are never persisted or used as keys (source search 2026-10-16).",
+					"review_if": "signatures are ever stored, deduplicated or used as identifiers"
+				}
+			],
+			"status": "ACCEPTED",
+			"validation": {
+				"unmet_criteria": [],
+				"machine_check_failures": []
+			}
+		},
+		{
+			"id": "DEV-PROTO-002",
+			"type": "PROTOCOL",
+			"control_ids": [
+				"CR-CRYPTO-009"
+			],
+			"deviated_properties": {
+				"CR-CRYPTO-009": [
+					"P1"
+				]
+			},
+			"external_requirement_ids": [
+				"V11.4.1"
+			],
+			"external_standard_source": [
+				"SRC-ASVS V11.4.1",
+				"SRC-ASVS-APPC §Hash Functions for General Use Cases"
+			],
+			"external_standard_requirement": "V11.4.1: only approved hash functions for general cryptographic use cases, including digital signatures, HMAC, KDF and random bit generation; disallowed hashes such as MD5 must not be used.",
+			"conflicting_requirement": "Appendix C approves SHA3-512/384/256, SHA-512/384/256, SHA-512/256, SHAKE256, BLAKE2s/b, BLAKE3 for digital signatures; Keccak-256 (original Keccak padding, not FIPS 202) is not listed. It is not listed as Disallowed either.",
+			"required_protocol_source": [
+				"SRC-ERC4361 §Signing and Verifying Messages with Ethereum Accounts",
+				"SRC-ERC191 (version 0x45 personal_sign; verification example keccak256 + ecrecover)",
+				"SRC-ERC1271 (isValidSignature(bytes32 hash, ...))",
+				"SRC-ETH-YP §Conventions KEC, Appendix E ECREC, Appendix F",
+				"SRC-ETH-EXECSPECS crypto/hash.py keccak256"
+			],
+			"required_protocol_requirement": "Wallets sign keccak256(\"\\x19Ethereum Signed Message:\\n\" + len + message) (ERC-191 personal_sign); ecrecover and ERC-1271 isValidSignature take that 32-byte digest. The Yellow Paper defines KEC as \"the Keccak-256 hash function (... rather than the final SHA-3 specification)\".",
+			"reason": "The digest under a wallet signature is fixed by the wallet and the protocol. A verifier that hashes with SHA3-256 instead would never match the signature the wallet produced.",
+			"security_impact": "No standalone weakness demonstrated. Keccak-256 differs from SHA3-256 only in domain-separation padding and offers the same 256-bit output and 128-bit collision resistance.",
+			"risk_assessment": "Conformance-level deviation, low residual risk: (1) future cryptanalysis of Keccak, shared with SHA-3 and Ethereum; (2) scope creep: Keccak must not spread to application-chosen hashing (guarded by CR-CRYPTO-007 and CR-CRYPTO-009 P4).",
+			"mitigations": [
+				"Keccak only via viem hashMessage/verifyMessage -> @noble/hashes 1.8.0",
+				"application-chosen hashing is SHA-256 / HMAC-SHA-256 only (CR-CRYPTO-007)",
+				"lockfile integrity and registry-signature verification for the hashing library (CR-SUPPLY-001/004)"
+			],
+			"alternatives_considered": [
+				"SHA3-256 / SHA-256 digest for SIWE: wallets do not produce such signatures; verification would always fail",
+				"EIP-712: also Keccak-256 based"
+			],
+			"why_alternatives_not_viable": "The hash is part of the signed-data format; changing it breaks interoperability with every Ethereum wallet and with ERC-1271 contracts.",
+			"implementation_constraints": [
+				"ERC-191 signed-data format",
+				"ecrecover and ERC-1271 operate on Keccak-256 digests"
+			],
+			"evidence_ids": [
+				"EV-INSPECT-CRYPTO-PROTOCOL",
+				"EV-SIWE",
+				"EV-ERC1271"
+			],
+			"independent_defect_check_controls": [
+				"CR-AUTH-001",
+				"CR-AUTH-002",
+				"CR-AUTH-003",
+				"CR-CRYPTO-003",
+				"CR-CRYPTO-007"
+			],
+			"review_triggers": [
+				{
+					"code": "ERC_EIP_REQUIREMENT_CHANGE",
+					"text": "ERC-4361, ERC-191 or ERC-1271 revised, superseded or withdrawn"
+				},
+				{
+					"code": "ETH_SIGNATURE_PRIMITIVE_CHANGE",
+					"text": "Ethereum account/signature model changes (new EOA key types, native account abstraction making other schemes the default)"
+				},
+				{
+					"code": "SAFE_SIGNATURE_MODEL_CHANGE",
+					"text": "Safe signature validation model changes (CompatibilityFallbackHandler / SignMessageLib in a new Safe release)"
+				},
+				{
+					"code": "CRYPTANALYSIS",
+					"text": "new cryptanalytic results against ECDSA over secp256k1 or Keccak-256"
+				},
+				{
+					"code": "LIBRARY_REPLACEMENT",
+					"text": "replacement or major upgrade of viem, @noble/curves or @noble/hashes"
+				},
+				{
+					"code": "CHAIN_OR_SCHEME_MIGRATION",
+					"text": "support for another chain, another signature scheme or non-mainnet verification"
+				},
+				{
+					"code": "ASVS_CRYPTO_GUIDANCE_CHANGE",
+					"text": "ASVS Appendix C / V11 approved-algorithm guidance changes (new version, errata, explicit protocol exception)"
+				}
+			],
+			"owner": "CoverRaccoon maintainer (repository owner); sign-off to be recorded when the record is committed in Phase 2",
+			"ambiguities": [
+				"ERC-191 prose does not name the hash for version 0x45 (it references go-ethereum#2940); Keccak-256 is established by the ERC's own verification example and the Yellow Paper. Accepted with this note."
+			],
+			"criteria": {
+				"A": {
+					"met": true,
+					"basis": "ERC-4361 -> ERC-191 signed-data format whose verification hashes with keccak256 before ecrecover; Yellow Paper KEC/ECREC; execution-specs keccak256.",
+					"refs": [
+						"SRC-ERC4361",
+						"SRC-ERC191",
+						"SRC-ETH-YP",
+						"SRC-ETH-EXECSPECS"
+					]
+				},
+				"B": {
+					"met": true,
+					"basis": "Same SIWE flows as DEV-PROTO-001; ERC-1271 path for Safe wallets.",
+					"refs": [
+						"SRC-ERC4361",
+						"SRC-ERC1271"
+					]
+				},
+				"C": {
+					"met": true,
+					"basis": "No approved hash yields digests that wallets sign or that ecrecover / ERC-1271 accept for SIWE.",
+					"refs": [
+						"SRC-ERC191"
+					]
+				},
+				"D": {
+					"met": true,
+					"basis": "Only V11.4.1 and only the hash-list property P1, and only the wallet-signature digest; application-chosen hashing is a separate control (CR-CRYPTO-007).",
+					"refs": []
+				},
+				"E": {
+					"met": true,
+					"basis": "Implementation controls listed in independent_defect_check_controls are machine-checked for FAIL.",
+					"refs": []
+				},
+				"F": {
+					"met": true,
+					"basis": "ERC-4361, ERC-191 and ERC-1271 are Final; Yellow Paper and execution-specs are the protocol specifications.",
+					"refs": [
+						"SRC-ERC4361",
+						"SRC-ERC191",
+						"SRC-ERC1271",
+						"SRC-ETH-YP",
+						"SRC-ETH-EXECSPECS"
+					]
+				},
+				"G": {
+					"met": true,
+					"basis": "Record complete (see fields).",
+					"refs": []
+				}
+			},
+			"owner_signoff": "PENDING",
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"status": "ACCEPTED",
+			"validation": {
+				"unmet_criteria": [],
+				"machine_check_failures": []
+			}
+		},
+		{
+			"id": "DEV-PLAT-001",
+			"type": "PLATFORM",
+			"control_ids": [
+				"CR-TLS-003"
+			],
+			"deviated_properties": {
+				"CR-TLS-003": [
+					"P1"
+				]
+			},
+			"external_requirement_ids": [
+				"V4.1.2"
+			],
+			"external_standard_source": [
+				"SRC-ASVS V4.1.2"
+			],
+			"external_standard_requirement": "V4.1.2: only user-facing endpoints automatically redirect from HTTP to HTTPS; other services or endpoints do not implement transparent redirects.",
+			"conflicting_requirement": "http://coverraccoon.com/api/* is answered with 308 to https by the Vercel edge (observed 2026-10-16).",
+			"required_protocol_source": [
+				"SRC-VERCEL-ENC"
+			],
+			"required_protocol_requirement": "Vercel: \"HTTPS redirection is an industry standard and can't be disabled.\"",
+			"reason": "The redirect is issued by the hosting edge before any application code runs; Vercel offers no project setting to refuse HTTP instead.",
+			"security_impact": "A client that erroneously sends an API request over HTTP leaks that request in clear text and the redirect hides the mistake.",
+			"risk_assessment": "Low and bounded: the only intended API client is the same-origin HTTPS frontend (relative fetches; mixed content is blocked); HSTS max-age 1 year with includeSubDomains on all hosts; session cookies are Secure and __Host- (never sent over HTTP); Bearer credentials are never accepted; Telegram setWebhook only accepts HTTPS URLs; Vercel Cron calls are platform-internal. Residual: domain not on the HSTS preload list, so a first-contact browser can still send one HTTP navigation (not an API request with credentials).",
+			"trust_assumption": "Vercel edge behaves as documented: every HTTP request is answered with a redirect to the same host and path over HTTPS, before reaching functions.",
+			"mitigations": [
+				"HSTS max-age=31536000; includeSubDomains",
+				"__Host-/Secure session cookies",
+				"no header-based credentials accepted",
+				"recommended (not implemented): HSTS preload"
+			],
+			"alternatives_considered": [
+				"refuse HTTP for /api in application code: impossible, the edge redirects before functions run",
+				"Vercel setting to disable the redirect: does not exist per SRC-VERCEL-ENC",
+				"serve the API from a host that refuses HTTP: changes the hosting platform; not an application-level configuration",
+				"HSTS preload: reduces first-contact exposure but does not remove the redirect"
+			],
+			"why_alternatives_not_viable": "No application-level or project-level configuration can make the edge refuse HTTP; the only conformant option is a platform migration, disproportionate to a bounded conformance-level exposure.",
+			"implementation_constraints": [
+				"Vercel edge terminates TLS and owns HTTP handling"
+			],
+			"evidence_ids": [
+				"EV-PROD-TLS",
+				"EV-PROD-HEADERS",
+				"EV-SESSION"
+			],
+			"independent_defect_check_controls": [
+				"CR-SESSION-004",
+				"CR-SESSION-005",
+				"CR-TLS-002",
+				"CR-BROWSER-001"
+			],
+			"review_triggers": [
+				{
+					"code": "PLATFORM_OPTION",
+					"text": "Vercel adds an option to disable HTTPS redirection or reject HTTP"
+				},
+				{
+					"code": "PLATFORM_CHANGE",
+					"text": "hosting platform or edge/CDN change"
+				},
+				{
+					"code": "NEW_API_CLIENT",
+					"text": "any non-browser API client (public API, mobile app, third-party integration) is added"
+				},
+				{
+					"code": "CREDENTIAL_MODEL_CHANGE",
+					"text": "header- or URL-based API credentials introduced"
+				},
+				{
+					"code": "HSTS_CHANGE",
+					"text": "HSTS removed or weakened on any host"
+				},
+				{
+					"code": "ASVS_CHANGE",
+					"text": "ASVS V4.1.2 wording changes"
+				}
+			],
+			"owner": "CoverRaccoon maintainer (repository owner); sign-off to be recorded when the record is committed in Phase 2",
+			"criteria": {
+				"PD1": {
+					"met": true,
+					"basis": "Official Vercel documentation states the redirect cannot be disabled.",
+					"refs": [
+						"SRC-VERCEL-ENC"
+					]
+				},
+				"PD2": {
+					"met": true,
+					"basis": "Redirect precedes application code; no project setting exists.",
+					"refs": [
+						"SRC-VERCEL-ENC"
+					]
+				},
+				"PD3": {
+					"met": true,
+					"basis": "trust_assumption field states the platform behaviour relied on.",
+					"refs": []
+				},
+				"PD4": {
+					"met": true,
+					"basis": "Credential exposure over HTTP is prevented independently (P2/P3 security properties; see risk_assessment).",
+					"refs": []
+				},
+				"PD5": {
+					"met": true,
+					"basis": "review_triggers documented.",
+					"refs": []
+				},
+				"D": {
+					"met": true,
+					"basis": "Only V4.1.2 and only the redirect property P1; P2/P3 remain enforced security properties.",
+					"refs": []
+				},
+				"E": {
+					"met": true,
+					"basis": "Implementation controls in independent_defect_check_controls are machine-checked for FAIL.",
+					"refs": []
+				}
+			},
+			"owner_signoff": "PENDING",
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"evidence_properties": [
+				{
+					"id": "HSTS_STATE",
+					"property": "CR-TLS-003.P2",
+					"evidence": "EV-PROD-HEADERS (manual production record, 2026-10-16: max-age=31536000; includeSubDomains)",
+					"counts_for_security_status": false,
+					"why": "non-reproducible; SECURITY_DEBT control needs reproducible evidence"
+				},
+				{
+					"id": "PRELOAD_STATE",
+					"property": null,
+					"evidence": "hstspreload.org status \"unknown\" (2026-10-16)",
+					"counts_for_security_status": false,
+					"why": "residual risk input only; not a CRSF requirement"
+				},
+				{
+					"id": "PRODUCTION_REDIRECT_BEHAVIOUR",
+					"property": "CR-TLS-003.P1",
+					"evidence": "EV-PROD-TLS (manual production record: HTTP /api -> 308 https)",
+					"counts_for_security_status": false,
+					"why": "establishes the conformance finding, not a security property"
+				}
+			],
+			"status": "ACCEPTED",
+			"validation": {
+				"unmet_criteria": [],
+				"machine_check_failures": []
+			}
+		},
+		{
+			"id": "DEV-CAND-001",
+			"type": "PROTOCOL",
+			"control_ids": [
+				"CR-AUTH-010"
+			],
+			"deviated_properties": {
+				"CR-AUTH-010": [
+					"P1"
+				]
+			},
+			"external_requirement_ids": [
+				"V6.3.3"
+			],
+			"external_standard_source": [
+				"SRC-ASVS V6.3.3"
+			],
+			"external_standard_requirement": "MFA or combination of single-factor mechanisms required.",
+			"conflicting_requirement": "Dashboard access uses one wallet signature.",
+			"required_protocol_source": [
+				"SRC-ERC4361"
+			],
+			"required_protocol_requirement": "none: ERC-4361 defines a sign-in message, it does not prohibit additional factors",
+			"reason": "candidate: \"SIWE is single-factor by design\"",
+			"security_impact": "single compromised wallet key gives dashboard access",
+			"risk_assessment": "n/a (rejected)",
+			"mitigations": [],
+			"alternatives_considered": [
+				"second factor (e.g. Telegram confirmation) in addition to SIWE"
+			],
+			"why_alternatives_not_viable": "they are viable",
+			"implementation_constraints": [],
+			"evidence_ids": [
+				"EV-INSPECT-ARCH"
+			],
+			"independent_defect_check_controls": [],
+			"review_triggers": [
+				{
+					"code": "NONE",
+					"text": "rejected candidate"
+				}
+			],
+			"owner": "n/a",
+			"criteria": {
+				"A": {
+					"met": false,
+					"basis": "ERC-4361 does not require single-factor access.",
+					"refs": [
+						"SRC-ERC4361"
+					]
+				},
+				"B": {
+					"met": true,
+					"basis": "SIWE needed.",
+					"refs": []
+				},
+				"C": {
+					"met": false,
+					"basis": "A second factor is compatible with SIWE.",
+					"refs": []
+				},
+				"D": {
+					"met": true,
+					"basis": "",
+					"refs": []
+				},
+				"E": {
+					"met": true,
+					"basis": "",
+					"refs": []
+				},
+				"F": {
+					"met": true,
+					"basis": "",
+					"refs": []
+				},
+				"G": {
+					"met": true,
+					"basis": "",
+					"refs": []
+				}
+			},
+			"owner_signoff": "NOT_REQUIRED",
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"status": "REJECTED",
+			"validation": {
+				"unmet_criteria": [
+					"A",
+					"C"
+				],
+				"machine_check_failures": [
+					"criterion D missing basis",
+					"criterion E missing basis",
+					"criterion F missing basis",
+					"criterion G missing basis",
+					"missing field mitigations",
+					"missing field implementation_constraints",
+					"CR-AUTH-010.P1 is REQUIREMENT; only CONFORMANCE properties can deviate"
+				]
+			}
+		},
+		{
+			"id": "DEV-CAND-002",
+			"type": "PROTOCOL",
+			"control_ids": [
+				"CR-SESSION-008"
+			],
+			"deviated_properties": {
+				"CR-SESSION-008": [
+					"P2"
+				]
+			},
+			"external_requirement_ids": [
+				"V7.5.2"
+			],
+			"external_standard_source": [
+				"SRC-ASVS V7.5.2"
+			],
+			"external_standard_requirement": "Users can view and terminate active sessions.",
+			"conflicting_requirement": "Active sessions cannot be listed.",
+			"required_protocol_source": [
+				"SRC-ERC4361 §Creating Sessions"
+			],
+			"required_protocol_requirement": "none: ERC-4361 leaves session management to the relying party",
+			"reason": "candidate: \"self-contained SIWE sessions cannot be listed\"",
+			"security_impact": "unnoticed concurrent session",
+			"risk_assessment": "n/a (rejected)",
+			"mitigations": [],
+			"alternatives_considered": [
+				"server-side session registry"
+			],
+			"why_alternatives_not_viable": "it is viable",
+			"implementation_constraints": [],
+			"evidence_ids": [
+				"EV-INSPECT-ARCH"
+			],
+			"independent_defect_check_controls": [],
+			"review_triggers": [
+				{
+					"code": "NONE",
+					"text": "rejected candidate"
+				}
+			],
+			"owner": "n/a",
+			"criteria": {
+				"A": {
+					"met": false,
+					"basis": "Self-contained tokens are an application design choice, not a protocol requirement.",
+					"refs": [
+						"SRC-ERC4361"
+					]
+				},
+				"B": {
+					"met": true,
+					"basis": "",
+					"refs": []
+				},
+				"C": {
+					"met": false,
+					"basis": "A session registry is compatible with SIWE.",
+					"refs": []
+				},
+				"D": {
+					"met": true,
+					"basis": "",
+					"refs": []
+				},
+				"E": {
+					"met": true,
+					"basis": "",
+					"refs": []
+				},
+				"F": {
+					"met": true,
+					"basis": "",
+					"refs": []
+				},
+				"G": {
+					"met": true,
+					"basis": "",
+					"refs": []
+				}
+			},
+			"owner_signoff": "NOT_REQUIRED",
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"status": "REJECTED",
+			"validation": {
+				"unmet_criteria": [
+					"A",
+					"C"
+				],
+				"machine_check_failures": [
+					"criterion B missing basis",
+					"criterion D missing basis",
+					"criterion E missing basis",
+					"criterion F missing basis",
+					"criterion G missing basis",
+					"missing field mitigations",
+					"missing field implementation_constraints",
+					"CR-SESSION-008.P2 is REQUIREMENT; only CONFORMANCE properties can deviate"
+				]
+			}
+		},
+		{
+			"id": "DEV-CAND-003",
+			"type": "PLATFORM",
+			"control_ids": [
+				"CR-SUPPLY-007"
+			],
+			"deviated_properties": {
+				"CR-SUPPLY-007": [
+					"P1"
+				]
+			},
+			"external_requirement_ids": [
+				"SLSA-1.2:build-L1-provenance"
+			],
+			"external_standard_source": [
+				"SRC-SLSA v1.2 Build L1"
+			],
+			"external_standard_requirement": "Provenance describing how the artifact was built.",
+			"conflicting_requirement": "Deploys are Vercel CLI uploads without provenance.",
+			"required_protocol_source": [
+				"(none pinned)"
+			],
+			"required_protocol_requirement": "none: no Vercel documentation states provenance is impossible",
+			"reason": "candidate: \"Vercel CLI deploys do not emit provenance\"",
+			"security_impact": "unverifiable production artifacts",
+			"risk_assessment": "n/a (rejected)",
+			"mitigations": [],
+			"alternatives_considered": [
+				"build in CI with provenance attestation and deploy the prebuilt output"
+			],
+			"why_alternatives_not_viable": "it is viable",
+			"implementation_constraints": [],
+			"evidence_ids": [
+				"EV-INSPECT-DEPLOY"
+			],
+			"independent_defect_check_controls": [],
+			"review_triggers": [
+				{
+					"code": "NONE",
+					"text": "rejected candidate"
+				}
+			],
+			"owner": "n/a",
+			"criteria": {
+				"PD1": {
+					"met": false,
+					"basis": "No official platform documentation pinned that makes provenance impossible.",
+					"refs": []
+				},
+				"PD2": {
+					"met": false,
+					"basis": "Application-level alternative exists (CI build + attestation + prebuilt deploy).",
+					"refs": []
+				},
+				"PD3": {
+					"met": true,
+					"basis": "",
+					"refs": []
+				},
+				"PD4": {
+					"met": false,
+					"basis": "Impact not bounded by any platform guarantee.",
+					"refs": []
+				},
+				"PD5": {
+					"met": true,
+					"basis": "",
+					"refs": []
+				},
+				"D": {
+					"met": true,
+					"basis": "",
+					"refs": []
+				},
+				"E": {
+					"met": true,
+					"basis": "",
+					"refs": []
+				}
+			},
+			"owner_signoff": "NOT_REQUIRED",
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"status": "REJECTED",
+			"validation": {
+				"unmet_criteria": [
+					"PD1",
+					"PD2",
+					"PD4"
+				],
+				"machine_check_failures": [
+					"criterion PD3 missing basis",
+					"criterion PD5 missing basis",
+					"criterion D missing basis",
+					"criterion E missing basis",
+					"missing field mitigations",
+					"missing field implementation_constraints",
+					"protocol/platform source not pinned: (none pinned)",
+					"platform deviation needs trust_assumption",
+					"CR-SUPPLY-007.P1 is REQUIREMENT; only CONFORMANCE properties can deviate"
+				]
+			}
+		}
+	],
+	"validator_self_tests_phase1c": [
+		{
+			"id": "BAD-01",
+			"attempt": "deviation on a SECURITY property",
+			"computed_status": "REQUIRES_REVIEW",
+			"unmet_criteria": [],
+			"machine_check_failures": [
+				"CR-CRYPTO-008.P2 is SECURITY; only CONFORMANCE properties can deviate",
+				"CR-CRYPTO-008.P2 has no VIOLATION finding (MISSING_EVIDENCE cannot become a deviation)"
+			],
+			"refused": true
+		},
+		{
+			"id": "BAD-02",
+			"attempt": "one deviation aggregating two external requirements",
+			"computed_status": "REQUIRES_REVIEW",
+			"unmet_criteria": [],
+			"machine_check_failures": [
+				"deviation must target exactly one external requirement (no aggregation)"
+			],
+			"refused": true
+		},
+		{
+			"id": "BAD-03",
+			"attempt": "protocol requirement from an unpinned source",
+			"computed_status": "REQUIRES_REVIEW",
+			"unmet_criteria": [],
+			"machine_check_failures": [
+				"protocol/platform source not pinned: SRC-BLOGPOST ethereum crypto"
+			],
+			"refused": true
+		},
+		{
+			"id": "BAD-04",
+			"attempt": "MISSING_EVIDENCE converted to a deviation (no VIOLATION finding)",
+			"computed_status": "REQUIRES_REVIEW",
+			"unmet_criteria": [],
+			"machine_check_failures": [
+				"CR-API-011.P1 is REQUIREMENT; only CONFORMANCE properties can deviate",
+				"CR-API-011.P1 has no VIOLATION finding (MISSING_EVIDENCE cannot become a deviation)"
+			],
+			"refused": true
+		},
+		{
+			"id": "BAD-05",
+			"attempt": "deviation hiding an implementation FAIL",
+			"computed_status": "REQUIRES_REVIEW",
+			"unmet_criteria": [],
+			"machine_check_failures": [
+				"implementation control CR-CONFIG-003 is FAIL (deviation would hide it)"
+			],
+			"refused": true
+		},
+		{
+			"id": "BAD-06",
+			"attempt": "hand-set ACCEPTED status",
+			"computed_status": "REQUIRES_REVIEW",
+			"unmet_criteria": [],
+			"machine_check_failures": [
+				"status/override must not be hand-set"
+			],
+			"refused": true
+		},
+		{
+			"id": "BAD-07",
+			"attempt": "crypto deviation without the cryptanalysis review trigger",
+			"computed_status": "REQUIRES_REVIEW",
+			"unmet_criteria": [],
+			"machine_check_failures": [
+				"crypto deviation lacks review trigger CRYPTANALYSIS"
+			],
+			"refused": true
+		},
+		{
+			"id": "BAD-08",
+			"attempt": "deviation on a RELEASE_BLOCKING control",
+			"computed_status": "REQUIRES_REVIEW",
+			"unmet_criteria": [],
+			"machine_check_failures": [
+				"CR-AUTH-002.P1 is REQUIREMENT; only CONFORMANCE properties can deviate",
+				"CR-AUTH-002.P1 has no VIOLATION finding (MISSING_EVIDENCE cannot become a deviation)",
+				"CR-AUTH-002 is RELEASE_BLOCKING; deviations are not allowed there in CRSF 1.0"
+			],
+			"refused": true
+		},
+		{
+			"id": "BAD-09",
+			"attempt": "protocol source is the conflicting standard itself",
+			"computed_status": "REQUIRES_REVIEW",
+			"unmet_criteria": [],
+			"machine_check_failures": [
+				"protocol source cannot be the conflicting standard itself"
+			],
+			"refused": true
+		},
+		{
+			"id": "BAD-10",
+			"attempt": "criterion C unmet (secure compatible alternative exists)",
+			"computed_status": "REJECTED",
+			"unmet_criteria": [
+				"C"
+			],
+			"machine_check_failures": [],
+			"refused": true
+		},
+		{
+			"id": "BAD-11",
+			"attempt": "empty rationale",
+			"computed_status": "REQUIRES_REVIEW",
+			"unmet_criteria": [],
+			"machine_check_failures": [
+				"missing field reason"
+			],
+			"refused": true
+		},
+		{
+			"id": "BAD-12",
+			"attempt": "unknown evidence reference",
+			"computed_status": "REQUIRES_REVIEW",
+			"unmet_criteria": [],
+			"machine_check_failures": [
+				"unknown evidence EV-DOES-NOT-EXIST"
+			],
+			"refused": true
+		}
+	]
+}

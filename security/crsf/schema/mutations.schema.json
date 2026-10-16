@@ -1,0 +1,167 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"title": "CRSF mutation cases",
+	"type": "object",
+	"additionalProperties": false,
+	"required": [
+		"framework",
+		"schema",
+		"cases"
+	],
+	"properties": {
+		"framework": {
+			"const": "CRSF"
+		},
+		"schema": {
+			"type": "string",
+			"minLength": 1
+		},
+		"cases": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": [
+					"id",
+					"origin",
+					"evidence_id",
+					"targets",
+					"description",
+					"edits",
+					"tests",
+					"environment",
+					"expected_failures",
+					"expected_result",
+					"detection",
+					"timeout_ms"
+				],
+				"properties": {
+					"id": {
+						"type": "string",
+						"pattern": "^MUT-CR-[A-Z]+-[0-9]{3}-P[0-9]+-[A-Z0-9]+$"
+					},
+					"origin": {
+						"type": "string",
+						"minLength": 1
+					},
+					"evidence_id": {
+						"type": "string",
+						"pattern": "^EV-[A-Z0-9-]+$"
+					},
+					"targets": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": [
+								"control",
+								"property"
+							],
+							"properties": {
+								"control": {
+									"type": "string",
+									"pattern": "^CR-[A-Z]+-[0-9]{3}$"
+								},
+								"property": {
+									"type": "string",
+									"pattern": "^P[0-9]+$"
+								}
+							}
+						},
+						"minItems": 1
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1
+					},
+					"edits": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": [
+								"file",
+								"find",
+								"replace"
+							],
+							"properties": {
+								"file": {
+									"type": "string",
+									"pattern": "^(src|api|supabase|web|scripts|security/crsf/selftest/fixtures)/"
+								},
+								"find": {
+									"type": "string",
+									"minLength": 1
+								},
+								"replace": {
+									"type": "string"
+								}
+							}
+						},
+						"minItems": 1
+					},
+					"tests": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"pattern": "^(test/[a-z0-9-]+\\.test\\.mjs|security/crsf/selftest/fixtures/[a-z0-9-]+\\.mjs)$"
+						},
+						"minItems": 1
+					},
+					"environment": {
+						"type": "array",
+						"items": {
+							"enum": [
+								"node",
+								"postgres"
+							]
+						},
+						"minItems": 1
+					},
+					"expected_failures": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": [
+								"test"
+							],
+							"properties": {
+								"test": {
+									"type": "string",
+									"minLength": 1
+								},
+								"message": {
+									"type": "string",
+									"minLength": 1
+								}
+							}
+						},
+						"minItems": 0
+					},
+					"expected_result": {
+						"enum": [
+							"KILLED",
+							"SURVIVED"
+						]
+					},
+					"detection": {
+						"enum": [
+							"behavioral",
+							"static"
+						]
+					},
+					"timeout_ms": {
+						"type": "integer",
+						"minimum": 1000
+					},
+					"note": {
+						"type": "string",
+						"minLength": 1
+					}
+				}
+			},
+			"minItems": 1
+		}
+	}
+}

@@ -1,0 +1,72 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"title": "CRSF framework lock",
+	"type": "object",
+	"additionalProperties": false,
+	"required": [
+		"crsf_version",
+		"profile_rules_digest",
+		"controls"
+	],
+	"properties": {
+		"crsf_version": {
+			"type": "string",
+			"pattern": "^1\\.0-draft-[a-z0-9]+$"
+		},
+		"profile_rules_digest": {
+			"type": "string",
+			"pattern": "^[0-9a-f]{64}$"
+		},
+		"controls": {
+			"type": "object",
+			"additionalProperties": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": [
+					"release_class",
+					"minimum_evidence_level",
+					"applicability",
+					"external_requirement_ids",
+					"properties_digest"
+				],
+				"properties": {
+					"release_class": {
+						"enum": [
+							"RELEASE_BLOCKING",
+							"SECURITY_DEBT",
+							"MANUAL_ASSURANCE",
+							"INFORMATIONAL"
+						]
+					},
+					"minimum_evidence_level": {
+						"enum": [
+							"E0",
+							"E1",
+							"E2",
+							"E3",
+							"E4",
+							"E5",
+							"E6"
+						]
+					},
+					"applicability": {
+						"type": "string",
+						"minLength": 1
+					},
+					"external_requirement_ids": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"minLength": 1
+						},
+						"minItems": 0
+					},
+					"properties_digest": {
+						"type": "string",
+						"pattern": "^[0-9a-f]{64}$"
+					}
+				}
+			}
+		}
+	}
+}

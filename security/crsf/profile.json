@@ -1,0 +1,219 @@
+{
+	"id": "CRSF-1.0/COVER-RACCOON-PROFILE",
+	"crsf_version": "1.0-draft-phase2a",
+	"asvs_target": {
+		"baseline": "ASVS L2 (all applicable L1 + L2 requirements are in scope)",
+		"selected_l3": [
+			"V6.7.2",
+			"V15.4.2",
+			"V15.4.3",
+			"V7.5.3",
+			"V3.5.8",
+			"V14.2.6",
+			"V14.2.7",
+			"V8.3.2",
+			"V2.3.5"
+		],
+		"rationale": "Wallet authentication, contract-wallet (Safe) authority, Telegram account binding and financial-protection workflows justify L2 everywhere and L3 only where the threat model has a concrete path (nonce strength, TOCTOU/locking, re-authentication for sensitive operations, embedding, data minimisation/retention, immediate authorisation changes, multi-party approval). Fixed in Phase 1 before evidence review; unchanged in 1B.",
+		"other_l3": "DEFERRED (not targeted)"
+	},
+	"release_classes": {
+		"RELEASE_BLOCKING": "FAIL or insufficient evidence blocks release",
+		"SECURITY_DEBT": "tracked; FAIL stays FAIL; does not block release by itself",
+		"MANUAL_ASSURANCE": "property verified by dated human/platform record; automation pending",
+		"INFORMATIONAL": "documented constraint/assumption; FAIL stays FAIL and visible"
+	},
+	"minimum_levels": {
+		"RELEASE_BLOCKING auth/authz/replay": "E4",
+		"RELEASE_BLOCKING concurrency/atomicity": "E5",
+		"RELEASE_BLOCKING other": "E3",
+		"SECURITY_DEBT": "E3 (documentation/config: E1)",
+		"MANUAL_ASSURANCE": "E1 manual record",
+		"INFORMATIONAL": "E1"
+	},
+	"evidence_levels": [
+		{
+			"id": "E0",
+			"meaning": "no evidence"
+		},
+		{
+			"id": "E1",
+			"meaning": "static/config/manual inspection"
+		},
+		{
+			"id": "E2",
+			"meaning": "positive behavioural test"
+		},
+		{
+			"id": "E3",
+			"meaning": "negative/adversarial behavioural test"
+		},
+		{
+			"id": "E4",
+			"meaning": "reproducible known-bad/mutation proof (KILLED, behavioural detection)"
+		},
+		{
+			"id": "E5",
+			"meaning": "real-system proof (real Postgres, real concurrency)"
+		},
+		{
+			"id": "E6",
+			"meaning": "independent external review (never claimed)"
+		}
+	],
+	"evidence_type_classes": {
+		"behavioral": "behavioral",
+		"known-bad": "known-bad",
+		"real-system": "real-system",
+		"static": "static",
+		"config": "config",
+		"manual-inspection": "manual",
+		"document-inspection": "manual",
+		"manual-production": "manual"
+	},
+	"required_types_by_level": {
+		"E1": [
+			"static",
+			"config",
+			"manual"
+		],
+		"E2": [
+			"behavioral"
+		],
+		"E3": [
+			"behavioral"
+		],
+		"E4": [
+			"known-bad"
+		],
+		"E5": [
+			"real-system"
+		]
+	},
+	"combination_rule": "Complementary evidence may be combined ACROSS sub-properties (each sub-property needs its own satisfying evidence). Within one sub-property, a cover marked PARTIAL never satisfies it.",
+	"acceptance_rules": [
+		"Evidence must be reproducible from the repository at the verified commit; non-reproducible evidence only satisfies MANUAL_ASSURANCE / automation NO controls, and only if it is a dated manual record.",
+		"E4 requires a reproducible known-bad/mutation proof with result KILLED for the property.",
+		"Comments in code/tests are never evidence; source-text and config-text checks are E1.",
+		"A test that survives a known-bad variant is invalid evidence (known_bad_result SURVIVED -> ignored).",
+		"FAIL arises only from an evidence finding VIOLATION; it can only disappear with an entry in classification-changes.json.",
+		"E6 is not claimed: no independent external review exists.",
+		"Executable evidence counts only if it was executed in this run and passed; evidence that could not run (missing environment) counts as missing, never as passed.",
+		"Mutation (known-bad) evidence counts for a property only if at least one case targeting it was KILLED by its expected failing test with behavioural detection, and no case targeting it SURVIVED, was killed for another reason, or was invalid.",
+		"A declared mutation result that differs from the observed result invalidates the framework run."
+	],
+	"status_axes": {
+		"conformance_status": "Does the implementation meet the literal external (or CRSF-internal) requirement? CONFORMANT | NON_CONFORMANT | NOT_DEMONSTRATED | ACCEPTED_PROTOCOL_DEVIATION | ACCEPTED_PLATFORM_DEVIATION | NOT_APPLICABLE | DEFERRED. NOT_DEMONSTRATED is a Phase-1C extension: without evidence neither CONFORMANT nor NON_CONFORMANT can be asserted.",
+		"security_status": "Is the security property demonstrated? PASS_AUTOMATED | PASS_MANUAL | MISSING_EVIDENCE | FAIL | INFORMATIONAL | NOT_APPLICABLE | DEFERRED. INFORMATIONAL only for a validated accepted deviation whose remaining security properties are all satisfied and no defect exists.",
+		"never_combined": "The two axes are never merged into one score; a deviation is never reported as PASS."
+	},
+	"property_kinds": {
+		"REQUIREMENT": "literal requirement that is also the security property (default); violation => FAIL and NON_CONFORMANT",
+		"CONFORMANCE": "literal standard text that may be the subject of a deviation; violation => NON_CONFORMANT and FAIL unless an ACCEPTED, validated deviation covers exactly this property",
+		"SECURITY": "CRSF-defined assurance property that must hold regardless of any deviation; violation => FAIL"
+	},
+	"deviation_rules": {
+		"criteria": {
+			"PROTOCOL": [
+				"A",
+				"B",
+				"C",
+				"D",
+				"E",
+				"F",
+				"G"
+			],
+			"PLATFORM": [
+				"PD1",
+				"PD2",
+				"PD3",
+				"PD4",
+				"PD5",
+				"D",
+				"E"
+			]
+		},
+		"criteria_text": {
+			"PROTOCOL": [
+				"A pinned external protocol directly or unavoidably requires the differing behaviour",
+				"B CoverRaccoon needs that protocol for intended functionality",
+				"C no standards-conformant alternative without losing required protocol compatibility",
+				"D narrow: exactly one external requirement and only CONFORMANCE properties",
+				"E no independent implementation defect (checked: listed implementation controls are not FAIL)",
+				"F the protocol is mature/authoritative (Final status or formal/reference specification)",
+				"G documented: standard reference, conflicting requirement, protocol requirement, reason, threat analysis, mitigation, review triggers"
+			],
+			"PLATFORM": [
+				"PD1 official platform documentation (pinned)",
+				"PD2 no application-level configurable secure alternative",
+				"PD3 explicit trust assumption",
+				"PD4 bounded impact",
+				"PD5 documented review triggers",
+				"D narrow (as PROTOCOL)",
+				"E no independent implementation defect (as PROTOCOL)"
+			]
+		},
+		"required_fields": [
+			"id",
+			"control_ids",
+			"type",
+			"external_standard_source",
+			"external_standard_requirement",
+			"conflicting_requirement",
+			"required_protocol_source",
+			"required_protocol_requirement",
+			"reason",
+			"security_impact",
+			"risk_assessment",
+			"mitigations",
+			"alternatives_considered",
+			"why_alternatives_not_viable",
+			"implementation_constraints",
+			"evidence_ids",
+			"review_triggers",
+			"owner"
+		],
+		"required_review_triggers": {
+			"V11": [
+				"ERC_EIP_REQUIREMENT_CHANGE",
+				"ETH_SIGNATURE_PRIMITIVE_CHANGE",
+				"SAFE_SIGNATURE_MODEL_CHANGE",
+				"CRYPTANALYSIS",
+				"LIBRARY_REPLACEMENT",
+				"CHAIN_OR_SCHEME_MIGRATION",
+				"ASVS_CRYPTO_GUIDANCE_CHANGE"
+			]
+		},
+		"status": "computed: any criterion not met => REJECTED; all met but a machine check fails => REQUIRES_REVIEW; otherwise ACCEPTED. Only ACCEPTED deviations affect any status.",
+		"forbidden": [
+			"deviation without a VIOLATION finding on the deviated property",
+			"deviation on a REQUIREMENT or SECURITY property",
+			"deviation for MISSING_EVIDENCE",
+			"deviation whose sources are not pinned",
+			"one deviation spanning several external requirements",
+			"deviation hiding a FAIL of an implementation control"
+		],
+		"owner_signoff": "PENDING until the repository owner reviews the record; APPROVED requires owner_signoff_record {by, date, reference}. Tooling never sets APPROVED."
+	},
+	"mutation_rules": {
+		"workspace": "disposable copy of tracked + untracked non-ignored files; node_modules symlinked; deleted afterwards; the working tree is never modified",
+		"edits": "exact text anchors that must occur exactly once",
+		"baseline": "the unmutated workspace must pass every mapped test first, otherwise no case is evaluated",
+		"results": [
+			"KILLED",
+			"KILLED_OTHER",
+			"SURVIVED",
+			"INVALID",
+			"NOT_RUN"
+		],
+		"detection": "behavioral kills count for E4; static (source-text) kills are recorded but never count"
+	},
+	"verify_policy": {
+		"framework_invalid": "exit 1",
+		"evidence_failure": "exit 1 (an executed security test failed, was cancelled, todo, or skipped unexpectedly)",
+		"mutation_claim_mismatch": "exit 1",
+		"release_blocking_fail": "exit 1",
+		"release_assertion_incomplete": "exit 0 by default; exit 2 with --require-release-assertion",
+		"release_assertion_rule": "RELEASE_SECURITY_ASSERTION is PASS only if every RELEASE_BLOCKING control is PASS_AUTOMATED in the observed run; any RELEASE_BLOCKING FAIL => FAIL; otherwise INCOMPLETE_EVIDENCE"
+	}
+}

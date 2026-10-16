@@ -1,0 +1,229 @@
+{
+	"crsf_version": "1.0-draft-phase2a",
+	"sources": [
+		{
+			"id": "SRC-ASVS",
+			"org": "OWASP",
+			"title": "Application Security Verification Standard",
+			"version": "5.0.0",
+			"date": "2025-05-30",
+			"url": "https://github.com/OWASP/ASVS/tree/v5.0.0_release/5.0",
+			"pin": "git tag v5.0.0_release = 5cf9b032440be53ce345ab3c130fda46ba1ce7a2; requirement file 5.0/docs_en/OWASP_Application_Security_Verification_Standard_5.0.0_en.flat.json sha256 8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311",
+			"note": "Stable release. Repository also has a moving tag \"latest\" (2026-10-15) - NOT used."
+		},
+		{
+			"id": "SRC-API",
+			"org": "OWASP",
+			"title": "OWASP API Security Top 10",
+			"version": "2023 edition",
+			"date": "2023-06",
+			"url": "https://github.com/OWASP/API-Security/tree/33cea37b2ffde3e2e62f6b5d79a029a22a846633/editions/2023/en",
+			"pin": "git commit 33cea37b2ffde3e2e62f6b5d79a029a22a846633 (master 2026-09-21), path editions/2023/en; editions present: 2019, 2023 only",
+			"note": "Repo tags v2.x are site/software versions, not editions."
+		},
+		{
+			"id": "SRC-ERC4361",
+			"org": "Ethereum (ERCs)",
+			"title": "ERC-4361: Sign-In with Ethereum",
+			"version": "status Final",
+			"date": "2021-10-11 (created); file rev 2025-08-05",
+			"url": "https://github.com/ethereum/ERCs/blob/faa49e076526bade48318f0d6e04d9a73f82c131/ERCS/erc-4361.md",
+			"pin": "git commit faa49e076526bade48318f0d6e04d9a73f82c131 of ERCS/erc-4361.md"
+		},
+		{
+			"id": "SRC-ERC1271",
+			"org": "Ethereum (ERCs)",
+			"title": "ERC-1271: Standard Signature Validation Method for Contracts",
+			"version": "status Final",
+			"date": "2018-07-25 (created); file rev 2023-10-25",
+			"url": "https://github.com/ethereum/ERCs/blob/8dd085d159cb123f545c272c0d871a5339550e79/ERCS/erc-1271.md",
+			"pin": "git commit 8dd085d159cb123f545c272c0d871a5339550e79 of ERCS/erc-1271.md"
+		},
+		{
+			"id": "SRC-ERC191",
+			"org": "Ethereum (ERCs)",
+			"title": "ERC-191: Signed Data Standard",
+			"version": "status Final",
+			"date": "2016-01-20 (created)",
+			"url": "https://github.com/ethereum/ERCs/blob/8dd085d159cb123f545c272c0d871a5339550e79/ERCS/erc-191.md",
+			"pin": "git commit 8dd085d159cb123f545c272c0d871a5339550e79 of ERCS/erc-191.md"
+		},
+		{
+			"id": "SRC-SAFE",
+			"org": "Safe (safe-global)",
+			"title": "safe-smart-account: CompatibilityFallbackHandler, SignMessageLib",
+			"version": "v1.4.1 (reference, matches simulated behaviour in tests); v1.5.0 current release",
+			"date": "v1.5.0 2025-07-03",
+			"url": "https://github.com/safe-global/safe-smart-account/tree/bf943f80fec5ac647159d26161446ac5d716a294/contracts",
+			"pin": "git tag v1.4.1 = bf943f80fec5ac647159d26161446ac5d716a294; v1.5.0 = dc437e8fba8b4805d76bcbd1c668c9fd3d1e83be",
+			"note": "Normative content used: isValidSignature with empty signature accepts hashes in signedMessages (persistent, no expiry); otherwise checkSignatures."
+		},
+		{
+			"id": "SRC-SAFE-APPS",
+			"org": "Safe (safe-global)",
+			"title": "safe-apps-sdk",
+			"version": "@safe-global/safe-apps-sdk 9.1.0 (pinned in package.json)",
+			"date": "not applicable (pinned by exact npm version + package-lock integrity)",
+			"url": "https://github.com/safe-global/safe-apps-sdk",
+			"pin": "npm exact version 9.1.0 + package-lock integrity",
+			"note": "Used for Safe App embedding assumptions only."
+		},
+		{
+			"id": "SRC-SSDF",
+			"org": "NIST",
+			"title": "SP 800-218 Secure Software Development Framework (SSDF)",
+			"version": "1.1 (final)",
+			"date": "2022-02-03",
+			"url": "https://doi.org/10.6028/NIST.SP.800-218",
+			"pin": "publication identifier NIST SP 800-218 (Final), DOI 10.6028/NIST.SP.800-218",
+			"note": "SP 800-218 Rev. 1 (SSDF 1.2) is an Initial Public Draft (2025-12-17) - recorded, NOT used for controls."
+		},
+		{
+			"id": "SRC-SCORECARD",
+			"org": "OpenSSF",
+			"title": "OpenSSF Scorecard checks",
+			"version": "v5.6.0",
+			"date": "2026-10-12",
+			"url": "https://github.com/ossf/scorecard/blob/v5.6.0/docs/checks.md",
+			"pin": "git tag v5.6.0 = 30831805a70dd0ec92139784ce076d81fc484c18"
+		},
+		{
+			"id": "SRC-OSSF-NPM",
+			"org": "OpenSSF",
+			"title": "npm Best Practices Guide (package-manager-best-practices)",
+			"version": "published/npm.md",
+			"date": "2022-09-22",
+			"url": "https://github.com/ossf/package-manager-best-practices/blob/f51988aee8a9a1ab0436bbba61c1e94d7270683a/published/npm.md",
+			"pin": "git commit f51988aee8a9a1ab0436bbba61c1e94d7270683a"
+		},
+		{
+			"id": "SRC-SLSA",
+			"org": "OpenSSF / SLSA",
+			"title": "SLSA specification",
+			"version": "v1.2",
+			"date": "tag v1.2",
+			"url": "https://github.com/slsa-framework/slsa/tree/19e4e2f005f871270c4f555fc47afecfb37f3efe/docs/spec/v1.2",
+			"pin": "git tag v1.2 = 19e4e2f005f871270c4f555fc47afecfb37f3efe"
+		},
+		{
+			"id": "SRC-TG",
+			"org": "Telegram",
+			"title": "Telegram Bot API",
+			"version": "Bot API 10.3",
+			"date": "2026-08-24 (retrieved 2026-10-16)",
+			"url": "https://core.telegram.org/bots/api",
+			"pin": "unversioned web page; pinned by Bot API version 10.3 + retrieval date; normative quotes: setWebhook secret_token / X-Telegram-Bot-Api-Secret-Token; CallbackQuery.data \"the message originated the query can contain no callback buttons with this data\"",
+			"note": "Weakest pin in the set (no immutable URL)."
+		},
+		{
+			"id": "SRC-PG",
+			"org": "PostgreSQL Global Development Group",
+			"title": "PostgreSQL 17 documentation: CREATE FUNCTION - Writing SECURITY DEFINER Functions Safely",
+			"version": "17 (production reports 17.6.1.155)",
+			"date": "retrieved 2026-10-16",
+			"url": "https://www.postgresql.org/docs/17/sql-createfunction.html",
+			"pin": "major-version documentation URL + retrieval date",
+			"note": "Normative text: search_path should exclude untrusted-writable schemas; write pg_temp as the last entry."
+		},
+		{
+			"id": "SRC-ASVS-APPC",
+			"org": "OWASP",
+			"title": "ASVS 5.0.0 Appendix C: Cryptography Standards",
+			"url": "https://github.com/OWASP/ASVS/blob/5cf9b032440be53ce345ab3c130fda46ba1ce7a2/5.0/en/0x92-Appendix-C_Cryptography.md",
+			"version": "5.0.0",
+			"date": "2025-05",
+			"pin": "git tag v5.0.0_release = 5cf9b032440be53ce345ab3c130fda46ba1ce7a2, path 5.0/en/0x92-Appendix-C_Cryptography.md, sha256 3e01f78cb945011059e7e86b3e6ce11478c95d0ea9d559fec60143a519c403f6",
+			"note": "Sub-artifact of SRC-ASVS (same tag); pinned separately because the approved-algorithm tables are normative input for V11."
+		},
+		{
+			"id": "SRC-ETH-YP",
+			"org": "Ethereum",
+			"title": "Ethereum Yellow Paper (Paper.tex)",
+			"url": "https://github.com/ethereum/yellowpaper/blob/efc5f9a1f356cba376c978eedb63cb0363c2aa85/Paper.tex",
+			"version": "master @ efc5f9a1",
+			"date": "retrieved 2026-10-16",
+			"pin": "git commit efc5f9a1f356cba376c978eedb63cb0363c2aa85, sha256 e24873bc2edc6f41fad1c319299f2ceff4e21b243a0fba83a61cfed4a11eb618",
+			"note": "Normative quotes: Appendix F \"Transactions are signed using recoverable ECDSA signatures. This method utilises the SECP-256k1 curve\"; address = rightmost 160 bits of the Keccak-256 hash of the ECDSA public key; KEC = Keccak-256 \"rather than the final SHA-3 specification\"; ECREC precompile = ECDSARECOVER."
+		},
+		{
+			"id": "SRC-ETH-EXECSPECS",
+			"org": "Ethereum",
+			"title": "Ethereum execution-specs: crypto/elliptic_curve.py and crypto/hash.py",
+			"url": "https://github.com/ethereum/execution-specs/tree/2004296f2ffcbcebcd00f41152d33e8dfda0922a/src/ethereum/crypto",
+			"version": "v2.20.0",
+			"date": "retrieved 2026-10-16",
+			"pin": "git tag v2.20.0 = 2004296f2ffcbcebcd00f41152d33e8dfda0922a; elliptic_curve.py sha256 216673ca717b6b6fcbc4d11009ed7e5126ed9fe65021834960b68147f660480b; hash.py sha256 a91044ec31477542dfeea97c9480456146332ac64cc0a9b5150264e19bb6440b",
+			"note": "Executable reference specification: secp256k1_recover, keccak256 (Crypto.Hash.keccak, digest_bits=256). Also contains secp256r1_verify (P-256 precompile), relevant only to contract wallets."
+		},
+		{
+			"id": "SRC-VERCEL-ENC",
+			"org": "Vercel",
+			"title": "Vercel docs: Encryption (HTTPS redirection)",
+			"url": "https://vercel.com/docs/cdn-security/encryption",
+			"version": "unversioned web page",
+			"date": "retrieved 2026-10-16",
+			"pin": "unversioned page; pinned by retrieval date + normative quote: \"HTTPS redirection is an industry standard and can't be disabled.\"",
+			"note": "Official platform documentation; dynamic page, so no stable checksum."
+		}
+	],
+	"deferred_sources": [
+		{
+			"id": "SRC-SSDF-1.2-DRAFT",
+			"reason": "NIST SP 800-218 Rev. 1 ipd (2025-12-17) is a draft; CRSF pins final publications only."
+		},
+		{
+			"id": "OWASP Top 10 for LLM Applications",
+			"reason": "Document text reaches an LLM in production (OpenAI); CRSF 1.0 covers this with CRSF_INTERNAL_POLICY control CR-DOC-006 instead of adding a further standard. Re-evaluate in CRSF 1.1."
+		},
+		{
+			"id": "OAuth/OIDC (RFC 6749, OIDC Core), NIST SP 800-63B",
+			"reason": "No OAuth/OIDC/federation and no passwords; SP 800-63B only referenced indirectly through ASVS V7.1.1."
+		}
+	],
+	"change_record": [
+		{
+			"crsf_version": "1.0-draft-phase1c",
+			"change": "ADDED",
+			"id": "SRC-ASVS-APPC",
+			"reason": "Appendix C tables are the conflicting requirement text for the cryptography deviation; Phase 1B used the file unpinned"
+		},
+		{
+			"crsf_version": "1.0-draft-phase1c",
+			"change": "ADDED",
+			"id": "SRC-ETH-YP",
+			"reason": "pinned protocol source proving that Ethereum accounts require secp256k1 ECDSA and Keccak-256"
+		},
+		{
+			"crsf_version": "1.0-draft-phase1c",
+			"change": "ADDED",
+			"id": "SRC-ETH-EXECSPECS",
+			"reason": "pinned protocol source proving that Ethereum accounts require secp256k1 ECDSA and Keccak-256"
+		},
+		{
+			"crsf_version": "1.0-draft-phase1c",
+			"change": "ADDED",
+			"id": "SRC-VERCEL-ENC",
+			"reason": "platform documentation needed to evaluate the CR-TLS-003 platform-deviation candidate"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2a",
+			"change": "VENDORED",
+			"id": "SRC-ASVS",
+			"reason": "pinned requirement file (sha256 8201b20e...) vendored at security/crsf/vendor/asvs-5.0.0.flat.json so applicability completeness is verifiable offline; content unchanged"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2a",
+			"change": "FIELD_FILLED",
+			"id": "SRC-SAFE-APPS",
+			"reason": "date was empty; the pin is the exact npm version, recorded explicitly (strict schema forbids empty fields)"
+		}
+	],
+	"vendored": [
+		{
+			"source": "SRC-ASVS",
+			"path": "security/crsf/vendor/asvs-5.0.0.flat.json",
+			"sha256": "8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311",
+			"license": "CC BY-SA 4.0 (OWASP ASVS)"
+		}
+	]
+}

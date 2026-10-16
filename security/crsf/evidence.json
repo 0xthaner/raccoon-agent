@@ -1,0 +1,4033 @@
+{
+	"crsf_version": "1.0-draft-phase2a",
+	"evidence": [
+		{
+			"id": "EV-SIWE",
+			"control_ids": [
+				"CR-AUTH-001"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/siwe-auth.test.mjs, test/siwe-signature.test.mjs",
+			"test_or_proof": "test/siwe-auth.test.mjs, test/siwe-signature.test.mjs",
+			"property_proven": "field mismatches rejected",
+			"property_not_proven": "wallet interoperability",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-AUTH-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3",
+						"P4",
+						"P5"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "offline-siwe",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/siwe-auth.test.mjs",
+					"test/siwe-signature.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-LOGIN",
+			"control_ids": [
+				"CR-API-009",
+				"CR-AUTH-001",
+				"CR-AUTH-002",
+				"CR-AUTH-006"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/dashboard-login-behavior.test.mjs",
+			"test_or_proof": "test/dashboard-login-behavior.test.mjs",
+			"property_proven": "foreign key/tampered/foreign-claim -> 401 without consume; replay 409",
+			"property_not_proven": "concurrency",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-AUTH-001[P1,P5]: covers a subset of sub-properties; CR-AUTH-006[P1]: covers a subset of sub-properties; CR-API-009[P1]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-AUTH-001",
+					"properties": [
+						"P1",
+						"P5"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-AUTH-002",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-AUTH-006",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-API-009",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "loadHandler-deps",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/dashboard-login-behavior.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-ERC1271",
+			"control_ids": [
+				"CR-AUTH-003",
+				"CR-RESOURCE-001"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/erc1271.test.mjs, test/dual-rpc-erc1271.test.mjs, test/erc1271-global-budget.test.mjs",
+			"test_or_proof": "test/erc1271.test.mjs, test/dual-rpc-erc1271.test.mjs, test/erc1271-global-budget.test.mjs",
+			"property_proven": "magic exact, dual agreement, block binding, fail closed, budget",
+			"property_not_proven": "real mainnet contracts",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P1]: covers the ERC-1271 global budget only, not the login/action IP and wallet limits",
+			"covers": [
+				{
+					"control": "CR-AUTH-003",
+					"properties": [
+						"P1",
+						"P2",
+						"P3",
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "covers the ERC-1271 global budget only, not the login/action IP and wallet limits"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "simulated-chain",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/dual-rpc-erc1271.test.mjs",
+					"test/erc1271-global-budget.test.mjs",
+					"test/erc1271.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-SAFE-AUTH",
+			"control_ids": [
+				"CR-AUTH-006",
+				"CR-AUTH-007",
+				"CR-BROWSER-005",
+				"CR-SESSION-003",
+				"CR-SESSION-004",
+				"CR-SESSION-006",
+				"CR-SESSION-008"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/safe-session-authority.test.mjs, test/safe-app-session.test.mjs, test/safe-app-backend.test.mjs",
+			"test_or_proof": "test/safe-session-authority.test.mjs, test/safe-app-session.test.mjs, test/safe-app-backend.test.mjs",
+			"property_proven": "contract session 24h; fresh authority; Safe-App cookie",
+			"property_not_proven": "real Safe UI",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-AUTH-006[P2]: covers a subset of sub-properties; CR-AUTH-007[P1,P2]: covers a subset of sub-properties; CR-SESSION-004[P2]: covers a subset of sub-properties; CR-SESSION-006[P1]: covers a subset of sub-properties; CR-SESSION-008[P1]: covers a subset of sub-properties; CR-SESSION-003[P2]: purpose binding shown for actions used in tests only; CR-BROWSER-005[P2]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-AUTH-006",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-AUTH-007",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-SESSION-004",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-SESSION-006",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-SESSION-008",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-SESSION-003",
+					"properties": [
+						"P2"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "purpose binding shown for actions used in tests only"
+				},
+				{
+					"control": "CR-BROWSER-005",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "simulated-chain",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/safe-app-backend.test.mjs",
+					"test/safe-app-session.test.mjs",
+					"test/safe-session-authority.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-ONCHAIN",
+			"control_ids": [
+				"CR-API-003",
+				"CR-AUTH-004"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/onchain-safe-login.test.mjs",
+			"test_or_proof": "test/onchain-safe-login.test.mjs",
+			"property_proven": "on-chain approval only for issued challenge/wallet; strict body",
+			"property_not_proven": "real chain",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-AUTH-004[P1,P2]: covers a subset of sub-properties; CR-API-003[P2]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-AUTH-004",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-API-003",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "simulated-chain",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/onchain-safe-login.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-L4",
+			"control_ids": [
+				"CR-AUTH-005",
+				"CR-AUTH-006",
+				"CR-PROVIDER-001",
+				"CR-SESSION-001",
+				"CR-SESSION-002"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/l4-contract-detect-ttl.test.mjs",
+			"test_or_proof": "test/l4-contract-detect-ttl.test.mjs",
+			"property_proven": "classification never authorizes; expiry/forgery independent; getCode strict",
+			"property_not_proven": "production provider",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-AUTH-006[P2]: covers a subset of sub-properties; CR-SESSION-001[P1]: covers a subset of sub-properties; CR-SESSION-002[P1]: covers a subset of sub-properties; CR-PROVIDER-001[P2]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-AUTH-005",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-AUTH-006",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-SESSION-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-SESSION-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-PROVIDER-001",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "loadHandler-deps",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/l4-contract-detect-ttl.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-H2-DB",
+			"control_ids": [
+				"CR-AUTH-004",
+				"CR-AUTH-007",
+				"CR-CONC-001",
+				"CR-SESSION-002"
+			],
+			"type": "real-system",
+			"level": "E5",
+			"source": "repository",
+			"artifact": "test/h2-challenge-concurrency-db.test.mjs",
+			"test_or_proof": "test/h2-challenge-concurrency-db.test.mjs",
+			"property_proven": "single consume under 2/10/40 concurrency; one session per challenge; stored expiry enforced",
+			"property_not_proven": "real PostgREST in CI",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-AUTH-004[P3]: covers a subset of sub-properties; CR-SESSION-002[P4]: covers a subset of sub-properties; CR-AUTH-007[P3]: proves the shared consume primitive, not the action-confirmation call site",
+			"covers": [
+				{
+					"control": "CR-CONC-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-AUTH-004",
+					"properties": [
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-SESSION-002",
+					"properties": [
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-AUTH-007",
+					"properties": [
+						"P3"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "proves the shared consume primitive, not the action-confirmation call site"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"scratch Postgres 17 (M1_DB_TEST_PG_URL)"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "pg-postgrest-adapter",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/h2-challenge-concurrency-db.test.mjs"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-H2-REQ",
+			"control_ids": [
+				"CR-CONC-001"
+			],
+			"type": "static",
+			"level": "E2",
+			"source": "repository",
+			"artifact": "test/consume-challenge-request.test.mjs",
+			"test_or_proof": "test/consume-challenge-request.test.mjs",
+			"property_proven": "one conditional PATCH with all predicates",
+			"property_not_proven": "atomicity",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-CONC-001[P1]: request shape only, transport mocked",
+			"covers": [
+				{
+					"control": "CR-CONC-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "request shape only, transport mocked"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": "implementation-coupled",
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/consume-challenge-request.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-SESSION",
+			"control_ids": [
+				"CR-API-001",
+				"CR-BROWSER-002",
+				"CR-SESSION-004",
+				"CR-SESSION-005",
+				"CR-TLS-003"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/eoa-session-transport.test.mjs, test/dashboard-auth-boundaries.test.mjs, test/same-origin-boundary.test.mjs",
+			"test_or_proof": "test/eoa-session-transport.test.mjs, test/dashboard-auth-boundaries.test.mjs, test/same-origin-boundary.test.mjs",
+			"property_proven": "HttpOnly transport; no body token; Bearer ignored; cookie conflict fails closed",
+			"property_not_proven": "browser enforcement",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-SESSION-004[P1]: covers a subset of sub-properties; CR-TLS-003[P3]: covers a subset of sub-properties; CR-BROWSER-002[P3]: covers a subset of sub-properties; CR-API-001[P1]: dashboard session handling, not every read query",
+			"covers": [
+				{
+					"control": "CR-SESSION-004",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-SESSION-005",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-TLS-003",
+					"properties": [
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-BROWSER-002",
+					"properties": [
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-API-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "dashboard session handling, not every read query"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "loadHandler-deps",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/dashboard-auth-boundaries.test.mjs",
+					"test/eoa-session-transport.test.mjs",
+					"test/same-origin-boundary.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-REVOKE-SRC",
+			"control_ids": [
+				"CR-CONC-005",
+				"CR-SESSION-007"
+			],
+			"type": "static",
+			"level": "E1",
+			"source": "repository",
+			"artifact": "test/dashboard-atomic-revoke.test.mjs",
+			"test_or_proof": "test/dashboard-atomic-revoke.test.mjs",
+			"property_proven": "lock/cutoff text present",
+			"property_not_proven": "behaviour",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-CONC-005[P1]: source-string only; CR-SESSION-007[P1]: source-string only",
+			"covers": [
+				{
+					"control": "CR-CONC-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "source-string only"
+				},
+				{
+					"control": "CR-SESSION-007",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "source-string only"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": "source-string assertions",
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/dashboard-atomic-revoke.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-ATTRIB",
+			"control_ids": [
+				"CR-API-001",
+				"CR-API-003",
+				"CR-API-004",
+				"CR-API-006",
+				"CR-API-007",
+				"CR-API-009",
+				"CR-INPUT-010",
+				"CR-PROVIDER-001"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/position-attributions-api.test.mjs",
+			"test_or_proof": "test/position-attributions-api.test.mjs",
+			"property_proven": "session-only wallet; strict body; product consistency; provider failure never deletes; public fields",
+			"property_not_proven": "real DB semantics",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-003[P1,P3]: covers a subset of sub-properties; CR-API-001[P3]: covers a subset of sub-properties; CR-API-009[P3]: covers a subset of sub-properties; CR-INPUT-010[P1]: covers a subset of sub-properties; CR-PROVIDER-001[P3,P4]: covers a subset of sub-properties; CR-API-007[P2]: covers a subset of sub-properties; CR-API-004[P1]: one endpoint of several; CR-API-006[P1]: one endpoint",
+			"covers": [
+				{
+					"control": "CR-API-003",
+					"properties": [
+						"P1",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-API-001",
+					"properties": [
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-API-009",
+					"properties": [
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-INPUT-010",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-PROVIDER-001",
+					"properties": [
+						"P3",
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-API-007",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-API-004",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "one endpoint of several"
+				},
+				{
+					"control": "CR-API-006",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "one endpoint"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "fake-db",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/position-attributions-api.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-ATTRIB-SCHEMA-SRC",
+			"control_ids": [
+				"CR-PRIV-001"
+			],
+			"type": "static",
+			"level": "E1",
+			"source": "repository",
+			"artifact": "test/position-attributions-api.test.mjs (42/43)",
+			"test_or_proof": "test/position-attributions-api.test.mjs (42/43)",
+			"property_proven": "migration columns identifiers only",
+			"property_not_proven": "runtime",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-PRIV-001",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": "migration text",
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/position-attributions-api.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false,
+				"test_names": [
+					"^42/43: the migration stores only identifiers"
+				]
+			}
+		},
+		{
+			"id": "EV-L1-DB",
+			"control_ids": [
+				"CR-CONC-003"
+			],
+			"type": "real-system",
+			"level": "E5",
+			"source": "repository",
+			"artifact": "test/l1-attribution-limit-db.test.mjs",
+			"test_or_proof": "test/l1-attribution-limit-db.test.mjs",
+			"property_proven": "59+N -> 60; 0+100 -> 60; per-wallet; idempotent",
+			"property_not_proven": "production scale",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-CONC-003",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"scratch Postgres 17"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "pg-postgrest-adapter",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/l1-attribution-limit-db.test.mjs"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-L5-DB",
+			"control_ids": [
+				"CR-API-001",
+				"CR-CONC-004",
+				"CR-PROVIDER-001"
+			],
+			"type": "real-system",
+			"level": "E5",
+			"source": "repository",
+			"artifact": "test/l5-attribution-cleanup-db.test.mjs",
+			"test_or_proof": "test/l5-attribution-cleanup-db.test.mjs",
+			"property_proven": "wallet-scoped cleanup; compare-and-delete; races",
+			"property_not_proven": "real PostgREST in CI",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-001[P3]: covers a subset of sub-properties; CR-PROVIDER-001[P4]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-CONC-004",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-API-001",
+					"properties": [
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-PROVIDER-001",
+					"properties": [
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"scratch Postgres 17"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "pg-postgrest-adapter",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/l5-attribution-cleanup-db.test.mjs"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-M1-DB",
+			"control_ids": [
+				"CR-CONC-002",
+				"CR-DB-002",
+				"CR-RESOURCE-003",
+				"CR-TELEGRAM-002"
+			],
+			"type": "real-system",
+			"level": "E5",
+			"source": "repository",
+			"artifact": "test/m1-wallet-limit-db.test.mjs",
+			"test_or_proof": "test/m1-wallet-limit-db.test.mjs",
+			"property_proven": "wallet limit and single link under concurrency; pagination; grants of 6 functions",
+			"property_not_proven": "grants of later functions",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-003[P1]: covers a subset of sub-properties; CR-DB-002[P1]: 6 of 8 functions; CR-TELEGRAM-002[P1]: DB side only, not signature",
+			"covers": [
+				{
+					"control": "CR-CONC-002",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-RESOURCE-003",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-DB-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "6 of 8 functions"
+				},
+				{
+					"control": "CR-TELEGRAM-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "DB side only, not signature"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"scratch Postgres 17"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "raw-pg",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/m1-wallet-limit-db.test.mjs"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-M1",
+			"control_ids": [
+				"CR-API-002",
+				"CR-RESOURCE-001",
+				"CR-RESOURCE-003"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/m1-link-limits.test.mjs, test/m1-alert-run-budget.test.mjs",
+			"test_or_proof": "test/m1-link-limits.test.mjs, test/m1-alert-run-budget.test.mjs",
+			"property_proven": "link-code limits before write; cron budgets/paging/cursor/isolation; cron secret",
+			"property_not_proven": "real cron",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-002[P1]: cron handler path only; CR-RESOURCE-001[P2]: link-code creation limits, not verify limits",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-003",
+					"properties": [
+						"P1",
+						"P2",
+						"P3",
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-API-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "cron handler path only"
+				},
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P2"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "link-code creation limits, not verify limits"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "fake-store",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/m1-alert-run-budget.test.mjs",
+					"test/m1-link-limits.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-M2",
+			"control_ids": [
+				"CR-RESOURCE-001",
+				"CR-RESOURCE-004"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/m2-dashboard-read-budget.test.mjs",
+			"test_or_proof": "test/m2-dashboard-read-budget.test.mjs",
+			"property_proven": "read budgets, cache, coalescing",
+			"property_not_proven": "provider latency",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P4]: dashboard reads only",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-004",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P4"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "dashboard reads only"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "loadHandler-deps",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/m2-dashboard-read-budget.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-RL",
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"type": "static",
+			"level": "E2",
+			"source": "repository",
+			"artifact": "test/dashboard-global-budget.test.mjs, test/dashboard-wallet-rate-limit.test.mjs, test/link-code-rate-limit.test.mjs",
+			"test_or_proof": "test/dashboard-global-budget.test.mjs, test/dashboard-wallet-rate-limit.test.mjs, test/link-code-rate-limit.test.mjs",
+			"property_proven": "limits before expensive work (partly source order)",
+			"property_not_proven": "limiter atomicity",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P1,P2,P3]: ordering partly via source indices",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "ordering partly via source indices"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": "source-index ordering",
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/dashboard-global-budget.test.mjs",
+					"test/dashboard-wallet-rate-limit.test.mjs",
+					"test/link-code-rate-limit.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-L2",
+			"control_ids": [
+				"CR-API-009",
+				"CR-DB-001",
+				"CR-TELEGRAM-002"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/l2-telegram-handoff-removed.test.mjs",
+			"test_or_proof": "test/l2-telegram-handoff-removed.test.mjs",
+			"property_proven": "both verify endpoints bind nothing without valid signature; RPC allowlist",
+			"property_not_proven": "DB state (migration scans E1)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-009[P2]: covers a subset of sub-properties; CR-DB-001[P1,P2,P3]: migration text scan",
+			"covers": [
+				{
+					"control": "CR-TELEGRAM-002",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-API-009",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-DB-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "migration text scan"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "loadHandler-deps",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/l2-telegram-handoff-removed.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-L3",
+			"control_ids": [
+				"CR-API-001",
+				"CR-INPUT-010",
+				"CR-TELEGRAM-003"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/l3-snooze-authorization.test.mjs",
+			"test_or_proof": "test/l3-snooze-authorization.test.mjs",
+			"property_proven": "callback_data never authority; malformed rejected",
+			"property_not_proven": "real Telegram",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-001[P4]: covers a subset of sub-properties; CR-INPUT-010[P2]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-TELEGRAM-003",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-API-001",
+					"properties": [
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-INPUT-010",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "fake-postgrest-http",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/l3-snooze-authorization.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-TG",
+			"control_ids": [
+				"CR-API-002",
+				"CR-INPUT-010",
+				"CR-PROVIDER-003",
+				"CR-TELEGRAM-001",
+				"CR-TELEGRAM-004"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/telegram-private-only.test.mjs, test/telegram-stale-authority.test.mjs, test/link-row-kind.test.mjs, test/telegram-reconnect.test.mjs",
+			"test_or_proof": "test/telegram-private-only.test.mjs, test/telegram-stale-authority.test.mjs, test/link-row-kind.test.mjs, test/telegram-reconnect.test.mjs",
+			"property_proven": "webhook secret; private only; dedup; link row kinds; stale Safe authority",
+			"property_not_proven": "Telegram platform",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-002[P2,P3]: covers a subset of sub-properties; CR-INPUT-010[P3]: covers a subset of sub-properties; CR-PROVIDER-003[P3]: bot path only",
+			"covers": [
+				{
+					"control": "CR-TELEGRAM-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-TELEGRAM-004",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-API-002",
+					"properties": [
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-INPUT-010",
+					"properties": [
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-PROVIDER-003",
+					"properties": [
+						"P3"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "bot path only"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "fetch-stub",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/link-row-kind.test.mjs",
+					"test/telegram-private-only.test.mjs",
+					"test/telegram-reconnect.test.mjs",
+					"test/telegram-stale-authority.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-TG-ISO-SRC",
+			"control_ids": [
+				"CR-API-007"
+			],
+			"type": "static",
+			"level": "E1",
+			"source": "repository",
+			"artifact": "test/telegram-wallet-isolation.test.mjs",
+			"test_or_proof": "test/telegram-wallet-isolation.test.mjs",
+			"property_proven": "source counts/strings",
+			"property_not_proven": "behaviour",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-007[P1]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-API-007",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": "source-string",
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/telegram-wallet-isolation.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-NEXUS",
+			"control_ids": [
+				"CR-DOC-001",
+				"CR-DOC-002",
+				"CR-DOC-003",
+				"CR-DOC-004",
+				"CR-INPUT-002",
+				"CR-PRIV-003",
+				"CR-PROVIDER-002",
+				"CR-PROVIDER-003"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/nexus-documents.test.mjs",
+			"test_or_proof": "test/nexus-documents.test.mjs",
+			"property_proven": "URL allowlist, no redirects, bounds, parser, cache, data channel, JSON frame",
+			"property_not_proven": "real IPFS",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PROVIDER-003[P1,P2]: covers a subset of sub-properties; CR-INPUT-002[P2]: covers a subset of sub-properties; CR-PRIV-003[P2]: covers a subset of sub-properties; CR-PROVIDER-002[P1]: document fetch only",
+			"covers": [
+				{
+					"control": "CR-DOC-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-DOC-002",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-DOC-003",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-DOC-004",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-PROVIDER-003",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-INPUT-002",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-PRIV-003",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-PROVIDER-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "document fetch only"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "fetch-stub",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/nexus-documents.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-ORIGIN",
+			"control_ids": [
+				"CR-API-005",
+				"CR-BROWSER-002"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/same-origin-boundary.test.mjs, test/preview-origin-allowlist.test.mjs, test/api-hardening.test.mjs",
+			"test_or_proof": "test/same-origin-boundary.test.mjs, test/preview-origin-allowlist.test.mjs, test/api-hardening.test.mjs",
+			"property_proven": "origin checks; JSON/size limits",
+			"property_not_proven": "browser behaviour",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-BROWSER-002[P1,P2]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-API-005",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-BROWSER-002",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "loadHandler-deps",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/api-hardening.test.mjs",
+					"test/preview-origin-allowlist.test.mjs",
+					"test/same-origin-boundary.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-CSP-CFG",
+			"control_ids": [
+				"CR-BROWSER-004"
+			],
+			"type": "config",
+			"level": "E1",
+			"source": "repository",
+			"artifact": "test/csp-enforced.test.mjs",
+			"test_or_proof": "test/csp-enforced.test.mjs",
+			"property_proven": "vercel.json CSP text",
+			"property_not_proven": "served headers",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-BROWSER-004[P3]: config text, not served header",
+			"covers": [
+				{
+					"control": "CR-BROWSER-004",
+					"properties": [
+						"P3"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "config text, not served header"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": "config text",
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/csp-enforced.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-FRONTEND-SCAN",
+			"control_ids": [
+				"CR-BROWSER-004"
+			],
+			"type": "static",
+			"level": "E1",
+			"source": "repository",
+			"artifact": "scripts/check-frontend.mjs, test/frontend-markup.test.mjs",
+			"test_or_proof": "scripts/check-frontend.mjs, test/frontend-markup.test.mjs",
+			"property_proven": "no HTML sinks in web/src",
+			"property_not_proven": "runtime DOM",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-BROWSER-004[P1]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-BROWSER-004",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": "static scan",
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/frontend-markup.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-PRIV",
+			"control_ids": [
+				"CR-PRIV-002",
+				"CR-PRIV-003"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/purge.test.mjs, test/analytics.test.mjs",
+			"test_or_proof": "test/purge.test.mjs, test/analytics.test.mjs",
+			"property_proven": "purge per policy; analytics redaction",
+			"property_not_proven": "provider retention",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PRIV-003[P1]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-PRIV-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-PRIV-003",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "fake-store",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/analytics.test.mjs",
+					"test/purge.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-SECEVENTS",
+			"control_ids": [
+				"CR-LOG-002",
+				"CR-LOG-005",
+				"CR-PRIV-005"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/security-events.test.mjs",
+			"test_or_proof": "test/security-events.test.mjs",
+			"property_proven": "events recorded, pseudonymized, flood-limited",
+			"property_not_proven": "every call site",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PRIV-005[P1]: covers a subset of sub-properties; CR-LOG-002[P1]: mechanism only; CR-LOG-005[P1]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-PRIV-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-LOG-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "mechanism only"
+				},
+				{
+					"control": "CR-LOG-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "fake-store",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/security-events.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-QUERY",
+			"control_ids": [
+				"CR-API-004"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/request-query.test.mjs",
+			"test_or_proof": "test/request-query.test.mjs",
+			"property_proven": "duplicate/unexpected keys rejected by parser",
+			"property_not_proven": "endpoint usage",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-004[P2]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-API-004",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/request-query.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-COVERCHAIN",
+			"control_ids": [
+				"CR-PROVIDER-001"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/cover-chain.test.mjs",
+			"test_or_proof": "test/cover-chain.test.mjs",
+			"property_proven": "cover index/chain strict validation",
+			"property_not_proven": "other providers",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PROVIDER-001[P1]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-PROVIDER-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/cover-chain.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-RPC-RETRIES",
+			"control_ids": [
+				"CR-PROVIDER-002"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/rpc-retries.test.mjs",
+			"test_or_proof": "test/rpc-retries.test.mjs",
+			"property_proven": "bounded RPC retries/timeouts",
+			"property_not_proven": "all outbound calls",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PROVIDER-002[P1,P2]: RPC clients only",
+			"covers": [
+				{
+					"control": "CR-PROVIDER-002",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "RPC clients only"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/rpc-retries.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-CI-GUARD",
+			"control_ids": [
+				"CR-VERIFY-001",
+				"CR-VERIFY-002"
+			],
+			"type": "behavioral",
+			"level": "E2",
+			"source": "repository",
+			"artifact": "scripts/run-tests-guarded.mjs + CI logs",
+			"test_or_proof": "scripts/run-tests-guarded.mjs + CI logs",
+			"property_proven": "observed cancelled=0, todo=0, allowed skips",
+			"property_not_proven": "guard failing on cancel/skip/todo (no committed self-test)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-VERIFY-001[P1]: no committed guard self-test; CR-VERIFY-002[P1,P2,P3]: no committed guard self-test",
+			"covers": [
+				{
+					"control": "CR-VERIFY-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "no committed guard self-test"
+				},
+				{
+					"control": "CR-VERIFY-002",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "no committed guard self-test"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"no network"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "static",
+				"note": "not executed by security:verify; level stays as recorded"
+			}
+		},
+		{
+			"id": "EV-CI-SIG",
+			"control_ids": [
+				"CR-SUPPLY-004"
+			],
+			"type": "manual-production",
+			"level": "E5",
+			"source": "GitHub CI",
+			"artifact": "CI log npm audit signatures",
+			"test_or_proof": "CI log npm audit signatures",
+			"property_proven": "signatures/attestations verified in CI",
+			"property_not_proven": "deployed artifact provenance",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-SUPPLY-004",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": false,
+			"environment_requirements": [
+				"internet",
+				"production"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": "2026-10-16",
+			"fixture_group": null,
+			"execution": {
+				"runner": "manual",
+				"recorded": "2026-10-16"
+			}
+		},
+		{
+			"id": "EV-CFG",
+			"control_ids": [
+				"CR-BROWSER-010",
+				"CR-SUPPLY-001",
+				"CR-SUPPLY-002",
+				"CR-SUPPLY-003",
+				"CR-SUPPLY-009"
+			],
+			"type": "manual-inspection",
+			"level": "E1",
+			"source": "repository",
+			"artifact": "vercel.json, .github/workflows/ci.yml, package.json, package-lock.json",
+			"test_or_proof": "vercel.json, .github/workflows/ci.yml, package.json, package-lock.json",
+			"property_proven": "npm ci --ignore-scripts, SHA pins, git deploys disabled, redirects own-host, no permissions block",
+			"property_not_proven": "runtime enforcement",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-SUPPLY-003[P2]: ci.yml has no permissions block",
+			"covers": [
+				{
+					"control": "CR-SUPPLY-001",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-SUPPLY-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-SUPPLY-009",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-BROWSER-010",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-SUPPLY-003",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "ci.yml has no permissions block"
+				}
+			],
+			"reproducible": false,
+			"environment_requirements": [
+				"manual config inspection"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": "2026-10-16",
+			"fixture_group": null,
+			"execution": {
+				"runner": "manual",
+				"recorded": "2026-10-16"
+			}
+		},
+		{
+			"id": "EV-GH-SETTINGS",
+			"control_ids": [
+				"CR-SUPPLY-003"
+			],
+			"type": "manual-production",
+			"level": "E5",
+			"source": "GitHub API",
+			"artifact": "gh api repos/0xthaner/raccoon-agent/actions/permissions/workflow",
+			"test_or_proof": "gh api repos/0xthaner/raccoon-agent/actions/permissions/workflow",
+			"property_proven": "default workflow token permissions = read",
+			"property_not_proven": "future setting changes",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-SUPPLY-003[P1]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-SUPPLY-003",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": false,
+			"environment_requirements": [
+				"internet",
+				"production"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": "2026-10-16",
+			"fixture_group": null,
+			"execution": {
+				"runner": "manual",
+				"recorded": "2026-10-16"
+			}
+		},
+		{
+			"id": "EV-PROD-HEADERS",
+			"control_ids": [
+				"CR-BROWSER-001",
+				"CR-BROWSER-003",
+				"CR-BROWSER-004",
+				"CR-BROWSER-006",
+				"CR-BROWSER-008",
+				"CR-PRIV-009",
+				"CR-SESSION-005",
+				"CR-TLS-003"
+			],
+			"type": "manual-production",
+			"level": "E5",
+			"source": "production",
+			"artifact": "curl / and /api/dashboard, OPTIONS preflight",
+			"test_or_proof": "curl / and /api/dashboard, OPTIONS preflight",
+			"property_proven": "HSTS, CSP, nosniff, referrer, COOP, CORP, no ACAO, API no-store",
+			"property_not_proven": "automation",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-BROWSER-004[P3]: covers a subset of sub-properties; CR-BROWSER-008[P1]: covers a subset of sub-properties; CR-PRIV-009[P1]: /api/dashboard only; CR-SESSION-005[P2]: live Bearer check on two endpoints; CR-TLS-003[P2]: HSTS max-age=31536000; includeSubDomains (no preload; hstspreload.org status unknown, 2026-10-16)",
+			"covers": [
+				{
+					"control": "CR-BROWSER-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-BROWSER-003",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-BROWSER-006",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-BROWSER-004",
+					"properties": [
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-BROWSER-008",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-PRIV-009",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "/api/dashboard only"
+				},
+				{
+					"control": "CR-SESSION-005",
+					"properties": [
+						"P2"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "live Bearer check on two endpoints"
+				},
+				{
+					"control": "CR-TLS-003",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "HSTS max-age=31536000; includeSubDomains (no preload; hstspreload.org status unknown, 2026-10-16)"
+				}
+			],
+			"reproducible": false,
+			"environment_requirements": [
+				"internet",
+				"production"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": "2026-10-16",
+			"fixture_group": null,
+			"execution": {
+				"runner": "manual",
+				"recorded": "2026-10-16"
+			}
+		},
+		{
+			"id": "EV-PROD-TLS",
+			"control_ids": [
+				"CR-TLS-001",
+				"CR-TLS-002",
+				"CR-TLS-003"
+			],
+			"type": "manual-production",
+			"level": "E5",
+			"source": "production",
+			"artifact": "curl --tlsv1.0..1.3, openssl s_client, http:// probes",
+			"test_or_proof": "curl --tlsv1.0..1.3, openssl s_client, http:// probes",
+			"property_proven": "TLS1.0/1.1 refused; 1.2/1.3 ok; Let's Encrypt cert; HTTP 308 to HTTPS incl. /api",
+			"property_not_proven": "cipher suite set",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-TLS-001[P1]: covers a subset of sub-properties; CR-TLS-003[P1]: http://coverraccoon.com/api/config -> 308 https (transparent redirect)",
+			"covers": [
+				{
+					"control": "CR-TLS-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-TLS-002",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-TLS-003",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "http://coverraccoon.com/api/config -> 308 https (transparent redirect)"
+				}
+			],
+			"reproducible": false,
+			"environment_requirements": [
+				"internet",
+				"production"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": "2026-10-16",
+			"fixture_group": null,
+			"execution": {
+				"runner": "manual",
+				"recorded": "2026-10-16"
+			}
+		},
+		{
+			"id": "EV-PROD-PROBES",
+			"control_ids": [
+				"CR-CONFIG-004",
+				"CR-CONFIG-005",
+				"CR-CONFIG-006",
+				"CR-CONFIG-008",
+				"CR-SUPPLY-008"
+			],
+			"type": "manual-production",
+			"level": "E5",
+			"source": "production",
+			"artifact": "GET /assets/ /api/ /src/ /test/ /.git/config /supabase/migrations/ /package.json /.env; TRACE",
+			"test_or_proof": "GET /assets/ /api/ /src/ /test/ /.git/config /supabase/migrations/ /package.json /.env; TRACE",
+			"property_proven": "no listing (assets returns a bundled file), sources/tests/config not served, TRACE 405",
+			"property_not_proven": "all paths",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-CONFIG-008[P1]: covers a subset of sub-properties; CR-SUPPLY-008[P2]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-CONFIG-004",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-CONFIG-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-CONFIG-006",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-CONFIG-008",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-SUPPLY-008",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": false,
+			"environment_requirements": [
+				"internet",
+				"production"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": "2026-10-16",
+			"fixture_group": null,
+			"execution": {
+				"runner": "manual",
+				"recorded": "2026-10-16"
+			}
+		},
+		{
+			"id": "EV-PROD-DB",
+			"control_ids": [
+				"CR-DB-001",
+				"CR-DB-002",
+				"CR-DB-003",
+				"CR-LOG-008"
+			],
+			"type": "manual-production",
+			"level": "E5",
+			"source": "production",
+			"artifact": "read-only SQL on production",
+			"test_or_proof": "read-only SQL on production",
+			"property_proven": "RLS all tables; no API-role privileges; ACLs; no CREATE; 6 SECURITY DEFINER with search_path=public",
+			"property_not_proven": "automation",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-LOG-008[P1]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-DB-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-DB-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-DB-003",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "search_path=public without pg_temp on 6 functions"
+				},
+				{
+					"control": "CR-LOG-008",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": false,
+			"environment_requirements": [
+				"internet",
+				"production"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": "2026-10-16",
+			"fixture_group": null,
+			"execution": {
+				"runner": "manual",
+				"recorded": "2026-10-16"
+			}
+		},
+		{
+			"id": "EV-PROD-MIGRATIONS",
+			"control_ids": [
+				"CR-DB-004"
+			],
+			"type": "manual-production",
+			"level": "E5",
+			"source": "production",
+			"artifact": "supabase migration list --linked",
+			"test_or_proof": "supabase migration list --linked",
+			"property_proven": "15/15 aligned",
+			"property_not_proven": "automation",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-DB-004",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": false,
+			"environment_requirements": [
+				"internet",
+				"production"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": "2026-10-16",
+			"fixture_group": null,
+			"execution": {
+				"runner": "manual",
+				"recorded": "2026-10-16"
+			}
+		},
+		{
+			"id": "EV-PROD-ALIGN",
+			"control_ids": [
+				"CR-CONFIG-008",
+				"CR-VERIFY-007"
+			],
+			"type": "manual-production",
+			"level": "E5",
+			"source": "production",
+			"artifact": "per-deploy sha1 comparison (last 62db69e)",
+			"test_or_proof": "per-deploy sha1 comparison (last 62db69e)",
+			"property_proven": "deployed = commit",
+			"property_not_proven": "not re-verifiable 2026-10-16 after rollout (CLI token invalid)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-CONFIG-008[P2]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-VERIFY-007",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-CONFIG-008",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": false,
+			"environment_requirements": [
+				"internet",
+				"production"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": "2026-10-16",
+			"fixture_group": null,
+			"execution": {
+				"runner": "manual",
+				"recorded": "2026-10-16"
+			}
+		},
+		{
+			"id": "EV-PROD-ALIASES",
+			"control_ids": [
+				"CR-BROWSER-007"
+			],
+			"type": "manual-production",
+			"level": "E5",
+			"source": "production",
+			"artifact": "vercel inspect aliases (2026-10-16)",
+			"test_or_proof": "vercel inspect aliases (2026-10-16)",
+			"property_proven": "all hostnames alias the single app",
+			"property_not_proven": "future aliases",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-BROWSER-007",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": false,
+			"environment_requirements": [
+				"internet",
+				"production"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": "2026-10-16",
+			"fixture_group": null,
+			"execution": {
+				"runner": "manual",
+				"recorded": "2026-10-16"
+			}
+		},
+		{
+			"id": "EV-DOC-INVENTORY",
+			"control_ids": [
+				"CR-API-012",
+				"CR-AUTH-009",
+				"CR-AUTH-011",
+				"CR-CONFIG-001",
+				"CR-CRYPTO-001",
+				"CR-CRYPTO-002",
+				"CR-CRYPTO-004",
+				"CR-DOC-005",
+				"CR-INPUT-009",
+				"CR-LOG-001",
+				"CR-PRIV-006",
+				"CR-RESOURCE-005",
+				"CR-RESOURCE-006",
+				"CR-SESSION-006",
+				"CR-SESSION-009",
+				"CR-SUPPLY-005"
+			],
+			"type": "document-inspection",
+			"level": "E1",
+			"source": "repository",
+			"artifact": "README.md, SECURITY.md, docs/SECURITY-INCIDENT-RUNBOOK.md, web/datenschutz.html, CLAUDE.md",
+			"test_or_proof": "README.md, SECURITY.md, docs/SECURITY-INCIDENT-RUNBOOK.md, web/datenschutz.html, CLAUDE.md",
+			"property_proven": "which security topics are documented",
+			"property_not_proven": "code behaviour",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-AUTH-009[P1]: no pathway document; CR-SESSION-006[P3]: no lifetime decision document; CR-SUPPLY-005[P1]: no remediation timeframes; CR-CRYPTO-001[P1]: runbook covers rotation/revocation per secret, no lifecycle policy; CR-CONFIG-001[P1]: privacy policy names providers except Infura; CR-PRIV-006[P1,P2]: privacy policy lists data categories and retention, no protection levels; CR-LOG-001[P1]: privacy policy mentions event logs and retention; CR-CRYPTO-004[P1]: runbook rotates DASHBOARD_SESSION_SECRET; no algorithm replacement path",
+			"covers": [
+				{
+					"control": "CR-AUTH-009",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "no pathway document"
+				},
+				{
+					"control": "CR-AUTH-011",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "no anti-automation document"
+				},
+				{
+					"control": "CR-SESSION-009",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "no parallel-session policy"
+				},
+				{
+					"control": "CR-SESSION-006",
+					"properties": [
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "no lifetime decision document"
+				},
+				{
+					"control": "CR-API-012",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "no authorization rule document"
+				},
+				{
+					"control": "CR-RESOURCE-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "limits only in code"
+				},
+				{
+					"control": "CR-RESOURCE-006",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "no resource document"
+				},
+				{
+					"control": "CR-DOC-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "limits only in code"
+				},
+				{
+					"control": "CR-INPUT-009",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "no validation rule document"
+				},
+				{
+					"control": "CR-CRYPTO-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "no crypto inventory"
+				},
+				{
+					"control": "CR-SUPPLY-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "no remediation timeframes"
+				},
+				{
+					"control": "CR-CRYPTO-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "runbook covers rotation/revocation per secret, no lifecycle policy"
+				},
+				{
+					"control": "CR-CONFIG-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "privacy policy names providers except Infura"
+				},
+				{
+					"control": "CR-PRIV-006",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "privacy policy lists data categories and retention, no protection levels"
+				},
+				{
+					"control": "CR-LOG-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "privacy policy mentions event logs and retention"
+				},
+				{
+					"control": "CR-CRYPTO-004",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "runbook rotates DASHBOARD_SESSION_SECRET; no algorithm replacement path"
+				}
+			],
+			"reproducible": false,
+			"environment_requirements": [
+				"manual inspection"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": "2026-10-16",
+			"fixture_group": null,
+			"execution": {
+				"runner": "manual",
+				"recorded": "2026-10-16"
+			}
+		},
+		{
+			"id": "EV-INSPECT-DEPLOY",
+			"control_ids": [
+				"CR-SUPPLY-007"
+			],
+			"type": "manual-inspection",
+			"level": "E1",
+			"source": "repository",
+			"artifact": "deploy procedure (vercel CLI upload from workstation), .github/workflows/ci.yml",
+			"test_or_proof": "deploy procedure (vercel CLI upload from workstation), .github/workflows/ci.yml",
+			"property_proven": "how production artifacts are produced",
+			"property_not_proven": "future pipeline",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-SUPPLY-007",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "deploys are CLI uploads from a workstation; no provenance is generated (SLSA Build L0)"
+				}
+			],
+			"reproducible": false,
+			"environment_requirements": [
+				"manual inspection"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": "2026-10-16",
+			"fixture_group": null,
+			"execution": {
+				"runner": "manual",
+				"recorded": "2026-10-16"
+			}
+		},
+		{
+			"id": "EV-INSPECT-CRYPTO-PROTOCOL",
+			"control_ids": [
+				"CR-CRYPTO-008",
+				"CR-CRYPTO-009"
+			],
+			"type": "manual-inspection",
+			"level": "E1",
+			"source": "repository",
+			"artifact": "src/siwe-auth.mjs:357, src/contract-signature.mjs:219, node_modules/viem/_esm/utils/signature/{verifyMessage,recoverPublicKey,hashMessage}.js, package-lock.json",
+			"test_or_proof": "src/siwe-auth.mjs:357, src/contract-signature.mjs:219, node_modules/viem/_esm/utils/signature/{verifyMessage,recoverPublicKey,hashMessage}.js, package-lock.json",
+			"property_proven": "EOA verification = viem verifyMessage (recoverMessageAddress + isAddressEqual) over @noble/curves 1.9.1 secp256k1; digest = keccak256(ERC-191 prefix + message) via @noble/hashes 1.8.0; EOA signature format /^0x[0-9a-fA-F]{130}$/ checked first; field checks precede signature checks; Keccak only via hashMessage/verifyMessage; no custom curve or hash code",
+			"property_not_proven": "runtime behaviour against malformed signatures (CR-AUTH-002 E4 still missing); whether low-s is enforced at recovery (not determined; a malleated signature recovers the same signer and challenges are single-use)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-CRYPTO-008[P1]: ECDSA over secp256k1 is not in ASVS 5.0 Appendix C (approved ECDSA curves: P-256, P-384, P-521); CR-CRYPTO-008[P2,P3,P4]: covers a subset of sub-properties; CR-CRYPTO-009[P1]: Keccak-256 (pre-FIPS-202 padding) is not in ASVS 5.0 Appendix C (SHA3-256 is); CR-CRYPTO-009[P2,P3,P4]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-CRYPTO-008",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "ECDSA over secp256k1 is not in ASVS 5.0 Appendix C (approved ECDSA curves: P-256, P-384, P-521)"
+				},
+				{
+					"control": "CR-CRYPTO-008",
+					"properties": [
+						"P2",
+						"P3",
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-CRYPTO-009",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "Keccak-256 (pre-FIPS-202 padding) is not in ASVS 5.0 Appendix C (SHA3-256 is)"
+				},
+				{
+					"control": "CR-CRYPTO-009",
+					"properties": [
+						"P2",
+						"P3",
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": false,
+			"environment_requirements": [
+				"manual inspection"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": "2026-10-16",
+			"fixture_group": null,
+			"execution": {
+				"runner": "manual",
+				"recorded": "2026-10-16"
+			}
+		},
+		{
+			"id": "EV-INSPECT-ARCH",
+			"control_ids": [
+				"CR-API-008",
+				"CR-API-010",
+				"CR-AUTH-010",
+				"CR-AUTH-012",
+				"CR-BROWSER-009",
+				"CR-CONFIG-003",
+				"CR-CRYPTO-003",
+				"CR-CRYPTO-005",
+				"CR-CRYPTO-006",
+				"CR-CRYPTO-007",
+				"CR-PRIV-004",
+				"CR-SESSION-006",
+				"CR-SESSION-008",
+				"CR-SESSION-010",
+				"CR-SUPPLY-006"
+			],
+			"type": "manual-inspection",
+			"level": "E1",
+			"source": "repository",
+			"artifact": "src/dashboard-auth.mjs, api/dashboard.mjs, web/src/main.js, src/http-security.mjs",
+			"test_or_proof": "src/dashboard-auth.mjs, api/dashboard.mjs, web/src/main.js, src/http-security.mjs",
+			"property_proven": "architecture facts",
+			"property_not_proven": "runtime",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-SESSION-006[P2]: no inactivity timeout; CR-SESSION-008[P2]: self-contained tokens; no session listing; CR-SUPPLY-006[P1]: package-lock.json lists all components with integrity, but no SBOM format; CR-SUPPLY-006[P2]: registry signatures verified in CI; no maintained-source policy",
+			"covers": [
+				{
+					"control": "CR-AUTH-010",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "wallet signature is the only factor"
+				},
+				{
+					"control": "CR-SESSION-006",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "no inactivity timeout"
+				},
+				{
+					"control": "CR-SESSION-008",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "self-contained tokens; no session listing"
+				},
+				{
+					"control": "CR-API-008",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "GET /api/position-attributions deletes provably stale rows"
+				},
+				{
+					"control": "CR-PRIV-004",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "/?access=<code> and /link?code=<code>"
+				},
+				{
+					"control": "CR-CONFIG-003",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "?debug=wallet enables a debug panel in production"
+				},
+				{
+					"control": "CR-AUTH-012",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-SESSION-010",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-API-010",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-BROWSER-009",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-CRYPTO-003",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-CRYPTO-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-CRYPTO-006",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-CRYPTO-007",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-SUPPLY-006",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "package-lock.json lists all components with integrity, but no SBOM format"
+				},
+				{
+					"control": "CR-SUPPLY-006",
+					"properties": [
+						"P2"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "registry signatures verified in CI; no maintained-source policy"
+				}
+			],
+			"reproducible": false,
+			"environment_requirements": [
+				"manual inspection"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_RUN",
+			"weakness": null,
+			"recorded": "2026-10-16",
+			"fixture_group": null,
+			"execution": {
+				"runner": "manual",
+				"recorded": "2026-10-16"
+			}
+		},
+		{
+			"id": "EV-MUT-NEXUS-DOCUMENTS",
+			"control_ids": [
+				"CR-DOC-001",
+				"CR-DOC-002",
+				"CR-PROVIDER-003"
+			],
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "scratchpad mutation harness for nexus-documents (2026-10-16)",
+			"test_or_proof": "scratchpad mutation harness for nexus-documents (2026-10-16)",
+			"property_proven": "tests fail for the intended reason on known-bad variants",
+			"property_not_proven": "NOT reproducible from the repository",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-DOC-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-DOC-002",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-PROVIDER-003",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": false,
+			"environment_requirements": [
+				"scratchpad only"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "manual",
+				"recorded": null
+			}
+		},
+		{
+			"id": "EV-KB-L2",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 9 case(s)",
+			"property_proven": "Telegram binding only through the signed link flow: signature bypasses and alternative binding RPCs are caught (L2)",
+			"property_not_proven": "static-only kills (export/source scans) do not count",
+			"covers": [
+				{
+					"control": "CR-CONC-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-CONC-002-P1-L2X15"
+				},
+				{
+					"control": "CR-TELEGRAM-002",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-TELEGRAM-002-P1-L2X4, MUT-CR-TELEGRAM-002-P1-L2X5, MUT-CR-TELEGRAM-002-P1-L2X6, MUT-CR-TELEGRAM-002-P2-L2X1, MUT-CR-TELEGRAM-002-P2-L2X2, MUT-CR-TELEGRAM-002-P2-L2X3, MUT-CR-TELEGRAM-002-P2-L2X7, MUT-CR-TELEGRAM-002-P2-L2X8"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node",
+				"postgres"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-CONC-002-P1-L2X15",
+					"MUT-CR-TELEGRAM-002-P1-L2X4",
+					"MUT-CR-TELEGRAM-002-P1-L2X5",
+					"MUT-CR-TELEGRAM-002-P1-L2X6",
+					"MUT-CR-TELEGRAM-002-P2-L2X1",
+					"MUT-CR-TELEGRAM-002-P2-L2X2",
+					"MUT-CR-TELEGRAM-002-P2-L2X3",
+					"MUT-CR-TELEGRAM-002-P2-L2X7",
+					"MUT-CR-TELEGRAM-002-P2-L2X8"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-CONC-002",
+				"CR-TELEGRAM-002"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-CONC-002[P1]: mutation cases: MUT-CR-CONC-002-P1-L2X15"
+		},
+		{
+			"id": "EV-KB-L3",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 10 case(s)",
+			"property_proven": "callback_data never authorizes; malformed callbacks rejected; snooze consistency (L3)",
+			"property_not_proven": "real Telegram behaviour",
+			"covers": [
+				{
+					"control": "CR-API-001",
+					"properties": [
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-API-001-P4-L3Y4"
+				},
+				{
+					"control": "CR-INPUT-010",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-INPUT-010-P2-L3Y3, MUT-CR-INPUT-010-P2-L3Y9"
+				},
+				{
+					"control": "CR-TELEGRAM-003",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-TELEGRAM-003-P1-L3Y1, MUT-CR-TELEGRAM-003-P1-L3Y2, MUT-CR-TELEGRAM-003-P1-L3Y5, MUT-CR-TELEGRAM-003-P1-L3Y6, MUT-CR-TELEGRAM-003-P1-L3Y8, MUT-CR-TELEGRAM-003-P2-L3Y10, MUT-CR-TELEGRAM-003-P2-L3Y7"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-API-001-P4-L3Y4",
+					"MUT-CR-INPUT-010-P2-L3Y3",
+					"MUT-CR-INPUT-010-P2-L3Y9",
+					"MUT-CR-TELEGRAM-003-P1-L3Y1",
+					"MUT-CR-TELEGRAM-003-P1-L3Y2",
+					"MUT-CR-TELEGRAM-003-P1-L3Y5",
+					"MUT-CR-TELEGRAM-003-P1-L3Y6",
+					"MUT-CR-TELEGRAM-003-P1-L3Y8",
+					"MUT-CR-TELEGRAM-003-P2-L3Y10",
+					"MUT-CR-TELEGRAM-003-P2-L3Y7"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-API-001",
+				"CR-INPUT-010",
+				"CR-TELEGRAM-003"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-001[P4]: mutation cases: MUT-CR-API-001-P4-L3Y4; CR-INPUT-010[P2]: mutation cases: MUT-CR-INPUT-010-P2-L3Y3, MUT-CR-INPUT-010-P2-L3Y9"
+		},
+		{
+			"id": "EV-KB-L4",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 7 case(s)",
+			"property_proven": "classification never authorizes; signed exp and stored expiry enforced; unsigned tokens refused; getCode strictness (L4)",
+			"property_not_proven": "production providers",
+			"covers": [
+				{
+					"control": "CR-AUTH-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-AUTH-005-P1-L4A, MUT-CR-AUTH-005-P1-L4B, MUT-CR-AUTH-005-P1-L4C"
+				},
+				{
+					"control": "CR-PROVIDER-001",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-PROVIDER-001-P2-L4J"
+				},
+				{
+					"control": "CR-SESSION-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-SESSION-001-P1-L4I"
+				},
+				{
+					"control": "CR-SESSION-002",
+					"properties": [
+						"P1",
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-SESSION-002-P1-L4D, MUT-CR-SESSION-002-P4-L4E"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node",
+				"postgres"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-AUTH-005-P1-L4A",
+					"MUT-CR-AUTH-005-P1-L4B",
+					"MUT-CR-AUTH-005-P1-L4C",
+					"MUT-CR-PROVIDER-001-P2-L4J",
+					"MUT-CR-SESSION-001-P1-L4I",
+					"MUT-CR-SESSION-002-P1-L4D",
+					"MUT-CR-SESSION-002-P4-L4E"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-AUTH-005",
+				"CR-PROVIDER-001",
+				"CR-SESSION-001",
+				"CR-SESSION-002"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-AUTH-005[P1]: mutation cases: MUT-CR-AUTH-005-P1-L4A, MUT-CR-AUTH-005-P1-L4B, MUT-CR-AUTH-005-P1-L4C; CR-PROVIDER-001[P2]: mutation cases: MUT-CR-PROVIDER-001-P2-L4J; CR-SESSION-001[P1]: mutation cases: MUT-CR-SESSION-001-P1-L4I; CR-SESSION-002[P1,P4]: mutation cases: MUT-CR-SESSION-002-P1-L4D, MUT-CR-SESSION-002-P4-L4E"
+		},
+		{
+			"id": "EV-KB-H2",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 9 case(s)",
+			"property_proven": "challenge and access-code single use under real concurrency; stored expiry enforced (H2)",
+			"property_not_proven": "PostgREST in production",
+			"covers": [
+				{
+					"control": "CR-CONC-001",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-CONC-001-P1-H2A, MUT-CR-CONC-001-P1-H2B, MUT-CR-CONC-001-P1-H2C, MUT-CR-CONC-001-P1-H2D, MUT-CR-CONC-001-P1-H2E, MUT-CR-CONC-001-P1-H2F, MUT-CR-CONC-001-P2-H2I, MUT-CR-CONC-001-P2-H2J"
+				},
+				{
+					"control": "CR-SESSION-002",
+					"properties": [
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-SESSION-002-P4-H2H"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node",
+				"postgres"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-CONC-001-P1-H2A",
+					"MUT-CR-CONC-001-P1-H2B",
+					"MUT-CR-CONC-001-P1-H2C",
+					"MUT-CR-CONC-001-P1-H2D",
+					"MUT-CR-CONC-001-P1-H2E",
+					"MUT-CR-CONC-001-P1-H2F",
+					"MUT-CR-CONC-001-P2-H2I",
+					"MUT-CR-CONC-001-P2-H2J",
+					"MUT-CR-SESSION-002-P4-H2H"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-CONC-001",
+				"CR-SESSION-002"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-CONC-001[P1,P2]: mutation cases: MUT-CR-CONC-001-P1-H2A, MUT-CR-CONC-001-P1-H2B, MUT-CR-CONC-001-P1-H2C, MUT-CR-CONC-001-P1-H2D, MUT-CR-CONC-001-P1-H2E, MUT-CR-CONC-001-P1-H2F, MUT-CR-CONC-001-P2-H2I, MUT-CR-CONC-001-P2-H2J; CR-SESSION-002[P4]: mutation cases: MUT-CR-SESSION-002-P4-H2H"
+		},
+		{
+			"id": "EV-KB-L1",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 10 case(s)",
+			"property_proven": "60-row attribution limit atomic under real concurrency; idempotent re-confirmation (L1)",
+			"property_not_proven": "production scale",
+			"covers": [
+				{
+					"control": "CR-CONC-003",
+					"properties": [
+						"P1",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-CONC-003-P1-L1A, MUT-CR-CONC-003-P1-L1B, MUT-CR-CONC-003-P1-L1C, MUT-CR-CONC-003-P1-L1D, MUT-CR-CONC-003-P1-L1E, MUT-CR-CONC-003-P1-L1F, MUT-CR-CONC-003-P1-L1G, MUT-CR-CONC-003-P1-L1H, MUT-CR-CONC-003-P1-L1I, MUT-CR-CONC-003-P3-L1J"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node",
+				"postgres"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-CONC-003-P1-L1A",
+					"MUT-CR-CONC-003-P1-L1B",
+					"MUT-CR-CONC-003-P1-L1C",
+					"MUT-CR-CONC-003-P1-L1D",
+					"MUT-CR-CONC-003-P1-L1E",
+					"MUT-CR-CONC-003-P1-L1F",
+					"MUT-CR-CONC-003-P1-L1G",
+					"MUT-CR-CONC-003-P1-L1H",
+					"MUT-CR-CONC-003-P1-L1I",
+					"MUT-CR-CONC-003-P3-L1J"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-CONC-003"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-CONC-003[P1,P3]: mutation cases: MUT-CR-CONC-003-P1-L1A, MUT-CR-CONC-003-P1-L1B, MUT-CR-CONC-003-P1-L1C, MUT-CR-CONC-003-P1-L1D, MUT-CR-CONC-003-P1-L1E, MUT-CR-CONC-003-P1-L1F, MUT-CR-CONC-003-P1-L1G, MUT-CR-CONC-003-P1-L1H, MUT-CR-CONC-003-P1-L1I, MUT-CR-CONC-003-P3-L1J"
+		},
+		{
+			"id": "EV-KB-L5",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 9 case(s)",
+			"property_proven": "wallet-scoped cleanup; compare-and-delete; no deletion on uncertain provider data (L5)",
+			"property_not_proven": "production providers",
+			"covers": [
+				{
+					"control": "CR-API-001",
+					"properties": [
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-API-001-P3-L5A, MUT-CR-API-001-P3-L5B, MUT-CR-API-001-P3-L5G"
+				},
+				{
+					"control": "CR-CONC-004",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-CONC-004-P1-L5F, MUT-CR-CONC-004-P1-L5H"
+				},
+				{
+					"control": "CR-PROVIDER-001",
+					"properties": [
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-PROVIDER-001-P4-L5C, MUT-CR-PROVIDER-001-P4-L5D, MUT-CR-PROVIDER-001-P4-L5E, MUT-CR-PROVIDER-001-P4-L5I"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node",
+				"postgres"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-API-001-P3-L5A",
+					"MUT-CR-API-001-P3-L5B",
+					"MUT-CR-API-001-P3-L5G",
+					"MUT-CR-CONC-004-P1-L5F",
+					"MUT-CR-CONC-004-P1-L5H",
+					"MUT-CR-PROVIDER-001-P4-L5C",
+					"MUT-CR-PROVIDER-001-P4-L5D",
+					"MUT-CR-PROVIDER-001-P4-L5E",
+					"MUT-CR-PROVIDER-001-P4-L5I"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-API-001",
+				"CR-CONC-004",
+				"CR-PROVIDER-001"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-001[P3]: mutation cases: MUT-CR-API-001-P3-L5A, MUT-CR-API-001-P3-L5B, MUT-CR-API-001-P3-L5G; CR-CONC-004[P1]: mutation cases: MUT-CR-CONC-004-P1-L5F, MUT-CR-CONC-004-P1-L5H; CR-PROVIDER-001[P4]: mutation cases: MUT-CR-PROVIDER-001-P4-L5C, MUT-CR-PROVIDER-001-P4-L5D, MUT-CR-PROVIDER-001-P4-L5E, MUT-CR-PROVIDER-001-P4-L5I"
+		},
+		{
+			"id": "EV-KB-AUTH",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 11 case(s)",
+			"property_proven": "SIWE field checks, EOA signature result, ERC-1271 magic value and dual-provider consensus, token MAC, webhook secret (Phase 2A cases)",
+			"property_not_proven": "SIWE issued-at/expiration and address checks (no case yet); update_id dedup (static-only kill)",
+			"covers": [
+				{
+					"control": "CR-API-002",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-API-002-P2-NEW1"
+				},
+				{
+					"control": "CR-AUTH-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-AUTH-001-P1-NEW1, MUT-CR-AUTH-001-P1-NEW2, MUT-CR-AUTH-001-P2-NEW1, MUT-CR-AUTH-001-P3-NEW1"
+				},
+				{
+					"control": "CR-AUTH-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-AUTH-002-P1-NEW1"
+				},
+				{
+					"control": "CR-AUTH-003",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-AUTH-003-P1-NEW1, MUT-CR-AUTH-003-P2-NEW1"
+				},
+				{
+					"control": "CR-AUTH-005",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-AUTH-005-P2-NEW1"
+				},
+				{
+					"control": "CR-SESSION-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-SESSION-001-P1-NEW1"
+				},
+				{
+					"control": "CR-TELEGRAM-001",
+					"properties": [
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-TELEGRAM-001-P3-NEW1"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-API-002-P2-NEW1",
+					"MUT-CR-AUTH-001-P1-NEW1",
+					"MUT-CR-AUTH-001-P1-NEW2",
+					"MUT-CR-AUTH-001-P2-NEW1",
+					"MUT-CR-AUTH-001-P3-NEW1",
+					"MUT-CR-AUTH-002-P1-NEW1",
+					"MUT-CR-AUTH-003-P1-NEW1",
+					"MUT-CR-AUTH-003-P2-NEW1",
+					"MUT-CR-AUTH-005-P2-NEW1",
+					"MUT-CR-SESSION-001-P1-NEW1",
+					"MUT-CR-TELEGRAM-001-P3-NEW1"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-API-002",
+				"CR-AUTH-001",
+				"CR-AUTH-002",
+				"CR-AUTH-003",
+				"CR-AUTH-005",
+				"CR-SESSION-001",
+				"CR-TELEGRAM-001"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-002[P2]: mutation cases: MUT-CR-API-002-P2-NEW1; CR-AUTH-001[P1,P2,P3]: mutation cases: MUT-CR-AUTH-001-P1-NEW1, MUT-CR-AUTH-001-P1-NEW2, MUT-CR-AUTH-001-P2-NEW1, MUT-CR-AUTH-001-P3-NEW1; CR-AUTH-002[P1]: mutation cases: MUT-CR-AUTH-002-P1-NEW1; CR-AUTH-003[P1,P2]: mutation cases: MUT-CR-AUTH-003-P1-NEW1, MUT-CR-AUTH-003-P2-NEW1; CR-AUTH-005[P2]: mutation cases: MUT-CR-AUTH-005-P2-NEW1; CR-SESSION-001[P1]: mutation cases: MUT-CR-SESSION-001-P1-NEW1; CR-TELEGRAM-001[P3]: mutation cases: MUT-CR-TELEGRAM-001-P3-NEW1"
+		},
+		{
+			"id": "EV-KB-CRON",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 1 case(s)",
+			"property_proven": "nothing: the only case SURVIVED - no mapped test calls /api/alerts without CRON_SECRET",
+			"property_not_proven": "cron endpoint authentication (test gap recorded in Phase 2A)",
+			"covers": [
+				{
+					"control": "CR-API-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-API-002-P1-NEW1"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "SURVIVED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-API-002-P1-NEW1"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "SURVIVED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-API-002"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-002[P1]: mutation cases: MUT-CR-API-002-P1-NEW1"
+		},
+		{
+			"id": "EV-CRSF-SELFTEST",
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "security/crsf/selftest/framework-selftest.mjs",
+			"test_or_proof": "npm run security:framework-test",
+			"property_proven": "the verifier rejects known-bad framework fixtures: silent threshold reduction / release-class change (lock), manual status override, recorded status that does not recompute",
+			"property_not_proven": "mutation of the verifier itself (E4)",
+			"covers": [
+				{
+					"control": "CR-VERIFY-010",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "fixtures F, F2"
+				},
+				{
+					"control": "CR-VERIFY-012",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "fixtures A, I, N"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "crsf-fixtures",
+			"execution": {
+				"runner": "crsf-selftest",
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			},
+			"control_ids": [
+				"CR-VERIFY-010",
+				"CR-VERIFY-012"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
+			"id": "EV-PROBE-LOW-S",
+			"type": "behavioral",
+			"level": "E2",
+			"source": "repository",
+			"artifact": "security/crsf/probes/ecdsa-low-s-probe.mjs",
+			"test_or_proof": "node security/crsf/probes/ecdsa-low-s-probe.mjs",
+			"property_proven": "observation: viem verifyMessage (@noble/curves 1.9.1) accepts the high-s twin of a valid EOA signature (no low-s enforcement or normalisation)",
+			"property_not_proven": "any security property (characterisation only; answers Q-CRYPTO-LOW-S)",
+			"covers": [],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": "characterisation probe, no control coverage",
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "probe",
+				"script": "security/crsf/probes/ecdsa-low-s-probe.mjs",
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 60000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			},
+			"control_ids": [],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		}
+	]
+}

@@ -1,0 +1,3460 @@
+{
+	"crsf_version": "1.0-draft-phase2a",
+	"asvs": "5.0.0",
+	"input": "security/crsf/vendor/asvs-5.0.0.flat.json",
+	"input_sha256": "8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311",
+	"count": 345,
+	"items": [
+		{
+			"req_id": "V1.1.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-INPUT-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V1.1.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-INPUT-002"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V1.2.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-004"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V1.2.2",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-INPUT-003"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V1.2.3",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-INPUT-002"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V1.2.4",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-INPUT-004"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V1.2.5",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-INPUT-005"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V1.2.6",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No LDAP, XPath, LaTeX or CSV export.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V1.2.7",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No LDAP, XPath, LaTeX or CSV export.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V1.2.8",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No LDAP, XPath, LaTeX or CSV export.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V1.2.9",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-INPUT-006"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V1.2.10",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No LDAP, XPath, LaTeX or CSV export.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V1.3.1",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WYSIWYG/SVG/markdown-template user content, JNDI, memcache or mail system.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V1.3.2",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-004"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V1.3.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-INPUT-007"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V1.3.4",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WYSIWYG/SVG/markdown-template user content, JNDI, memcache or mail system.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V1.3.5",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WYSIWYG/SVG/markdown-template user content, JNDI, memcache or mail system.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V1.3.6",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-PROVIDER-003"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V1.3.7",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-INPUT-013"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V1.3.8",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WYSIWYG/SVG/markdown-template user content, JNDI, memcache or mail system.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V1.3.9",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WYSIWYG/SVG/markdown-template user content, JNDI, memcache or mail system.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V1.3.10",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-INPUT-008"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V1.3.11",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WYSIWYG/SVG/markdown-template user content, JNDI, memcache or mail system.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V1.3.12",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V1.4.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "Managed JavaScript runtime only; no unmanaged/native code in the application.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V1.4.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "Managed JavaScript runtime only; no unmanaged/native code in the application.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V1.4.3",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "Managed JavaScript runtime only; no unmanaged/native code in the application.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V1.5.1",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No XML parsing.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V1.5.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-DOC-002"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V1.5.3",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V2.1.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-INPUT-009"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V2.1.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-INPUT-009"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V2.1.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-RESOURCE-005"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V2.2.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-003"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V2.2.2",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-003"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V2.2.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-INPUT-010"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V2.3.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-009"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V2.3.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CONC-002"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V2.3.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CONC-001",
+				"CR-CONC-004"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V2.3.4",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CONC-002",
+				"CR-CONC-003"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V2.3.5",
+			"level": "L3",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-010"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V2.4.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-RESOURCE-001",
+				"CR-RESOURCE-002"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V2.4.2",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V3.1.1",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V3.2.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-006"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V3.2.2",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-004"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V3.2.3",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V3.3.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-004"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V3.3.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-004"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V3.3.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-004"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V3.3.4",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-004",
+				"CR-SESSION-005"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V3.3.5",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V3.4.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-001"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V3.4.2",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-003"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V3.4.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-001"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V3.4.4",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-001"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V3.4.5",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-001"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V3.4.6",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-001"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V3.4.7",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V3.4.8",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V3.5.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-002"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V3.5.2",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-002"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V3.5.3",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-008"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V3.5.4",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-007"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V3.5.5",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-005"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V3.5.6",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V3.5.7",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V3.5.8",
+			"level": "L3",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-008"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V3.6.1",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V3.7.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-009"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V3.7.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-BROWSER-010"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V3.7.3",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V3.7.4",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V3.7.5",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V4.1.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-005"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V4.1.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-TLS-003"
+			],
+			"conformance_status": "ACCEPTED_PLATFORM_DEVIATION",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V4.1.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-011"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V4.1.4",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V4.1.5",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V4.2.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CONFIG-007"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V4.2.2",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V4.2.3",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V4.2.4",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V4.2.5",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V4.3.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No GraphQL.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V4.3.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No GraphQL.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V4.4.1",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WebSocket endpoints.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V4.4.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WebSocket endpoints.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V4.4.3",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WebSocket endpoints.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V4.4.4",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WebSocket endpoints.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V5.1.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-DOC-005"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V5.2.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-DOC-001"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V5.2.2",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No user file uploads, archives or images are accepted.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V5.2.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-DOC-001"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V5.2.4",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No user file uploads, archives or images are accepted.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V5.2.5",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No user file uploads, archives or images are accepted.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V5.2.6",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No user file uploads, archives or images are accepted.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V5.3.1",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No file storage.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V5.3.2",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No file storage.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V5.3.3",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No file storage.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V5.4.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No files are served for download.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V5.4.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No files are served for download.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V5.4.3",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No files are served for download.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.1.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-AUTH-011"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V6.1.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "Password word list - no passwords exist.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.1.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-AUTH-009"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V6.2.1",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No password authentication or password storage exists.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.2.2",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No password authentication or password storage exists.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.2.3",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No password authentication or password storage exists.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.2.4",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No password authentication or password storage exists.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.2.5",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No password authentication or password storage exists.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.2.6",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No password authentication or password storage exists.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.2.7",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No password authentication or password storage exists.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.2.8",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No password authentication or password storage exists.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.2.9",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No password authentication or password storage exists.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.2.10",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No password authentication or password storage exists.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.2.11",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No password authentication or password storage exists.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.2.12",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No password authentication or password storage exists.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.3.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-RESOURCE-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V6.3.2",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-AUTH-012"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V6.3.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-AUTH-010"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V6.3.4",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-AUTH-002"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V6.3.5",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.3.6",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "Email is not used for authentication.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.3.7",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.3.8",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.4.1",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No application-managed authenticators, enrolment or recovery; wallet keys are user-held.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.4.2",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No application-managed authenticators, enrolment or recovery; wallet keys are user-held.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.4.3",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No application-managed authenticators, enrolment or recovery; wallet keys are user-held.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.4.4",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No application-managed authenticators, enrolment or recovery; wallet keys are user-held.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.4.5",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No application-managed authenticators, enrolment or recovery; wallet keys are user-held.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.4.6",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No application-managed authenticators, enrolment or recovery; wallet keys are user-held.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.5.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No MFA mechanism exists to configure (absence of MFA is CR-AUTH-010).",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.5.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No MFA mechanism exists to configure (absence of MFA is CR-AUTH-010).",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.5.3",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No MFA mechanism exists to configure (absence of MFA is CR-AUTH-010).",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.5.4",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No MFA mechanism exists to configure (absence of MFA is CR-AUTH-010).",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.5.5",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No MFA mechanism exists to configure (absence of MFA is CR-AUTH-010).",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.5.6",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No MFA mechanism exists to configure (absence of MFA is CR-AUTH-010).",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.5.7",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No MFA mechanism exists to configure (absence of MFA is CR-AUTH-010).",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.5.8",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No MFA mechanism exists to configure (absence of MFA is CR-AUTH-010).",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.6.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No out-of-band authenticator; the Telegram access link grants no session without a wallet signature.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.6.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No out-of-band authenticator; the Telegram access link grants no session without a wallet signature.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.6.3",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No out-of-band authenticator; the Telegram access link grants no session without a wallet signature.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.6.4",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No out-of-band authenticator; the Telegram access link grants no session without a wallet signature.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.7.1",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.7.2",
+			"level": "L3",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-AUTH-008"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V6.8.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No external identity provider.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.8.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No external identity provider.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.8.3",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No external identity provider.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V6.8.4",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No external identity provider.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V7.1.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-006"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V7.1.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-009"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V7.1.3",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No federated identity / SSO.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V7.2.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V7.2.2",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-AUTH-006"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V7.2.3",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "Sessions use self-contained HMAC tokens, not reference tokens (requirement is conditional on reference tokens).",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V7.2.4",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-AUTH-006"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V7.3.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-006"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V7.3.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-006"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V7.4.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-007",
+				"CR-CONC-005"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V7.4.2",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No administrator-managed accounts or user deactivation; identities are wallets.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V7.4.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-007"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V7.4.4",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-010"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V7.4.5",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No administrator-managed accounts or user deactivation; identities are wallets.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V7.5.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No modifiable authentication attributes; notification links grant no authentication.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V7.5.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-008"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V7.5.3",
+			"level": "L3",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-AUTH-007"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V7.6.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No federated identity / SSO.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V7.6.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No federated identity / SSO.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V8.1.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-012"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V8.1.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-012"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V8.1.3",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V8.1.4",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V8.2.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-002",
+				"CR-DB-002"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V8.2.2",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V8.2.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-003"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V8.2.4",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V8.3.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V8.3.2",
+			"level": "L3",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-007"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V8.3.3",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V8.4.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-001",
+				"CR-TELEGRAM-004"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V8.4.2",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V9.1.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V9.1.2",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V9.1.3",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V9.2.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-002"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V9.2.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-003"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V9.2.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-011"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V9.2.4",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-011"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V10.1.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.1.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.2.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.2.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.2.3",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.3.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.3.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.3.3",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.3.4",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.3.5",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.4.1",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.4.2",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.4.3",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.4.4",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.4.5",
+			"level": "L1",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.4.6",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.4.7",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.4.8",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.4.9",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.4.10",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.4.11",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.4.12",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.4.13",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.4.14",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.4.15",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.4.16",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.5.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.5.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.5.3",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.5.4",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.5.5",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.6.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.6.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.7.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.7.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V10.7.3",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No OAuth 2.0 / OIDC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V11.1.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CRYPTO-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V11.1.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CRYPTO-002"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V11.1.3",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V11.1.4",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V11.2.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CRYPTO-003"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V11.2.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CRYPTO-004"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V11.2.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CRYPTO-005"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V11.2.4",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V11.2.5",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V11.3.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CRYPTO-006"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V11.3.2",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CRYPTO-006"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V11.3.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CRYPTO-006"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V11.3.4",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V11.3.5",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V11.4.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CRYPTO-007",
+				"CR-CRYPTO-009"
+			],
+			"conformance_status": "ACCEPTED_PROTOCOL_DEVIATION",
+			"release_relevance": "INFORMATIONAL+MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V11.4.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No passwords exist; password hashing/KDF requirements have no subject (consistent with the V6.2 rule).",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V11.4.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CRYPTO-007"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V11.4.4",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No passwords exist; password hashing/KDF requirements have no subject (consistent with the V6.2 rule).",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V11.5.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-AUTH-008"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V11.5.2",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V11.6.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CRYPTO-008"
+			],
+			"conformance_status": "ACCEPTED_PROTOCOL_DEVIATION",
+			"release_relevance": "INFORMATIONAL"
+		},
+		{
+			"req_id": "V11.6.2",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V11.7.1",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No in-use data cryptography relevant to the threat model.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V11.7.2",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No in-use data cryptography relevant to the threat model.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V12.1.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-TLS-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V12.1.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-TLS-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V12.1.3",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No mTLS client certificates are used.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V12.1.4",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V12.1.5",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V12.2.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-TLS-002"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V12.2.2",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-TLS-002"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V12.3.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-TLS-004"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V12.3.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-TLS-004"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V12.3.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-TLS-004"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V12.3.4",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-TLS-004"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V12.3.5",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V13.1.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CONFIG-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V13.1.2",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V13.1.3",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V13.1.4",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V13.2.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-TELEGRAM-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V13.2.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-DB-001",
+				"CR-DB-002"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V13.2.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CONFIG-002"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V13.2.4",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-PROVIDER-003"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V13.2.5",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-PROVIDER-003"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V13.2.6",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V13.3.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SUPPLY-008"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V13.3.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SUPPLY-008"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V13.3.3",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V13.3.4",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V13.4.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SUPPLY-008"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V13.4.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CONFIG-003"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V13.4.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CONFIG-004"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V13.4.4",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CONFIG-005"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V13.4.5",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CONFIG-006"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V13.4.6",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V13.4.7",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V14.1.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-PRIV-006"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V14.1.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-PRIV-006"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V14.2.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-PRIV-004"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V14.2.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-PRIV-007"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V14.2.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-PRIV-003"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V14.2.4",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-PRIV-006"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V14.2.5",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V14.2.6",
+			"level": "L3",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-007",
+				"CR-PRIV-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V14.2.7",
+			"level": "L3",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-PRIV-002"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V14.2.8",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V14.3.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-PRIV-008"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V14.3.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-PRIV-009"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V14.3.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SESSION-005"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V15.1.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SUPPLY-005"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V15.1.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SUPPLY-006"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V15.1.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-RESOURCE-006"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V15.1.4",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V15.1.5",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V15.2.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-SUPPLY-005"
+			],
+			"conformance_status": "NON_CONFORMANT",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V15.2.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-RESOURCE-001",
+				"CR-RESOURCE-003",
+				"CR-RESOURCE-004",
+				"CR-DOC-003"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V15.2.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CONFIG-008"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V15.2.4",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V15.2.5",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V15.3.1",
+			"level": "L1",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-007"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V15.3.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-PROVIDER-003"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V15.3.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-003"
+			],
+			"conformance_status": "CONFORMANT",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V15.3.4",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-011"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "MANUAL_ASSURANCE"
+		},
+		{
+			"req_id": "V15.3.5",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-INPUT-011"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V15.3.6",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-INPUT-012"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V15.3.7",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-004"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V15.4.1",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V15.4.2",
+			"level": "L3",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CONC-001",
+				"CR-CONC-002",
+				"CR-CONC-003",
+				"CR-CONC-004",
+				"CR-CONC-005",
+				"CR-RESOURCE-002"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V15.4.3",
+			"level": "L3",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-CONC-006"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V15.4.4",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V16.1.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-LOG-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V16.2.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-LOG-002"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V16.2.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-LOG-003"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V16.2.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-LOG-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V16.2.4",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-LOG-004"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V16.2.5",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-LOG-005"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V16.3.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-PRIV-005"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V16.3.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-PRIV-005"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V16.3.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-PRIV-005"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V16.3.4",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-LOG-006"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V16.4.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-LOG-007"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V16.4.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-LOG-008"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V16.4.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-LOG-009"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V16.5.1",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-API-006"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "SECURITY_DEBT"
+		},
+		{
+			"req_id": "V16.5.2",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-RESOURCE-003",
+				"CR-PROVIDER-001",
+				"CR-PROVIDER-002"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V16.5.3",
+			"level": "L2",
+			"applicability": "APPLICABLE",
+			"reason": "",
+			"controls": [
+				"CR-AUTH-005",
+				"CR-API-006",
+				"CR-PROVIDER-001"
+			],
+			"conformance_status": "NOT_DEMONSTRATED",
+			"release_relevance": "RELEASE_BLOCKING"
+		},
+		{
+			"req_id": "V16.5.4",
+			"level": "L3",
+			"applicability": "DEFERRED",
+			"reason": "ASVS L3 not targeted by the CRSF 1.0 profile.",
+			"controls": [],
+			"conformance_status": "DEFERRED",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V17.1.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WebRTC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V17.1.2",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WebRTC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V17.2.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WebRTC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V17.2.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WebRTC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V17.2.3",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WebRTC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V17.2.4",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WebRTC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V17.2.5",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WebRTC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V17.2.6",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WebRTC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V17.2.7",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WebRTC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V17.2.8",
+			"level": "L3",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WebRTC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V17.3.1",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WebRTC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		},
+		{
+			"req_id": "V17.3.2",
+			"level": "L2",
+			"applicability": "NOT_APPLICABLE",
+			"reason": "No WebRTC.",
+			"controls": [],
+			"conformance_status": "NOT_APPLICABLE",
+			"release_relevance": "NONE"
+		}
+	]
+}

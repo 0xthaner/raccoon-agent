@@ -1,0 +1,70 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"title": "CRSF drift model",
+	"type": "object",
+	"additionalProperties": false,
+	"required": [
+		"crsf_version",
+		"rules",
+		"mandatory_global",
+		"note"
+	],
+	"properties": {
+		"crsf_version": {
+			"type": "string",
+			"pattern": "^1\\.0-draft-[a-z0-9]+$"
+		},
+		"rules": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": [
+					"pattern",
+					"domains"
+				],
+				"properties": {
+					"pattern": {
+						"type": "string",
+						"minLength": 1
+					},
+					"domains": {
+						"type": "array",
+						"items": {
+							"enum": [
+								"CR-AUTH",
+								"CR-SESSION",
+								"CR-API",
+								"CR-DB",
+								"CR-CONC",
+								"CR-RESOURCE",
+								"CR-TELEGRAM",
+								"CR-PROVIDER",
+								"CR-DOC",
+								"CR-BROWSER",
+								"CR-TLS",
+								"CR-CRYPTO",
+								"CR-CONFIG",
+								"CR-INPUT",
+								"CR-LOG",
+								"CR-SUPPLY",
+								"CR-PRIV",
+								"CR-VERIFY"
+							]
+						},
+						"minItems": 1
+					}
+				}
+			},
+			"minItems": 1
+		},
+		"mandatory_global": {
+			"type": "string",
+			"minLength": 1
+		},
+		"note": {
+			"type": "string",
+			"minLength": 1
+		}
+	}
+}

@@ -1,0 +1,91 @@
+{
+	"versions": [
+		{
+			"crsf_version": "1.0-draft-phase1b",
+			"summary": "ASVS mapping completed (0 applicable unmapped), normalized schemas, sub-property engine, 11 Phase-1 FAILs reassessed (1 -> MISSING_EVIDENCE).",
+			"changes": []
+		},
+		{
+			"crsf_version": "1.0-draft-phase1c",
+			"summary": "Conformance and security axes separated; deviation model; CR-CRYPTO-008 split (CR-CRYPTO-009 added); 2 protocol + 1 platform deviations accepted; 4 sources added.",
+			"changes": [
+				{
+					"id": "CR-TLS-003",
+					"kind": "STATUS_CHANGE",
+					"reason": "FAIL -> MISSING_EVIDENCE (conformance ACCEPTED_PLATFORM_DEVIATION via DEV-PLAT-001). The deviation does not satisfy the security property P2 (HSTS on all hosts): only a manual production record exists and this SECURITY_DEBT control requires reproducible evidence."
+				},
+				{
+					"id": "CR-TLS-003",
+					"kind": "PROPERTY_CHANGE",
+					"reason": "literal requirement marked CONFORMANCE; protocol/platform-independent SECURITY properties added so a deviation cannot hide a weakness"
+				},
+				{
+					"id": "CR-CRYPTO-008",
+					"kind": "STATUS_CHANGE",
+					"reason": "FAIL -> INFORMATIONAL (conformance ACCEPTED_PROTOCOL_DEVIATION via DEV-PROTO-001). Control narrowed to V11.6.1 (signature algorithm); the Keccak-256 part moved to CR-CRYPTO-009. The non-conformance stays visible on the conformance axis; security properties P2-P4 are satisfied by a dated manual inspection."
+				},
+				{
+					"id": "CR-CRYPTO-008",
+					"kind": "MAPPING_CHANGE",
+					"reason": "split: one control per external requirement so each deviation stays narrow"
+				},
+				{
+					"id": "CR-CRYPTO-008",
+					"kind": "PROPERTY_CHANGE",
+					"reason": "literal requirement marked CONFORMANCE; protocol/platform-independent SECURITY properties added so a deviation cannot hide a weakness"
+				},
+				{
+					"id": "CR-CRYPTO-009",
+					"kind": "ADDED",
+					"reason": "split from CR-CRYPTO-008 (V11.4.1 Keccak-256 digest)"
+				}
+			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2a",
+			"summary": "Materialised in the repository. JSON is authoritative; statuses recomputed by scripts/security-verify.mjs. Scratchpad mutation records EV-MUT-{L2,L3,H2,L1,L4,L5} replaced by reproducible mutation evidence EV-KB-* (security/mutation/cases.json, 66 cases). EV-CRSF-SELFTEST and EV-PROBE-LOW-S added. Owner sign-off field added (PENDING). Framework lock bootstrapped. No control definition, release class or minimum level changed.",
+			"changes": [
+				{
+					"id": "EVIDENCE",
+					"kind": "EVIDENCE_MODEL",
+					"reason": "executable evidence (node-test, mutation, crsf-selftest, probe) is run by security:verify; non-reproducible scratchpad mutation records removed"
+				},
+				{
+					"id": "PROFILE",
+					"kind": "PROFILE_EXTENDED",
+					"reason": "evidence_levels, evidence_type_classes, mutation_rules, verify_policy, owner_signoff rule; thresholds unchanged"
+				},
+				{
+					"id": "CR-AUTH-005",
+					"kind": "STATUS_CHANGE",
+					"reason": "MISSING_EVIDENCE -> PASS_AUTOMATED from new reproducible evidence: EV-KB-L4 (L4 A/B/C, NEW1): classification-authority and classifier-call mutations killed behaviourally"
+				},
+				{
+					"id": "CR-TELEGRAM-002",
+					"kind": "STATUS_CHANGE",
+					"reason": "MISSING_EVIDENCE -> PASS_AUTOMATED from new reproducible evidence: EV-KB-L2 (X4/X5/X6 signature bypasses; X7/X8 alternative binding RPC) killed behaviourally; X1-X3 static kills not counted"
+				},
+				{
+					"id": "CR-TELEGRAM-003",
+					"kind": "STATUS_CHANGE",
+					"reason": "MISSING_EVIDENCE -> PASS_AUTOMATED from new reproducible evidence: EV-KB-L3 (Y1/Y2/Y5/Y6/Y8 authority, Y7/Y10 malformed callbacks) killed behaviourally"
+				},
+				{
+					"id": "CR-VERIFY-010",
+					"kind": "STATUS_CHANGE",
+					"reason": "MISSING_EVIDENCE -> PASS_AUTOMATED from new reproducible evidence: EV-CRSF-SELFTEST fixtures F/F2/F3/F4 (silent threshold/class change, deletion) rejected"
+				},
+				{
+					"id": "CR-VERIFY-012",
+					"kind": "STATUS_CHANGE",
+					"reason": "MISSING_EVIDENCE -> PASS_AUTOMATED from new reproducible evidence: EV-CRSF-SELFTEST fixtures A/I/I2/N/N2 (override, non-recomputable status) rejected"
+				},
+				{
+					"id": "CR-API-002",
+					"kind": "TEST_GAP_RECORDED",
+					"reason": "MUT-CR-API-002-P1-NEW1 (cron secret check removed) SURVIVED: no mapped test calls /api/alerts without CRON_SECRET; declared SURVIVED, blocks E4 for P1; status unchanged (MISSING_EVIDENCE)"
+				}
+			]
+		}
+	]
+}

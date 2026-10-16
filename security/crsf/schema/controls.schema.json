@@ -1,0 +1,358 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"title": "CRSF controls",
+	"type": "object",
+	"additionalProperties": false,
+	"required": [
+		"crsf_version",
+		"controls"
+	],
+	"properties": {
+		"crsf_version": {
+			"type": "string",
+			"pattern": "^1\\.0-draft-[a-z0-9]+$"
+		},
+		"controls": {
+			"type": "array",
+			"items": {
+				"$ref": "#/$defs/control"
+			},
+			"minItems": 1
+		}
+	},
+	"$defs": {
+		"control": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"id",
+				"title",
+				"domain",
+				"source_refs",
+				"external_requirement_ids",
+				"derivation_type",
+				"external_requirement",
+				"coverraccoon_requirement",
+				"applicability",
+				"applicability_reason",
+				"profile_level",
+				"applies_to",
+				"threat",
+				"expected_property",
+				"properties",
+				"release_class",
+				"minimum_evidence_level",
+				"automation",
+				"ambiguity",
+				"status_computed",
+				"manual_override_allowed",
+				"required_evidence_types",
+				"current_evidence_ids",
+				"property_coverage",
+				"conformance_status",
+				"conformance_status_reason",
+				"security_status",
+				"security_status_reason",
+				"deviation_ids",
+				"independence"
+			],
+			"properties": {
+				"id": {
+					"type": "string",
+					"pattern": "^CR-[A-Z]+-[0-9]{3}$"
+				},
+				"title": {
+					"type": "string",
+					"minLength": 1
+				},
+				"domain": {
+					"enum": [
+						"CR-AUTH",
+						"CR-SESSION",
+						"CR-API",
+						"CR-DB",
+						"CR-CONC",
+						"CR-RESOURCE",
+						"CR-TELEGRAM",
+						"CR-PROVIDER",
+						"CR-DOC",
+						"CR-BROWSER",
+						"CR-TLS",
+						"CR-CRYPTO",
+						"CR-CONFIG",
+						"CR-INPUT",
+						"CR-LOG",
+						"CR-SUPPLY",
+						"CR-PRIV",
+						"CR-VERIFY"
+					]
+				},
+				"source_refs": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 1
+				},
+				"external_requirement_ids": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 0
+				},
+				"derivation_type": {
+					"enum": [
+						"EXTERNAL_STANDARD",
+						"CRSF_INTERNAL_POLICY"
+					]
+				},
+				"external_requirement": {
+					"type": "string",
+					"minLength": 1
+				},
+				"coverraccoon_requirement": {
+					"type": "string",
+					"minLength": 1
+				},
+				"applicability": {
+					"enum": [
+						"APPLICABLE",
+						"NOT_APPLICABLE",
+						"DEFERRED"
+					]
+				},
+				"applicability_reason": {
+					"type": "string",
+					"minLength": 1
+				},
+				"profile_level": {
+					"enum": [
+						"ASVS_L1",
+						"ASVS_L2",
+						"ASVS_L3",
+						"PROTOCOL",
+						"INTERNAL"
+					]
+				},
+				"applies_to": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 1
+				},
+				"threat": {
+					"type": "string",
+					"minLength": 1
+				},
+				"expected_property": {
+					"type": "string",
+					"minLength": 1
+				},
+				"properties": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": [
+							"id",
+							"kind",
+							"text"
+						],
+						"properties": {
+							"id": {
+								"type": "string",
+								"pattern": "^P[0-9]+$"
+							},
+							"kind": {
+								"enum": [
+									"REQUIREMENT",
+									"CONFORMANCE",
+									"SECURITY"
+								]
+							},
+							"text": {
+								"type": "string",
+								"minLength": 1
+							}
+						}
+					},
+					"minItems": 1
+				},
+				"release_class": {
+					"enum": [
+						"RELEASE_BLOCKING",
+						"SECURITY_DEBT",
+						"MANUAL_ASSURANCE",
+						"INFORMATIONAL"
+					]
+				},
+				"minimum_evidence_level": {
+					"enum": [
+						"E1",
+						"E2",
+						"E3",
+						"E4",
+						"E5"
+					]
+				},
+				"automation": {
+					"enum": [
+						"YES",
+						"PARTIAL",
+						"NO"
+					]
+				},
+				"ambiguity": {
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"status_computed": {
+					"const": true
+				},
+				"manual_override_allowed": {
+					"const": false
+				},
+				"required_evidence_types": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 0
+				},
+				"current_evidence_ids": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"pattern": "^EV-[A-Z0-9-]+$"
+					},
+					"minItems": 0
+				},
+				"property_coverage": {
+					"type": "object",
+					"additionalProperties": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": [
+							"satisfied_by",
+							"partial_only",
+							"insufficient"
+						],
+						"properties": {
+							"deviated": {
+								"type": "boolean"
+							},
+							"satisfied_by": {
+								"type": "array",
+								"items": {
+									"type": "string",
+									"pattern": "^EV-[A-Z0-9-]+$"
+								},
+								"minItems": 0
+							},
+							"partial_only": {
+								"type": "array",
+								"items": {
+									"type": "string",
+									"pattern": "^EV-[A-Z0-9-]+$"
+								},
+								"minItems": 0
+							},
+							"insufficient": {
+								"type": "array",
+								"items": {
+									"type": "string",
+									"minLength": 1
+								},
+								"minItems": 0
+							}
+						}
+					}
+				},
+				"conformance_status": {
+					"enum": [
+						"CONFORMANT",
+						"NON_CONFORMANT",
+						"NOT_DEMONSTRATED",
+						"ACCEPTED_PROTOCOL_DEVIATION",
+						"ACCEPTED_PLATFORM_DEVIATION",
+						"NOT_APPLICABLE",
+						"DEFERRED"
+					]
+				},
+				"conformance_status_reason": {
+					"type": "string",
+					"minLength": 1
+				},
+				"security_status": {
+					"enum": [
+						"PASS_AUTOMATED",
+						"PASS_MANUAL",
+						"MISSING_EVIDENCE",
+						"FAIL",
+						"INFORMATIONAL",
+						"NOT_APPLICABLE",
+						"DEFERRED"
+					]
+				},
+				"security_status_reason": {
+					"type": "string",
+					"minLength": 1
+				},
+				"deviation_ids": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					},
+					"minItems": 0
+				},
+				"independence": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"required": [
+								"evidence_classes",
+								"independent_classes",
+								"shared_fixture_groups"
+							],
+							"properties": {
+								"evidence_classes": {
+									"type": "array",
+									"items": {
+										"type": "string",
+										"minLength": 1
+									},
+									"minItems": 0
+								},
+								"independent_classes": {
+									"type": "integer",
+									"minimum": 0
+								},
+								"shared_fixture_groups": {
+									"type": "array",
+									"items": {
+										"type": "string",
+										"minLength": 1
+									},
+									"minItems": 0
+								}
+							}
+						}
+					]
+				}
+			}
+		}
+	}
+}
