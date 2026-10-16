@@ -45,14 +45,18 @@ function world() {
 		getPositions: async (wallet) => { state.calls.push(['positions', wallet]); if (state.fail.positions) throw state.fail.positions; return state.positions.get(wallet) ?? positionsOf(wallet, { positions: [] }); },
 		getCovers: async (wallet) => { state.calls.push(['covers', wallet]); if (state.fail.covers) throw new Error('rpc down'); return state.covers.get(wallet) ?? coversOf(wallet, []); },
 		listRows: async (wallet) => { state.calls.push(['list', wallet]); if (state.fail.list) throw new Error('db'); return state.rows.filter((row) => row.wallet === wallet).map((row) => ({ ...row })); },
+		// Wie upsert_position_attribution_limited (Restaudit L1): bestehende Relation bestaetigen,
+		// sonst ab 60 Zeilen der Wallet 'limit', sonst einfuegen. Echte Gleichzeitigkeit: l1-attribution-limit-db.test.mjs.
 		upsertRow: async (relation) => {
 			state.calls.push(['upsert', relation]);
 			if (state.fail.upsert) throw new Error('db');
 			const at = new Date(relation.now).toISOString();
 			let row = state.rows.find((r) => r.wallet === relation.wallet && r.deployment_key === relation.deploymentKey && r.cover_id === relation.coverId);
+			const status = row ? 'updated' : 'inserted';
+			if (!row && state.rows.filter((r) => r.wallet === relation.wallet).length >= 60) return { status: 'limit', row: null };
 			if (!row) { row = { wallet: relation.wallet, protocol_key: relation.protocolKey, protocol_version: relation.protocolVersion, deployment_key: relation.deploymentKey, product_id: relation.productId, cover_id: relation.coverId, source: 'user_confirmed' }; state.rows.push(row); }
 			row.confirmed_at = at;
-			return { deployment_key: row.deployment_key, product_id: row.product_id, cover_id: row.cover_id, source: row.source, confirmed_at: row.confirmed_at };
+			return { status, row: { deployment_key: row.deployment_key, product_id: row.product_id, cover_id: row.cover_id, source: row.source, confirmed_at: row.confirmed_at } };
 		},
 		deleteRow: async (wallet, deploymentKey, coverId) => {
 			state.calls.push(['delete', wallet, deploymentKey, coverId]);
@@ -437,8 +441,11 @@ test('42/43: the migration stores only identifiers - no proof of loss, no signat
 	assert.doesNotMatch(api, /request\.body\.wallet|request\.query\.wallet|verified\s*[:=]\s*true|covered\s*[:=]|insured\s*[:=]/);
 	const db = readFileSync(new URL('../src/db.mjs', import.meta.url), 'utf8');
 	const fn = db.slice(db.indexOf('export async function upsertPositionAttribution'), db.indexOf('export async function deletePositionAttribution'));
-	assert.match(fn, /source: 'user_confirmed'/);
-	assert.doesNotMatch(fn, /signature|proof|amount|verified/i);
+	assert.doesNotMatch(fn, /signature|proof|amount|verified|source/i, 'die Quelle setzt nicht der Aufrufer');
+	// Restaudit L1: geschrieben wird nur noch ueber die Funktion; sie setzt die Quelle fest und speichert nur Bezeichner.
+	const limited = readFileSync(new URL('../supabase/migrations/20261016150000_l1_attribution_limit.sql', import.meta.url), 'utf8').replace(/--[^\n]*/g, '');
+	assert.match(limited, /values \(normalized, p_protocol_key, p_protocol_version, p_deployment_key, p_product_id, p_cover_id, 'user_confirmed', p_confirmed_at, p_confirmed_at\)/);
+	assert.doesNotMatch(limited, /proof|signature|amount|verified|metadata|security definer|grant [^;]* to (anon|authenticated|public)/i);
 });
 
 test('DOMAIN: checkRelation and reconcile never trust a different wallet or a non-numeric product', () => {
@@ -460,6 +467,5 @@ test('DB: every attribution query is scoped to exactly one wallet', () => {
 	assert.match(list, /\.eq\('wallet', wallet\.toLowerCase\(\)\)/);
 	assert.match(del, /\.match\(\{ wallet: wallet\.toLowerCase\(\), deployment_key: deploymentKey, cover_id: coverId \}\)/);
 	const upsert = db.slice(db.indexOf('export async function upsertPositionAttribution'), db.indexOf('export async function deletePositionAttribution'));
-	assert.match(upsert, /wallet: wallet\.toLowerCase\(\), protocol_key: protocolKey/);
-	assert.match(upsert, /onConflict: 'wallet,deployment_key,cover_id'/);
+	assert.match(upsert, /rpc\('upsert_position_attribution_limited', \{\n\t\tp_wallet: wallet\.toLowerCase\(\),/);
 });

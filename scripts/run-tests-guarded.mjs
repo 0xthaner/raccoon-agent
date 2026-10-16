@@ -21,14 +21,16 @@ import { run } from 'node:test';
 import { spec } from 'node:test/reporters';
 import path from 'node:path';
 
-// Erlaubte Skips: nur die beiden Postgres-Integrationstests (M1, H2), jeweils exakt
+// Erlaubte Skips: nur die Postgres-Integrationstests (M1, H2, L1), jeweils exakt
 // mit Datei und Name, und nur solange kein Wegwerf-Postgres konfiguriert ist. Ist
 // M1_DB_TEST_PG_URL gesetzt und ein Test wird trotzdem uebersprungen, ist das ein
 // Fehler wie jeder andere Skip.
 const ALLOWED_SKIPS = new Map([
 	['test/m1-wallet-limit-db.test.mjs :: M1-DB', () => !process.env.M1_DB_TEST_PG_URL],
 	// Restaudit H2: Challenge-Verbrauch unter echter Gleichzeitigkeit, derselbe Wegwerf-Postgres.
-	['test/h2-challenge-concurrency-db.test.mjs :: H2-DB', () => !process.env.M1_DB_TEST_PG_URL]
+	['test/h2-challenge-concurrency-db.test.mjs :: H2-DB', () => !process.env.M1_DB_TEST_PG_URL],
+	// Restaudit L1: Zuordnungs-Limit unter echter Gleichzeitigkeit, derselbe Wegwerf-Postgres.
+	['test/l1-attribution-limit-db.test.mjs :: L1-DB', () => !process.env.M1_DB_TEST_PG_URL]
 ]);
 
 const relative = (file) => path.relative(process.cwd(), file ?? '').split(path.sep).join('/');

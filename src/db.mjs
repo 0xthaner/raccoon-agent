@@ -525,14 +525,21 @@ export async function listPositionAttributions(wallet) {
 		.eq('wallet', wallet.toLowerCase()).order('confirmed_at').limit(MAX_ATTRIBUTIONS_PER_WALLET));
 }
 
+/*
+	Restaudit L1: Pruefen und Schreiben in EINER Datenbankfunktion unter einer Sperre je
+	Wallet - hoechstens MAX_ATTRIBUTIONS_PER_WALLET Zeilen, auch bei gleichzeitigen
+	Anfragen (Migration 20261016150000). Ergebnis: { status: 'inserted' | 'updated', row }
+	oder { status: 'limit', row: null }; alles andere gilt als Fehler (status 'invalid').
+*/
 export async function upsertPositionAttribution({ wallet, protocolKey, protocolVersion, deploymentKey, productId, coverId, now = Date.now() }) {
-	const at = new Date(now).toISOString();
-	const rows = value(await db.from('position_cover_attributions').upsert({
-		wallet: wallet.toLowerCase(), protocol_key: protocolKey, protocol_version: protocolVersion,
-		deployment_key: deploymentKey, product_id: productId, cover_id: coverId,
-		source: 'user_confirmed', confirmed_at: at, updated_at: at
-	}, { onConflict: 'wallet,deployment_key,cover_id' }).select(ATTRIBUTION_COLUMNS));
-	return rows[0] ?? null;
+	const outcome = value(await db.rpc('upsert_position_attribution_limited', {
+		p_wallet: wallet.toLowerCase(), p_protocol_key: protocolKey, p_protocol_version: protocolVersion,
+		p_deployment_key: deploymentKey, p_product_id: productId, p_cover_id: coverId,
+		p_confirmed_at: new Date(now).toISOString()
+	})) ?? {};
+	if (outcome.status === 'limit') return { status: 'limit', row: null };
+	if ((outcome.status === 'inserted' || outcome.status === 'updated') && outcome.row) return { status: outcome.status, row: outcome.row };
+	return { status: 'invalid', row: null };
 }
 
 export async function deletePositionAttribution(wallet, deploymentKey, coverId) {

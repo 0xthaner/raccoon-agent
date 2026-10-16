@@ -179,7 +179,8 @@ test('L2-D: the binding RPC is consume_wallet_link_v2, and it is the only bindin
 	assert.deepEqual(calls, [['consume_wallet_link_v2', { link_code: 'code', linked_wallet: '0xabc' }]]);
 	// Jede RPC, die Laufzeitcode ueberhaupt aufruft. Bindende Funktionen ausser v2 duerfen nicht dabei sein.
 	const called = new Set(RUNTIME.flatMap((file) => [...read(file).matchAll(/\.rpc\(\s*'([a-z0-9_]+)'/g)].map((m) => m[1])));
-	assert.deepEqual([...called].sort(), ['alert_subscriptions_page', 'check_agent_rate_limit', 'consume_wallet_link_v2', 'revoke_dashboard_sessions_atomic']);
+	// Restaudit L1 (16.10.2026): upsert_position_attribution_limited schreibt Cover-Zuordnungen, keine Wallet-Chat-Bindung.
+	assert.deepEqual([...called].sort(), ['alert_subscriptions_page', 'check_agent_rate_limit', 'consume_wallet_link_v2', 'revoke_dashboard_sessions_atomic', 'upsert_position_attribution_limited']);
 });
 
 test('L2-E: runtime code never inserts a wallet-chat binding itself', () => {
@@ -219,7 +220,10 @@ test('L2-H: after the latest migration consume_telegram_handoff and telegram_han
 	assert.doesNotMatch(drop, /\bcascade\b/i, 'kein CASCADE');
 	assert.doesNotMatch(drop, /\bgrant\b/i, 'keine neuen Rechte');
 	assert.doesNotMatch(drop, /consume_wallet_link|monitored_wallets|wallet_links|pending_links/, 'aktiver Pfad unberuehrt');
-	assert.equal(MIGRATIONS.at(-1), 'supabase/migrations/20261016120000_l2_drop_telegram_handoff.sql');
+	// Spaetere Migrationen duerfen folgen - keine davon darf die Handoff-Objekte wieder erwaehnen.
+	const L2 = 'supabase/migrations/20261016120000_l2_drop_telegram_handoff.sql';
+	assert.ok(MIGRATIONS.includes(L2));
+	for (const later of MIGRATIONS.filter((file) => file > L2)) assert.doesNotMatch(read(later), /consume_telegram_handoff|telegram_handoffs/, later);
 });
 
 test('L2-I: anon and authenticated get no grant anywhere, and every binding function is closed to them', () => {

@@ -19,7 +19,7 @@
 	1:1-Zuordnungen werden hier nie gespeichert.
 */
 import { resolveDashboardSession } from '../src/dashboard-auth.mjs';
-import { deletePositionAttribution, isDashboardSessionRevoked, listPositionAttributions, MAX_ATTRIBUTIONS_PER_WALLET, upsertPositionAttribution } from '../src/db.mjs';
+import { deletePositionAttribution, isDashboardSessionRevoked, listPositionAttributions, upsertPositionAttribution } from '../src/db.mjs';
 import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin } from '../src/http-security.mjs';
 import { getWalletPositions, LookupNotAdmittedError } from '../src/positions/index.mjs';
 import { getWalletCovers } from '../src/covers.mjs';
@@ -138,14 +138,14 @@ function createInnerHandler({
 			const retry = RETRYABLE.has(check.code);
 			return response.status(retry ? 503 : 422).json({ ok: false, code: check.code, error: retry ? 'Position oder Cover konnten gerade nicht sicher gelesen werden.' : 'Diese Zuordnung ist für die angemeldete Wallet gerade nicht möglich.' });
 		}
-		let existing;
-		try { existing = await listRows(wallet); } catch { return unavailable(response); }
-		const already = existing.some((row) => row.deployment_key === relation.deploymentKey && Number(row.cover_id) === relation.coverId);
-		if (!already && existing.length >= MAX_ATTRIBUTIONS_PER_WALLET) return response.status(409).json({ ok: false, code: 'TOO_MANY_ATTRIBUTIONS', error: 'Zu viele gespeicherte Zuordnungen.' });
+		// Restaudit L1: das Limit (MAX_ATTRIBUTIONS_PER_WALLET) prueft die Datenbank im selben
+		// gesperrten Schritt wie das Schreiben - kein Zaehlen hier, das gleichzeitige Anfragen
+		// alle bestehen wuerden. Eine schon gespeicherte Relation zaehlt nicht neu.
 		let saved;
 		try { saved = await upsertRow({ ...check.relation, now: now() }); } catch { return unavailable(response); }
-		if (!saved) return unavailable(response);
-		return response.status(200).json({ ok: true, attribution: publicAttribution(saved) });
+		if (saved?.status === 'limit') return response.status(409).json({ ok: false, code: 'TOO_MANY_ATTRIBUTIONS', error: 'Zu viele gespeicherte Zuordnungen.' });
+		if (!saved?.row) return unavailable(response);
+		return response.status(200).json({ ok: true, attribution: publicAttribution(saved.row) });
 	};
 }
 
