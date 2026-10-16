@@ -885,6 +885,35 @@
 					"reason": "framework-changes records may carry a typed `finding` block (root cause, code change, before/after behaviour, regression tests, mutation ids, call sites, remaining assumptions). A finding with status_after FIXED is checked by the engine (FINDING_FIX_NOT_PROVEN): its mutation cases must exist, be behavioural KILLED and target the violated property, and no VIOLATION of that property may remain. Self-test fixtures Y1-Y4."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2f",
+			"summary": "Phase 2F: application finding F-2F-1 recorded as a VIOLATION of CR-RESOURCE-001 P1 (stop condition B, not fixed); remaining controls not attempted.",
+			"changes": [
+				{
+					"id": "F-2F-1",
+					"kind": "NEW_FINDING",
+					"reason": "Application, Low. api/dashboard.mjs: for dashboard sessions without kind (issued before 2026-10-14, valid at most 7 days, i.e. until about 2026-10-21), freshAuthorityRequired calls noContractCodeByQuorum (eth_getCode at Alchemy AND Infura). On POST {action} this runs after the per-IP limit (20/600 s) but BEFORE the per-wallet limit and with no global limit; on DELETE (sign-out everywhere, ?telegram=1) after only the per-IP limit (10/600 s). A holder of one valid legacy session can rotate IPs to drive unbounded provider requests (cost/quota amplification; exhausted quotas make Safe login and ERC-1271 checks fail closed for everyone). Fix direction: apply the per-wallet and a global action budget before freshAuthorityRequired on both paths (or decide legacy sessions without RPC). Not fixed in Phase 2F."
+				},
+				{
+					"id": "CR-RESOURCE-001",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "FAIL",
+					"minimum_level": "E3",
+					"evidence_added": [
+						"security/crsf/probes/resource-legacy-session-probe.mjs (EV-PROBE-LEGACY-RPC, VIOLATION P1)"
+					],
+					"why_sufficient": "Reproducible observation of a P1 violation (dashboard action limits not before provider work) on the real handler and guards; FAIL until fixed; the probe exits 1 after a fix so the record must then be revisited.",
+					"remains_unproven": "n/a (finding); P2-P4 not re-assessed in this phase",
+					"reason": "application finding F-2F-1 (Phase 2F), not fixed - stop condition B"
+				},
+				{
+					"id": "STOP-2F",
+					"kind": "STOP_CONDITION",
+					"reason": "Stop condition B (real application finding F-2F-1) reached during CR-RESOURCE-001 inventory, the first item of Phase 2F. Not attempted: CR-RESOURCE-001 P2-P4 evidence, CR-INPUT-004, CR-BROWSER-004, CR-VERIFY-003, CR-VERIFY-004."
+				}
+			]
 		}
 	]
 }

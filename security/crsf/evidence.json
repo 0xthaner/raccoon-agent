@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2e",
+	"crsf_version": "1.0-draft-phase2f",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -5864,6 +5864,51 @@
 			],
 			"coverage": "PARTIAL",
 			"reason_for_partial": "CR-PROVIDER-001[P2]: mutation cases: MUT-CR-PROVIDER-001-P2-F2D2A, MUT-CR-PROVIDER-001-P2-F2D2B"
+		},
+		{
+			"id": "EV-PROBE-LEGACY-RPC",
+			"type": "behavioral",
+			"level": "E2",
+			"source": "repository",
+			"artifact": "security/crsf/probes/resource-legacy-session-probe.mjs",
+			"test_or_proof": "node security/crsf/probes/resource-legacy-session-probe.mjs",
+			"property_proven": "observation (finding F-2F-1): with the real api/dashboard.mjs handler and the real src/http-security.mjs guards, a limiter that admits per-IP keys and denies every per-wallet and global key still lets a legacy session (no kind) trigger the two-provider getCode on POST {action} (wallet limit consulted only afterwards, 429 after the provider work) and on DELETE (no wallet or global limit on the path); controls: sessions with kind eoa/contract never reach a provider",
+			"property_not_proven": "real provider cost/quota effects; how many legacy sessions still exist in production (issued before 2026-10-14, at most 7 days valid)",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "F-2F-1: legacy dashboard sessions (no kind) reach noContractCodeByQuorum (eth_getCode at Alchemy and Infura) on POST {action} before the per-wallet limit and with no global limit, and on DELETE (sign-out / Telegram disconnect) with only the per-IP limit"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "probe",
+				"script": "security/crsf/probes/resource-legacy-session-probe.mjs",
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 60000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			},
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P1]: F-2F-1: legacy dashboard sessions (no kind) reach noContractCodeByQuorum (eth_getCode at Alchemy and Infura) on POST {action} before the per-wallet limit and with no global limit, and on DELETE (sign-out / Telegram disconnect) with only the per-IP limit"
 		}
 	]
 }

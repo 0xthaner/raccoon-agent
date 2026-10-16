@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2e",
+	"crsf_version": "1.0-draft-phase2f",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -3798,6 +3798,7 @@
 				"EV-ERC1271",
 				"EV-M1",
 				"EV-M2",
+				"EV-PROBE-LEGACY-RPC",
 				"EV-RL"
 			],
 			"property_coverage": {
@@ -3832,10 +3833,10 @@
 					"insufficient": []
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied (partial only: EV-ERC1271,EV-RL); P2 unsatisfied (partial only: EV-M1,EV-RL); P3 unsatisfied (partial only: EV-RL); P4 unsatisfied (partial only: EV-M2)",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied (partial only: EV-ERC1271,EV-RL); P2 unsatisfied (partial only: EV-M1,EV-RL); P3 unsatisfied (partial only: EV-RL); P4 unsatisfied (partial only: EV-M2)",
+			"conformance_status": "NON_CONFORMANT",
+			"conformance_status_reason": "P1: F-2F-1: legacy dashboard sessions (no kind) reach noContractCodeByQuorum (eth_getCode at Alchemy and Infura) on POST {action} before the per-wallet limit and with no global limit, and on DELETE (sign-out / Telegram disconnect) with only the per-IP limit [EV-PROBE-LEGACY-RPC]",
+			"security_status": "FAIL",
+			"security_status_reason": "P1: F-2F-1: legacy dashboard sessions (no kind) reach noContractCodeByQuorum (eth_getCode at Alchemy and Infura) on POST {action} before the per-wallet limit and with no global limit, and on DELETE (sign-out / Telegram disconnect) with only the per-IP limit [EV-PROBE-LEGACY-RPC]",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
