@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2c",
+	"crsf_version": "1.0-draft-phase2d",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -513,8 +513,8 @@
 			"source": "repository",
 			"artifact": "security/crsf/selftest/framework-selftest.mjs",
 			"test_or_proof": "npm run security:framework-test",
-			"property_proven": "the verifier rejects known-bad framework fixtures: silent threshold reduction / release-class change (lock), manual status override, recorded status that does not recompute",
-			"property_not_proven": "mutation of the verifier itself (E4)",
+			"property_proven": "the verifier rejects known-bad framework fixtures: silent threshold reduction / release-class / applicability / derivation / property changes (lock), undocumented requirement clarifications, tampered pinned sources, manual status override, recorded status that does not recompute, E4 without a KILLED mutation, behavioural evidence relabelled E4/E5 or real-system without infrastructure, misuse of the structural rule",
+			"property_not_proven": "mutation of the verifier itself for these rules (E4); human judgement in mapping requirements to controls; non-ASVS sources are pinned by version/commit, not by vendored checksum",
 			"covers": [
 				{
 					"control": "CR-VERIFY-010",
@@ -533,6 +533,33 @@
 					"scope": "FULL",
 					"result": "SUPPORTS",
 					"note": "fixtures A, I, N"
+				},
+				{
+					"control": "CR-VERIFY-011",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "fixtures W1-W10 (derivation lock, applicability, release class, threshold, unrecorded change, pinned-source checksum and ASVS completeness), V1-V3 (documented clarifications)"
+				},
+				{
+					"control": "CR-VERIFY-004",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "fixtures T (behavioural test declared E5 -> LEVEL_EXCEEDS_TYPE) and T2 (node test relabelled real-system -> REAL_SYSTEM_WITHOUT_INFRASTRUCTURE)"
+				},
+				{
+					"control": "CR-VERIFY-003",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "enforcement only: fixtures X1 (E4 control without mutation cases cannot keep PASS), X2, P; completeness \"each security fix\" needs a fix inventory that does not exist"
 				}
 			],
 			"reproducible": true,
@@ -554,11 +581,14 @@
 				"known_bad_required": false
 			},
 			"control_ids": [
+				"CR-VERIFY-003",
+				"CR-VERIFY-004",
 				"CR-VERIFY-010",
+				"CR-VERIFY-011",
 				"CR-VERIFY-012"
 			],
-			"coverage": "FULL",
-			"reason_for_partial": null
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-VERIFY-003[P1]: enforcement only: fixtures X1 (E4 control without mutation cases cannot keep PASS), X2, P; completeness \"each security fix\" needs a fix inventory that does not exist"
 		},
 		{
 			"id": "EV-CSP-CFG",
@@ -1069,8 +1099,8 @@
 			"source": "repository",
 			"artifact": "test/guard-behaviour.test.mjs",
 			"test_or_proof": "test/guard-behaviour.test.mjs (real guard + skip policy in throwaway projects)",
-			"property_proven": "the guard fails on cancelled, failed, todo and unexpectedly skipped tests; the DB skip allowlist is exact (file + name) and only valid while M1_DB_TEST_PG_URL is unset; a run without test files fails",
-			"property_not_proven": "a test file that contains no tests at all still passes (finding F-2C-1)",
+			"property_proven": "the guard fails on cancelled, failed, todo and unexpectedly skipped tests and on a discovered test file without any test case (only an import, an empty suite, tests behind a false condition, a comment); the DB skip allowlist is exact (file + name) and only valid while M1_DB_TEST_PG_URL is unset; a run without test files fails; the CRSF test executor reports a case-less file as a failure",
+			"property_not_proven": "test files whose cases exist but assert nothing (vacuous tests) - outside this control",
 			"coverage": "FULL",
 			"reason_for_partial": null,
 			"covers": [
@@ -1088,7 +1118,8 @@
 					"properties": [
 						"P1",
 						"P2",
-						"P3"
+						"P3",
+						"P4"
 					],
 					"scope": "FULL",
 					"result": "SUPPORTS",
@@ -1848,9 +1879,9 @@
 			"level": "E4",
 			"source": "repository",
 			"artifact": "security/mutation/cases.json",
-			"test_or_proof": "npm run security:verify (mutation runner): 5 case(s)",
-			"property_proven": "guard mutations accepting cancelled, skipped or todo tests, or loosening the DB skip allowlist, are caught behaviourally",
-			"property_not_proven": "empty test files (F-2C-1)",
+			"test_or_proof": "npm run security:verify (mutation runner): 8 case(s)",
+			"property_proven": "guard mutations accepting cancelled, skipped or todo tests, loosening the DB skip allowlist, or letting a case-less test file pass (wrapper counted as a case, report line removed, executor result removed) are caught behaviourally",
+			"property_not_proven": "vacuous test cases",
 			"covers": [
 				{
 					"control": "CR-VERIFY-001",
@@ -1866,11 +1897,12 @@
 					"properties": [
 						"P1",
 						"P2",
-						"P3"
+						"P3",
+						"P4"
 					],
 					"scope": "FULL",
 					"result": "SUPPORTS",
-					"note": "mutation cases: MUT-CR-VERIFY-002-P1-NEW1, MUT-CR-VERIFY-002-P2-NEW1, MUT-CR-VERIFY-002-P3-NEW1, MUT-CR-VERIFY-002-P3-NEW2"
+					"note": "mutation cases: MUT-CR-VERIFY-002-P1-NEW1, MUT-CR-VERIFY-002-P2-NEW1, MUT-CR-VERIFY-002-P3-NEW1, MUT-CR-VERIFY-002-P3-NEW2, MUT-CR-VERIFY-002-P4-NEW1, MUT-CR-VERIFY-002-P4-NEW2, MUT-CR-VERIFY-002-P4-NEW3"
 				}
 			],
 			"reproducible": true,
@@ -1889,7 +1921,10 @@
 					"MUT-CR-VERIFY-002-P1-NEW1",
 					"MUT-CR-VERIFY-002-P2-NEW1",
 					"MUT-CR-VERIFY-002-P3-NEW1",
-					"MUT-CR-VERIFY-002-P3-NEW2"
+					"MUT-CR-VERIFY-002-P3-NEW2",
+					"MUT-CR-VERIFY-002-P4-NEW1",
+					"MUT-CR-VERIFY-002-P4-NEW2",
+					"MUT-CR-VERIFY-002-P4-NEW3"
 				],
 				"environment": [
 					"node"
@@ -5281,6 +5316,410 @@
 				"expected_result": "PASS",
 				"known_bad_required": false
 			}
+		},
+		{
+			"id": "EV-QUERY-AUTH",
+			"control_ids": [
+				"CR-API-004"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/query-authority.test.mjs",
+			"test_or_proof": "test/query-authority.test.mjs",
+			"property_proven": "every handler under api/ is classified (inventory test): positions and position-attributions reject any query before rate limit, session or lookup; alerts, config, csp-report, telegram and link/verify produce byte-identical responses and identical dependency calls (same arguments) with and without hostile queries (foreign wallet, admin, chat_id, role=service_role, debug, session, code, the webhook or cron secret, duplicate wallet); without the header secret no query authorizes alerts or telegram; link/verify takes code/wallet/signature only from the body; dashboard and link ignore undeclared names",
+			"property_not_proven": "handlers added later (the inventory test fails until classified); query effects outside the recorded dependency calls (none exist in these handlers)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-004[P1]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-API-004",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "query-handlers",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/query-authority.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-QUERY",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 4 case(s)",
+			"property_proven": "a query that grants cron authority, carries the webhook secret, overrides the link body or changes the public configuration is caught by the differential/negative tests",
+			"property_not_proven": "other conceivable query channels (covered by the identical-calls differential, not by a mutation each)",
+			"covers": [
+				{
+					"control": "CR-API-004",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-API-004-P1-NEW1, MUT-CR-API-004-P1-NEW2, MUT-CR-API-004-P1-NEW3, MUT-CR-API-004-P1-NEW4"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "query-handlers",
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-API-004-P1-NEW1",
+					"MUT-CR-API-004-P1-NEW2",
+					"MUT-CR-API-004-P1-NEW3",
+					"MUT-CR-API-004-P1-NEW4"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-API-004"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-004[P1]: mutation cases: MUT-CR-API-004-P1-NEW1, MUT-CR-API-004-P1-NEW2, MUT-CR-API-004-P1-NEW3, MUT-CR-API-004-P1-NEW4"
+		},
+		{
+			"id": "EV-TOKEN-MAC",
+			"control_ids": [
+				"CR-SESSION-001"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/token-mac.test.mjs",
+			"test_or_proof": "test/token-mac.test.mjs",
+			"property_proven": "P3: tokens signed with the real secret under sha1/224/384/512/512-256/sha3-256/md5 are rejected even when the token names that algorithm; alg none / empty signatures are rejected; key/kid/secret fields with a matching attacker signature are rejected while the same payload with the server key is accepted (fields inert). P2: every well-formed token reaches node:crypto.timingSafeEqual exactly once with the received and the expected MAC, and forcing its answer decides the outcome both ways (no other comparison exists); wrong-length MACs never reach a byte comparison",
+			"property_not_proven": "that timingSafeEqual itself runs in constant time (Node standard-library assurance, trust assumption); timing of the surrounding JSON parsing (after the MAC check)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-SESSION-001[P2,P3]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-SESSION-001",
+					"properties": [
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "token-mac",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/token-mac.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-TOKEN-MAC",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 4 case(s)",
+			"property_proven": "replacing timingSafeEqual by Buffer.equals, adding an early-exit byte comparison, or letting the token choose the HMAC algorithm or key is caught behaviourally",
+			"property_not_proven": "constant-time execution of timingSafeEqual itself (trust assumption)",
+			"covers": [
+				{
+					"control": "CR-SESSION-001",
+					"properties": [
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-SESSION-001-P2-NEW1, MUT-CR-SESSION-001-P2-NEW2, MUT-CR-SESSION-001-P3-NEW1, MUT-CR-SESSION-001-P3-NEW2"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "token-mac",
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-SESSION-001-P2-NEW1",
+					"MUT-CR-SESSION-001-P2-NEW2",
+					"MUT-CR-SESSION-001-P3-NEW1",
+					"MUT-CR-SESSION-001-P3-NEW2"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-SESSION-001"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-SESSION-001[P2,P3]: mutation cases: MUT-CR-SESSION-001-P2-NEW1, MUT-CR-SESSION-001-P2-NEW2, MUT-CR-SESSION-001-P3-NEW1, MUT-CR-SESSION-001-P3-NEW2"
+		},
+		{
+			"id": "EV-STRUCT-MAC-CMP",
+			"control_ids": [
+				"CR-SESSION-001"
+			],
+			"type": "static",
+			"level": "E1",
+			"source": "repository",
+			"artifact": "test/mac-structure.test.mjs",
+			"test_or_proof": "test/mac-structure.test.mjs (source-text check of the exact call site; structural, not behavioural)",
+			"property_proven": "the MAC bytes are compared only by node:crypto.timingSafeEqual at src/dashboard-auth.mjs:106 after a public length check; no ===, equals or compare on the MAC",
+			"property_not_proven": "behaviour (see EV-TOKEN-MAC / EV-KB-TOKEN-MAC); constant-time execution of the primitive itself",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-SESSION-001[P2]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-SESSION-001",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "token-mac",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/mac-structure.test.mjs"
+				],
+				"test_names": [
+					"^MAC-STRUCTURE: both",
+					"^MAC-STRUCTURE: the recorded",
+					"^MAC-STRUCTURE P2"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			},
+			"structural": {
+				"primitive": "node:crypto.timingSafeEqual",
+				"primitive_call": "timingSafeEqual(actual, expected)",
+				"call_site": "src/dashboard-auth.mjs:106",
+				"standard_library": true,
+				"client_selectable": false
+			}
+		},
+		{
+			"id": "EV-STRUCT-MAC-ALG",
+			"control_ids": [
+				"CR-SESSION-001"
+			],
+			"type": "static",
+			"level": "E1",
+			"source": "repository",
+			"artifact": "test/mac-structure.test.mjs",
+			"test_or_proof": "test/mac-structure.test.mjs (source-text check of the exact call site; structural, not behavioural)",
+			"property_proven": "the only HMAC construction is node:crypto.createHmac('sha256', secret()) at src/dashboard-auth.mjs:39: literal algorithm, key from DASHBOARD_SESSION_SECRET, nothing parsed from the token",
+			"property_not_proven": "behaviour (see EV-TOKEN-MAC / EV-KB-TOKEN-MAC); constant-time execution of the primitive itself",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-SESSION-001[P3]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-SESSION-001",
+					"properties": [
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "token-mac",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/mac-structure.test.mjs"
+				],
+				"test_names": [
+					"^MAC-STRUCTURE: both",
+					"^MAC-STRUCTURE: the recorded",
+					"^MAC-STRUCTURE P3"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			},
+			"structural": {
+				"primitive": "node:crypto.createHmac",
+				"primitive_call": "createHmac('sha256', secret())",
+				"call_site": "src/dashboard-auth.mjs:39",
+				"standard_library": true,
+				"client_selectable": false
+			}
+		},
+		{
+			"id": "EV-OUTBOUND",
+			"control_ids": [
+				"CR-PROVIDER-003"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/outbound-destinations.test.mjs",
+			"test_or_proof": "test/outbound-destinations.test.mjs",
+			"property_proven": "every outbound call site in src/ and api/ (16 files, inventory test fails on a new one) is driven with hostile inputs (foreign URLs, //host, ../, @host, %2F, CRLF, metadata IP, file:, localhost) through the real code - Telegram (bot via the real webhook, getChat, operator alerts, alerts/link-verify/dashboard senders), OpenAI, Nexus API + IPFS, Alchemy RPC/NFT, Infura RPC, Supabase REST - and every request goes to a fixed https host on the default port with a fixed path template; inputs only appear in encoded query values or bodies; malformed inputs are refused before any request",
+			"property_not_proven": "destinations chosen by operator configuration (SUPABASE_URL, provider keys) - trusted configuration; platform-level egress (no egress firewall); browser-side requests (frontend, other controls)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PROVIDER-003[P3]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-PROVIDER-003",
+					"properties": [
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "fetch-stub",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/outbound-destinations.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-PROBE-GETCODE",
+			"type": "behavioral",
+			"level": "E2",
+			"source": "repository",
+			"artifact": "security/crsf/probes/getcode-missing-result-probe.mjs",
+			"test_or_proof": "node security/crsf/probes/getcode-missing-result-probe.mjs",
+			"property_proven": "observation (finding F-2D-2): noContractCodeByQuorum returns true (\"no contract code\") when both providers answer eth_getCode without a result (result missing, result null, or an empty HTTP 200 body); controls behave normally (contract code -> false, 0x -> true, RPC error -> false)",
+			"property_not_proven": "exploitability against the real providers (requires both Alchemy and Infura to return such an answer at the same time)",
+			"covers": [
+				{
+					"control": "CR-PROVIDER-001",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "VIOLATION",
+					"note": "F-2D-2: eth_getCode answers without a result are read as \"0x\" (no code) via viem getCode undefined -> ?? '0x'; used by api/dashboard.mjs freshAuthorityRequired (legacy sessions) and src/bot.mjs walletWideFromChatAllowed"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "probe",
+				"script": "security/crsf/probes/getcode-missing-result-probe.mjs",
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 60000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			},
+			"control_ids": [
+				"CR-PROVIDER-001"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PROVIDER-001[P2]: F-2D-2: eth_getCode answers without a result are read as \"0x\" (no code) via viem getCode undefined -> ?? '0x'; used by api/dashboard.mjs freshAuthorityRequired (legacy sessions) and src/bot.mjs walletWideFromChatAllowed"
 		}
 	]
 }

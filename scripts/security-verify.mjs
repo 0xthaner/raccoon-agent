@@ -26,7 +26,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadDefinition, loadSchemas, validateSchemas, checkIntegrity, declaredOutcomes, evaluate, affectedDomains, sha256 } from '../security/crsf/lib/engine.mjs';
+import { loadDefinition, loadSchemas, validateSchemas, checkIntegrity, checkPinnedSources, declaredOutcomes, evaluate, affectedDomains, sha256 } from '../security/crsf/lib/engine.mjs';
 import { detectCapabilities, childEnv, executeNodeTestEvidence, executeProbe, executeMutations, mutationClaimMismatches, gitInfo, changedPaths } from '../security/crsf/lib/exec.mjs';
 import { runSelfTests } from '../security/crsf/selftest/framework-selftest.mjs';
 
@@ -50,14 +50,7 @@ if (!framework.length) {
 	framework.push(...integrity.errors);
 	declaredEval = integrity.evaluation;
 	// vendored pinned ASVS file: checksum + applicability covers exactly its requirements
-	for (const v of def.sources.vendored) {
-		const bytes = readFileSync(path.join(REPO, v.path));
-		if (sha256(bytes) !== v.sha256) framework.push({ code: 'VENDORED_CHECKSUM', detail: v.path });
-	}
-	const pinned = JSON.parse(readFileSync(path.join(REPO, def['asvs-applicability'].input), 'utf8')).requirements;
-	const items = def['asvs-applicability'].items;
-	if (pinned.length !== items.length) framework.push({ code: 'ASVS_COUNT_MISMATCH', detail: `${items.length} != ${pinned.length}` });
-	for (const r of pinned) { const i = items.find((x) => x.req_id === r.req_id); if (!i) framework.push({ code: 'ASVS_REQUIREMENT_MISSING', detail: r.req_id }); else if (i.level !== `L${r.L}`) framework.push({ code: 'ASVS_LEVEL_MISMATCH', detail: r.req_id }); }
+	framework.push(...checkPinnedSources(def, (file) => readFileSync(path.join(REPO, file))));
 }
 const base = arg('--base');
 let drift = null;
@@ -65,7 +58,7 @@ if (base) {
 	drift = affectedDomains(def, changedPaths(REPO, base));
 	try {
 		const baseLock = JSON.parse(execFileSync('git', ['show', `${base}:security/crsf/framework-lock.json`], { cwd: REPO, encoding: 'utf8' }));
-		if (!framework.length) for (const e of checkIntegrity({ ...def, 'framework-lock': baseLock }, declaredOutcomes(def)).errors.filter((x) => /SILENTLY|CHANGE_NOT|THRESHOLD|DELETION|VERSION_WITHOUT|PROFILE_CHANGED/.test(x.code))) framework.push({ ...e, detail: `${e.detail} (against lock at ${base})` });
+		if (!framework.length) for (const e of checkIntegrity({ ...def, 'framework-lock': baseLock }, declaredOutcomes(def)).errors.filter((x) => /SILENTLY|CHANGE_NOT|THRESHOLD|DELETION|VERSION_WITHOUT|PROFILE_CHANGED|REQUIREMENT_CHANGE/.test(x.code))) framework.push({ ...e, detail: `${e.detail} (against lock at ${base})` });
 	} catch { drift.base_lock = 'not present at base (framework introduced after base)'; }
 }
 log(`framework: ${framework.length ? `INVALID (${framework.length} error(s))` : 'valid'}`);

@@ -460,6 +460,373 @@
 					"reason": "allowed skips added for DBPRIV-DB and DASHBOARD-LOGIN-DB, only while M1_DB_TEST_PG_URL is unset."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2d",
+			"summary": "Phase 2D: F-2C-1 fixed (case-less test files fail the guard and the CRSF executor); CR-API-004 P1 clarified (reject or demonstrably ignore); property-specific structural rule for CR-SESSION-001 P2/P3; derivation locked (CR-VERIFY-011); real-system evidence must need real infrastructure (F-2D-1); application finding F-2D-2 recorded as a VIOLATION of CR-PROVIDER-001 P2 (stop condition B, not fixed).",
+			"changes": [
+				{
+					"id": "CR-API-004",
+					"kind": "REQUIREMENT_CLARIFICATION",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E3",
+					"before": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "every no-param endpoint rejects any query"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "duplicate single-value params rejected"
+							}
+						],
+						"derivation": {
+							"title": "Query parameters cannot alter scope",
+							"domain": "CR-API",
+							"source_refs": [
+								"SRC-ASVS V15.3.7"
+							],
+							"derivation_type": "EXTERNAL_STANDARD",
+							"external_requirement": "Defend against HTTP parameter pollution.",
+							"coverraccoon_requirement": "No-param endpoints reject queries; single-value params reject duplicates.",
+							"applicability_reason": "Feature present in CoverRaccoon at the verified commit.",
+							"profile_level": "ASVS_L2",
+							"applies_to": [
+								"src/request-query.mjs",
+								"api/*"
+							],
+							"threat": "scope confusion",
+							"expected_property": "unexpected/duplicate param -> 400",
+							"automation": "YES"
+						}
+					},
+					"after": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "every unexpected query parameter is rejected (400) or demonstrably ignored: it never selects authority, scope, object or response"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "duplicate single-value params rejected"
+							}
+						],
+						"derivation": {
+							"title": "Query parameters cannot alter scope",
+							"domain": "CR-API",
+							"source_refs": [
+								"SRC-ASVS V15.3.7"
+							],
+							"derivation_type": "EXTERNAL_STANDARD",
+							"external_requirement": "Defend against HTTP parameter pollution.",
+							"coverraccoon_requirement": "Unexpected query parameters are rejected or demonstrably ignored (never authority, scope or object selection); single-value params reject duplicates.",
+							"applicability_reason": "Feature present in CoverRaccoon at the verified commit.",
+							"profile_level": "ASVS_L2",
+							"applies_to": [
+								"src/request-query.mjs",
+								"api/*"
+							],
+							"threat": "scope confusion",
+							"expected_property": "unexpected param -> 400 or no observable effect on authority, scope, object or response; duplicate single-value param -> rejected",
+							"automation": "YES"
+						}
+					},
+					"rationale": "Owner decision (Phase 2D). P1 said \"every no-param endpoint rejects any query\". Five endpoints (alerts, config, csp-report, telegram, link/verify) never read the query at all. The threat of the control (scope confusion / HTTP parameter pollution, ASVS V15.3.7) is that a parameter changes authority, scope or the selected object; a parameter that is provably never read cannot do that. The wording is normalised to the security property: an unexpected parameter is rejected OR demonstrably ignored, where \"demonstrably\" means a behavioural differential (identical response and identical dependency calls with and without hostile parameters) plus negative tests that no parameter authorises a request.",
+					"why_not_weakening": "The security outcome required is unchanged: no query parameter may influence authority, scope or object. Rejection remains one way to meet it; ignoring now has to be PROVEN per endpoint by behaviour (not by source reading), every handler under api/ must be classified (inventory test fails on a new endpoint), and the duplicate-parameter rule (P2) is untouched. Nothing that previously failed now passes: the five endpoints were MISSING_EVIDENCE, never compliant-by-assumption.",
+					"evidence_added": [
+						"test/query-authority.test.mjs (EV-QUERY-AUTH, behavioural differential over all 9 API handlers)",
+						"EV-KB-QUERY: MUT-CR-API-004-P1-NEW1..NEW4"
+					],
+					"why_sufficient": "Behavioural E3 for P1 under the clarified wording (min E3): every handler classified; REJECTED handlers return 400 before any work; IGNORED handlers are byte-identical in response and dependency calls under 12 hostile query variants; no query grants cron or webhook authority; link/verify reads code/wallet only from the body. Four mutations that let a query grant authority, carry the secret, retarget the link or change the config are each killed.",
+					"remains_unproven": "Platform-level query handling before the function (Vercel routing) - out of scope; future handlers until classified.",
+					"reason": "framework requirement clarification (owner decision) + new reproducible evidence"
+				},
+				{
+					"id": "CR-SESSION-001",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E4",
+					"before": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "tampered or unsigned token rejected"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "MAC compared in constant time"
+							},
+							{
+								"id": "P3",
+								"kind": "REQUIREMENT",
+								"text": "algorithm and key not selectable by token"
+							}
+						],
+						"derivation": {
+							"title": "Self-contained tokens MAC-verified with fixed algorithm and server key",
+							"domain": "CR-SESSION",
+							"source_refs": [
+								"SRC-ASVS V9.1.1",
+								"SRC-ASVS V9.1.2",
+								"SRC-ASVS V9.1.3",
+								"SRC-ASVS V7.2.1"
+							],
+							"derivation_type": "EXTERNAL_STANDARD",
+							"external_requirement": "Validate MAC before content; algorithm allowlist; trusted key source; backend verification.",
+							"coverraccoon_requirement": "HMAC-SHA256 with DASHBOARD_SESSION_SECRET, constant-time compare, before any field is used.",
+							"applicability_reason": "Feature present in CoverRaccoon at the verified commit.",
+							"profile_level": "ASVS_L1",
+							"applies_to": [
+								"src/dashboard-auth.mjs"
+							],
+							"threat": "forged tokens",
+							"expected_property": "tampered/unsigned token rejected",
+							"automation": "YES"
+						}
+					},
+					"after": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "tampered or unsigned token rejected"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "MAC compared in constant time",
+								"evidence_basis": "STRUCTURAL"
+							},
+							{
+								"id": "P3",
+								"kind": "REQUIREMENT",
+								"text": "algorithm and key not selectable by token",
+								"evidence_basis": "STRUCTURAL"
+							}
+						],
+						"derivation": {
+							"title": "Self-contained tokens MAC-verified with fixed algorithm and server key",
+							"domain": "CR-SESSION",
+							"source_refs": [
+								"SRC-ASVS V9.1.1",
+								"SRC-ASVS V9.1.2",
+								"SRC-ASVS V9.1.3",
+								"SRC-ASVS V7.2.1"
+							],
+							"derivation_type": "EXTERNAL_STANDARD",
+							"external_requirement": "Validate MAC before content; algorithm allowlist; trusted key source; backend verification.",
+							"coverraccoon_requirement": "HMAC-SHA256 with DASHBOARD_SESSION_SECRET, constant-time compare, before any field is used.",
+							"applicability_reason": "Feature present in CoverRaccoon at the verified commit.",
+							"profile_level": "ASVS_L1",
+							"applies_to": [
+								"src/dashboard-auth.mjs"
+							],
+							"threat": "forged tokens",
+							"expected_property": "tampered/unsigned token rejected",
+							"automation": "YES"
+						}
+					},
+					"rationale": "Owner decision (Phase 2D): P2 (constant-time MAC compare) and P3 (algorithm/key not selectable) are implementation invariants. They are marked evidence_basis STRUCTURAL and allowlisted in profile.structural_property_rule, so executable static evidence at the exact call site may satisfy them at E1 and is then reported as structurally verified. Property texts are unchanged; only the marker is added.",
+					"why_not_weakening": "The control minimum stays E4 and P1 still needs E4 known-bad proof. The exception is limited to exactly these two properties by an exhaustive allowlist (any other STRUCTURAL marker or misplaced structural evidence is a framework error, self-tests U1-U4). In this phase both properties ALSO reached behavioural E4 (EV-TOKEN-MAC + EV-KB-TOKEN-MAC), so the structural rule is not load-bearing for the PASS.",
+					"evidence_added": [
+						"test/token-mac.test.mjs (EV-TOKEN-MAC)",
+						"EV-KB-TOKEN-MAC: MUT-CR-SESSION-001-P2-NEW1/NEW2, -P3-NEW1/NEW2",
+						"test/mac-structure.test.mjs (EV-STRUCT-MAC-CMP, EV-STRUCT-MAC-ALG; structural)"
+					],
+					"why_sufficient": "P2: instrumentation proves the MAC decision is made once and only by node:crypto.timingSafeEqual on the two MAC buffers (forced answers decide both ways); Buffer.equals or an early-exit byte compare are killed. P3: other HMAC algorithms with the real secret, alg none, and token-supplied keys are rejected; algorithm-from-token and key-from-token mutations are killed.",
+					"remains_unproven": "Constant-time execution of timingSafeEqual itself (Node standard-library assurance); timing of steps after the MAC check.",
+					"reason": "property-specific evidence rule (owner decision) + new reproducible evidence"
+				},
+				{
+					"id": "CR-VERIFY-002",
+					"kind": "PROPERTY_ADDED",
+					"old_status": "PASS_AUTOMATED",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E4",
+					"before": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "guard fails on unexpected skip"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "guard fails on todo"
+							},
+							{
+								"id": "P3",
+								"kind": "REQUIREMENT",
+								"text": "allowlisted skip only without DB variable"
+							}
+						],
+						"derivation": {
+							"title": "Unexpected skipped/todo tests fail CI; only exact allowlisted DB skips without DB",
+							"domain": "CR-VERIFY",
+							"source_refs": [
+								"CRSF_INTERNAL_POLICY"
+							],
+							"derivation_type": "CRSF_INTERNAL_POLICY",
+							"external_requirement": "(internal policy; SSDF PW.8 / SLSA verification principles where relevant)",
+							"coverraccoon_requirement": "Unexpected skipped/todo tests fail CI; only exact allowlisted DB skips without DB",
+							"applicability_reason": "Feature present in CoverRaccoon at the verified commit.",
+							"profile_level": "INTERNAL",
+							"applies_to": [
+								"scripts/run-tests-guarded.mjs",
+								"CI",
+								"security/crsf (Phase 2)"
+							],
+							"threat": "false confidence",
+							"expected_property": "Unexpected skipped/todo tests fail CI; only exact allowlisted DB skips without DB",
+							"automation": "YES"
+						}
+					},
+					"after": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "guard fails on unexpected skip"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "guard fails on todo"
+							},
+							{
+								"id": "P3",
+								"kind": "REQUIREMENT",
+								"text": "allowlisted skip only without DB variable"
+							},
+							{
+								"id": "P4",
+								"kind": "REQUIREMENT",
+								"text": "guard fails on a discovered test file without any test case"
+							}
+						],
+						"derivation": {
+							"title": "Unexpected skipped/todo tests fail CI; only exact allowlisted DB skips without DB",
+							"domain": "CR-VERIFY",
+							"source_refs": [
+								"CRSF_INTERNAL_POLICY"
+							],
+							"derivation_type": "CRSF_INTERNAL_POLICY",
+							"external_requirement": "(internal policy; SSDF PW.8 / SLSA verification principles where relevant)",
+							"coverraccoon_requirement": "Unexpected skipped/todo tests fail CI; only exact allowlisted DB skips without DB",
+							"applicability_reason": "Feature present in CoverRaccoon at the verified commit.",
+							"profile_level": "INTERNAL",
+							"applies_to": [
+								"scripts/run-tests-guarded.mjs",
+								"CI",
+								"security/crsf (Phase 2)"
+							],
+							"threat": "false confidence",
+							"expected_property": "Unexpected skipped/todo tests fail CI; only exact allowlisted DB skips without DB",
+							"automation": "YES"
+						}
+					},
+					"rationale": "Finding F-2C-1 (Phase 2C): a discovered test file without any test case passed the guard and the CRSF executor, because node:test reports the file wrapper as one passing test. P4 makes the fix a release-blocking requirement of the guard control.",
+					"why_not_weakening": "A property is added (stricter); existing properties P1-P3 and the E4 minimum are unchanged.",
+					"evidence_added": [
+						"scripts/file-case-accounting.mjs (shared per-file accounting)",
+						"test/guard-behaviour.test.mjs GUARD-EMPTYFILE (4 variants + control), EXEC-EMPTYFILE",
+						"EV-KB-GUARD: MUT-CR-VERIFY-002-P4-NEW1/NEW2/NEW3"
+					],
+					"why_sufficient": "The real guard and the real CRSF executor are run on throwaway projects: a case-less file (import only, empty suite, tests behind a false condition, comment only) fails the run next to a passing file; a file whose only test is the allowed DB skip is not flagged. Counting the wrapper as a case, dropping the guard report line or dropping the executor result are each killed.",
+					"remains_unproven": "Vacuous test cases (a test that asserts nothing) - not this property.",
+					"reason": "finding F-2C-1 fixed; property added"
+				},
+				{
+					"id": "F-2C-1",
+					"kind": "FINDING_FIXED",
+					"reason": "Test infrastructure, Low. Fixed in scripts/run-tests-guarded.mjs and security/crsf/lib/node-test-exec.mjs via scripts/file-case-accounting.mjs; behavioural proof GUARD-EMPTYFILE / EXEC-EMPTYFILE; known-bad MUT-CR-VERIFY-002-P4-NEW1..NEW3 KILLED. Full suite re-run: no case-less test file exists in the repository."
+				},
+				{
+					"id": "PROFILE",
+					"kind": "PROFILE_EXTENDED",
+					"reason": "structural_property_rule added (owner decision; exhaustive allowlist CR-SESSION-001 P2/P3); acceptance rule added; profile lock digest now also covers evidence_level_cap_by_type and structural_property_rule, so changing either needs a version + PROFILE record."
+				},
+				{
+					"id": "LOCK_FORMAT",
+					"kind": "LOCK_EXTENDED",
+					"reason": "framework-lock entries gain derivation_digest (title, domain, source_refs, derivation_type, external_requirement, coverraccoon_requirement, applicability_reason, profile_level, applies_to, threat, expected_property, automation). A changed derivation at the same version is DERIVATION_CHANGED_SILENTLY; with a version bump it needs a REQUIREMENT_CLARIFICATION/PROPERTY_ADDED/EVIDENCE_BASIS_CHANGE record with exact before/after wording, rationale and why_not_weakening (REQUIREMENT_CHANGE_NOT_DOCUMENTED). Applicability changes need APPLICABILITY_CHANGE. Old lock entries without the digest are compared on their recorded keys only."
+				},
+				{
+					"id": "CR-PROVIDER-003",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E3",
+					"evidence_added": [
+						"test/outbound-destinations.test.mjs (EV-OUTBOUND)"
+					],
+					"why_sufficient": "P3 (all other outbound destinations fixed): every outbound call site in src/ and api/ is inventoried (a new one fails the test) and driven through the real code with hostile inputs; every request goes to one of six fixed https hosts on the default port with a fixed path template, inputs only in encoded query values or bodies. P1/P2 were already satisfied by EV-NEXUS.",
+					"remains_unproven": "Operator-configured destinations (SUPABASE_URL, provider keys) are trusted configuration; no platform egress filter; frontend requests are other controls. Provider failure semantics (user item 4: timeout/exception/malformed/non-2xx) belong to CR-PROVIDER-001/-002 - checked in the same test for telegramTarget and the ERC-1271/getCode paths, which found F-2D-2.",
+					"reason": "new reproducible evidence (Phase 2D)"
+				},
+				{
+					"id": "CR-VERIFY-011",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E3",
+					"evidence_added": [
+						"framework-lock derivation_digest + checkPinnedSources in the engine",
+						"self-test fixtures W1-W10, V1-V3 (EV-CRSF-SELFTEST)"
+					],
+					"why_sufficient": "After results, narrowing expected_property, removing source refs or external ids, declaring N/A, reclassifying, lowering the minimum, or rewording a property is rejected at the same version (specific codes) and, with a version bump, needs a typed record with exact before/after wording checked against the lock digests; the vendored ASVS file is checksum-verified and the applicability list must equal it.",
+					"remains_unproven": "The human judgement of which requirement maps to which control is fixed and versioned, not mechanically re-derivable; non-ASVS sources are pinned by version/commit, not by a vendored checksum.",
+					"reason": "new reproducible evidence (Phase 2D)"
+				},
+				{
+					"id": "CR-PROVIDER-001",
+					"kind": "STATUS_CHANGE",
+					"old_status": "PASS_AUTOMATED",
+					"new_status": "FAIL",
+					"minimum_level": "E3",
+					"evidence_added": [
+						"security/crsf/probes/getcode-missing-result-probe.mjs (EV-PROBE-GETCODE, VIOLATION P2)"
+					],
+					"why_sufficient": "Reproducible observation of a P2 violation (getCode answers not strictly validated): a JSON-RPC answer without result is read as no code. FAIL is the correct status until the code is fixed; the probe exits 1 after a fix so the record must then be revisited.",
+					"remains_unproven": "n/a (finding)",
+					"reason": "application finding F-2D-2 (Phase 2D), not fixed - stop condition B"
+				},
+				{
+					"id": "F-2D-1",
+					"kind": "FRAMEWORK_FIX",
+					"reason": "Framework weakness found while building CR-VERIFY-004 evidence: the type cap (F-2C-3) allowed any item declared type real-system to reach E5, so a plain sequential node test relabelled real-system could satisfy a real-concurrency control. Fixed: reproducible real-system evidence must require a non-node capability (REAL_SYSTEM_WITHOUT_INFRASTRUCTURE); fixture T2. All 7 existing real-system items require postgres - no status changed."
+				},
+				{
+					"id": "F-2D-2",
+					"kind": "NEW_FINDING",
+					"reason": "Application, Low. noContractCodeByQuorum (src/contract-signature.mjs) uses viem getCode, which returns undefined both for a real 0x answer and for an answer without result; `?? '0x'` turns both into \"no contract code\". If both providers answer without result (missing, null, empty 200 body), a Safe/contract wallet is treated as EOA: api/dashboard.mjs freshAuthorityRequired skips the fresh Safe confirmation for legacy sessions without kind (Telegram disconnect, sign out everywhere), and src/bot.mjs walletWideFromChatAllowed lets a (possibly stale) Telegram chat run the wallet-wide unlink/revocation. Requires two independent TLS providers to return such answers simultaneously. Fix direction: call eth_getCode via client.request and accept only a hex string result (CODE_HEX), treating undefined/null as malformed (provider not ok). Not fixed in Phase 2D."
+				},
+				{
+					"id": "CR-VERIFY-003",
+					"kind": "FRAMEWORK_POLICY_GAP",
+					"reason": "P1 requires a committed mutation harness for EACH security fix. Enforcement is proven (fixtures X1, X2, P: an E4 control cannot PASS without a KILLED behavioural mutation), but no inventory of security fixes exists to show every fix maps to an E4 control. Decision needed: define \"security fix\" as the set of release-blocking E4 controls (clarification) or build a fix register (e.g. AGENT-SEC/AUDIT/META-AUDIT ids -> control/mutation). Stays MISSING_EVIDENCE."
+				},
+				{
+					"id": "CR-VERIFY-004",
+					"kind": "FRAMEWORK_POLICY_GAP",
+					"reason": "P1 (each concurrency control has a real-Postgres test) is a meta-property of the framework; its evidence is framework behaviour (fixtures T, T2; reduced-environment verify shows the CONC controls fall to MISSING without Postgres), i.e. behavioural E3. The control demands E5 real-system, which framework evidence cannot be without a relabel. Decision needed: lower CR-VERIFY-004 to E3 as a versioned THRESHOLD_REDUCTION for a meta-control, or accept it as permanently MISSING. Stays MISSING_EVIDENCE."
+				},
+				{
+					"id": "STOP-2D",
+					"kind": "STOP_CONDITION",
+					"reason": "Stop condition B (real application finding F-2D-2) reached during CR-PROVIDER-003. Not attempted: CR-RESOURCE-001, CR-INPUT-004, CR-BROWSER-004."
+				}
+			]
 		}
 	]
 }

@@ -78,6 +78,17 @@ Minimum levels by release class:
 
 Executable evidence only counts if it ran in this run and passed. Evidence that couldn't run (for example, no Postgres) counts as missing.
 
+An evidence item may not declare a level above the cap of its type (`evidence_level_cap_by_type`). Reproducible `real-system` evidence must also require a real-system capability such as Postgres; a plain Node test cannot call itself real-system (`REAL_SYSTEM_WITHOUT_INFRASTRUCTURE`).
+
+### Structural properties (one owner-approved exception)
+
+`profile.structural_property_rule` lets exactly the listed properties — currently CR-SESSION-001 P2 (constant-time MAC compare) and P3 (fixed algorithm and key) — be met by **structural** evidence at E1. Such evidence must:
+
+- be static and executable, so it is re-checked every run;
+- name a Node standard-library primitive, the exact `file:line` call site, `standard_library: true` and `client_selectable: false`.
+
+The property must also be marked `evidence_basis: STRUCTURAL` in its control. Any other marker, misplaced structural evidence, or a widened allowlist without a version is rejected. A property met only this way is reported as *structurally verified, not behaviourally mutation-proven*. (In 1.0-draft-phase2d both properties also have behavioural E4 proof.)
+
 ## Deviations
 
 A deviation exists only for a **CONFORMANCE** property that has a **VIOLATION** finding. It needs pinned protocol or platform sources and every eligibility criterion met:
@@ -120,20 +131,26 @@ Exit codes:
 - **FAIL:** a release-blocking FAIL or an evidence failure.
 - **INCOMPLETE_EVIDENCE:** everything else.
 
-At CRSF 1.0-draft-phase2a the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE`.
+At CRSF 1.0-draft-phase2d the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: FAIL`, because finding F-2D-2 is recorded as a VIOLATION of CR-PROVIDER-001 P2 and the run therefore exits 1 until it is fixed.
 
 ## Framework versions
 
-`framework-lock.json` records each control's release class, minimum level, applicability, external IDs and a property digest, plus a digest of the profile rules. If any of these change while `crsf_version` stays the same, the change is rejected:
+`framework-lock.json` records, per control: release class, minimum level, applicability, external IDs, a property digest and a derivation digest. The derivation digest covers title, domain, source refs, derivation type, the external and CoverRaccoon requirement texts, applicability reason, profile level, scope, threat, expected property and automation. The lock also holds a digest of the profile rules, including the type caps and the structural rule. If any of these change while `crsf_version` stays the same, the change is rejected:
 
 - `THRESHOLD_REDUCED_SILENTLY`
 - `RELEASE_CLASS_CHANGED_SILENTLY`
 - `CONTROL_DELETED_SILENTLY`
+- `APPLICABILITY_CHANGED_SILENTLY`
+- `DERIVATION_CHANGED_SILENTLY`
+- `PROPERTIES_CHANGED_SILENTLY`
+- `PROFILE_CHANGED_WITHOUT_VERSION`
 - `FRAMEWORK_CHANGED_WITHOUT_VERSION`
 
 After a version bump, every change must be listed for that version in `framework-changes.json`:
 
 - A threshold reduction must be declared as `THRESHOLD_REDUCTION`.
+- An applicability change must be declared as `APPLICABILITY_CHANGE`.
+- A changed requirement (properties, derivation or external IDs) needs a `REQUIREMENT_CLARIFICATION`, `PROPERTY_ADDED` or `EVIDENCE_BASIS_CHANGE` record. That record carries the exact `before` and `after` wording, which must hash to the old lock and the current definition, plus a `rationale` and `why_not_weakening`; otherwise the change fails with `REQUIREMENT_CHANGE_NOT_DOCUMENTED`.
 - A deletion needs `asvs_reconciliation`, and must not leave an applicable ASVS requirement unmapped.
 
 Only then will `crsf-gen --write` update the lock. With `--base <ref>`, the verifier also checks against the lock at that ref.
@@ -175,6 +192,11 @@ Drift only prioritises review. Verification always evaluates every control, so n
 - override flags and fields
 - unmapped ASVS requirements
 - statuses that don't recompute
+- derivation rewrites after results (expected property, sources, external IDs, applicability, class, minimum)
+- undocumented or fabricated requirement clarifications
+- tampered vendored sources or an incomplete ASVS list
+- an E4 control without mutation proof, and behavioural evidence relabelled E4, E5 or real-system
+- misuse of the structural rule (another property, widened allowlist, misplaced or incomplete structural evidence)
 
 It also checks that the executor flags unexpected skipped, cancelled and todo tests, and that a mutation declared KILLED whose test still passes is reported as a claim mismatch. Finally, it checks that generation is deterministic.
 

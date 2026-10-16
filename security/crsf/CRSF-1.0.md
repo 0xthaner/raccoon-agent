@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2c
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2d
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -8,10 +8,10 @@
 
 ### Security assurance
 
-- FAIL: 19
+- FAIL: 20
 - INFORMATIONAL: 2
-- MISSING_EVIDENCE: 55
-- PASS_AUTOMATED: 46
+- MISSING_EVIDENCE: 51
+- PASS_AUTOMATED: 49
 - PASS_MANUAL: 24
 
 ### Release classes
@@ -23,16 +23,17 @@
 
 ### Release-blocking controls by security status
 
-- MISSING_EVIDENCE: 9
-- PASS_AUTOMATED: 44
+- FAIL: 1
+- MISSING_EVIDENCE: 5
+- PASS_AUTOMATED: 47
 
 ### Standard conformance (ASVS 5.0.0, applicable requirements)
 
 - ACCEPTED_PLATFORM_DEVIATION: 1
 - ACCEPTED_PROTOCOL_DEVIATION: 2
-- CONFORMANT: 64
-- NON_CONFORMANT: 21
-- NOT_DEMONSTRATED: 74
+- CONFORMANT: 73
+- NON_CONFORMANT: 23
+- NOT_DEMONSTRATED: 63
 
 ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Profile: ASVS L2 (all applicable L1 + L2 requirements are in scope); selected L3: V6.7.2, V15.4.2, V15.4.3, V7.5.3, V3.5.8, V14.2.6, V14.2.7, V8.3.2, V2.3.5.
 
@@ -56,6 +57,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 - Mutation (known-bad) evidence counts for a property only if at least one case targeting it was KILLED by its expected failing test with behavioural detection, and no case targeting it SURVIVED, was killed for another reason, was invalid, or did not run in this run. EQUIVALENT cases are neutral.
 - A declared mutation result that differs from the observed result invalidates the framework run.
 - An evidence item may not declare a level above the cap of its type (evidence_level_cap_by_type); E5 therefore requires real-system evidence.
+- STRUCTURAL evidence satisfies only the properties listed in structural_property_rule.allowed (each also marked evidence_basis STRUCTURAL in its control), only as executable static evidence naming a standard-library primitive at an exact call site with client_selectable false; it is reported as structurally verified, not mutation-proven, and never applies to any other property.
 
 ## 3. Deviations
 
@@ -115,7 +117,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-AUTH-010 | Multi-factor or combined factors for access | SECURITY_DEBT | E1 | **FAIL** | NON_CONFORMANT | P1: wallet signature is the only factor [EV-INSPECT-ARCH] |
 | CR-AUTH-011 | Anti-automation controls for authentication documented | SECURITY_DEBT | E1 | **FAIL** | NON_CONFORMANT | P1: no anti-automation document [EV-DOC-INVENTORY] |
 | CR-AUTH-012 | No default or built-in accounts | MANUAL_ASSURANCE | E1 | **PASS_MANUAL** | CONFORMANT | all 1 sub-properties satisfied at >= E1 |
-| CR-SESSION-001 | Self-contained tokens MAC-verified with fixed algorithm and server key | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P2 unsatisfied; P3 unsatisfied |
+| CR-SESSION-001 | Self-contained tokens MAC-verified with fixed algorithm and server key | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E4 |
 | CR-SESSION-002 | Token validity enforced from signed exp; stored challenge expiry enforced | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E4 |
 | CR-SESSION-003 | Token type and purpose separation | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E4 |
 | CR-SESSION-004 | Session cookie attributes | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
@@ -129,7 +131,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-API-001 | Object-level authorization: wallet only from the verified session | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E4 |
 | CR-API-002 | Function-level authorization of machine endpoints | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E4 |
 | CR-API-003 | Strict request bodies validated server-side | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
-| CR-API-004 | Query parameters cannot alter scope | RELEASE_BLOCKING | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-ATTRIB) |
+| CR-API-004 | Query parameters cannot alter scope | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
 | CR-API-005 | Content-type and body-size limits independent of headers | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
 | CR-API-006 | Generic errors without internals; secure failure | SECURITY_DEBT | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-ATTRIB); P2 unsatisfied |
 | CR-API-007 | Response minimization | SECURITY_DEBT | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (below E3/not acceptable: EV-TG-ISO-SRC(E1: type not acceptable for minimum level)) |
@@ -158,9 +160,9 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-TELEGRAM-002 | Wallet-to-chat binding only via signed link flow | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E4 |
 | CR-TELEGRAM-003 | callback_data is untrusted input | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E4 |
 | CR-TELEGRAM-004 | Unlink/disconnect scope | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
-| CR-PROVIDER-001 | External data validated; failures fail closed | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E3 |
+| CR-PROVIDER-001 | External data validated; failures fail closed | RELEASE_BLOCKING | E3 | **FAIL** | NON_CONFORMANT | P2: F-2D-2: eth_getCode answers without a result are read as "0x" (no code) via viem getCode undefined -> ?? '0x'; used by api/dashboard.mjs freshAuthorityRequired (legacy sessions) and src/bot.mjs walletWideFromChatAllowed [EV-PROBE-GETCODE] |
 | CR-PROVIDER-002 | Outbound timeouts and bounded retries | SECURITY_DEBT | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-NEXUS,EV-RPC-RETRIES); P2 unsatisfied (partial only: EV-RPC-RETRIES) |
-| CR-PROVIDER-003 | Outbound destinations allowlisted (SSRF) | RELEASE_BLOCKING | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P3 unsatisfied (partial only: EV-TG) (below E3/not acceptable: EV-MUT-NEXUS-DOCUMENTS(E4,non-reproducible: non-reproducible (only dated manual records for MANUAL_ASSURANCE/automation NO))) |
+| CR-PROVIDER-003 | Outbound destinations allowlisted (SSRF) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
 | CR-DOC-001 | Remote document size, time and decompression bounds | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
 | CR-DOC-002 | PDF parser fails closed on hostile structure | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
 | CR-DOC-003 | Document cache bounded and product-scoped | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
@@ -238,16 +240,16 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-PRIV-008 | Client storage cleared after session termination | SECURITY_DEBT | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
 | CR-PRIV-009 | Anti-caching headers on sensitive responses | SECURITY_DEBT | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-PROD-HEADERS) |
 | CR-VERIFY-001 | Unexpected cancelled tests fail CI | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E4 |
-| CR-VERIFY-002 | Unexpected skipped/todo tests fail CI; only exact allowlisted DB skips without DB | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E4 |
-| CR-VERIFY-003 | Security fixes carry reproducible known-bad/mutation proof | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
-| CR-VERIFY-004 | Concurrency claims proven with real concurrent execution | RELEASE_BLOCKING | E5 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
+| CR-VERIFY-002 | Unexpected skipped/todo tests fail CI; only exact allowlisted DB skips without DB | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E4 |
+| CR-VERIFY-003 | Security fixes carry reproducible known-bad/mutation proof | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-CRSF-SELFTEST) |
+| CR-VERIFY-004 | Concurrency claims proven with real concurrent execution | RELEASE_BLOCKING | E5 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (below E5/not acceptable: EV-CRSF-SELFTEST(E3: type not acceptable for minimum level)) |
 | CR-VERIFY-005 | Security tests fail for the intended reason | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E4 |
 | CR-VERIFY-006 | Production-code vs test-only changes distinguished per release | MANUAL_ASSURANCE | E1 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
 | CR-VERIFY-007 | Deployed artifact equals intended commit | MANUAL_ASSURANCE | E1 | **PASS_MANUAL** | CONFORMANT | all 1 sub-properties satisfied at >= E1 |
 | CR-VERIFY-008 | Security claims identify untested/manual portions | MANUAL_ASSURANCE | E1 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
 | CR-VERIFY-009 | Tests that pass against known-bad code rejected as evidence | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E4 |
 | CR-VERIFY-010 | Release-blocking controls not weakened to preserve release | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
-| CR-VERIFY-011 | Controls derived from pinned sources before results | RELEASE_BLOCKING | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
+| CR-VERIFY-011 | Controls derived from pinned sources before results | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
 | CR-VERIFY-012 | Machine-readable status preserves FAIL and MISSING_EVIDENCE | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
 
 ## 5. Evidence
@@ -262,7 +264,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-COVERCHAIN | behavioral | E3 | node-test | PARTIAL | yes | cover index/chain strict validation |
 | EV-CRON-AUTH | behavioral | E3 | node-test | PARTIAL | yes | cron endpoint: correct secret runs; missing, wrong (same and other length), malformed and non-string secrets get 401 with no run/purge/delivery/alert; unconfigured CRON_SECRET fails closed |
 | EV-CRSF-ENGINE | behavioral | E3 | node-test | FULL | yes | the real mutation runner reports KILLED only for the named expected failure (else KILLED_OTHER/SURVIVED/INVALID); a declared EQUIVALENT that is detected is a claim violation; one SURVIVED/KILLED_OTHER/INVALID/NOT_RUN case, EQUIVALENT-only or static-only kills never prove a property |
-| EV-CRSF-SELFTEST | behavioral | E3 | crsf-selftest | FULL | yes | the verifier rejects known-bad framework fixtures: silent threshold reduction / release-class change (lock), manual status override, recorded status that does not recompute |
+| EV-CRSF-SELFTEST | behavioral | E3 | crsf-selftest | PARTIAL | yes | the verifier rejects known-bad framework fixtures: silent threshold reduction / release-class / applicability / derivation / property changes (lock), undocumented requirement clarifications, tampered pinned sources, manual status override, recorded status that does not recompute, E4 without a KILLED mutation, behavioural evidence relabelled E4/E5 or real-system without infrastructure, misuse of the structural rule |
 | EV-CSP-CFG | config | E1 | node-test | PARTIAL | yes | vercel.json CSP text |
 | EV-CSPRNG | behavioral | E3 | node-test | FULL | yes | challenge/action nonces, request ids, link code/nonce and dashboard access code are each the complete hex/base64url encoding of one node:crypto.randomBytes draw of 16/18/24 bytes; Math.random never used; no clock or counter mixed in |
 | EV-DBPRIV-DB | real-system | E5 | node-test | FULL | yes | RLS on every public table; anon/authenticated hold no table privilege and really get 42501 on read/insert/delete of every table; no role can CREATE in public; function EXECUTE matches the allowlist exactly (5 runtime RPCs + legacy consume_wallet_link for service_role only; internal helpers for nobody; PUBLIC nowhere); SECURITY DEFINER set and pinned search_path |
@@ -270,7 +272,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-ERC1271 | behavioral | E3 | node-test | PARTIAL | yes | magic exact, dual agreement, block binding, fail closed, budget |
 | EV-FRONTEND-SCAN | static | E1 | node-test | PARTIAL | yes | no HTML sinks in web/src |
 | EV-GH-SETTINGS | manual-production | E5 | manual | PARTIAL | no | default workflow token permissions = read |
-| EV-GUARD | behavioral | E3 | node-test | FULL | yes | the guard fails on cancelled, failed, todo and unexpectedly skipped tests; the DB skip allowlist is exact (file + name) and only valid while M1_DB_TEST_PG_URL is unset; a run without test files fails |
+| EV-GUARD | behavioral | E3 | node-test | FULL | yes | the guard fails on cancelled, failed, todo and unexpectedly skipped tests and on a discovered test file without any test case (only an import, an empty suite, tests behind a false condition, a comment); the DB skip allowlist is exact (file + name) and only valid while M1_DB_TEST_PG_URL is unset; a run without test files fails; the CRSF test executor reports a case-less file as a failure |
 | EV-H2-DB | real-system | E5 | node-test | PARTIAL | yes | single consume under 2/10/40 concurrency; one session per challenge; stored expiry enforced |
 | EV-H2-REQ | static | E1 | node-test | PARTIAL | yes | one conditional PATCH with all predicates |
 | EV-INSPECT-ARCH | manual-inspection | E1 | manual | PARTIAL | no | architecture facts |
@@ -280,7 +282,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-KB-CRON | known-bad | E4 | mutation | PARTIAL | yes | cron endpoint authentication: missing/wrong/length-only/unconfigured secret variants are caught by test/cron-auth.test.mjs (Phase 2B closed the Phase 2A gap) |
 | EV-KB-DBPRIV | known-bad | E4 | mutation | FULL | yes | privilege regressions (RLS off, table grant, CREATE grant, RPC grant to authenticated, exposed helper, PUBLIC execute) are each caught by the real-Postgres privilege test |
 | EV-KB-ENGINE | known-bad | E4 | mutation | FULL | yes | runner/engine mutations that count wrong-reason failures as kills or ignore SURVIVED cases are caught |
-| EV-KB-GUARD | known-bad | E4 | mutation | FULL | yes | guard mutations accepting cancelled, skipped or todo tests, or loosening the DB skip allowlist, are caught behaviourally |
+| EV-KB-GUARD | known-bad | E4 | mutation | FULL | yes | guard mutations accepting cancelled, skipped or todo tests, loosening the DB skip allowlist, or letting a case-less test file pass (wrapper counted as a case, report line removed, executor result removed) are caught behaviourally |
 | EV-KB-H2 | known-bad | E4 | mutation | PARTIAL | yes | challenge and access-code single use under real concurrency; stored expiry enforced (H2) |
 | EV-KB-L1 | known-bad | E4 | mutation | PARTIAL | yes | 60-row attribution limit atomic under real concurrency; idempotent re-confirmation (L1) |
 | EV-KB-L2 | known-bad | E4 | mutation | PARTIAL | yes | Telegram binding only through the signed link flow: signature bypasses and alternative binding RPCs are caught (L2) |
@@ -332,10 +334,18 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-TG | behavioral | E3 | node-test | PARTIAL | yes | webhook secret; private only; dedup; link row kinds; stale Safe authority |
 | EV-TG-ISO-SRC | static | E1 | node-test | PARTIAL | yes | source counts/strings |
 | EV-WEBHOOK-AUTH | behavioral | E3 | node-test | PARTIAL | yes | real webhook: wrong/missing/same-length/unconfigured secrets rejected before dedupe and bot; redelivered update_id acknowledged as duplicate without a second bot run |
+| EV-QUERY-AUTH | behavioral | E3 | node-test | PARTIAL | yes | every handler under api/ is classified (inventory test): positions and position-attributions reject any query before rate limit, session or lookup; alerts, config, csp-report, telegram and link/verify produce byte-identical responses and identical dependency calls (same arguments) with and without hostile queries (foreign wallet, admin, chat_id, role=service_role, debug, session, code, the webhook or cron secret, duplicate wallet); without the header secret no query authorizes alerts or telegram; link/verify takes code/wallet/signature only from the body; dashboard and link ignore undeclared names |
+| EV-KB-QUERY | known-bad | E4 | mutation | PARTIAL | yes | a query that grants cron authority, carries the webhook secret, overrides the link body or changes the public configuration is caught by the differential/negative tests |
+| EV-TOKEN-MAC | behavioral | E3 | node-test | PARTIAL | yes | P3: tokens signed with the real secret under sha1/224/384/512/512-256/sha3-256/md5 are rejected even when the token names that algorithm; alg none / empty signatures are rejected; key/kid/secret fields with a matching attacker signature are rejected while the same payload with the server key is accepted (fields inert). P2: every well-formed token reaches node:crypto.timingSafeEqual exactly once with the received and the expected MAC, and forcing its answer decides the outcome both ways (no other comparison exists); wrong-length MACs never reach a byte comparison |
+| EV-KB-TOKEN-MAC | known-bad | E4 | mutation | PARTIAL | yes | replacing timingSafeEqual by Buffer.equals, adding an early-exit byte comparison, or letting the token choose the HMAC algorithm or key is caught behaviourally |
+| EV-STRUCT-MAC-CMP | static | E1 | node-test | PARTIAL | yes | the MAC bytes are compared only by node:crypto.timingSafeEqual at src/dashboard-auth.mjs:106 after a public length check; no ===, equals or compare on the MAC |
+| EV-STRUCT-MAC-ALG | static | E1 | node-test | PARTIAL | yes | the only HMAC construction is node:crypto.createHmac('sha256', secret()) at src/dashboard-auth.mjs:39: literal algorithm, key from DASHBOARD_SESSION_SECRET, nothing parsed from the token |
+| EV-OUTBOUND | behavioral | E3 | node-test | PARTIAL | yes | every outbound call site in src/ and api/ (16 files, inventory test fails on a new one) is driven with hostile inputs (foreign URLs, //host, ../, @host, %2F, CRLF, metadata IP, file:, localhost) through the real code - Telegram (bot via the real webhook, getChat, operator alerts, alerts/link-verify/dashboard senders), OpenAI, Nexus API + IPFS, Alchemy RPC/NFT, Infura RPC, Supabase REST - and every request goes to a fixed https host on the default port with a fixed path template; inputs only appear in encoded query values or bodies; malformed inputs are refused before any request |
+| EV-PROBE-GETCODE | behavioral | E2 | probe | PARTIAL | yes | observation (finding F-2D-2): noContractCodeByQuorum returns true ("no contract code") when both providers answer eth_getCode without a result (result missing, result null, or an empty HTTP 200 body); controls behave normally (contract code -> false, 0x -> true, RPC error -> false) |
 
 ## 6. Mutation cases
 
-134 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+145 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -473,6 +483,17 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-VERIFY-002-P3-NEW2 | CR-VERIFY-002.P3 | behavioral | KILLED |
 | MUT-CR-VERIFY-005-P1-NEW1 | CR-VERIFY-005.P1 | behavioral | KILLED |
 | MUT-CR-VERIFY-009-P1-NEW1 | CR-VERIFY-009.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-002-P4-NEW1 | CR-VERIFY-002.P4 | behavioral | KILLED |
+| MUT-CR-VERIFY-002-P4-NEW2 | CR-VERIFY-002.P4 | behavioral | KILLED |
+| MUT-CR-VERIFY-002-P4-NEW3 | CR-VERIFY-002.P4 | behavioral | KILLED |
+| MUT-CR-API-004-P1-NEW1 | CR-API-004.P1 | behavioral | KILLED |
+| MUT-CR-API-004-P1-NEW2 | CR-API-004.P1 | behavioral | KILLED |
+| MUT-CR-API-004-P1-NEW3 | CR-API-004.P1 | behavioral | KILLED |
+| MUT-CR-API-004-P1-NEW4 | CR-API-004.P1 | behavioral | KILLED |
+| MUT-CR-SESSION-001-P2-NEW1 | CR-SESSION-001.P2 | behavioral | KILLED |
+| MUT-CR-SESSION-001-P2-NEW2 | CR-SESSION-001.P2 | behavioral | KILLED |
+| MUT-CR-SESSION-001-P3-NEW1 | CR-SESSION-001.P3 | behavioral | KILLED |
+| MUT-CR-SESSION-001-P3-NEW2 | CR-SESSION-001.P3 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -488,7 +509,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V1.2.9 | L2 | CR-INPUT-006 | NOT_DEMONSTRATED |
 | V1.3.2 | L1 | CR-BROWSER-004 | NOT_DEMONSTRATED |
 | V1.3.3 | L2 | CR-INPUT-007 | NOT_DEMONSTRATED |
-| V1.3.6 | L2 | CR-PROVIDER-003 | NOT_DEMONSTRATED |
+| V1.3.6 | L2 | CR-PROVIDER-003 | CONFORMANT |
 | V1.3.7 | L2 | CR-INPUT-013 | NOT_DEMONSTRATED |
 | V1.3.10 | L2 | CR-INPUT-008 | NOT_DEMONSTRATED |
 | V1.5.2 | L2 | CR-DOC-002 | CONFORMANT |
@@ -540,7 +561,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V6.7.2 | L3 | CR-AUTH-008 | CONFORMANT |
 | V7.1.1 | L2 | CR-SESSION-006 | NON_CONFORMANT |
 | V7.1.2 | L2 | CR-SESSION-009 | NON_CONFORMANT |
-| V7.2.1 | L1 | CR-SESSION-001 | NOT_DEMONSTRATED |
+| V7.2.1 | L1 | CR-SESSION-001 | CONFORMANT |
 | V7.2.2 | L1 | CR-AUTH-006 | CONFORMANT |
 | V7.2.4 | L1 | CR-AUTH-006 | CONFORMANT |
 | V7.3.1 | L2 | CR-SESSION-006 | NON_CONFORMANT |
@@ -558,9 +579,9 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V8.3.1 | L1 | CR-API-001 | CONFORMANT |
 | V8.3.2 | L3 | CR-SESSION-007 | CONFORMANT |
 | V8.4.1 | L2 | CR-API-001, CR-TELEGRAM-004 | CONFORMANT |
-| V9.1.1 | L1 | CR-SESSION-001 | NOT_DEMONSTRATED |
-| V9.1.2 | L1 | CR-SESSION-001 | NOT_DEMONSTRATED |
-| V9.1.3 | L1 | CR-SESSION-001 | NOT_DEMONSTRATED |
+| V9.1.1 | L1 | CR-SESSION-001 | CONFORMANT |
+| V9.1.2 | L1 | CR-SESSION-001 | CONFORMANT |
+| V9.1.3 | L1 | CR-SESSION-001 | CONFORMANT |
 | V9.2.1 | L1 | CR-SESSION-002 | CONFORMANT |
 | V9.2.2 | L2 | CR-SESSION-003 | CONFORMANT |
 | V9.2.3 | L2 | CR-SESSION-011 | NOT_DEMONSTRATED |
@@ -589,8 +610,8 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V13.2.1 | L2 | CR-TELEGRAM-001 | CONFORMANT |
 | V13.2.2 | L2 | CR-DB-001, CR-DB-002 | CONFORMANT |
 | V13.2.3 | L2 | CR-CONFIG-002 | NOT_DEMONSTRATED |
-| V13.2.4 | L2 | CR-PROVIDER-003 | NOT_DEMONSTRATED |
-| V13.2.5 | L2 | CR-PROVIDER-003 | NOT_DEMONSTRATED |
+| V13.2.4 | L2 | CR-PROVIDER-003 | CONFORMANT |
+| V13.2.5 | L2 | CR-PROVIDER-003 | CONFORMANT |
 | V13.3.1 | L2 | CR-SUPPLY-008 | NOT_DEMONSTRATED |
 | V13.3.2 | L2 | CR-SUPPLY-008 | NOT_DEMONSTRATED |
 | V13.4.1 | L1 | CR-SUPPLY-008 | NOT_DEMONSTRATED |
@@ -616,12 +637,12 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V15.2.2 | L2 | CR-RESOURCE-001, CR-RESOURCE-003, CR-RESOURCE-004, CR-DOC-003 | NOT_DEMONSTRATED |
 | V15.2.3 | L2 | CR-CONFIG-008 | CONFORMANT |
 | V15.3.1 | L1 | CR-API-007 | NOT_DEMONSTRATED |
-| V15.3.2 | L2 | CR-PROVIDER-003 | NOT_DEMONSTRATED |
+| V15.3.2 | L2 | CR-PROVIDER-003 | CONFORMANT |
 | V15.3.3 | L2 | CR-API-003 | CONFORMANT |
 | V15.3.4 | L2 | CR-API-011 | NOT_DEMONSTRATED |
 | V15.3.5 | L2 | CR-INPUT-011 | NOT_DEMONSTRATED |
 | V15.3.6 | L2 | CR-INPUT-012 | NOT_DEMONSTRATED |
-| V15.3.7 | L2 | CR-API-004 | NOT_DEMONSTRATED |
+| V15.3.7 | L2 | CR-API-004 | CONFORMANT |
 | V15.4.2 | L3 | CR-CONC-001, CR-CONC-002, CR-CONC-003, CR-CONC-004, CR-CONC-005, CR-RESOURCE-002 | NOT_DEMONSTRATED |
 | V15.4.3 | L3 | CR-CONC-006 | NOT_DEMONSTRATED |
 | V16.1.1 | L2 | CR-LOG-001 | NOT_DEMONSTRATED |
@@ -638,8 +659,8 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V16.4.2 | L2 | CR-LOG-008 | NOT_DEMONSTRATED |
 | V16.4.3 | L2 | CR-LOG-009 | NOT_DEMONSTRATED |
 | V16.5.1 | L2 | CR-API-006 | NOT_DEMONSTRATED |
-| V16.5.2 | L2 | CR-RESOURCE-003, CR-PROVIDER-001, CR-PROVIDER-002 | NOT_DEMONSTRATED |
-| V16.5.3 | L2 | CR-AUTH-005, CR-API-006, CR-PROVIDER-001 | NOT_DEMONSTRATED |
+| V16.5.2 | L2 | CR-RESOURCE-003, CR-PROVIDER-001, CR-PROVIDER-002 | NON_CONFORMANT |
+| V16.5.3 | L2 | CR-AUTH-005, CR-API-006, CR-PROVIDER-001 | NON_CONFORMANT |
 
 ## 8. Pinned sources
 
@@ -710,4 +731,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2a** — Materialised in the repository. JSON is authoritative; statuses recomputed by scripts/security-verify.mjs. Scratchpad mutation records EV-MUT-{L2,L3,H2,L1,L4,L5} replaced by reproducible mutation evidence EV-KB-* (security/mutation/cases.json, 66 cases). EV-CRSF-SELFTEST and EV-PROBE-LOW-S added. Owner sign-off field added (PENDING). Framework lock bootstrapped. No control definition, release class or minimum level changed.
 - **1.0-draft-phase2b** — Evidence closure for release-blocking controls: 11 closed (CR-API-002, CR-TELEGRAM-001, CR-AUTH-001/002/003/007, CR-SESSION-002/003/005/007, CR-CONC-005); 6 new test files, 37 new mutation cases; the Phase 2A surviving cron mutation is now KILLED. No application code changed.
 - **1.0-draft-phase2c** — Evidence closure continued: 10 release-blocking controls closed (CR-DB-001/002, CR-AUTH-004/006/008, CR-API-001, CR-VERIFY-001/002/005/009); EQUIVALENT and MULTI_LAYER mutation semantics; two framework fixes; one test-infrastructure finding; two framework-policy gaps reported. No application code changed.
+- **1.0-draft-phase2d** — Phase 2D: F-2C-1 fixed (case-less test files fail the guard and the CRSF executor); CR-API-004 P1 clarified (reject or demonstrably ignore); property-specific structural rule for CR-SESSION-001 P2/P3; derivation locked (CR-VERIFY-011); real-system evidence must need real infrastructure (F-2D-1); application finding F-2D-2 recorded as a VIOLATION of CR-PROVIDER-001 P2 (stop condition B, not fixed).
 

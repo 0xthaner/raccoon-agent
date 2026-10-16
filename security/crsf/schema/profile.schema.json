@@ -408,6 +408,70 @@
 					"E6"
 				]
 			}
+		},
+		"structural_property_rule": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"statement",
+				"allowed",
+				"evidence_types",
+				"minimum_level",
+				"required_fields"
+			],
+			"properties": {
+				"statement": {
+					"type": "string",
+					"minLength": 80
+				},
+				"allowed": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": [
+							"control",
+							"property"
+						],
+						"properties": {
+							"control": {
+								"type": "string",
+								"pattern": "^CR-[A-Z]+-[0-9]{3}$"
+							},
+							"property": {
+								"type": "string",
+								"pattern": "^P[0-9]+$"
+							}
+						}
+					},
+					"minItems": 0
+				},
+				"evidence_types": {
+					"type": "array",
+					"items": {
+						"enum": [
+							"static",
+							"config",
+							"manual-inspection"
+						]
+					},
+					"minItems": 1
+				},
+				"minimum_level": {
+					"enum": [
+						"E1",
+						"E2",
+						"E3"
+					]
+				},
+				"required_fields": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"minItems": 1
+				}
+			}
 		}
 	}
 }

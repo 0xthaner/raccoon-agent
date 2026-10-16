@@ -68,7 +68,27 @@ export function context(def) {
 	const evById = new Map(def.evidence.evidence.map((e) => [e.id, e]));
 	const casesByEvidence = new Map();
 	for (const m of def.mutations.cases) { if (!casesByEvidence.has(m.evidence_id)) casesByEvidence.set(m.evidence_id, []); casesByEvidence.get(m.evidence_id).push(m); }
-	return { p, levels: p.evidence_levels.map((l) => l.id), ctlById, evById, casesByEvidence, evidenceClass: p.evidence_type_classes };
+	return { p, levels: p.evidence_levels.map((l) => l.id), ctlById, evById, casesByEvidence, evidenceClass: p.evidence_type_classes, structural: structuralProperties(def) };
+}
+
+/*
+	Phase 2D: property-specific STRUCTURAL evidence rule (profile.structural_property_rule).
+	Only for (control, property) pairs that are BOTH allowlisted in the profile AND
+	marked evidence_basis STRUCTURAL in the control. Everything else keeps the
+	control's normal minimum level; checkIntegrity rejects any mismatch.
+*/
+function structuralProperties(def) {
+	const allowed = new Set((def.profile.structural_property_rule?.allowed ?? []).map((a) => `${a.control}.${a.property}`));
+	const out = new Set();
+	for (const c of def.controls.controls) for (const p of c.properties) if (p.evidence_basis === 'STRUCTURAL' && allowed.has(`${c.id}.${p.id}`)) out.add(`${c.id}.${p.id}`);
+	return out;
+}
+/** Is `e` complete structural evidence under the profile rule? */
+function structuralOk(ctx, e) {
+	const rule = ctx.p.structural_property_rule; const s = e.structural;
+	if (!rule || !s) return false;
+	return rule.evidence_types.includes(e.type) && e.reproducible === true && isExecutable(e) && typeof s.primitive === 'string' && s.primitive.length > 0
+		&& /^[A-Za-z0-9_./-]+:\d+$/.test(s.call_site ?? '') && s.standard_library === true && s.client_selectable === false;
 }
 const rank = (ctx, l) => ctx.levels.indexOf(l);
 
@@ -101,6 +121,11 @@ export function knownBadEffective(ctx, e, controlId, propertyId, outcomes) {
 
 function acceptable(ctx, e, c, propertyId, outcomes) {
 	if (e.known_bad_result === 'SURVIVED' && e.execution?.runner !== 'mutation') return { ok: false, why: 'known-bad check survived' };
+	if (e.structural && ctx.structural.has(`${c.id}.${propertyId}`)) {
+		if (!structuralOk(ctx, e)) return { ok: false, why: 'structural evidence incomplete (primitive, call_site, standard_library, client_selectable, executable)' };
+		const o = outcomes.evidence[e.id];
+		return o === 'PASS' ? { ok: true, structural: true } : { ok: false, why: `execution ${o ?? 'NOT_RUN'}` };
+	}
 	const cls = ctx.evidenceClass[e.type];
 	const required = ctx.p.required_types_by_level[c.minimum_evidence_level] ?? [];
 	if (isExecutable(e)) {
@@ -141,15 +166,18 @@ export function evaluateControl(ctx, def, c, outcomes, deviation = { props: new 
 	const detail = {}; let anyManual = false;
 	for (const p of c.properties) {
 		if (deviated.has(p.id)) { detail[p.id] = { deviated: true, satisfied_by: [], partial_only: [], insufficient: [] }; continue; }
-		const sats = [], partial = [], insufficient = [];
+		const sats = [], partial = [], insufficient = [], structural = [];
 		for (const { e, cv } of covers) {
 			if (cv.result !== 'SUPPORTS' || !cv.properties.includes(p.id)) continue;
 			if (cv.scope === 'PARTIAL') { partial.push(e.id); continue; }
 			const a = acceptable(ctx, e, c, p.id, outcomes);
-			if (a.ok && rank(ctx, e.level) >= rank(ctx, c.minimum_evidence_level)) sats.push(e);
+			// A structural property (profile allowlist only) is met at the rule's own minimum level.
+			const minimum = a.structural ? ctx.p.structural_property_rule.minimum_level : c.minimum_evidence_level;
+			if (a.ok && rank(ctx, e.level) >= rank(ctx, minimum)) { sats.push(e); if (a.structural) structural.push(e.id); }
 			else insufficient.push(`${e.id}(${e.level}${e.reproducible ? '' : ',non-reproducible'}${a.ok ? '' : `: ${a.why}`})`);
 		}
 		detail[p.id] = { satisfied_by: sats.map((e) => e.id), partial_only: partial, insufficient };
+		if (structural.length) detail[p.id].structurally_verified_by = structural;
 		if (sats.some((e) => !e.reproducible)) anyManual = true;
 	}
 	const unsat = (ids) => ids.filter((k) => !detail[k].deviated && !detail[k].satisfied_by.length && !defects.some((d) => d.pid === k));
@@ -159,7 +187,14 @@ export function evaluateControl(ctx, def, c, outcomes, deviation = { props: new 
 	if (defects.length) { security = 'FAIL'; sreason = defects.map((d) => d.text).join('; '); }
 	else if (unsat(all).length) { security = 'MISSING_EVIDENCE'; sreason = unsat(all).map(why).join('; '); }
 	else if (deviated.size) { security = 'INFORMATIONAL'; sreason = `${[...deviated].join('+')} covered by accepted ${deviation.type} deviation; all ${all.length - deviated.size} remaining sub-properties satisfied at >= ${c.minimum_evidence_level}; no defect`; }
-	else { security = anyManual ? 'PASS_MANUAL' : 'PASS_AUTOMATED'; sreason = `all ${all.length} sub-properties satisfied at >= ${c.minimum_evidence_level}`; }
+	else {
+		security = anyManual ? 'PASS_MANUAL' : 'PASS_AUTOMATED';
+		// Properties met ONLY by structural evidence are named: structurally verified, not mutation-proven.
+		const structuralOnly = all.filter((k) => detail[k].structurally_verified_by && detail[k].structurally_verified_by.length === detail[k].satisfied_by.length);
+		sreason = structuralOnly.length
+			? `all ${all.length} sub-properties satisfied; ${structuralOnly.join('+')} structurally verified (${ctx.p.structural_property_rule.minimum_level}, not behaviourally mutation-proven), the rest at >= ${c.minimum_evidence_level}`
+			: `all ${all.length} sub-properties satisfied at >= ${c.minimum_evidence_level}`;
+	}
 	const lit = c.properties.filter((p) => p.kind !== 'SECURITY').map((p) => p.id);
 	const litDefects = defects.filter((d) => d.kind !== 'SECURITY');
 	let conformance, creason;
@@ -275,16 +310,25 @@ export function checkIntegrity(def, declared) {
 		if (c.derivation_type === 'CRSF_INTERNAL_POLICY' && c.external_requirement_ids.length) err('INTERNAL_CLAIMS_EXTERNAL', c.id);
 		const pids = c.properties.map((p) => p.id);
 		if (new Set(pids).size !== pids.length) err('DUPLICATE_PROPERTY', c.id);
+		for (const p of c.properties) if (p.evidence_basis === 'STRUCTURAL' && !ctx.structural.has(`${c.id}.${p.id}`)) err('STRUCTURAL_BASIS_NOT_ALLOWED', `${c.id}.${p.id}: not in profile.structural_property_rule.allowed`);
 	}
+	for (const a of def.profile.structural_property_rule?.allowed ?? []) if (!ctx.structural.has(`${a.control}.${a.property}`)) err('STRUCTURAL_ALLOWLIST_UNMARKED', `${a.control}.${a.property}: allowlisted but the property is unknown or not marked evidence_basis STRUCTURAL`);
 	const cap = def.profile.evidence_level_cap_by_type ?? {};
 	for (const e of def.evidence.evidence) {
 		// Phase 2C (F-2C-3): a self-declared level may not exceed what the evidence type can show.
 		if (cap[e.type] && ctx.levels.indexOf(e.level) > ctx.levels.indexOf(cap[e.type])) err('LEVEL_EXCEEDS_TYPE', `${e.id}: ${e.type} capped at ${cap[e.type]}, declared ${e.level}`);
+		// Phase 2D (F-2D-1): "real-system" must actually need real infrastructure; a plain node test cannot call itself real-system.
+		if (e.type === 'real-system' && e.reproducible && !(e.execution?.environment ?? []).some((x) => x !== 'node')) err('REAL_SYSTEM_WITHOUT_INFRASTRUCTURE', `${e.id}: real-system evidence must require a real-system capability (e.g. postgres)`);
 		for (const cv of e.covers) {
 			const c = ctx.ctlById.get(cv.control);
 			if (!c) { err('UNKNOWN_CONTROL_REFERENCE', `${e.id} -> ${cv.control}`); continue; }
 			for (const pid of cv.properties) if (!c.properties.some((p) => p.id === pid)) err('UNKNOWN_PROPERTY_REFERENCE', `${e.id} -> ${cv.control}.${pid}`);
 			if (cv.scope === 'PARTIAL' && !cv.note) err('PARTIAL_WITHOUT_REASON', `${e.id} -> ${cv.control}`);
+		}
+		if (e.structural) {
+			const targets = e.covers.flatMap((cv) => cv.properties.map((p) => `${cv.control}.${p}`));
+			if (!targets.length || targets.some((t) => !ctx.structural.has(t))) err('STRUCTURAL_EVIDENCE_MISPLACED', `${e.id}: structural evidence may only cover allowlisted structural properties`);
+			if (!structuralOk(ctx, e)) err('STRUCTURAL_EVIDENCE_INCOMPLETE', e.id);
 		}
 		const derivedIds = [...new Set(e.covers.map((cv) => cv.control))].sort();
 		if (canonical(derivedIds) !== canonical(e.control_ids)) err('EVIDENCE_CONTROL_IDS_MISMATCH', e.id);
@@ -347,13 +391,35 @@ export function checkIntegrity(def, declared) {
 	return { errors, evaluation: ev };
 }
 
+/* ====================================================== pinned sources */
+/**
+ * Phase 2D (CR-VERIFY-011): the derivation inputs are pinned. The vendored
+ * requirement file must match its recorded checksum, and the applicability list
+ * must cover exactly its requirements at their levels. `read(path)` returns the
+ * bytes of a repository file.
+ */
+export function checkPinnedSources(def, read) {
+	const errors = []; const err = (code, detail) => errors.push({ code, detail });
+	for (const v of def.sources.vendored) if (sha256(read(v.path)) !== v.sha256) err('VENDORED_CHECKSUM', v.path);
+	const pinned = JSON.parse(read(def['asvs-applicability'].input).toString('utf8')).requirements;
+	const items = def['asvs-applicability'].items;
+	if (pinned.length !== items.length) err('ASVS_COUNT_MISMATCH', `${items.length} != ${pinned.length}`);
+	for (const r of pinned) { const i = items.find((x) => x.req_id === r.req_id); if (!i) err('ASVS_REQUIREMENT_MISSING', r.req_id); else if (i.level !== `L${r.L}`) err('ASVS_LEVEL_MISMATCH', r.req_id); }
+	return errors;
+}
+
 /* =========================================================== version lock */
+/** Phase 2D (CR-VERIFY-011): the derivation of a control - what it requires and from which source - is locked too, not only its threshold. */
+export const DERIVATION_FIELDS = ['title', 'domain', 'source_refs', 'derivation_type', 'external_requirement', 'coverraccoon_requirement', 'applicability_reason', 'profile_level', 'applies_to', 'threat', 'expected_property', 'automation'];
+export const derivationOf = (c) => Object.fromEntries(DERIVATION_FIELDS.map((k) => [k, c[k] ?? null]));
 export function lockEntry(c) {
-	return { release_class: c.release_class, minimum_evidence_level: c.minimum_evidence_level, applicability: c.applicability, external_requirement_ids: c.external_requirement_ids, properties_digest: sha256(c.properties) };
+	return { release_class: c.release_class, minimum_evidence_level: c.minimum_evidence_level, applicability: c.applicability, external_requirement_ids: c.external_requirement_ids, properties_digest: sha256(c.properties), derivation_digest: sha256(derivationOf(c)) };
 }
 export function profileLockDigest(profile) {
-	return sha256({ release_classes: profile.release_classes, minimum_levels: profile.minimum_levels, required_types_by_level: profile.required_types_by_level, acceptance_rules: profile.acceptance_rules, deviation_rules: profile.deviation_rules, evidence_levels: profile.evidence_levels });
+	return sha256({ release_classes: profile.release_classes, minimum_levels: profile.minimum_levels, required_types_by_level: profile.required_types_by_level, acceptance_rules: profile.acceptance_rules, deviation_rules: profile.deviation_rules, evidence_levels: profile.evidence_levels, evidence_level_cap_by_type: profile.evidence_level_cap_by_type ?? null, structural_property_rule: profile.structural_property_rule ?? null });
 }
+/** Change kinds that may alter what a control requires (properties or derivation) - each needs documented before/after wording. */
+export const REQUIREMENT_CHANGE_KINDS = ['REQUIREMENT_CLARIFICATION', 'PROPERTY_ADDED', 'EVIDENCE_BASIS_CHANGE'];
 export function buildLock(def) {
 	return { crsf_version: def.profile.crsf_version, profile_rules_digest: profileLockDigest(def.profile), controls: Object.fromEntries([...def.controls.controls].sort((a, b) => a.id.localeCompare(b.id)).map((c) => [c.id, lockEntry(c)])) };
 }
@@ -382,7 +448,10 @@ function checkLock(def, ctx) {
 		for (const ch of changed) {
 			const reduction = ch.kind === 'CHANGED' && (ch.diffs.includes('minimum_evidence_level') && ctx.levels.indexOf(ch.cur.minimum_evidence_level) < ctx.levels.indexOf(ch.old.minimum_evidence_level));
 			const weakened = ch.kind === 'CHANGED' && ch.diffs.includes('release_class') && ch.old.release_class === 'RELEASE_BLOCKING';
-			err(reduction ? 'THRESHOLD_REDUCED_SILENTLY' : weakened ? 'RELEASE_CLASS_CHANGED_SILENTLY' : ch.kind === 'REMOVED' ? 'CONTROL_DELETED_SILENTLY' : 'FRAMEWORK_CHANGED_WITHOUT_VERSION', `${ch.id}${ch.diffs ? ` (${ch.diffs.join(', ')})` : ''}`);
+			const has = (k) => ch.kind === 'CHANGED' && ch.diffs.includes(k);
+			const code = reduction ? 'THRESHOLD_REDUCED_SILENTLY' : weakened ? 'RELEASE_CLASS_CHANGED_SILENTLY' : ch.kind === 'REMOVED' ? 'CONTROL_DELETED_SILENTLY'
+				: has('applicability') ? 'APPLICABILITY_CHANGED_SILENTLY' : has('external_requirement_ids') || has('derivation_digest') ? 'DERIVATION_CHANGED_SILENTLY' : has('properties_digest') ? 'PROPERTIES_CHANGED_SILENTLY' : 'FRAMEWORK_CHANGED_WITHOUT_VERSION';
+			err(code, `${ch.id}${ch.diffs ? ` (${ch.diffs.join(', ')})` : ''}`);
 		}
 		return errors;
 	}
@@ -394,6 +463,18 @@ function checkLock(def, ctx) {
 		if (!rec) { err('CHANGE_NOT_RECORDED', `${ch.id} (${ch.kind})`); continue; }
 		const reduction = ch.kind === 'CHANGED' && ch.diffs.includes('minimum_evidence_level') && ctx.levels.indexOf(ch.cur.minimum_evidence_level) < ctx.levels.indexOf(ch.old.minimum_evidence_level);
 		if (reduction && rec.kind !== 'THRESHOLD_REDUCTION') err('THRESHOLD_REDUCTION_NOT_DECLARED', ch.id);
+		if (ch.kind === 'CHANGED' && ch.diffs.includes('applicability') && rec.kind !== 'APPLICABILITY_CHANGE') err('APPLICABILITY_CHANGE_NOT_DECLARED', ch.id);
+		// Phase 2D: a changed requirement (properties or derivation) must carry its exact before/after wording, a rationale and why it is not a weakening.
+		const requirementChanged = ch.kind === 'CHANGED' && (ch.diffs.includes('properties_digest') || ch.diffs.includes('derivation_digest') || ch.diffs.includes('external_requirement_ids'));
+		if (requirementChanged) {
+			const why = [];
+			if (!REQUIREMENT_CHANGE_KINDS.includes(rec.kind)) why.push(`kind ${rec.kind} is not one of ${REQUIREMENT_CHANGE_KINDS.join('/')}`);
+			if (!(typeof rec.rationale === 'string' && rec.rationale.length >= 40)) why.push('rationale missing');
+			if (!(typeof rec.why_not_weakening === 'string' && rec.why_not_weakening.length >= 40)) why.push('why_not_weakening missing');
+			if (ch.diffs.includes('properties_digest') && (sha256(rec.before?.properties ?? null) !== ch.old.properties_digest || sha256(rec.after?.properties ?? null) !== ch.cur.properties_digest)) why.push('before/after properties do not match the lock and the definition');
+			if (ch.diffs.includes('derivation_digest') && (sha256(rec.before?.derivation ?? null) !== ch.old.derivation_digest || sha256(rec.after?.derivation ?? null) !== ch.cur.derivation_digest)) why.push('before/after derivation does not match the lock and the definition');
+			if (why.length) err('REQUIREMENT_CHANGE_NOT_DOCUMENTED', `${ch.id}: ${why.join('; ')}`);
+		}
 		if (ch.kind === 'REMOVED') {
 			if (rec.kind !== 'REMOVED' || !Array.isArray(rec.asvs_reconciliation)) err('DELETION_NOT_RECONCILED', ch.id);
 			for (const req of ch.old.external_requirement_ids.filter((x) => /^V\d/.test(x))) {

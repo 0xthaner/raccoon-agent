@@ -10,6 +10,7 @@
 	Erkennung, ein Prozess je Datei) und scheitert bei:
 	- jedem fehlgeschlagenen oder abgebrochenen Test,
 	- jedem `todo`,
+	- jeder Testdatei ohne einen einzigen Testfall (CRSF Phase 2D, F-2C-1),
 	- jedem Skip, der nicht exakt (Datei + Testname) in scripts/skip-policy.mjs erlaubt ist,
 	- einem Lauf ohne Tests.
 
@@ -21,6 +22,7 @@ import { run } from 'node:test';
 import { spec } from 'node:test/reporters';
 import path from 'node:path';
 import { isAllowedSkip } from './skip-policy.mjs';
+import { createFileAccounting } from './file-case-accounting.mjs';
 
 // Erlaubte Skips: siehe scripts/skip-policy.mjs (gemeinsam mit `npm run security:verify`).
 
@@ -28,9 +30,14 @@ const relative = (file) => path.relative(process.cwd(), file ?? '').split(path.s
 const problems = [];
 const count = { tests: 0, pass: 0, fail: 0, cancelled: 0, skipped: 0, todo: 0 };
 
+const files = createFileAccounting();
+
 const stream = run({ concurrency: true });
-stream.on('test:pass', ({ name, file, skip, todo, details }) => {
-	if (details?.type === 'suite') return;
+stream.on('test:enqueue', files.discover);
+stream.on('test:pass', (event) => {
+	// Suites and the per-file wrapper are not test cases (an empty file is reported as one passing wrapper).
+	if (!files.observe(event)) return;
+	const { name, file, skip, todo } = event;
 	count.tests++;
 	const id = `${relative(file)} :: ${name}`;
 	if (todo !== undefined) { count.todo++; problems.push(`TODO       ${id}`); return; }
@@ -41,7 +48,9 @@ stream.on('test:pass', ({ name, file, skip, todo, details }) => {
 	}
 	count.pass++;
 });
-stream.on('test:fail', ({ name, file, details }) => {
+stream.on('test:fail', (event) => {
+	files.observe(event);
+	const { name, file, details } = event;
 	if (details?.type === 'suite') return;
 	count.tests++;
 	const cancelled = details?.error?.failureType === 'cancelledByParent';
@@ -51,6 +60,7 @@ stream.on('test:fail', ({ name, file, details }) => {
 stream.compose(spec).pipe(process.stdout);
 stream.on('end', () => {
 	if (!count.tests) problems.push('KEINE TESTS gefunden');
+	for (const file of files.emptyFiles()) problems.push(`LEER       ${relative(file)} :: keine Testfaelle in der Datei`);
 	const summary = Object.entries(count).map(([k, v]) => `${k}=${v}`).join(' ');
 	if (problems.length) {
 		process.stderr.write(`\nTEST-WAECHTER: ${summary}\nTEST-WAECHTER: ${problems.length} Problem(e)\n${problems.map((p) => `  ${p}`).join('\n')}\n`);

@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2c",
+	"crsf_version": "1.0-draft-phase2d",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -1083,12 +1083,14 @@
 				{
 					"id": "P2",
 					"kind": "REQUIREMENT",
-					"text": "MAC compared in constant time"
+					"text": "MAC compared in constant time",
+					"evidence_basis": "STRUCTURAL"
 				},
 				{
 					"id": "P3",
 					"kind": "REQUIREMENT",
-					"text": "algorithm and key not selectable by token"
+					"text": "algorithm and key not selectable by token",
+					"evidence_basis": "STRUCTURAL"
 				}
 			],
 			"release_class": "RELEASE_BLOCKING",
@@ -1103,7 +1105,11 @@
 			"current_evidence_ids": [
 				"EV-KB-AUTH",
 				"EV-KB-L4",
-				"EV-L4"
+				"EV-KB-TOKEN-MAC",
+				"EV-L4",
+				"EV-STRUCT-MAC-ALG",
+				"EV-STRUCT-MAC-CMP",
+				"EV-TOKEN-MAC"
 			],
 			"property_coverage": {
 				"P1": {
@@ -1117,28 +1123,47 @@
 					]
 				},
 				"P2": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-TOKEN-MAC",
+						"EV-STRUCT-MAC-CMP"
+					],
 					"partial_only": [],
-					"insufficient": []
+					"insufficient": [
+						"EV-TOKEN-MAC(E3: type not acceptable for minimum level)"
+					],
+					"structurally_verified_by": [
+						"EV-STRUCT-MAC-CMP"
+					]
 				},
 				"P3": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-TOKEN-MAC",
+						"EV-STRUCT-MAC-ALG"
+					],
 					"partial_only": [],
-					"insufficient": []
+					"insufficient": [
+						"EV-TOKEN-MAC(E3: type not acceptable for minimum level)"
+					],
+					"structurally_verified_by": [
+						"EV-STRUCT-MAC-ALG"
+					]
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P2 unsatisfied; P3 unsatisfied",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P2 unsatisfied; P3 unsatisfied",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 3 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 3 sub-properties satisfied at >= E4",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
 					"behavioral",
-					"known-bad"
+					"known-bad",
+					"static"
 				],
-				"independent_classes": 2,
-				"shared_fixture_groups": []
+				"independent_classes": 3,
+				"shared_fixture_groups": [
+					"token-mac"
+				]
 			}
 		},
 		{
@@ -2287,7 +2312,7 @@
 			],
 			"derivation_type": "EXTERNAL_STANDARD",
 			"external_requirement": "Defend against HTTP parameter pollution.",
-			"coverraccoon_requirement": "No-param endpoints reject queries; single-value params reject duplicates.",
+			"coverraccoon_requirement": "Unexpected query parameters are rejected or demonstrably ignored (never authority, scope or object selection); single-value params reject duplicates.",
 			"applicability": "APPLICABLE",
 			"applicability_reason": "Feature present in CoverRaccoon at the verified commit.",
 			"profile_level": "ASVS_L2",
@@ -2296,12 +2321,12 @@
 				"api/*"
 			],
 			"threat": "scope confusion",
-			"expected_property": "unexpected/duplicate param -> 400",
+			"expected_property": "unexpected param -> 400 or no observable effect on authority, scope, object or response; duplicate single-value param -> rejected",
 			"properties": [
 				{
 					"id": "P1",
 					"kind": "REQUIREMENT",
-					"text": "every no-param endpoint rejects any query"
+					"text": "every unexpected query parameter is rejected (400) or demonstrably ignored: it never selects authority, scope, object or response"
 				},
 				{
 					"id": "P2",
@@ -2320,11 +2345,16 @@
 			],
 			"current_evidence_ids": [
 				"EV-ATTRIB",
-				"EV-QUERY"
+				"EV-KB-QUERY",
+				"EV-QUERY",
+				"EV-QUERY-AUTH"
 			],
 			"property_coverage": {
 				"P1": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-QUERY-AUTH",
+						"EV-KB-QUERY"
+					],
 					"partial_only": [
 						"EV-ATTRIB"
 					],
@@ -2338,17 +2368,20 @@
 					"insufficient": []
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied (partial only: EV-ATTRIB)",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied (partial only: EV-ATTRIB)",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 2 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 2 sub-properties satisfied at >= E3",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
-					"behavioral"
+					"behavioral",
+					"known-bad"
 				],
-				"independent_classes": 1,
-				"shared_fixture_groups": []
+				"independent_classes": 2,
+				"shared_fixture_groups": [
+					"query-handlers"
+				]
 			}
 		},
 		{
@@ -4577,7 +4610,8 @@
 				"EV-KB-L4",
 				"EV-KB-L5",
 				"EV-L4",
-				"EV-L5-DB"
+				"EV-L5-DB",
+				"EV-PROBE-GETCODE"
 			],
 			"property_coverage": {
 				"P1": {
@@ -4612,10 +4646,10 @@
 					"insufficient": []
 				}
 			},
-			"conformance_status": "CONFORMANT",
-			"conformance_status_reason": "all 4 requirement properties demonstrated",
-			"security_status": "PASS_AUTOMATED",
-			"security_status_reason": "all 4 sub-properties satisfied at >= E3",
+			"conformance_status": "NON_CONFORMANT",
+			"conformance_status_reason": "P2: F-2D-2: eth_getCode answers without a result are read as \"0x\" (no code) via viem getCode undefined -> ?? '0x'; used by api/dashboard.mjs freshAuthorityRequired (legacy sessions) and src/bot.mjs walletWideFromChatAllowed [EV-PROBE-GETCODE]",
+			"security_status": "FAIL",
+			"security_status_reason": "P2: F-2D-2: eth_getCode answers without a result are read as \"0x\" (no code) via viem getCode undefined -> ?? '0x'; used by api/dashboard.mjs freshAuthorityRequired (legacy sessions) and src/bot.mjs walletWideFromChatAllowed [EV-PROBE-GETCODE]",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
@@ -4757,6 +4791,7 @@
 			"current_evidence_ids": [
 				"EV-MUT-NEXUS-DOCUMENTS",
 				"EV-NEXUS",
+				"EV-OUTBOUND",
 				"EV-TG"
 			],
 			"property_coverage": {
@@ -4779,7 +4814,9 @@
 					]
 				},
 				"P3": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-OUTBOUND"
+					],
 					"partial_only": [
 						"EV-TG"
 					],
@@ -4788,10 +4825,10 @@
 					]
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P3 unsatisfied (partial only: EV-TG) (below E3/not acceptable: EV-MUT-NEXUS-DOCUMENTS(E4,non-reproducible: non-reproducible (only dated manual records for MANUAL_ASSURANCE/automation NO)))",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P3 unsatisfied (partial only: EV-TG) (below E3/not acceptable: EV-MUT-NEXUS-DOCUMENTS(E4,non-reproducible: non-reproducible (only dated manual records for MANUAL_ASSURANCE/automation NO)))",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 3 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 3 sub-properties satisfied at >= E3",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
@@ -9933,6 +9970,11 @@
 					"id": "P3",
 					"kind": "REQUIREMENT",
 					"text": "allowlisted skip only without DB variable"
+				},
+				{
+					"id": "P4",
+					"kind": "REQUIREMENT",
+					"text": "guard fails on a discovered test file without any test case"
 				}
 			],
 			"release_class": "RELEASE_BLOCKING",
@@ -9982,12 +10024,21 @@
 					"insufficient": [
 						"EV-GUARD(E3: type not acceptable for minimum level)"
 					]
+				},
+				"P4": {
+					"satisfied_by": [
+						"EV-KB-GUARD"
+					],
+					"partial_only": [],
+					"insufficient": [
+						"EV-GUARD(E3: type not acceptable for minimum level)"
+					]
 				}
 			},
 			"conformance_status": "CONFORMANT",
-			"conformance_status_reason": "all 3 requirement properties demonstrated",
+			"conformance_status_reason": "all 4 requirement properties demonstrated",
 			"security_status": "PASS_AUTOMATED",
-			"security_status_reason": "all 3 sub-properties satisfied at >= E4",
+			"security_status_reason": "all 4 sub-properties satisfied at >= E4",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
@@ -10037,22 +10088,28 @@
 			"required_evidence_types": [
 				"known-bad"
 			],
-			"current_evidence_ids": [],
+			"current_evidence_ids": [
+				"EV-CRSF-SELFTEST"
+			],
 			"property_coverage": {
 				"P1": {
 					"satisfied_by": [],
-					"partial_only": [],
+					"partial_only": [
+						"EV-CRSF-SELFTEST"
+					],
 					"insufficient": []
 				}
 			},
 			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied",
+			"conformance_status_reason": "P1 unsatisfied (partial only: EV-CRSF-SELFTEST)",
 			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied",
+			"security_status_reason": "P1 unsatisfied (partial only: EV-CRSF-SELFTEST)",
 			"deviation_ids": [],
 			"independence": {
-				"evidence_classes": [],
-				"independent_classes": 0,
+				"evidence_classes": [
+					"behavioral"
+				],
+				"independent_classes": 1,
 				"shared_fixture_groups": []
 			}
 		},
@@ -10093,22 +10150,28 @@
 			"required_evidence_types": [
 				"real-system"
 			],
-			"current_evidence_ids": [],
+			"current_evidence_ids": [
+				"EV-CRSF-SELFTEST"
+			],
 			"property_coverage": {
 				"P1": {
 					"satisfied_by": [],
 					"partial_only": [],
-					"insufficient": []
+					"insufficient": [
+						"EV-CRSF-SELFTEST(E3: type not acceptable for minimum level)"
+					]
 				}
 			},
 			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied",
+			"conformance_status_reason": "P1 unsatisfied (below E5/not acceptable: EV-CRSF-SELFTEST(E3: type not acceptable for minimum level))",
 			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied",
+			"security_status_reason": "P1 unsatisfied (below E5/not acceptable: EV-CRSF-SELFTEST(E3: type not acceptable for minimum level))",
 			"deviation_ids": [],
 			"independence": {
-				"evidence_classes": [],
-				"independent_classes": 0,
+				"evidence_classes": [
+					"behavioral"
+				],
+				"independent_classes": 1,
 				"shared_fixture_groups": []
 			}
 		},
@@ -10513,22 +10576,28 @@
 			"required_evidence_types": [
 				"behavioral"
 			],
-			"current_evidence_ids": [],
+			"current_evidence_ids": [
+				"EV-CRSF-SELFTEST"
+			],
 			"property_coverage": {
 				"P1": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-CRSF-SELFTEST"
+					],
 					"partial_only": [],
 					"insufficient": []
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 1 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 1 sub-properties satisfied at >= E3",
 			"deviation_ids": [],
 			"independence": {
-				"evidence_classes": [],
-				"independent_classes": 0,
+				"evidence_classes": [
+					"behavioral"
+				],
+				"independent_classes": 1,
 				"shared_fixture_groups": []
 			}
 		},

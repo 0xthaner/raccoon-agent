@@ -411,6 +411,37 @@
 							}
 						}
 					]
+				},
+				"structural": {
+					"type": "object",
+					"additionalProperties": false,
+					"required": [
+						"primitive",
+						"primitive_call",
+						"call_site",
+						"standard_library",
+						"client_selectable"
+					],
+					"properties": {
+						"primitive": {
+							"type": "string",
+							"minLength": 1
+						},
+						"primitive_call": {
+							"type": "string",
+							"minLength": 1
+						},
+						"call_site": {
+							"type": "string",
+							"pattern": "^[A-Za-z0-9_./-]+:[0-9]+$"
+						},
+						"standard_library": {
+							"type": "boolean"
+						},
+						"client_selectable": {
+							"type": "boolean"
+						}
+					}
 				}
 			}
 		}

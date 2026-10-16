@@ -1,6 +1,6 @@
 {
 	"id": "CRSF-1.0/COVER-RACCOON-PROFILE",
-	"crsf_version": "1.0-draft-phase2c",
+	"crsf_version": "1.0-draft-phase2d",
 	"asvs_target": {
 		"baseline": "ASVS L2 (all applicable L1 + L2 requirements are in scope)",
 		"selected_l3": [
@@ -101,7 +101,8 @@
 		"Executable evidence counts only if it was executed in this run and passed; evidence that could not run (missing environment) counts as missing, never as passed.",
 		"Mutation (known-bad) evidence counts for a property only if at least one case targeting it was KILLED by its expected failing test with behavioural detection, and no case targeting it SURVIVED, was killed for another reason, was invalid, or did not run in this run. EQUIVALENT cases are neutral.",
 		"A declared mutation result that differs from the observed result invalidates the framework run.",
-		"An evidence item may not declare a level above the cap of its type (evidence_level_cap_by_type); E5 therefore requires real-system evidence."
+		"An evidence item may not declare a level above the cap of its type (evidence_level_cap_by_type); E5 therefore requires real-system evidence.",
+		"STRUCTURAL evidence satisfies only the properties listed in structural_property_rule.allowed (each also marked evidence_basis STRUCTURAL in its control), only as executable static evidence naming a standard-library primitive at an exact call site with client_selectable false; it is reported as structurally verified, not mutation-proven, and never applies to any other property."
 	],
 	"status_axes": {
 		"conformance_status": "Does the implementation meet the literal external (or CRSF-internal) requirement? CONFORMANT | NON_CONFORMANT | NOT_DEMONSTRATED | ACCEPTED_PROTOCOL_DEVIATION | ACCEPTED_PLATFORM_DEVIATION | NOT_APPLICABLE | DEFERRED. NOT_DEMONSTRATED is a Phase-1C extension: without evidence neither CONFORMANT nor NON_CONFORMANT can be asserted.",
@@ -229,5 +230,29 @@
 		"known-bad": "E4",
 		"real-system": "E5",
 		"manual-production": "E5"
+	},
+	"structural_property_rule": {
+		"statement": "Owner decision (Phase 2D): two implementation invariants of CR-SESSION-001 may be satisfied by STRUCTURAL evidence because constant-time behaviour and algorithm fixation are not reliably observable by black-box mutation in JavaScript. Such evidence is static, executable (re-checked every run against the exact call site), names a Node standard-library primitive and records that no client input selects or replaces it. Properties met this way are reported as structurally verified, never as behaviourally mutation-proven. The allowlist is exhaustive; any other property marked STRUCTURAL is a framework error.",
+		"allowed": [
+			{
+				"control": "CR-SESSION-001",
+				"property": "P2"
+			},
+			{
+				"control": "CR-SESSION-001",
+				"property": "P3"
+			}
+		],
+		"evidence_types": [
+			"static"
+		],
+		"minimum_level": "E1",
+		"required_fields": [
+			"primitive",
+			"primitive_call",
+			"call_site",
+			"standard_library",
+			"client_selectable"
+		]
 	}
 }

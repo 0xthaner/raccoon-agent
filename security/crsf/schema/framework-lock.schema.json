@@ -64,6 +64,10 @@
 					"properties_digest": {
 						"type": "string",
 						"pattern": "^[0-9a-f]{64}$"
+					},
+					"derivation_digest": {
+						"type": "string",
+						"pattern": "^[0-9a-f]{64}$"
 					}
 				}
 			}

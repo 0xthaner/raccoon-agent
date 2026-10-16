@@ -13,7 +13,7 @@
 | `tests` | test files to run against the mutated copy |
 | `environment` | `node`, optionally `postgres` (disposable Postgres via `M1_DB_TEST_PG_URL` + `M1_DB_TEST_PG_MODULE`) |
 | `expected_failures` | regexes for the failing test name (and optionally its assertion message) that count as the intended reason |
-| `expected_result` | `KILLED`, or `SURVIVED` for a documented test gap |
+| `expected_result` | `KILLED`, `SURVIVED` for a documented test gap, or `EQUIVALENT` with a written proof |
 | `detection` | `behavioral`, or `static` when only source-text/export checks catch it (recorded, never E4) |
 
 ## How a run works

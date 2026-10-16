@@ -14,8 +14,9 @@
 	`node --test` discovery never runs them as part of the repository suite.
 */
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { loadDefinition, loadSchemas, validateSchemas, checkIntegrity, declaredOutcomes } from '../lib/engine.mjs';
+import { loadDefinition, loadSchemas, validateSchemas, checkIntegrity, checkPinnedSources, declaredOutcomes, derivationOf } from '../lib/engine.mjs';
 import { runTests, classifyOutcomes, childEnv, detectCapabilities, createWorkspace, runMutation, mutationClaimMismatches } from '../lib/exec.mjs';
 import { generate } from '../generator/crsf-gen.mjs';
 
@@ -26,6 +27,26 @@ const clone = (x) => structuredClone(x);
 const ctl = (def, id) => def.controls.controls.find((c) => c.id === id);
 const evi = (def, id) => def.evidence.evidence.find((e) => e.id === id);
 const dev = (def, id) => def.deviations.deviations.find((d) => d.id === id);
+const mut = (def, id) => def.mutations.cases.find((m) => m.id === id);
+const VERSIONED = ['profile', 'controls', 'evidence', 'deviations', 'sources', 'asvs-applicability', 'drift-model'];
+/** Bumps every definition file to a fresh version and opens a change entry for it (records added by the fixture). */
+function bump(d, records = []) {
+	for (const k of VERSIONED) d[k].crsf_version = '1.0-draft-phase2z';
+	d['framework-changes'].versions.push({ crsf_version: '1.0-draft-phase2z', summary: 'fixture', changes: records });
+	return d['framework-changes'].versions.at(-1);
+}
+/** Removes every mutation case targeting `control` and keeps the known-bad evidence consistent (ids, covers). */
+function dropMutationsFor(d, control) {
+	d.mutations.cases = d.mutations.cases.filter((m) => !m.targets.some((t) => t.control === control));
+	const live = new Set(d.mutations.cases.map((m) => m.id));
+	for (const e of d.evidence.evidence.filter((x) => x.execution?.runner === 'mutation')) {
+		e.execution.mutation_ids = e.execution.mutation_ids.filter((id) => live.has(id));
+		e.covers = e.covers.filter((cv) => cv.control !== control);
+		e.control_ids = [...new Set(e.covers.map((cv) => cv.control))].sort();
+	}
+	d.evidence.evidence = d.evidence.evidence.filter((e) => e.execution?.runner !== 'mutation' || e.execution.mutation_ids.length);
+}
+const fakeStructural = (d, control, property) => ({ ...clone(evi(d, 'EV-STRUCT-MAC-CMP')), id: 'EV-FAKE-STRUCT', covers: [{ control, properties: [property], scope: 'FULL', result: 'SUPPORTS', note: null }], control_ids: [control], coverage: 'PARTIAL', reason_for_partial: `${control}[${property}]: x` });
 
 /** Definition fixtures: [id, description, expected code, optional detail regex, mutate(def)] */
 export const DEFINITION_FIXTURES = [
@@ -56,11 +77,41 @@ export const DEFINITION_FIXTURES = [
 	['S', 'MULTI_LAYER mutation without a rationale', 'MULTI_LAYER_WITHOUT_RATIONALE', /MUT-CR-AUTH-004-P1-NEW1/, (d) => { delete d.mutations.cases.find((m) => m.id === 'MUT-CR-AUTH-004-P1-NEW1').layering_rationale; }],
 	['S2', 'MULTI_LAYER label on a single-edit mutation', 'MULTI_LAYER_WITHOUT_RATIONALE', /MUT-CR-AUTH-001-P3-NEW1/, (d) => { const m = d.mutations.cases.find((x) => x.id === 'MUT-CR-AUTH-001-P3-NEW1'); m.layering = 'MULTI_LAYER'; m.layering_rationale = 'pretending one removed check is a multi-layer defect here'; }],
 	['T', 'sequential behavioural test declared as E5 real-system concurrency evidence', 'LEVEL_EXCEEDS_TYPE', /EV-FAKE-CONCURRENCY/, (d) => { d.evidence.evidence.push({ ...clone(evi(d, 'EV-L3')), id: 'EV-FAKE-CONCURRENCY', level: 'E5', covers: [{ control: 'CR-CONC-001', properties: ['P1'], scope: 'FULL', result: 'SUPPORTS', note: null }], control_ids: ['CR-CONC-001'], coverage: 'PARTIAL', reason_for_partial: 'CR-CONC-001[P1]: x' }); }],
-	['P', 'reproducible known-bad evidence without mutation cases', 'KNOWN_BAD_WITHOUT_MUTATION_RUNNER', /EV-FAKE-KB/, (d) => { d.evidence.evidence.push({ ...clone(evi(d, 'EV-SIWE')), id: 'EV-FAKE-KB', type: 'known-bad', level: 'E4', known_bad_checked: true, known_bad_result: 'KILLED' }); }]
+	['P', 'reproducible known-bad evidence without mutation cases', 'KNOWN_BAD_WITHOUT_MUTATION_RUNNER', /EV-FAKE-KB/, (d) => { d.evidence.evidence.push({ ...clone(evi(d, 'EV-SIWE')), id: 'EV-FAKE-KB', type: 'known-bad', level: 'E4', known_bad_checked: true, known_bad_result: 'KILLED' }); }],
+
+	// Phase 2D - structural rule (CR-SESSION-001 P2/P3 only): the exception cannot spread.
+	['U1', 'another E4 control property marked STRUCTURAL (not allowlisted)', 'STRUCTURAL_BASIS_NOT_ALLOWED', /CR-AUTH-001\.P1/, (d) => { ctl(d, 'CR-AUTH-001').properties[0].evidence_basis = 'STRUCTURAL'; }],
+	['U2', 'allowlist widened to another control at the same version', 'PROFILE_CHANGED_WITHOUT_VERSION', null, (d) => { d.profile.structural_property_rule.allowed.push({ control: 'CR-AUTH-001', property: 'P1' }); ctl(d, 'CR-AUTH-001').properties[0].evidence_basis = 'STRUCTURAL'; }],
+	['U3', 'structural evidence pointed at a non-allowlisted E4 property', 'STRUCTURAL_EVIDENCE_MISPLACED', /EV-FAKE-STRUCT/, (d) => { d.evidence.evidence.push(fakeStructural(d, 'CR-AUTH-001', 'P1')); }],
+	['U4', 'structural evidence that admits client selection', 'STRUCTURAL_EVIDENCE_INCOMPLETE', /EV-STRUCT-MAC-CMP/, (d) => { evi(d, 'EV-STRUCT-MAC-CMP').structural.client_selectable = true; }],
+	['U5', 'P2 left to invalid structural evidence only (mutation proof removed) keeps its recorded PASS', 'STATUS_NOT_RECOMPUTABLE', /CR-SESSION-001\.security_status/, (d) => {
+		d.mutations.cases = d.mutations.cases.filter((m) => !m.targets.some((t) => t.control === 'CR-SESSION-001' && t.property === 'P2'));
+		const kb = evi(d, 'EV-KB-TOKEN-MAC'); kb.execution.mutation_ids = kb.execution.mutation_ids.filter((id) => !id.includes('-P2-')); kb.covers[0].properties = ['P3'];
+		evi(d, 'EV-STRUCT-MAC-CMP').structural.standard_library = false; }],
+	// Phase 2D - requirement clarifications must be documented exactly and cannot be silent (CR-API-004 policy, CR-VERIFY-011).
+	['V1', 'requirement reworded under a version bump, clarification record without before/after', 'REQUIREMENT_CHANGE_NOT_DOCUMENTED', /CR-API-002/, (d) => { ctl(d, 'CR-API-002').properties[0].text = 'cron endpoint checks something'; bump(d, [{ id: 'CR-API-002', kind: 'REQUIREMENT_CLARIFICATION', reason: 'x', rationale: 'r'.repeat(50), why_not_weakening: 'w'.repeat(50) }]); }],
+	['V2', 'clarification record whose "before" wording was fabricated', 'REQUIREMENT_CHANGE_NOT_DOCUMENTED', /do not match/, (d) => { const c = ctl(d, 'CR-API-002'); const after = clone(c.properties); after[0].text = 'cron endpoint checks something'; c.properties = after; bump(d, [{ id: 'CR-API-002', kind: 'REQUIREMENT_CLARIFICATION', reason: 'x', rationale: 'r'.repeat(50), why_not_weakening: 'w'.repeat(50), before: { properties: [{ id: 'P1', kind: 'REQUIREMENT', text: 'invented' }] }, after: { properties: after } }]); }],
+	['V3', 'requirement reworded at the same version', 'PROPERTIES_CHANGED_SILENTLY', /CR-API-002/, (d) => { ctl(d, 'CR-API-002').properties[0].text = 'cron endpoint checks something'; }],
+	// Phase 2D - CR-VERIFY-011: derivation cannot be rewritten after results.
+	['W1', 'expected_property narrowed after the result (same version)', 'DERIVATION_CHANGED_SILENTLY', /CR-INPUT-004/, (d) => { ctl(d, 'CR-INPUT-004').expected_property = 'nothing to check'; }],
+	['W2', 'source requirement mapping removed (source_refs, same version)', 'DERIVATION_CHANGED_SILENTLY', /CR-RESOURCE-001/, (d) => { ctl(d, 'CR-RESOURCE-001').source_refs = ctl(d, 'CR-RESOURCE-001').source_refs.slice(0, 1); }],
+	['W3', 'external requirement ids removed (same version)', 'DERIVATION_CHANGED_SILENTLY', /CR-RESOURCE-001/, (d) => { ctl(d, 'CR-RESOURCE-001').external_requirement_ids = ctl(d, 'CR-RESOURCE-001').external_requirement_ids.slice(0, 1); }],
+	['W4', 'MISSING control declared NOT_APPLICABLE (same version)', 'APPLICABILITY_CHANGED_SILENTLY', /CR-INPUT-004/, (d) => { const c = ctl(d, 'CR-INPUT-004'); c.applicability = 'NOT_APPLICABLE'; c.applicability_reason = 'not needed'; }],
+	['W5', 'MISSING control declared NOT_APPLICABLE with a version bump but no APPLICABILITY_CHANGE record', 'APPLICABILITY_CHANGE_NOT_DECLARED', /CR-INPUT-004/, (d) => { const c = ctl(d, 'CR-INPUT-004'); const before = derivationOf(c); c.applicability = 'NOT_APPLICABLE'; c.applicability_reason = 'not needed'; bump(d, [{ id: 'CR-INPUT-004', kind: 'REQUIREMENT_CLARIFICATION', reason: 'x', rationale: 'r'.repeat(50), why_not_weakening: 'w'.repeat(50), before: { derivation: before }, after: { derivation: derivationOf(c) } }]); }],
+	['W6', 'release-blocking control reclassified to make the assertion pass (same version)', 'RELEASE_CLASS_CHANGED_SILENTLY', /CR-INPUT-004/, (d) => { ctl(d, 'CR-INPUT-004').release_class = 'SECURITY_DEBT'; }],
+	['W7', 'minimum evidence lowered for a MISSING control (same version)', 'THRESHOLD_REDUCED_SILENTLY', /CR-RESOURCE-001/, (d) => { ctl(d, 'CR-RESOURCE-001').minimum_evidence_level = 'E1'; }],
+	['W8', 'property narrowed with a version bump but no change record', 'CHANGE_NOT_RECORDED', /CR-RESOURCE-001/, (d) => { ctl(d, 'CR-RESOURCE-001').properties[3].text = 'positions limited'; bump(d); }],
+	['W9', 'vendored pinned requirement file checksum does not match', 'VENDORED_CHECKSUM', null, (d) => { d.sources.vendored[0].sha256 = '0'.repeat(64); }],
+	['W10', 'pinned ASVS requirement dropped from the applicability list', 'ASVS_COUNT_MISMATCH', null, (d) => { d['asvs-applicability'].items.pop(); }],
+	// Phase 2D - CR-VERIFY-003 / CR-VERIFY-004: E4 needs a KILLED mutation, E5 needs real infrastructure.
+	['X1', 'E4 control keeps PASS with its behavioural test but every mutation case removed', 'STATUS_NOT_RECOMPUTABLE', /CR-TELEGRAM-001\.security_status/, (d) => { dropMutationsFor(d, 'CR-TELEGRAM-001'); }],
+	['X2', 'behavioural test relabelled E4 to replace the removed mutation proof', 'LEVEL_EXCEEDS_TYPE', /EV-FAKE-E4/, (d) => { dropMutationsFor(d, 'CR-TELEGRAM-001'); d.evidence.evidence.push({ ...clone(evi(d, 'EV-SIWE')), id: 'EV-FAKE-E4', level: 'E4', covers: [{ control: 'CR-TELEGRAM-001', properties: ctl(d, 'CR-TELEGRAM-001').properties.map((p) => p.id), scope: 'FULL', result: 'SUPPORTS', note: null }], control_ids: ['CR-TELEGRAM-001'], coverage: 'FULL', reason_for_partial: null }); }],
+	['T2', 'sequential node test relabelled type real-system (fake real concurrency, E5 within the cap)', 'REAL_SYSTEM_WITHOUT_INFRASTRUCTURE', /EV-FAKE-REAL/, (d) => { d.evidence.evidence.push({ ...clone(evi(d, 'EV-L3')), id: 'EV-FAKE-REAL', type: 'real-system', level: 'E5', covers: [{ control: 'CR-CONC-001', properties: ['P1'], scope: 'FULL', result: 'SUPPORTS', note: 'claims real concurrency' }], control_ids: ['CR-CONC-001'], coverage: 'PARTIAL', reason_for_partial: 'CR-CONC-001[P1]: x' }); }]
 ];
 
 function definitionErrors(def, schemas) {
-	return [...validateSchemas(def, schemas), ...checkIntegrity(def, declaredOutcomes(def)).errors];
+	const schemaErrors = validateSchemas(def, schemas);
+	return [...schemaErrors, ...checkIntegrity(def, declaredOutcomes(def)).errors, ...checkPinnedSources(def, (file) => readFileSync(path.join(REPO, file)))];
 }
 
 function runDefinitionFixtures(base, schemas) {

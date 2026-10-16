@@ -5040,6 +5040,372 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-002-P4-NEW1",
+			"origin": "new (Phase 2D)",
+			"evidence_id": "EV-KB-GUARD",
+			"targets": [
+				{
+					"control": "CR-VERIFY-002",
+					"property": "P4"
+				}
+			],
+			"description": "per-file accounting counts the file wrapper as a test case (F-2C-1 reintroduced)",
+			"edits": [
+				{
+					"file": "scripts/file-case-accounting.mjs",
+					"find": "return Boolean(file) && path.resolve(cwd, String(name)) === path.resolve(file);",
+					"replace": "return false;"
+				}
+			],
+			"tests": [
+				"test/guard-behaviour.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^GUARD-EMPTYFILE: a discovered test file"
+				},
+				{
+					"test": "^EXEC-EMPTYFILE"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-002-P4-NEW2",
+			"origin": "new (Phase 2D)",
+			"evidence_id": "EV-KB-GUARD",
+			"targets": [
+				{
+					"control": "CR-VERIFY-002",
+					"property": "P4"
+				}
+			],
+			"description": "guard no longer reports case-less files",
+			"edits": [
+				{
+					"file": "scripts/run-tests-guarded.mjs",
+					"find": "for (const file of files.emptyFiles()) problems.push(`LEER       ${relative(file)} :: keine Testfaelle in der Datei`);",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/guard-behaviour.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^GUARD-EMPTYFILE: a discovered test file"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-002-P4-NEW3",
+			"origin": "new (Phase 2D)",
+			"evidence_id": "EV-KB-GUARD",
+			"targets": [
+				{
+					"control": "CR-VERIFY-002",
+					"property": "P4"
+				}
+			],
+			"description": "CRSF test executor no longer reports case-less files",
+			"edits": [
+				{
+					"file": "security/crsf/lib/node-test-exec.mjs",
+					"find": "for (const file of accounting.emptyFiles()) results.push({ file: relative(file), name: '(no test cases)', outcome: 'fail', message: 'test file contains no test cases' });",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/guard-behaviour.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^EXEC-EMPTYFILE"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-API-004-P1-NEW1",
+			"origin": "new (Phase 2D)",
+			"evidence_id": "EV-KB-QUERY",
+			"targets": [
+				{
+					"control": "CR-API-004",
+					"property": "P1"
+				}
+			],
+			"description": "alerts: ?admin=1 replaces the cron secret",
+			"edits": [
+				{
+					"file": "api/alerts.mjs",
+					"find": "if (!authorized(request.headers.authorization)) return response.status(401).json({ ok: false });",
+					"replace": "if (!authorized(request.headers.authorization) && !/[?&]admin=1/.test(request.url ?? '')) return response.status(401).json({ ok: false });"
+				}
+			],
+			"tests": [
+				"test/query-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUERY-NOT-AUTHORITY alerts"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-API-004-P1-NEW2",
+			"origin": "new (Phase 2D)",
+			"evidence_id": "EV-KB-QUERY",
+			"targets": [
+				{
+					"control": "CR-API-004",
+					"property": "P1"
+				}
+			],
+			"description": "telegram: webhook secret accepted from the query",
+			"edits": [
+				{
+					"file": "api/telegram.mjs",
+					"find": "if (!validSecret(request.headers['x-telegram-bot-api-secret-token'])) {",
+					"replace": "if (!validSecret(request.headers['x-telegram-bot-api-secret-token'] ?? new URL(request.url ?? '/', 'http://x').searchParams.get('secret'))) {"
+				}
+			],
+			"tests": [
+				"test/query-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUERY-NOT-AUTHORITY telegram"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-API-004-P1-NEW3",
+			"origin": "new (Phase 2D)",
+			"evidence_id": "EV-KB-QUERY",
+			"targets": [
+				{
+					"control": "CR-API-004",
+					"property": "P1"
+				}
+			],
+			"description": "link/verify: query values override code/wallet from the body",
+			"edits": [
+				{
+					"file": "api/link/verify.mjs",
+					"find": "const { code, wallet, signature } = request.body ?? {};",
+					"replace": "const { code, wallet, signature } = { ...request.body, ...Object.fromEntries(new URL(request.url ?? '/', 'http://x').searchParams) };"
+				}
+			],
+			"tests": [
+				"test/query-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUERY-IGNORED link/verify"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-API-004-P1-NEW4",
+			"origin": "new (Phase 2D)",
+			"evidence_id": "EV-KB-QUERY",
+			"targets": [
+				{
+					"control": "CR-API-004",
+					"property": "P1"
+				}
+			],
+			"description": "config: ?debug=1 changes the delivered configuration",
+			"edits": [
+				{
+					"file": "api/config.mjs",
+					"find": "const username = process.env.TELEGRAM_BOT_USERNAME?.trim().replace(/^@/, '') || '';",
+					"replace": "const username = (/[?&]debug=1/.test(_request.url ?? '') ? 'DebugRaccoonBot' : process.env.TELEGRAM_BOT_USERNAME?.trim().replace(/^@/, '')) || '';"
+				}
+			],
+			"tests": [
+				"test/query-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUERY-IGNORED config"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-SESSION-001-P2-NEW1",
+			"origin": "new (Phase 2D)",
+			"evidence_id": "EV-KB-TOKEN-MAC",
+			"targets": [
+				{
+					"control": "CR-SESSION-001",
+					"property": "P2"
+				}
+			],
+			"description": "MAC compared with Buffer.equals instead of timingSafeEqual",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return null;",
+					"replace": "if (actual.length !== expected.length || !actual.equals(expected)) return null;"
+				}
+			],
+			"tests": [
+				"test/token-mac.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^TOKEN-CT"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-SESSION-001-P2-NEW2",
+			"origin": "new (Phase 2D)",
+			"evidence_id": "EV-KB-TOKEN-MAC",
+			"targets": [
+				{
+					"control": "CR-SESSION-001",
+					"property": "P2"
+				}
+			],
+			"description": "early-exit byte comparison before timingSafeEqual (timing leak of the first byte)",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return null;",
+					"replace": "if (actual.length !== expected.length || actual[0] !== expected[0] || !timingSafeEqual(actual, expected)) return null;"
+				}
+			],
+			"tests": [
+				"test/token-mac.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^TOKEN-CT: every well-formed token"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-SESSION-001-P3-NEW1",
+			"origin": "new (Phase 2D)",
+			"evidence_id": "EV-KB-TOKEN-MAC",
+			"targets": [
+				{
+					"control": "CR-SESSION-001",
+					"property": "P3"
+				}
+			],
+			"description": "HMAC algorithm taken from the token (alg confusion)",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "return createHmac('sha256', secret()).update(payload).digest('base64url');",
+					"replace": "return createHmac(JSON.parse(Buffer.from(payload, 'base64url').toString()).alg ?? 'sha256', secret()).update(payload).digest('base64url');"
+				}
+			],
+			"tests": [
+				"test/token-mac.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^TOKEN-ALG: the server secret"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-SESSION-001-P3-NEW2",
+			"origin": "new (Phase 2D)",
+			"evidence_id": "EV-KB-TOKEN-MAC",
+			"targets": [
+				{
+					"control": "CR-SESSION-001",
+					"property": "P3"
+				}
+			],
+			"description": "HMAC key taken from the token",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "return createHmac('sha256', secret()).update(payload).digest('base64url');",
+					"replace": "return createHmac('sha256', JSON.parse(Buffer.from(payload, 'base64url').toString()).key ?? secret()).update(payload).digest('base64url');"
+				}
+			],
+			"tests": [
+				"test/token-mac.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^TOKEN-KEY: a token cannot choose"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

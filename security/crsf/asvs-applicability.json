@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2c",
+	"crsf_version": "1.0-draft-phase2d",
 	"asvs": "5.0.0",
 	"input": "security/crsf/vendor/asvs-5.0.0.flat.json",
 	"input_sha256": "8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311",
@@ -186,7 +186,7 @@
 			"controls": [
 				"CR-PROVIDER-003"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1518,7 +1518,7 @@
 			"controls": [
 				"CR-SESSION-001"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1818,7 +1818,7 @@
 			"controls": [
 				"CR-SESSION-001"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1829,7 +1829,7 @@
 			"controls": [
 				"CR-SESSION-001"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1840,7 +1840,7 @@
 			"controls": [
 				"CR-SESSION-001"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -2656,7 +2656,7 @@
 			"controls": [
 				"CR-PROVIDER-003"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -2667,7 +2667,7 @@
 			"controls": [
 				"CR-PROVIDER-003"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -3056,7 +3056,7 @@
 			"controls": [
 				"CR-PROVIDER-003"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -3111,7 +3111,7 @@
 			"controls": [
 				"CR-API-004"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -3323,7 +3323,7 @@
 				"CR-PROVIDER-001",
 				"CR-PROVIDER-002"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "NON_CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -3336,7 +3336,7 @@
 				"CR-API-006",
 				"CR-PROVIDER-001"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "NON_CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{

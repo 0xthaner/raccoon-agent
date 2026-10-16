@@ -87,6 +87,20 @@
 										"E4",
 										"E5"
 									]
+								},
+								"before": {
+									"type": "object"
+								},
+								"after": {
+									"type": "object"
+								},
+								"rationale": {
+									"type": "string",
+									"minLength": 40
+								},
+								"why_not_weakening": {
+									"type": "string",
+									"minLength": 40
 								}
 							}
 						},
