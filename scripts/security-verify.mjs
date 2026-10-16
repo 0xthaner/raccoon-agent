@@ -86,7 +86,7 @@ if (!framework.length) {
 	for (const [id, o] of Object.entries(nt.outcomes)) { observed.evidence[id] = o; evidenceResults.push({ id, runner: 'node-test', outcome: o, ...nt.detail[id] }); }
 	for (const e of items.filter((x) => x.execution.runner === 'probe')) { const r = executeProbe(e, { cwd: REPO, env }); observed.evidence[e.id] = r.outcome; evidenceResults.push({ id: e.id, runner: 'probe', outcome: r.outcome, observation: r.observation }); }
 	log('running framework self-tests ...');
-	selftest = runSelfTests();
+	try { selftest = runSelfTests(); } catch (error) { selftest = { passed: false, rejected: 0, total: 0, fixtures: [], error: error.code ?? error.message }; framework.push({ code: 'SELFTEST_ERROR', detail: String(error.code ?? error.message) }); }
 	for (const e of items.filter((x) => x.execution.runner === 'crsf-selftest')) { observed.evidence[e.id] = selftest.passed ? 'PASS' : 'FAIL'; evidenceResults.push({ id: e.id, runner: 'crsf-selftest', outcome: observed.evidence[e.id], rejected: `${selftest.rejected}/${selftest.total}` }); }
 	for (const e of items.filter((x) => ['static', 'manual'].includes(x.execution.runner))) { observed.evidence[e.id] = 'STATIC'; evidenceResults.push({ id: e.id, runner: e.execution.runner, outcome: 'NOT_EXECUTABLE' }); }
 	if (!flag('--no-mutations')) {

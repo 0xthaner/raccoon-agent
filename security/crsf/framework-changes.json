@@ -86,6 +86,189 @@
 					"reason": "MUT-CR-API-002-P1-NEW1 (cron secret check removed) SURVIVED: no mapped test calls /api/alerts without CRON_SECRET; declared SURVIVED, blocks E4 for P1; status unchanged (MISSING_EVIDENCE)"
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2b",
+			"summary": "Evidence closure for release-blocking controls: 11 closed (CR-API-002, CR-TELEGRAM-001, CR-AUTH-001/002/003/007, CR-SESSION-002/003/005/007, CR-CONC-005); 6 new test files, 37 new mutation cases; the Phase 2A surviving cron mutation is now KILLED. No application code changed.",
+			"changes": [
+				{
+					"id": "CR-API-002",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"evidence_added": [
+						"test/cron-auth.test.mjs (EV-CRON-AUTH)",
+						"test/telegram-webhook-auth.test.mjs (EV-WEBHOOK-AUTH)",
+						"EV-KB-CRON: MUT-CR-API-002-P1-NEW1 (was SURVIVED), -P1-NEW2, -P3-NEW1",
+						"EV-KB-TELEGRAM: MUT-CR-API-002-P3-NEW2"
+					],
+					"why_sufficient": "P1 cron: missing/wrong/same-length/malformed secrets rejected before any run, purge, delivery or alert; removing the check or comparing by length is killed. P2 webhook: Phase 2A case. P3: unconfigured CRON_SECRET and webhook secret fail closed; removing either guard is killed (E4 for every sub-property).",
+					"remains_unproven": "Vercel Cron and Telegram delivering the headers in production; constant-time comparison is not behaviourally observable.",
+					"reason": "new reproducible evidence (Phase 2B)"
+				},
+				{
+					"id": "CR-TELEGRAM-001",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"evidence_added": [
+						"test/telegram-webhook-auth.test.mjs (EV-WEBHOOK-AUTH)",
+						"EV-KB-TELEGRAM: MUT-CR-TELEGRAM-001-P1-NEW1/NEW2, -P2-NEW1, -P3-NEW1 (re-classified behavioural), -P3-NEW2"
+					],
+					"why_sufficient": "P1 secret bypass and length-only compare killed; P2 removing the private-chat guard killed by the existing \"webhook ignores ...\" tests (no database call); P3 redelivered update_id processed once, killed both when the claim is skipped and when 23505 is treated as new.",
+					"remains_unproven": "Primary-key uniqueness under truly concurrent deliveries (the fake models the primary key; Postgres enforces it).",
+					"reason": "new reproducible evidence (Phase 2B)"
+				},
+				{
+					"id": "CR-AUTH-001",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"evidence_added": [
+						"test/siwe-time-binding.test.mjs (EV-SIWE-TIME)",
+						"EV-KB-AUTH: MUT-CR-AUTH-001-P4-NEW1..NEW4, -P5-NEW1"
+					],
+					"why_sufficient": "P1-P3 from Phase 2A cases; P4 issued-at and expiration-time must equal the stored challenge (two mutations SURVIVED until the new test - a real evidence gap, now closed), future issued-at and expired challenge killed; P5 address comparison removal killed.",
+					"remains_unproven": "Interop with real wallets; viem parseSiweMessage correctness itself.",
+					"reason": "new reproducible evidence (Phase 2B)"
+				},
+				{
+					"id": "CR-AUTH-002",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"evidence_added": [
+						"EV-KB-AUTH: MUT-CR-AUTH-002-P2-NEW1/NEW2"
+					],
+					"why_sufficient": "P1 Phase 2A; P2 consuming the challenge or issuing a session after a failed signature is killed by the existing login and H1 tests.",
+					"remains_unproven": "Signatures from real hardware wallets.",
+					"reason": "new reproducible evidence (Phase 2B)"
+				},
+				{
+					"id": "CR-AUTH-003",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"evidence_added": [
+						"EV-KB-AUTH: MUT-CR-AUTH-003-P3-NEW1/NEW2, -P4-NEW1/NEW2/NEW3"
+					],
+					"why_sufficient": "P3 unpinned isValidSignature and ignored block-hash disagreement killed; P4 provider error as VALID, deadline as VALID and ignored getCode disagreement killed.",
+					"remains_unproven": "Behaviour against real mainnet providers and real Safe contracts.",
+					"reason": "new reproducible evidence (Phase 2B)"
+				},
+				{
+					"id": "CR-SESSION-002",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"evidence_added": [
+						"test/session-token-boundaries.test.mjs (EV-SESSION-TOKENS)",
+						"EV-KB-SESSION: MUT-CR-SESSION-002-P2-NEW1, -P3-NEW1"
+					],
+					"why_sufficient": "P2 expired EOA (7 d) and contract (24 h) sessions and P3 expired action confirmations refused; exempting either type from exp is killed. P1/P4 from Phase 2A.",
+					"remains_unproven": "Clock skew between instances.",
+					"reason": "new reproducible evidence (Phase 2B)"
+				},
+				{
+					"id": "CR-SESSION-003",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"evidence_added": [
+						"test/session-token-boundaries.test.mjs (EV-SESSION-TOKENS)",
+						"EV-KB-SESSION: MUT-CR-SESSION-003-P1-NEW1/NEW2, -P2-NEW1"
+					],
+					"why_sufficient": "Challenge/session/action substitution and purpose swapping refused; accepting a challenge as session, any token as action, or ignoring the purpose is killed.",
+					"remains_unproven": "None beyond the HMAC boundary itself (CR-SESSION-001 P2/P3 stay open).",
+					"reason": "new reproducible evidence (Phase 2B)"
+				},
+				{
+					"id": "CR-SESSION-005",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"evidence_added": [
+						"test/session-token-boundaries.test.mjs (EV-SESSION-TOKENS)",
+						"EV-KB-SESSION: MUT-CR-SESSION-005-P1-NEW1, -P2-NEW1"
+					],
+					"why_sufficient": "P1 a session token in the login body is caught by the existing M1/Safe-App tests; P2 a Bearer fallback in the single session resolver is killed.",
+					"remains_unproven": "Real browser JavaScript access (HttpOnly is asserted on the Set-Cookie header, not observed in a browser).",
+					"reason": "new reproducible evidence (Phase 2B)"
+				},
+				{
+					"id": "CR-AUTH-007",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"evidence_added": [
+						"EV-KB-SESSION: MUT-CR-AUTH-007-P1-NEW1, -P2-NEW2, -P2-NEW3, -P3-NEW1"
+					],
+					"why_sufficient": "P1 contract sessions without fresh authority killed; P2 legacy tokens without fresh authority and a getCode outage treated as \"no code\" killed; P3 not consuming the fresh confirmation killed by the replay assertion (409).",
+					"remains_unproven": "MUT-CR-AUTH-007-P2-NEW1 was dropped as an equivalent mutant: its catch branch is unreachable because perProvider() turns every provider error into {ok:false}; documented, not counted.",
+					"reason": "new reproducible evidence (Phase 2B)"
+				},
+				{
+					"id": "CR-SESSION-007",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"evidence_added": [
+						"test/session-revocation-db.test.mjs (EV-REVOKE-DB, E5)",
+						"EV-KB-REVOKE: MUT-CR-SESSION-007-P1-NEW1, -P2-NEW1..NEW4"
+					],
+					"why_sufficient": "Real Postgres: logout via the real handler writes the cutoff; every earlier session is refused at all five authenticated endpoint/method combinations; a later session works; the test kills a skipped server-side revoke, each endpoint ignoring revocation and an off-by-one boundary. Replaces the source-text-only evidence.",
+					"remains_unproven": "Production PostgREST/Supabase; attribution POST/DELETE share the GET session check and were not called separately.",
+					"reason": "new reproducible evidence (Phase 2B)"
+				},
+				{
+					"id": "CR-CONC-005",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"evidence_added": [
+						"test/session-revocation-db.test.mjs (EV-REVOKE-DB, E5)",
+						"EV-KB-REVOKE: MUT-CR-CONC-005-P1-NEW1/NEW2"
+					],
+					"why_sufficient": "2/10/25 truly concurrent revokes (barrier, zero timeouts) always store the maximum; a later lower request never lowers it; removing the max-merge or the advisory lock is killed.",
+					"remains_unproven": "Production database load.",
+					"reason": "new reproducible evidence (Phase 2B)"
+				},
+				{
+					"id": "MUT-CR-API-002-P1-NEW1",
+					"kind": "GAP_CLOSED",
+					"reason": "Phase 2A recorded SURVIVED (no test called /api/alerts without CRON_SECRET). test/cron-auth.test.mjs now kills it for the intended reason; declared KILLED."
+				},
+				{
+					"id": "MUT-CR-AUTH-007-P2-NEW1",
+					"kind": "EQUIVALENT_MUTANT_DROPPED",
+					"reason": "catch { return false } in freshAuthorityRequired is unreachable: noContractCodeByQuorum never throws on provider failure. Replaced by MUT-CR-AUTH-007-P2-NEW3 on the reachable outage path."
+				},
+				{
+					"id": "CR-AUTH-004",
+					"kind": "REVIEWED_NOT_CLOSED",
+					"reason": "P2 (stored expiry at the on-chain call site) is enforced twice (open check + atomic consume); removing one layer is equivalent at the security level and survives, so no single-property call-site mutation can prove it at E4. Not closed; the H2 primitive proof was not borrowed for a call-site property."
+				},
+				{
+					"id": "CR-SESSION-001",
+					"kind": "REVIEWED_NOT_CLOSED",
+					"reason": "P2 constant-time comparison and P3 algorithm/key not selectable are not behaviourally observable with the current harness; left MISSING_EVIDENCE."
+				},
+				{
+					"id": "CR-AUTH-006",
+					"kind": "REVIEWED_NOT_CLOSED",
+					"reason": "P1/P3 mutations that keep the signature check are equivalent (the session wallet is always the verified wallet); no honest E4 proof built in this batch."
+				},
+				{
+					"id": "scripts/skip-policy.mjs",
+					"kind": "TEST_INFRA",
+					"reason": "allowed skip added for test/session-revocation-db.test.mjs :: REVOKE-DB, only while M1_DB_TEST_PG_URL is unset (same rule as M1/H2/L1/L5)."
+				},
+				{
+					"id": "LOCK",
+					"kind": "VERSION_BUMP",
+					"reason": "No control definition, release class, minimum level or profile threshold changed; lock regenerated for 1.0-draft-phase2b only."
+				}
+			]
 		}
 	]
 }

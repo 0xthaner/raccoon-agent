@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2a
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2b
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -10,8 +10,8 @@
 
 - FAIL: 19
 - INFORMATIONAL: 2
-- MISSING_EVIDENCE: 76
-- PASS_AUTOMATED: 25
+- MISSING_EVIDENCE: 65
+- PASS_AUTOMATED: 36
 - PASS_MANUAL: 24
 
 ### Release classes
@@ -23,16 +23,16 @@
 
 ### Release-blocking controls by security status
 
-- MISSING_EVIDENCE: 30
-- PASS_AUTOMATED: 23
+- MISSING_EVIDENCE: 19
+- PASS_AUTOMATED: 34
 
 ### Standard conformance (ASVS 5.0.0, applicable requirements)
 
 - ACCEPTED_PLATFORM_DEVIATION: 1
 - ACCEPTED_PROTOCOL_DEVIATION: 2
-- CONFORMANT: 45
+- CONFORMANT: 55
 - NON_CONFORMANT: 21
-- NOT_DEMONSTRATED: 93
+- NOT_DEMONSTRATED: 83
 
 ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Profile: ASVS L2 (all applicable L1 + L2 requirements are in scope); selected L3: V6.7.2, V15.4.2, V15.4.3, V7.5.3, V3.5.8, V14.2.6, V14.2.7, V8.3.2, V2.3.5.
 
@@ -102,31 +102,31 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 
 | ID | Title | Class | Min | Security | Conformance | Reason |
 |---|---|---|---|---|---|---|
-| CR-AUTH-001 | SIWE message verified against server-side expectation | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P4 unsatisfied (below E4/not acceptable: EV-SIWE(E3: type not acceptable for minimum level)); P5 unsatisfied (below E4/not acceptable: EV-SIWE(E3: type not acceptable for minimum level),EV-LOGIN(E3: type not acceptable for minimum level)) |
-| CR-AUTH-002 | EOA signatures verified per ERC-191 for exactly the claimed address | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P2 unsatisfied (below E4/not acceptable: EV-LOGIN(E3: type not acceptable for minimum level)) |
-| CR-AUTH-003 | Contract wallets authenticated only via ERC-1271 on chain-id 1 | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P3 unsatisfied (below E4/not acceptable: EV-ERC1271(E3: type not acceptable for minimum level)); P4 unsatisfied (below E4/not acceptable: EV-ERC1271(E3: type not acceptable for minimum level)) |
+| CR-AUTH-001 | SIWE message verified against server-side expectation | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 5 sub-properties satisfied at >= E4 |
+| CR-AUTH-002 | EOA signatures verified per ERC-191 for exactly the claimed address | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E4 |
+| CR-AUTH-003 | Contract wallets authenticated only via ERC-1271 on chain-id 1 | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E4 |
 | CR-AUTH-004 | Safe on-chain approval is challenge-bound and single-use server-side | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (below E4/not acceptable: EV-ONCHAIN(E3: type not acceptable for minimum level)); P2 unsatisfied (below E4/not acceptable: EV-ONCHAIN(E3: type not acceptable for minimum level)) |
 | CR-AUTH-005 | Provider/classification results never authorize identity | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E4 |
-| CR-AUTH-006 | Sessions bound to the verified address; new token per authentication | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (below E4/not acceptable: EV-LOGIN(E3: type not acceptable for minimum level)); P2 unsatisfied (below E4/not acceptable: EV-SAFE-AUTH(E3: type not acceptable for minimum level),EV-L4(E3: type not acceptable for minimum level)); P3 unsatisfied |
-| CR-AUTH-007 | Fresh authority for destructive actions of contract sessions | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (below E4/not acceptable: EV-SAFE-AUTH(E3: type not acceptable for minimum level)); P2 unsatisfied (below E4/not acceptable: EV-SAFE-AUTH(E3: type not acceptable for minimum level)); P3 unsatisfied (partial only: EV-H2-DB) |
+| CR-AUTH-006 | Sessions bound to the verified address; new token per authentication | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (below E4/not acceptable: EV-LOGIN(E3: type not acceptable for minimum level)); P2 unsatisfied (below E4/not acceptable: EV-L4(E3: type not acceptable for minimum level),EV-SAFE-AUTH(E3: type not acceptable for minimum level)); P3 unsatisfied |
+| CR-AUTH-007 | Fresh authority for destructive actions of contract sessions | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E4 |
 | CR-AUTH-008 | Challenge nonces and codes from CSPRNG with >= 128 bits | RELEASE_BLOCKING | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied; P2 unsatisfied |
 | CR-AUTH-009 | Authentication pathways documented | SECURITY_DEBT | E1 | **FAIL** | NON_CONFORMANT | P1: no pathway document [EV-DOC-INVENTORY] |
 | CR-AUTH-010 | Multi-factor or combined factors for access | SECURITY_DEBT | E1 | **FAIL** | NON_CONFORMANT | P1: wallet signature is the only factor [EV-INSPECT-ARCH] |
 | CR-AUTH-011 | Anti-automation controls for authentication documented | SECURITY_DEBT | E1 | **FAIL** | NON_CONFORMANT | P1: no anti-automation document [EV-DOC-INVENTORY] |
 | CR-AUTH-012 | No default or built-in accounts | MANUAL_ASSURANCE | E1 | **PASS_MANUAL** | CONFORMANT | all 1 sub-properties satisfied at >= E1 |
 | CR-SESSION-001 | Self-contained tokens MAC-verified with fixed algorithm and server key | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P2 unsatisfied; P3 unsatisfied |
-| CR-SESSION-002 | Token validity enforced from signed exp; stored challenge expiry enforced | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P2 unsatisfied; P3 unsatisfied |
-| CR-SESSION-003 | Token type and purpose separation | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied; P2 unsatisfied (partial only: EV-SAFE-AUTH) |
+| CR-SESSION-002 | Token validity enforced from signed exp; stored challenge expiry enforced | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E4 |
+| CR-SESSION-003 | Token type and purpose separation | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E4 |
 | CR-SESSION-004 | Session cookie attributes | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
-| CR-SESSION-005 | No JS-readable session token; Bearer not accepted | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (below E4/not acceptable: EV-SESSION(E3: type not acceptable for minimum level)); P2 unsatisfied (partial only: EV-PROD-HEADERS) (below E4/not acceptable: EV-SESSION(E3: type not acceptable for minimum level)) |
+| CR-SESSION-005 | No JS-readable session token; Bearer not accepted | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E4 |
 | CR-SESSION-006 | Absolute session lifetime and inactivity timeout | SECURITY_DEBT | E3 | **FAIL** | NON_CONFORMANT | P3: no lifetime decision document [EV-DOC-INVENTORY]; P2: no inactivity timeout [EV-INSPECT-ARCH] |
-| CR-SESSION-007 | Logout/revocation invalidates self-contained sessions server-side | RELEASE_BLOCKING | E5 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-REVOKE-SRC); P2 unsatisfied |
+| CR-SESSION-007 | Logout/revocation invalidates self-contained sessions server-side | RELEASE_BLOCKING | E5 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E5 |
 | CR-SESSION-008 | Users can view and terminate active sessions | SECURITY_DEBT | E3 | **FAIL** | NON_CONFORMANT | P2: self-contained tokens; no session listing [EV-INSPECT-ARCH] |
 | CR-SESSION-009 | Concurrent-session policy documented | SECURITY_DEBT | E1 | **FAIL** | NON_CONFORMANT | P1: no parallel-session policy [EV-DOC-INVENTORY] |
 | CR-SESSION-010 | Visible logout on authenticated pages | MANUAL_ASSURANCE | E1 | **PASS_MANUAL** | CONFORMANT | all 1 sub-properties satisfied at >= E1 |
 | CR-SESSION-011 | Tokens accepted only by their issuing service (audience) | SECURITY_DEBT | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied; P2 unsatisfied |
 | CR-API-001 | Object-level authorization: wallet only from the verified session | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-SESSION); P2 unsatisfied |
-| CR-API-002 | Function-level authorization of machine endpoints | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-M1) (below E4/not acceptable: EV-KB-CRON(E4: mutation MUT-CR-API-002-P1-NEW1=SURVIVED)); P3 unsatisfied (below E4/not acceptable: EV-TG(E3: type not acceptable for minimum level)) |
+| CR-API-002 | Function-level authorization of machine endpoints | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E4 |
 | CR-API-003 | Strict request bodies validated server-side | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
 | CR-API-004 | Query parameters cannot alter scope | RELEASE_BLOCKING | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-ATTRIB) |
 | CR-API-005 | Content-type and body-size limits independent of headers | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
@@ -145,7 +145,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-CONC-002 | Wallet-per-chat limit and link-code single use atomic | RELEASE_BLOCKING | E5 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E5 |
 | CR-CONC-003 | Attribution limit (60/wallet) atomic | RELEASE_BLOCKING | E5 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E5 |
 | CR-CONC-004 | Stale cleanup is compare-and-delete | RELEASE_BLOCKING | E5 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E5 |
-| CR-CONC-005 | Session revocation atomic per wallet | RELEASE_BLOCKING | E5 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-REVOKE-SRC) |
+| CR-CONC-005 | Session revocation atomic per wallet | RELEASE_BLOCKING | E5 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E5 |
 | CR-CONC-006 | Locks consistent, deadlock-free and local | SECURITY_DEBT | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied; P2 unsatisfied; P3 unsatisfied |
 | CR-RESOURCE-001 | Rate limits before expensive work (IP, wallet, global) | RELEASE_BLOCKING | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-ERC1271,EV-RL); P2 unsatisfied (partial only: EV-M1,EV-RL); P3 unsatisfied (partial only: EV-RL); P4 unsatisfied (partial only: EV-M2) |
 | CR-RESOURCE-002 | Rate limiter counting atomic | SECURITY_DEBT | E5 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
@@ -153,7 +153,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-RESOURCE-004 | Dashboard provider amplification bounded | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
 | CR-RESOURCE-005 | Business-logic limits documented | SECURITY_DEBT | E1 | **FAIL** | NON_CONFORMANT | P1: limits only in code [EV-DOC-INVENTORY] |
 | CR-RESOURCE-006 | Resource-demanding functionality documented | SECURITY_DEBT | E1 | **FAIL** | NON_CONFORMANT | P1: no resource document [EV-DOC-INVENTORY] |
-| CR-TELEGRAM-001 | Webhook authenticity, private chats only, update replay | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (below E4/not acceptable: EV-TG(E3: type not acceptable for minimum level)); P2 unsatisfied (below E4/not acceptable: EV-TG(E3: type not acceptable for minimum level)); P3 unsatisfied (below E4/not acceptable: EV-TG(E3: type not acceptable for minimum level),EV-KB-AUTH(E4: only static-detection kills)) |
+| CR-TELEGRAM-001 | Webhook authenticity, private chats only, update replay | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E4 |
 | CR-TELEGRAM-002 | Wallet-to-chat binding only via signed link flow | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E4 |
 | CR-TELEGRAM-003 | callback_data is untrusted input | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E4 |
 | CR-TELEGRAM-004 | Unlink/disconnect scope | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
@@ -253,67 +253,75 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 
 | ID | Type | Level | Runner | Coverage | Reproducible | Proves |
 |---|---|---|---|---|---|---|
-| EV-SIWE | behavioral | E3 | node-test | FULL | yes | field mismatches rejected |
-| EV-LOGIN | behavioral | E3 | node-test | PARTIAL | yes | foreign key/tampered/foreign-claim -> 401 without consume; replay 409 |
-| EV-ERC1271 | behavioral | E3 | node-test | PARTIAL | yes | magic exact, dual agreement, block binding, fail closed, budget |
-| EV-SAFE-AUTH | behavioral | E3 | node-test | PARTIAL | yes | contract session 24h; fresh authority; Safe-App cookie |
-| EV-ONCHAIN | behavioral | E3 | node-test | PARTIAL | yes | on-chain approval only for issued challenge/wallet; strict body |
-| EV-L4 | behavioral | E3 | node-test | PARTIAL | yes | classification never authorizes; expiry/forgery independent; getCode strict |
-| EV-H2-DB | real-system | E5 | node-test | PARTIAL | yes | single consume under 2/10/40 concurrency; one session per challenge; stored expiry enforced |
-| EV-H2-REQ | static | E2 | node-test | PARTIAL | yes | one conditional PATCH with all predicates |
-| EV-SESSION | behavioral | E3 | node-test | PARTIAL | yes | HttpOnly transport; no body token; Bearer ignored; cookie conflict fails closed |
-| EV-REVOKE-SRC | static | E1 | node-test | PARTIAL | yes | lock/cutoff text present |
 | EV-ATTRIB | behavioral | E3 | node-test | PARTIAL | yes | session-only wallet; strict body; product consistency; provider failure never deletes; public fields |
 | EV-ATTRIB-SCHEMA-SRC | static | E1 | node-test | FULL | yes | migration columns identifiers only |
-| EV-L1-DB | real-system | E5 | node-test | FULL | yes | 59+N -> 60; 0+100 -> 60; per-wallet; idempotent |
-| EV-L5-DB | real-system | E5 | node-test | PARTIAL | yes | wallet-scoped cleanup; compare-and-delete; races |
-| EV-M1-DB | real-system | E5 | node-test | PARTIAL | yes | wallet limit and single link under concurrency; pagination; grants of 6 functions |
-| EV-M1 | behavioral | E3 | node-test | PARTIAL | yes | link-code limits before write; cron budgets/paging/cursor/isolation; cron secret |
-| EV-M2 | behavioral | E3 | node-test | PARTIAL | yes | read budgets, cache, coalescing |
-| EV-RL | static | E2 | node-test | PARTIAL | yes | limits before expensive work (partly source order) |
-| EV-L2 | behavioral | E3 | node-test | PARTIAL | yes | both verify endpoints bind nothing without valid signature; RPC allowlist |
-| EV-L3 | behavioral | E3 | node-test | PARTIAL | yes | callback_data never authority; malformed rejected |
-| EV-TG | behavioral | E3 | node-test | PARTIAL | yes | webhook secret; private only; dedup; link row kinds; stale Safe authority |
-| EV-TG-ISO-SRC | static | E1 | node-test | PARTIAL | yes | source counts/strings |
-| EV-NEXUS | behavioral | E3 | node-test | PARTIAL | yes | URL allowlist, no redirects, bounds, parser, cache, data channel, JSON frame |
-| EV-ORIGIN | behavioral | E3 | node-test | PARTIAL | yes | origin checks; JSON/size limits |
-| EV-CSP-CFG | config | E1 | node-test | PARTIAL | yes | vercel.json CSP text |
-| EV-FRONTEND-SCAN | static | E1 | node-test | PARTIAL | yes | no HTML sinks in web/src |
-| EV-PRIV | behavioral | E3 | node-test | PARTIAL | yes | purge per policy; analytics redaction |
-| EV-SECEVENTS | behavioral | E3 | node-test | PARTIAL | yes | events recorded, pseudonymized, flood-limited |
-| EV-QUERY | behavioral | E3 | node-test | PARTIAL | yes | duplicate/unexpected keys rejected by parser |
-| EV-COVERCHAIN | behavioral | E3 | node-test | PARTIAL | yes | cover index/chain strict validation |
-| EV-RPC-RETRIES | behavioral | E3 | node-test | PARTIAL | yes | bounded RPC retries/timeouts |
+| EV-CFG | manual-inspection | E1 | manual | PARTIAL | no | npm ci --ignore-scripts, SHA pins, git deploys disabled, redirects own-host, no permissions block |
 | EV-CI-GUARD | behavioral | E2 | static | PARTIAL | yes | observed cancelled=0, todo=0, allowed skips |
 | EV-CI-SIG | manual-production | E5 | manual | FULL | no | signatures/attestations verified in CI |
-| EV-CFG | manual-inspection | E1 | manual | PARTIAL | no | npm ci --ignore-scripts, SHA pins, git deploys disabled, redirects own-host, no permissions block |
-| EV-GH-SETTINGS | manual-production | E5 | manual | PARTIAL | no | default workflow token permissions = read |
-| EV-PROD-HEADERS | manual-production | E5 | manual | PARTIAL | no | HSTS, CSP, nosniff, referrer, COOP, CORP, no ACAO, API no-store |
-| EV-PROD-TLS | manual-production | E5 | manual | PARTIAL | no | TLS1.0/1.1 refused; 1.2/1.3 ok; Let's Encrypt cert; HTTP 308 to HTTPS incl. /api |
-| EV-PROD-PROBES | manual-production | E5 | manual | PARTIAL | no | no listing (assets returns a bundled file), sources/tests/config not served, TRACE 405 |
-| EV-PROD-DB | manual-production | E5 | manual | PARTIAL | no | RLS all tables; no API-role privileges; ACLs; no CREATE; 6 SECURITY DEFINER with search_path=public |
-| EV-PROD-MIGRATIONS | manual-production | E5 | manual | FULL | no | 15/15 aligned |
-| EV-PROD-ALIGN | manual-production | E5 | manual | PARTIAL | no | deployed = commit |
-| EV-PROD-ALIASES | manual-production | E5 | manual | FULL | no | all hostnames alias the single app |
+| EV-COVERCHAIN | behavioral | E3 | node-test | PARTIAL | yes | cover index/chain strict validation |
+| EV-CRON-AUTH | behavioral | E3 | node-test | PARTIAL | yes | cron endpoint: correct secret runs; missing, wrong (same and other length), malformed and non-string secrets get 401 with no run/purge/delivery/alert; unconfigured CRON_SECRET fails closed |
+| EV-CRSF-SELFTEST | behavioral | E3 | crsf-selftest | FULL | yes | the verifier rejects known-bad framework fixtures: silent threshold reduction / release-class change (lock), manual status override, recorded status that does not recompute |
+| EV-CSP-CFG | config | E1 | node-test | PARTIAL | yes | vercel.json CSP text |
 | EV-DOC-INVENTORY | document-inspection | E1 | manual | PARTIAL | no | which security topics are documented |
-| EV-INSPECT-DEPLOY | manual-inspection | E1 | manual | FULL | no | how production artifacts are produced |
-| EV-INSPECT-CRYPTO-PROTOCOL | manual-inspection | E1 | manual | PARTIAL | no | EOA verification = viem verifyMessage (recoverMessageAddress + isAddressEqual) over @noble/curves 1.9.1 secp256k1; digest = keccak256(ERC-191 prefix + message) via @noble/hashes 1.8.0; EOA signature format /^0x[0-9a-fA-F]{130}$/ checked first; field checks precede signature checks; Keccak only via hashMessage/verifyMessage; no custom curve or hash code |
+| EV-ERC1271 | behavioral | E3 | node-test | PARTIAL | yes | magic exact, dual agreement, block binding, fail closed, budget |
+| EV-FRONTEND-SCAN | static | E1 | node-test | PARTIAL | yes | no HTML sinks in web/src |
+| EV-GH-SETTINGS | manual-production | E5 | manual | PARTIAL | no | default workflow token permissions = read |
+| EV-H2-DB | real-system | E5 | node-test | PARTIAL | yes | single consume under 2/10/40 concurrency; one session per challenge; stored expiry enforced |
+| EV-H2-REQ | static | E2 | node-test | PARTIAL | yes | one conditional PATCH with all predicates |
 | EV-INSPECT-ARCH | manual-inspection | E1 | manual | PARTIAL | no | architecture facts |
-| EV-MUT-NEXUS-DOCUMENTS | known-bad | E4 | manual | FULL | no | tests fail for the intended reason on known-bad variants |
+| EV-INSPECT-CRYPTO-PROTOCOL | manual-inspection | E1 | manual | PARTIAL | no | EOA verification = viem verifyMessage (recoverMessageAddress + isAddressEqual) over @noble/curves 1.9.1 secp256k1; digest = keccak256(ERC-191 prefix + message) via @noble/hashes 1.8.0; EOA signature format /^0x[0-9a-fA-F]{130}$/ checked first; field checks precede signature checks; Keccak only via hashMessage/verifyMessage; no custom curve or hash code |
+| EV-INSPECT-DEPLOY | manual-inspection | E1 | manual | FULL | no | how production artifacts are produced |
+| EV-KB-AUTH | known-bad | E4 | mutation | PARTIAL | yes | SIWE domain/uri/chain/nonce/issued-at/expiration/address checks, EOA signature result, no consume/no session on failed signatures, ERC-1271 magic value, consensus, block binding and fail-closed provider errors, token MAC (Phase 2A + 2B cases) |
+| EV-KB-CRON | known-bad | E4 | mutation | PARTIAL | yes | cron endpoint authentication: missing/wrong/length-only/unconfigured secret variants are caught by test/cron-auth.test.mjs (Phase 2B closed the Phase 2A gap) |
+| EV-KB-H2 | known-bad | E4 | mutation | PARTIAL | yes | challenge and access-code single use under real concurrency; stored expiry enforced (H2) |
+| EV-KB-L1 | known-bad | E4 | mutation | PARTIAL | yes | 60-row attribution limit atomic under real concurrency; idempotent re-confirmation (L1) |
 | EV-KB-L2 | known-bad | E4 | mutation | PARTIAL | yes | Telegram binding only through the signed link flow: signature bypasses and alternative binding RPCs are caught (L2) |
 | EV-KB-L3 | known-bad | E4 | mutation | PARTIAL | yes | callback_data never authorizes; malformed callbacks rejected; snooze consistency (L3) |
 | EV-KB-L4 | known-bad | E4 | mutation | PARTIAL | yes | classification never authorizes; signed exp and stored expiry enforced; unsigned tokens refused; getCode strictness (L4) |
-| EV-KB-H2 | known-bad | E4 | mutation | PARTIAL | yes | challenge and access-code single use under real concurrency; stored expiry enforced (H2) |
-| EV-KB-L1 | known-bad | E4 | mutation | PARTIAL | yes | 60-row attribution limit atomic under real concurrency; idempotent re-confirmation (L1) |
 | EV-KB-L5 | known-bad | E4 | mutation | PARTIAL | yes | wallet-scoped cleanup; compare-and-delete; no deletion on uncertain provider data (L5) |
-| EV-KB-AUTH | known-bad | E4 | mutation | PARTIAL | yes | SIWE field checks, EOA signature result, ERC-1271 magic value and dual-provider consensus, token MAC, webhook secret (Phase 2A cases) |
-| EV-KB-CRON | known-bad | E4 | mutation | PARTIAL | yes | nothing: the only case SURVIVED - no mapped test calls /api/alerts without CRON_SECRET |
-| EV-CRSF-SELFTEST | behavioral | E3 | crsf-selftest | FULL | yes | the verifier rejects known-bad framework fixtures: silent threshold reduction / release-class change (lock), manual status override, recorded status that does not recompute |
+| EV-KB-REVOKE | known-bad | E4 | mutation | FULL | yes | the revocation test fails when the SQL max-merge or advisory lock is removed, when logout skips the server-side revoke, when any endpoint ignores revocation, or when the cutoff boundary is off by one |
+| EV-KB-SESSION | known-bad | E4 | mutation | PARTIAL | yes | session/action expiry, token-type separation, action purpose binding, no body token, no Bearer fallback, contract fresh authority, legacy-token fail-closed and single-use fresh confirmation are each caught behaviourally |
+| EV-KB-TELEGRAM | known-bad | E4 | mutation | PARTIAL | yes | webhook secret bypass, length-only compare, unconfigured secret, private-chat guard removal and update_id dedup removal are each caught behaviourally |
+| EV-L1-DB | real-system | E5 | node-test | FULL | yes | 59+N -> 60; 0+100 -> 60; per-wallet; idempotent |
+| EV-L2 | behavioral | E3 | node-test | PARTIAL | yes | both verify endpoints bind nothing without valid signature; RPC allowlist |
+| EV-L3 | behavioral | E3 | node-test | PARTIAL | yes | callback_data never authority; malformed rejected |
+| EV-L4 | behavioral | E3 | node-test | PARTIAL | yes | classification never authorizes; expiry/forgery independent; getCode strict |
+| EV-L5-DB | real-system | E5 | node-test | PARTIAL | yes | wallet-scoped cleanup; compare-and-delete; races |
+| EV-LOGIN | behavioral | E3 | node-test | PARTIAL | yes | foreign key/tampered/foreign-claim -> 401 without consume; replay 409 |
+| EV-M1 | behavioral | E3 | node-test | PARTIAL | yes | link-code limits before write; cron budgets/paging/cursor/isolation; cron secret |
+| EV-M1-DB | real-system | E5 | node-test | PARTIAL | yes | wallet limit and single link under concurrency; pagination; grants of 6 functions |
+| EV-M2 | behavioral | E3 | node-test | PARTIAL | yes | read budgets, cache, coalescing |
+| EV-MUT-NEXUS-DOCUMENTS | known-bad | E4 | manual | FULL | no | tests fail for the intended reason on known-bad variants |
+| EV-NEXUS | behavioral | E3 | node-test | PARTIAL | yes | URL allowlist, no redirects, bounds, parser, cache, data channel, JSON frame |
+| EV-ONCHAIN | behavioral | E3 | node-test | PARTIAL | yes | on-chain approval only for issued challenge/wallet; strict body |
+| EV-ORIGIN | behavioral | E3 | node-test | PARTIAL | yes | origin checks; JSON/size limits |
+| EV-PRIV | behavioral | E3 | node-test | PARTIAL | yes | purge per policy; analytics redaction |
 | EV-PROBE-LOW-S | behavioral | E2 | probe | FULL | yes | observation: viem verifyMessage (@noble/curves 1.9.1) accepts the high-s twin of a valid EOA signature (no low-s enforcement or normalisation) |
+| EV-PROD-ALIASES | manual-production | E5 | manual | FULL | no | all hostnames alias the single app |
+| EV-PROD-ALIGN | manual-production | E5 | manual | PARTIAL | no | deployed = commit |
+| EV-PROD-DB | manual-production | E5 | manual | PARTIAL | no | RLS all tables; no API-role privileges; ACLs; no CREATE; 6 SECURITY DEFINER with search_path=public |
+| EV-PROD-HEADERS | manual-production | E5 | manual | PARTIAL | no | HSTS, CSP, nosniff, referrer, COOP, CORP, no ACAO, API no-store |
+| EV-PROD-MIGRATIONS | manual-production | E5 | manual | FULL | no | 15/15 aligned |
+| EV-PROD-PROBES | manual-production | E5 | manual | PARTIAL | no | no listing (assets returns a bundled file), sources/tests/config not served, TRACE 405 |
+| EV-PROD-TLS | manual-production | E5 | manual | PARTIAL | no | TLS1.0/1.1 refused; 1.2/1.3 ok; Let's Encrypt cert; HTTP 308 to HTTPS incl. /api |
+| EV-QUERY | behavioral | E3 | node-test | PARTIAL | yes | duplicate/unexpected keys rejected by parser |
+| EV-REVOKE-DB | real-system | E5 | node-test | FULL | yes | logout through the real dashboard handler writes a Postgres cutoff; every earlier session of that wallet is then refused at GET/POST/DELETE /api/dashboard, /api/positions and /api/position-attributions; other wallets and later sessions unaffected; an already-revoked credential cannot move the cutoff; 2/10/25 truly concurrent revokes always store the maximum and a later lower request never lowers it |
+| EV-REVOKE-SRC | static | E1 | node-test | PARTIAL | yes | lock/cutoff text present |
+| EV-RL | static | E2 | node-test | PARTIAL | yes | limits before expensive work (partly source order) |
+| EV-RPC-RETRIES | behavioral | E3 | node-test | PARTIAL | yes | bounded RPC retries/timeouts |
+| EV-SAFE-AUTH | behavioral | E3 | node-test | PARTIAL | yes | contract session 24h; fresh authority; Safe-App cookie |
+| EV-SECEVENTS | behavioral | E3 | node-test | PARTIAL | yes | events recorded, pseudonymized, flood-limited |
+| EV-SESSION | behavioral | E3 | node-test | PARTIAL | yes | HttpOnly transport; no body token; Bearer ignored; cookie conflict fails closed |
+| EV-SESSION-TOKENS | behavioral | E3 | node-test | PARTIAL | yes | expired session (EOA 7 d, contract 24 h) and action tokens refused; challenge/session/action not interchangeable; action bound to purpose; Bearer-only requests never resolve a session |
+| EV-SIWE | behavioral | E3 | node-test | FULL | yes | field mismatches rejected |
+| EV-SIWE-TIME | behavioral | E3 | node-test | PARTIAL | yes | issued-at and expiration-time must equal the server-issued challenge values |
+| EV-TG | behavioral | E3 | node-test | PARTIAL | yes | webhook secret; private only; dedup; link row kinds; stale Safe authority |
+| EV-TG-ISO-SRC | static | E1 | node-test | PARTIAL | yes | source counts/strings |
+| EV-WEBHOOK-AUTH | behavioral | E3 | node-test | PARTIAL | yes | real webhook: wrong/missing/same-length/unconfigured secrets rejected before dedupe and bot; redelivered update_id acknowledged as duplicate without a second bot run |
 
 ## 6. Mutation cases
 
-66 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+103 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -321,19 +329,38 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-API-001-P3-L5B | CR-API-001.P3 | behavioral | KILLED |
 | MUT-CR-API-001-P3-L5G | CR-API-001.P3 | behavioral | KILLED |
 | MUT-CR-API-001-P4-L3Y4 | CR-API-001.P4 | behavioral | KILLED |
-| MUT-CR-API-002-P1-NEW1 | CR-API-002.P1 | behavioral | SURVIVED |
+| MUT-CR-API-002-P1-NEW1 | CR-API-002.P1 | behavioral | KILLED |
+| MUT-CR-API-002-P1-NEW2 | CR-API-002.P1 | behavioral | KILLED |
 | MUT-CR-API-002-P2-NEW1 | CR-API-002.P2 | behavioral | KILLED |
+| MUT-CR-API-002-P3-NEW1 | CR-API-002.P3 | behavioral | KILLED |
+| MUT-CR-API-002-P3-NEW2 | CR-API-002.P3 | behavioral | KILLED |
 | MUT-CR-AUTH-001-P1-NEW1 | CR-AUTH-001.P1 | behavioral | KILLED |
 | MUT-CR-AUTH-001-P1-NEW2 | CR-AUTH-001.P1 | behavioral | KILLED |
 | MUT-CR-AUTH-001-P2-NEW1 | CR-AUTH-001.P2 | behavioral | KILLED |
 | MUT-CR-AUTH-001-P3-NEW1 | CR-AUTH-001.P3 | behavioral | KILLED |
+| MUT-CR-AUTH-001-P4-NEW1 | CR-AUTH-001.P4 | behavioral | KILLED |
+| MUT-CR-AUTH-001-P4-NEW2 | CR-AUTH-001.P4 | behavioral | KILLED |
+| MUT-CR-AUTH-001-P4-NEW3 | CR-AUTH-001.P4 | behavioral | KILLED |
+| MUT-CR-AUTH-001-P4-NEW4 | CR-AUTH-001.P4 | behavioral | KILLED |
+| MUT-CR-AUTH-001-P5-NEW1 | CR-AUTH-001.P5 | behavioral | KILLED |
 | MUT-CR-AUTH-002-P1-NEW1 | CR-AUTH-002.P1 | behavioral | KILLED |
+| MUT-CR-AUTH-002-P2-NEW1 | CR-AUTH-002.P2 | behavioral | KILLED |
+| MUT-CR-AUTH-002-P2-NEW2 | CR-AUTH-002.P2 | behavioral | KILLED |
 | MUT-CR-AUTH-003-P1-NEW1 | CR-AUTH-003.P1 | behavioral | KILLED |
 | MUT-CR-AUTH-003-P2-NEW1 | CR-AUTH-003.P2 | behavioral | KILLED |
+| MUT-CR-AUTH-003-P3-NEW1 | CR-AUTH-003.P3 | behavioral | KILLED |
+| MUT-CR-AUTH-003-P3-NEW2 | CR-AUTH-003.P3 | behavioral | KILLED |
+| MUT-CR-AUTH-003-P4-NEW1 | CR-AUTH-003.P4 | behavioral | KILLED |
+| MUT-CR-AUTH-003-P4-NEW2 | CR-AUTH-003.P4 | behavioral | KILLED |
+| MUT-CR-AUTH-003-P4-NEW3 | CR-AUTH-003.P4 | behavioral | KILLED |
 | MUT-CR-AUTH-005-P1-L4A | CR-AUTH-005.P1 | behavioral | KILLED |
 | MUT-CR-AUTH-005-P1-L4B | CR-AUTH-005.P1 | behavioral | KILLED |
 | MUT-CR-AUTH-005-P1-L4C | CR-AUTH-005.P1 | behavioral | KILLED |
 | MUT-CR-AUTH-005-P2-NEW1 | CR-AUTH-005.P2 | behavioral | KILLED |
+| MUT-CR-AUTH-007-P1-NEW1 | CR-AUTH-007.P1 | behavioral | KILLED |
+| MUT-CR-AUTH-007-P2-NEW2 | CR-AUTH-007.P2 | behavioral | KILLED |
+| MUT-CR-AUTH-007-P2-NEW3 | CR-AUTH-007.P2 | behavioral | KILLED |
+| MUT-CR-AUTH-007-P3-NEW1 | CR-AUTH-007.P3 | behavioral | KILLED |
 | MUT-CR-CONC-001-P1-H2A | CR-CONC-001.P1 | behavioral | KILLED |
 | MUT-CR-CONC-001-P1-H2B | CR-CONC-001.P1 | behavioral | KILLED |
 | MUT-CR-CONC-001-P1-H2C | CR-CONC-001.P1 | behavioral | KILLED |
@@ -355,6 +382,8 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-CONC-003-P3-L1J | CR-CONC-003.P3 | behavioral | KILLED |
 | MUT-CR-CONC-004-P1-L5F | CR-CONC-004.P1 | behavioral | KILLED |
 | MUT-CR-CONC-004-P1-L5H | CR-CONC-004.P1 | behavioral | KILLED |
+| MUT-CR-CONC-005-P1-NEW1 | CR-CONC-005.P1 | behavioral | KILLED |
+| MUT-CR-CONC-005-P1-NEW2 | CR-CONC-005.P1 | behavioral | KILLED |
 | MUT-CR-INPUT-010-P2-L3Y3 | CR-INPUT-010.P2 | behavioral | KILLED |
 | MUT-CR-INPUT-010-P2-L3Y9 | CR-INPUT-010.P2 | behavioral | KILLED |
 | MUT-CR-PROVIDER-001-P2-L4J | CR-PROVIDER-001.P2 | behavioral | KILLED |
@@ -365,9 +394,25 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-SESSION-001-P1-L4I | CR-SESSION-001.P1 | behavioral | KILLED |
 | MUT-CR-SESSION-001-P1-NEW1 | CR-SESSION-001.P1 | behavioral | KILLED |
 | MUT-CR-SESSION-002-P1-L4D | CR-SESSION-002.P1 | behavioral | KILLED |
+| MUT-CR-SESSION-002-P2-NEW1 | CR-SESSION-002.P2 | behavioral | KILLED |
+| MUT-CR-SESSION-002-P3-NEW1 | CR-SESSION-002.P3 | behavioral | KILLED |
 | MUT-CR-SESSION-002-P4-H2H | CR-SESSION-002.P4 | behavioral | KILLED |
 | MUT-CR-SESSION-002-P4-L4E | CR-SESSION-002.P4 | behavioral | KILLED |
-| MUT-CR-TELEGRAM-001-P3-NEW1 | CR-TELEGRAM-001.P3 | static | KILLED |
+| MUT-CR-SESSION-003-P1-NEW1 | CR-SESSION-003.P1 | behavioral | KILLED |
+| MUT-CR-SESSION-003-P1-NEW2 | CR-SESSION-003.P1 | behavioral | KILLED |
+| MUT-CR-SESSION-003-P2-NEW1 | CR-SESSION-003.P2 | behavioral | KILLED |
+| MUT-CR-SESSION-005-P1-NEW1 | CR-SESSION-005.P1 | behavioral | KILLED |
+| MUT-CR-SESSION-005-P2-NEW1 | CR-SESSION-005.P2 | behavioral | KILLED |
+| MUT-CR-SESSION-007-P1-NEW1 | CR-SESSION-007.P1 | behavioral | KILLED |
+| MUT-CR-SESSION-007-P2-NEW1 | CR-SESSION-007.P2 | behavioral | KILLED |
+| MUT-CR-SESSION-007-P2-NEW2 | CR-SESSION-007.P2 | behavioral | KILLED |
+| MUT-CR-SESSION-007-P2-NEW3 | CR-SESSION-007.P2 | behavioral | KILLED |
+| MUT-CR-SESSION-007-P2-NEW4 | CR-SESSION-007.P2 | behavioral | KILLED |
+| MUT-CR-TELEGRAM-001-P1-NEW1 | CR-TELEGRAM-001.P1 | behavioral | KILLED |
+| MUT-CR-TELEGRAM-001-P1-NEW2 | CR-TELEGRAM-001.P1 | behavioral | KILLED |
+| MUT-CR-TELEGRAM-001-P2-NEW1 | CR-TELEGRAM-001.P2 | behavioral | KILLED |
+| MUT-CR-TELEGRAM-001-P3-NEW1 | CR-TELEGRAM-001.P3 | behavioral | KILLED |
+| MUT-CR-TELEGRAM-001-P3-NEW2 | CR-TELEGRAM-001.P3 | behavioral | KILLED |
 | MUT-CR-TELEGRAM-002-P1-L2X4 | CR-TELEGRAM-002.P1 | behavioral | KILLED |
 | MUT-CR-TELEGRAM-002-P1-L2X5 | CR-TELEGRAM-002.P1 | behavioral | KILLED |
 | MUT-CR-TELEGRAM-002-P1-L2X6 | CR-TELEGRAM-002.P1 | behavioral | KILLED |
@@ -419,7 +464,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V3.3.1 | L1 | CR-SESSION-004 | CONFORMANT |
 | V3.3.2 | L2 | CR-SESSION-004 | CONFORMANT |
 | V3.3.3 | L2 | CR-SESSION-004 | CONFORMANT |
-| V3.3.4 | L2 | CR-SESSION-004, CR-SESSION-005 | NOT_DEMONSTRATED |
+| V3.3.4 | L2 | CR-SESSION-004, CR-SESSION-005 | CONFORMANT |
 | V3.4.1 | L1 | CR-BROWSER-001 | CONFORMANT |
 | V3.4.2 | L1 | CR-BROWSER-003 | CONFORMANT |
 | V3.4.3 | L2 | CR-BROWSER-001 | CONFORMANT |
@@ -446,7 +491,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V6.3.1 | L1 | CR-RESOURCE-001 | NOT_DEMONSTRATED |
 | V6.3.2 | L1 | CR-AUTH-012 | CONFORMANT |
 | V6.3.3 | L2 | CR-AUTH-010 | NON_CONFORMANT |
-| V6.3.4 | L2 | CR-AUTH-002 | NOT_DEMONSTRATED |
+| V6.3.4 | L2 | CR-AUTH-002 | CONFORMANT |
 | V6.7.2 | L3 | CR-AUTH-008 | NOT_DEMONSTRATED |
 | V7.1.1 | L2 | CR-SESSION-006 | NON_CONFORMANT |
 | V7.1.2 | L2 | CR-SESSION-009 | NON_CONFORMANT |
@@ -455,24 +500,24 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V7.2.4 | L1 | CR-AUTH-006 | NOT_DEMONSTRATED |
 | V7.3.1 | L2 | CR-SESSION-006 | NON_CONFORMANT |
 | V7.3.2 | L2 | CR-SESSION-006 | NON_CONFORMANT |
-| V7.4.1 | L1 | CR-SESSION-007, CR-CONC-005 | NOT_DEMONSTRATED |
-| V7.4.3 | L2 | CR-SESSION-007 | NOT_DEMONSTRATED |
+| V7.4.1 | L1 | CR-SESSION-007, CR-CONC-005 | CONFORMANT |
+| V7.4.3 | L2 | CR-SESSION-007 | CONFORMANT |
 | V7.4.4 | L2 | CR-SESSION-010 | CONFORMANT |
 | V7.5.2 | L2 | CR-SESSION-008 | NON_CONFORMANT |
-| V7.5.3 | L3 | CR-AUTH-007 | NOT_DEMONSTRATED |
+| V7.5.3 | L3 | CR-AUTH-007 | CONFORMANT |
 | V8.1.1 | L1 | CR-API-012 | NON_CONFORMANT |
 | V8.1.2 | L2 | CR-API-012 | NON_CONFORMANT |
 | V8.2.1 | L1 | CR-API-002, CR-DB-002 | NOT_DEMONSTRATED |
 | V8.2.2 | L1 | CR-API-001 | NOT_DEMONSTRATED |
 | V8.2.3 | L2 | CR-API-003 | CONFORMANT |
 | V8.3.1 | L1 | CR-API-001 | NOT_DEMONSTRATED |
-| V8.3.2 | L3 | CR-SESSION-007 | NOT_DEMONSTRATED |
+| V8.3.2 | L3 | CR-SESSION-007 | CONFORMANT |
 | V8.4.1 | L2 | CR-API-001, CR-TELEGRAM-004 | NOT_DEMONSTRATED |
 | V9.1.1 | L1 | CR-SESSION-001 | NOT_DEMONSTRATED |
 | V9.1.2 | L1 | CR-SESSION-001 | NOT_DEMONSTRATED |
 | V9.1.3 | L1 | CR-SESSION-001 | NOT_DEMONSTRATED |
-| V9.2.1 | L1 | CR-SESSION-002 | NOT_DEMONSTRATED |
-| V9.2.2 | L2 | CR-SESSION-003 | NOT_DEMONSTRATED |
+| V9.2.1 | L1 | CR-SESSION-002 | CONFORMANT |
+| V9.2.2 | L2 | CR-SESSION-003 | CONFORMANT |
 | V9.2.3 | L2 | CR-SESSION-011 | NOT_DEMONSTRATED |
 | V9.2.4 | L2 | CR-SESSION-011 | NOT_DEMONSTRATED |
 | V11.1.1 | L2 | CR-CRYPTO-001 | NOT_DEMONSTRATED |
@@ -496,7 +541,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V12.3.3 | L2 | CR-TLS-004 | NOT_DEMONSTRATED |
 | V12.3.4 | L2 | CR-TLS-004 | NOT_DEMONSTRATED |
 | V13.1.1 | L2 | CR-CONFIG-001 | NOT_DEMONSTRATED |
-| V13.2.1 | L2 | CR-TELEGRAM-001 | NOT_DEMONSTRATED |
+| V13.2.1 | L2 | CR-TELEGRAM-001 | CONFORMANT |
 | V13.2.2 | L2 | CR-DB-001, CR-DB-002 | NOT_DEMONSTRATED |
 | V13.2.3 | L2 | CR-CONFIG-002 | NOT_DEMONSTRATED |
 | V13.2.4 | L2 | CR-PROVIDER-003 | NOT_DEMONSTRATED |
@@ -518,7 +563,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V14.2.7 | L3 | CR-PRIV-002 | CONFORMANT |
 | V14.3.1 | L1 | CR-PRIV-008 | NOT_DEMONSTRATED |
 | V14.3.2 | L2 | CR-PRIV-009 | NOT_DEMONSTRATED |
-| V14.3.3 | L2 | CR-SESSION-005 | NOT_DEMONSTRATED |
+| V14.3.3 | L2 | CR-SESSION-005 | CONFORMANT |
 | V15.1.1 | L1 | CR-SUPPLY-005 | NON_CONFORMANT |
 | V15.1.2 | L2 | CR-SUPPLY-006 | NOT_DEMONSTRATED |
 | V15.1.3 | L2 | CR-RESOURCE-006 | NON_CONFORMANT |
@@ -618,4 +663,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase1b** — ASVS mapping completed (0 applicable unmapped), normalized schemas, sub-property engine, 11 Phase-1 FAILs reassessed (1 -> MISSING_EVIDENCE).
 - **1.0-draft-phase1c** — Conformance and security axes separated; deviation model; CR-CRYPTO-008 split (CR-CRYPTO-009 added); 2 protocol + 1 platform deviations accepted; 4 sources added.
 - **1.0-draft-phase2a** — Materialised in the repository. JSON is authoritative; statuses recomputed by scripts/security-verify.mjs. Scratchpad mutation records EV-MUT-{L2,L3,H2,L1,L4,L5} replaced by reproducible mutation evidence EV-KB-* (security/mutation/cases.json, 66 cases). EV-CRSF-SELFTEST and EV-PROBE-LOW-S added. Owner sign-off field added (PENDING). Framework lock bootstrapped. No control definition, release class or minimum level changed.
+- **1.0-draft-phase2b** — Evidence closure for release-blocking controls: 11 closed (CR-API-002, CR-TELEGRAM-001, CR-AUTH-001/002/003/007, CR-SESSION-002/003/005/007, CR-CONC-005); 6 new test files, 37 new mutation cases; the Phase 2A surviving cron mutation is now KILLED. No application code changed.
 

@@ -4,7 +4,7 @@
 	Ausgelagert aus scripts/run-tests-guarded.mjs (CRSF Phase 2A), damit
 	`npm run security:verify` exakt dieselbe Liste benutzt und die beiden nicht
 	auseinanderlaufen. Inhalt unveraendert: nur die Postgres-Integrationstests
-	(M1, H2, L1, L5), jeweils exakt mit Datei und Name, und nur solange kein
+	(M1, H2, L1, L5, REVOKE), jeweils exakt mit Datei und Name, und nur solange kein
 	Wegwerf-Postgres konfiguriert ist. Ist M1_DB_TEST_PG_URL gesetzt und ein Test
 	wird trotzdem uebersprungen, ist das ein Fehler wie jeder andere Skip.
 */
@@ -15,7 +15,9 @@ export const ALLOWED_SKIPS = new Map([
 	// Restaudit L1: Zuordnungs-Limit unter echter Gleichzeitigkeit, derselbe Wegwerf-Postgres.
 	['test/l1-attribution-limit-db.test.mjs :: L1-DB', (env) => !env.M1_DB_TEST_PG_URL],
 	// Restaudit L5: Bereinigung beim Abgleich gegen gleichzeitige Bestaetigung, derselbe Wegwerf-Postgres.
-	['test/l5-attribution-cleanup-db.test.mjs :: L5-DB', (env) => !env.M1_DB_TEST_PG_URL]
+	['test/l5-attribution-cleanup-db.test.mjs :: L5-DB', (env) => !env.M1_DB_TEST_PG_URL],
+	// CRSF Phase 2B: Sitzungs-Widerruf und gleichzeitige Widerrufe, derselbe Wegwerf-Postgres.
+	['test/session-revocation-db.test.mjs :: REVOKE-DB', (env) => !env.M1_DB_TEST_PG_URL]
 ]);
 
 /** Ist der Skip `id` ("<datei> :: <name>") unter der Umgebung `env` erlaubt? */

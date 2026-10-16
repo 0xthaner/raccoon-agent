@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2a",
+	"crsf_version": "1.0-draft-phase2b",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -68,7 +68,8 @@
 			"current_evidence_ids": [
 				"EV-KB-AUTH",
 				"EV-LOGIN",
-				"EV-SIWE"
+				"EV-SIWE",
+				"EV-SIWE-TIME"
 			],
 			"property_coverage": {
 				"P1": {
@@ -77,8 +78,8 @@
 					],
 					"partial_only": [],
 					"insufficient": [
-						"EV-SIWE(E3: type not acceptable for minimum level)",
-						"EV-LOGIN(E3: type not acceptable for minimum level)"
+						"EV-LOGIN(E3: type not acceptable for minimum level)",
+						"EV-SIWE(E3: type not acceptable for minimum level)"
 					]
 				},
 				"P2": {
@@ -100,25 +101,30 @@
 					]
 				},
 				"P4": {
-					"satisfied_by": [],
-					"partial_only": [],
-					"insufficient": [
-						"EV-SIWE(E3: type not acceptable for minimum level)"
-					]
-				},
-				"P5": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-AUTH"
+					],
 					"partial_only": [],
 					"insufficient": [
 						"EV-SIWE(E3: type not acceptable for minimum level)",
-						"EV-LOGIN(E3: type not acceptable for minimum level)"
+						"EV-SIWE-TIME(E3: type not acceptable for minimum level)"
+					]
+				},
+				"P5": {
+					"satisfied_by": [
+						"EV-KB-AUTH"
+					],
+					"partial_only": [],
+					"insufficient": [
+						"EV-LOGIN(E3: type not acceptable for minimum level)",
+						"EV-SIWE(E3: type not acceptable for minimum level)"
 					]
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P4 unsatisfied (below E4/not acceptable: EV-SIWE(E3: type not acceptable for minimum level)); P5 unsatisfied (below E4/not acceptable: EV-SIWE(E3: type not acceptable for minimum level),EV-LOGIN(E3: type not acceptable for minimum level))",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P4 unsatisfied (below E4/not acceptable: EV-SIWE(E3: type not acceptable for minimum level)); P5 unsatisfied (below E4/not acceptable: EV-SIWE(E3: type not acceptable for minimum level),EV-LOGIN(E3: type not acceptable for minimum level))",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 5 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 5 sub-properties satisfied at >= E4",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
@@ -126,7 +132,9 @@
 					"known-bad"
 				],
 				"independent_classes": 2,
-				"shared_fixture_groups": []
+				"shared_fixture_groups": [
+					"offline-siwe"
+				]
 			}
 		},
 		{
@@ -190,17 +198,19 @@
 					]
 				},
 				"P2": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-AUTH"
+					],
 					"partial_only": [],
 					"insufficient": [
 						"EV-LOGIN(E3: type not acceptable for minimum level)"
 					]
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P2 unsatisfied (below E4/not acceptable: EV-LOGIN(E3: type not acceptable for minimum level))",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P2 unsatisfied (below E4/not acceptable: EV-LOGIN(E3: type not acceptable for minimum level))",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 2 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 2 sub-properties satisfied at >= E4",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
@@ -289,24 +299,28 @@
 					]
 				},
 				"P3": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-AUTH"
+					],
 					"partial_only": [],
 					"insufficient": [
 						"EV-ERC1271(E3: type not acceptable for minimum level)"
 					]
 				},
 				"P4": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-AUTH"
+					],
 					"partial_only": [],
 					"insufficient": [
 						"EV-ERC1271(E3: type not acceptable for minimum level)"
 					]
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P3 unsatisfied (below E4/not acceptable: EV-ERC1271(E3: type not acceptable for minimum level)); P4 unsatisfied (below E4/not acceptable: EV-ERC1271(E3: type not acceptable for minimum level))",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P3 unsatisfied (below E4/not acceptable: EV-ERC1271(E3: type not acceptable for minimum level)); P4 unsatisfied (below E4/not acceptable: EV-ERC1271(E3: type not acceptable for minimum level))",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 4 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 4 sub-properties satisfied at >= E4",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
@@ -562,8 +576,8 @@
 					"satisfied_by": [],
 					"partial_only": [],
 					"insufficient": [
-						"EV-SAFE-AUTH(E3: type not acceptable for minimum level)",
-						"EV-L4(E3: type not acceptable for minimum level)"
+						"EV-L4(E3: type not acceptable for minimum level)",
+						"EV-SAFE-AUTH(E3: type not acceptable for minimum level)"
 					]
 				},
 				"P3": {
@@ -573,9 +587,9 @@
 				}
 			},
 			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied (below E4/not acceptable: EV-LOGIN(E3: type not acceptable for minimum level)); P2 unsatisfied (below E4/not acceptable: EV-SAFE-AUTH(E3: type not acceptable for minimum level),EV-L4(E3: type not acceptable for minimum level)); P3 unsatisfied",
+			"conformance_status_reason": "P1 unsatisfied (below E4/not acceptable: EV-LOGIN(E3: type not acceptable for minimum level)); P2 unsatisfied (below E4/not acceptable: EV-L4(E3: type not acceptable for minimum level),EV-SAFE-AUTH(E3: type not acceptable for minimum level)); P3 unsatisfied",
 			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied (below E4/not acceptable: EV-LOGIN(E3: type not acceptable for minimum level)); P2 unsatisfied (below E4/not acceptable: EV-SAFE-AUTH(E3: type not acceptable for minimum level),EV-L4(E3: type not acceptable for minimum level)); P3 unsatisfied",
+			"security_status_reason": "P1 unsatisfied (below E4/not acceptable: EV-LOGIN(E3: type not acceptable for minimum level)); P2 unsatisfied (below E4/not acceptable: EV-L4(E3: type not acceptable for minimum level),EV-SAFE-AUTH(E3: type not acceptable for minimum level)); P3 unsatisfied",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
@@ -638,42 +652,50 @@
 			],
 			"current_evidence_ids": [
 				"EV-H2-DB",
+				"EV-KB-SESSION",
 				"EV-SAFE-AUTH"
 			],
 			"property_coverage": {
 				"P1": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-SESSION"
+					],
 					"partial_only": [],
 					"insufficient": [
 						"EV-SAFE-AUTH(E3: type not acceptable for minimum level)"
 					]
 				},
 				"P2": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-SESSION"
+					],
 					"partial_only": [],
 					"insufficient": [
 						"EV-SAFE-AUTH(E3: type not acceptable for minimum level)"
 					]
 				},
 				"P3": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-SESSION"
+					],
 					"partial_only": [
 						"EV-H2-DB"
 					],
 					"insufficient": []
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied (below E4/not acceptable: EV-SAFE-AUTH(E3: type not acceptable for minimum level)); P2 unsatisfied (below E4/not acceptable: EV-SAFE-AUTH(E3: type not acceptable for minimum level)); P3 unsatisfied (partial only: EV-H2-DB)",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied (below E4/not acceptable: EV-SAFE-AUTH(E3: type not acceptable for minimum level)); P2 unsatisfied (below E4/not acceptable: EV-SAFE-AUTH(E3: type not acceptable for minimum level)); P3 unsatisfied (partial only: EV-H2-DB)",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 3 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 3 sub-properties satisfied at >= E4",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
 					"behavioral",
+					"known-bad",
 					"real-system"
 				],
-				"independent_classes": 2,
+				"independent_classes": 3,
 				"shared_fixture_groups": []
 			}
 		},
@@ -1047,8 +1069,8 @@
 			"property_coverage": {
 				"P1": {
 					"satisfied_by": [
-						"EV-KB-L4",
-						"EV-KB-AUTH"
+						"EV-KB-AUTH",
+						"EV-KB-L4"
 					],
 					"partial_only": [],
 					"insufficient": [
@@ -1139,7 +1161,9 @@
 				"EV-H2-DB",
 				"EV-KB-H2",
 				"EV-KB-L4",
-				"EV-L4"
+				"EV-KB-SESSION",
+				"EV-L4",
+				"EV-SESSION-TOKENS"
 			],
 			"property_coverage": {
 				"P1": {
@@ -1152,29 +1176,37 @@
 					]
 				},
 				"P2": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-SESSION"
+					],
 					"partial_only": [],
-					"insufficient": []
+					"insufficient": [
+						"EV-SESSION-TOKENS(E3: type not acceptable for minimum level)"
+					]
 				},
 				"P3": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-SESSION"
+					],
 					"partial_only": [],
-					"insufficient": []
+					"insufficient": [
+						"EV-SESSION-TOKENS(E3: type not acceptable for minimum level)"
+					]
 				},
 				"P4": {
 					"satisfied_by": [
 						"EV-H2-DB",
-						"EV-KB-L4",
-						"EV-KB-H2"
+						"EV-KB-H2",
+						"EV-KB-L4"
 					],
 					"partial_only": [],
 					"insufficient": []
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P2 unsatisfied; P3 unsatisfied",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P2 unsatisfied; P3 unsatisfied",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 4 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 4 sub-properties satisfied at >= E4",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
@@ -1183,7 +1215,9 @@
 					"real-system"
 				],
 				"independent_classes": 3,
-				"shared_fixture_groups": []
+				"shared_fixture_groups": [
+					"loadHandler-deps"
+				]
 			}
 		},
 		{
@@ -1229,32 +1263,43 @@
 				"known-bad"
 			],
 			"current_evidence_ids": [
-				"EV-SAFE-AUTH"
+				"EV-KB-SESSION",
+				"EV-SAFE-AUTH",
+				"EV-SESSION-TOKENS"
 			],
 			"property_coverage": {
 				"P1": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-SESSION"
+					],
 					"partial_only": [],
-					"insufficient": []
+					"insufficient": [
+						"EV-SESSION-TOKENS(E3: type not acceptable for minimum level)"
+					]
 				},
 				"P2": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-SESSION"
+					],
 					"partial_only": [
 						"EV-SAFE-AUTH"
 					],
-					"insufficient": []
+					"insufficient": [
+						"EV-SESSION-TOKENS(E3: type not acceptable for minimum level)"
+					]
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied; P2 unsatisfied (partial only: EV-SAFE-AUTH)",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied; P2 unsatisfied (partial only: EV-SAFE-AUTH)",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 2 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 2 sub-properties satisfied at >= E4",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
-					"behavioral"
+					"behavioral",
+					"known-bad"
 				],
-				"independent_classes": 1,
+				"independent_classes": 2,
 				"shared_fixture_groups": []
 			}
 		},
@@ -1385,38 +1430,48 @@
 				"known-bad"
 			],
 			"current_evidence_ids": [
+				"EV-KB-SESSION",
 				"EV-PROD-HEADERS",
-				"EV-SESSION"
+				"EV-SESSION",
+				"EV-SESSION-TOKENS"
 			],
 			"property_coverage": {
 				"P1": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-SESSION"
+					],
 					"partial_only": [],
 					"insufficient": [
 						"EV-SESSION(E3: type not acceptable for minimum level)"
 					]
 				},
 				"P2": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-SESSION"
+					],
 					"partial_only": [
 						"EV-PROD-HEADERS"
 					],
 					"insufficient": [
-						"EV-SESSION(E3: type not acceptable for minimum level)"
+						"EV-SESSION(E3: type not acceptable for minimum level)",
+						"EV-SESSION-TOKENS(E3: type not acceptable for minimum level)"
 					]
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied (below E4/not acceptable: EV-SESSION(E3: type not acceptable for minimum level)); P2 unsatisfied (partial only: EV-PROD-HEADERS) (below E4/not acceptable: EV-SESSION(E3: type not acceptable for minimum level))",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied (below E4/not acceptable: EV-SESSION(E3: type not acceptable for minimum level)); P2 unsatisfied (partial only: EV-PROD-HEADERS) (below E4/not acceptable: EV-SESSION(E3: type not acceptable for minimum level))",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 2 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 2 sub-properties satisfied at >= E4",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
-					"behavioral"
+					"behavioral",
+					"known-bad"
 				],
-				"independent_classes": 1,
-				"shared_fixture_groups": []
+				"independent_classes": 2,
+				"shared_fixture_groups": [
+					"loadHandler-deps"
+				]
 			}
 		},
 		{
@@ -1550,33 +1605,47 @@
 				"real-system"
 			],
 			"current_evidence_ids": [
+				"EV-KB-REVOKE",
+				"EV-REVOKE-DB",
 				"EV-REVOKE-SRC"
 			],
 			"property_coverage": {
 				"P1": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-REVOKE-DB"
+					],
 					"partial_only": [
 						"EV-REVOKE-SRC"
 					],
-					"insufficient": []
+					"insufficient": [
+						"EV-KB-REVOKE(E4: type not acceptable for minimum level)"
+					]
 				},
 				"P2": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-REVOKE-DB"
+					],
 					"partial_only": [],
-					"insufficient": []
+					"insufficient": [
+						"EV-KB-REVOKE(E4: type not acceptable for minimum level)"
+					]
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied (partial only: EV-REVOKE-SRC); P2 unsatisfied",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied (partial only: EV-REVOKE-SRC); P2 unsatisfied",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 2 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 2 sub-properties satisfied at >= E5",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
+					"known-bad",
+					"real-system",
 					"static"
 				],
-				"independent_classes": 1,
-				"shared_fixture_groups": []
+				"independent_classes": 3,
+				"shared_fixture_groups": [
+					"pg-postgrest-adapter"
+				]
 			}
 		},
 		{
@@ -1912,8 +1981,8 @@
 				},
 				"P3": {
 					"satisfied_by": [
-						"EV-L5-DB",
-						"EV-KB-L5"
+						"EV-KB-L5",
+						"EV-L5-DB"
 					],
 					"partial_only": [],
 					"insufficient": [
@@ -1998,19 +2067,24 @@
 				"known-bad"
 			],
 			"current_evidence_ids": [
+				"EV-CRON-AUTH",
 				"EV-KB-AUTH",
 				"EV-KB-CRON",
+				"EV-KB-TELEGRAM",
 				"EV-M1",
-				"EV-TG"
+				"EV-TG",
+				"EV-WEBHOOK-AUTH"
 			],
 			"property_coverage": {
 				"P1": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-CRON"
+					],
 					"partial_only": [
 						"EV-M1"
 					],
 					"insufficient": [
-						"EV-KB-CRON(E4: mutation MUT-CR-API-002-P1-NEW1=SURVIVED)"
+						"EV-CRON-AUTH(E3: type not acceptable for minimum level)"
 					]
 				},
 				"P2": {
@@ -2019,21 +2093,28 @@
 					],
 					"partial_only": [],
 					"insufficient": [
-						"EV-TG(E3: type not acceptable for minimum level)"
+						"EV-TG(E3: type not acceptable for minimum level)",
+						"EV-WEBHOOK-AUTH(E3: type not acceptable for minimum level)"
 					]
 				},
 				"P3": {
-					"satisfied_by": [],
-					"partial_only": [],
+					"satisfied_by": [
+						"EV-KB-CRON",
+						"EV-KB-TELEGRAM"
+					],
+					"partial_only": [
+						"EV-CRON-AUTH",
+						"EV-WEBHOOK-AUTH"
+					],
 					"insufficient": [
 						"EV-TG(E3: type not acceptable for minimum level)"
 					]
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied (partial only: EV-M1) (below E4/not acceptable: EV-KB-CRON(E4: mutation MUT-CR-API-002-P1-NEW1=SURVIVED)); P3 unsatisfied (below E4/not acceptable: EV-TG(E3: type not acceptable for minimum level))",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied (partial only: EV-M1) (below E4/not acceptable: EV-KB-CRON(E4: mutation MUT-CR-API-002-P1-NEW1=SURVIVED)); P3 unsatisfied (below E4/not acceptable: EV-TG(E3: type not acceptable for minimum level))",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 3 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 3 sub-properties satisfied at >= E4",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
@@ -2041,7 +2122,10 @@
 					"known-bad"
 				],
 				"independent_classes": 2,
-				"shared_fixture_groups": []
+				"shared_fixture_groups": [
+					"fetch-stub",
+					"injected-deps"
+				]
 			}
 		},
 		{
@@ -3436,28 +3520,38 @@
 				"real-system"
 			],
 			"current_evidence_ids": [
+				"EV-KB-REVOKE",
+				"EV-REVOKE-DB",
 				"EV-REVOKE-SRC"
 			],
 			"property_coverage": {
 				"P1": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-REVOKE-DB"
+					],
 					"partial_only": [
 						"EV-REVOKE-SRC"
 					],
-					"insufficient": []
+					"insufficient": [
+						"EV-KB-REVOKE(E4: type not acceptable for minimum level)"
+					]
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied (partial only: EV-REVOKE-SRC)",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied (partial only: EV-REVOKE-SRC)",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 1 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 1 sub-properties satisfied at >= E5",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
+					"known-bad",
+					"real-system",
 					"static"
 				],
-				"independent_classes": 1,
-				"shared_fixture_groups": []
+				"independent_classes": 3,
+				"shared_fixture_groups": [
+					"pg-postgrest-adapter"
+				]
 			}
 		},
 		{
@@ -3762,8 +3856,8 @@
 			"property_coverage": {
 				"P1": {
 					"satisfied_by": [
-						"EV-M1-DB",
-						"EV-M1"
+						"EV-M1",
+						"EV-M1-DB"
 					],
 					"partial_only": [],
 					"insufficient": []
@@ -4044,37 +4138,45 @@
 				"known-bad"
 			],
 			"current_evidence_ids": [
-				"EV-KB-AUTH",
-				"EV-TG"
+				"EV-KB-TELEGRAM",
+				"EV-TG",
+				"EV-WEBHOOK-AUTH"
 			],
 			"property_coverage": {
 				"P1": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-TELEGRAM"
+					],
 					"partial_only": [],
 					"insufficient": [
-						"EV-TG(E3: type not acceptable for minimum level)"
+						"EV-TG(E3: type not acceptable for minimum level)",
+						"EV-WEBHOOK-AUTH(E3: type not acceptable for minimum level)"
 					]
 				},
 				"P2": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-TELEGRAM"
+					],
 					"partial_only": [],
 					"insufficient": [
 						"EV-TG(E3: type not acceptable for minimum level)"
 					]
 				},
 				"P3": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-KB-TELEGRAM"
+					],
 					"partial_only": [],
 					"insufficient": [
 						"EV-TG(E3: type not acceptable for minimum level)",
-						"EV-KB-AUTH(E4: only static-detection kills)"
+						"EV-WEBHOOK-AUTH(E3: type not acceptable for minimum level)"
 					]
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied (below E4/not acceptable: EV-TG(E3: type not acceptable for minimum level)); P2 unsatisfied (below E4/not acceptable: EV-TG(E3: type not acceptable for minimum level)); P3 unsatisfied (below E4/not acceptable: EV-TG(E3: type not acceptable for minimum level),EV-KB-AUTH(E4: only static-detection kills))",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied (below E4/not acceptable: EV-TG(E3: type not acceptable for minimum level)); P2 unsatisfied (below E4/not acceptable: EV-TG(E3: type not acceptable for minimum level)); P3 unsatisfied (below E4/not acceptable: EV-TG(E3: type not acceptable for minimum level),EV-KB-AUTH(E4: only static-detection kills))",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 3 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 3 sub-properties satisfied at >= E4",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
@@ -4082,7 +4184,9 @@
 					"known-bad"
 				],
 				"independent_classes": 2,
-				"shared_fixture_groups": []
+				"shared_fixture_groups": [
+					"fetch-stub"
+				]
 			}
 		},
 		{
@@ -4411,8 +4515,8 @@
 				},
 				"P2": {
 					"satisfied_by": [
-						"EV-L4",
-						"EV-KB-L4"
+						"EV-KB-L4",
+						"EV-L4"
 					],
 					"partial_only": [],
 					"insufficient": []
@@ -4427,8 +4531,8 @@
 				"P4": {
 					"satisfied_by": [
 						"EV-ATTRIB",
-						"EV-L5-DB",
-						"EV-KB-L5"
+						"EV-KB-L5",
+						"EV-L5-DB"
 					],
 					"partial_only": [],
 					"insufficient": []
@@ -7720,8 +7824,8 @@
 				},
 				"P2": {
 					"satisfied_by": [
-						"EV-L3",
-						"EV-KB-L3"
+						"EV-KB-L3",
+						"EV-L3"
 					],
 					"partial_only": [],
 					"insufficient": []

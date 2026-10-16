@@ -54,6 +54,30 @@
 										"type": "object"
 									},
 									"minItems": 0
+								},
+								"old_status": {
+									"type": "string",
+									"minLength": 1
+								},
+								"new_status": {
+									"type": "string",
+									"minLength": 1
+								},
+								"why_sufficient": {
+									"type": "string",
+									"minLength": 1
+								},
+								"remains_unproven": {
+									"type": "string",
+									"minLength": 1
+								},
+								"evidence_added": {
+									"type": "array",
+									"items": {
+										"type": "string",
+										"minLength": 1
+									},
+									"minItems": 1
 								}
 							}
 						},

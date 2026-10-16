@@ -46,7 +46,8 @@ export const DEFINITION_FIXTURES = [
 	['I', 'manual status override flag', 'MANUAL_OVERRIDE', /CR-SESSION-004/, (d) => { ctl(d, 'CR-SESSION-004').manual_override_allowed = true; }],
 	['I2', 'extra hand-written override field', 'SCHEMA', /unknown property "status_override"/, (d) => { ctl(d, 'CR-SESSION-004').status_override = 'PASS_AUTOMATED'; }],
 	['J', 'applicable ASVS requirement unmapped', 'APPLICABLE_UNMAPPED', /V1\.3\.7/, (d) => { ctl(d, 'CR-INPUT-013').external_requirement_ids = []; }],
-	['N', 'control status changed without evidence change', 'STATUS_NOT_RECOMPUTABLE', /CR-AUTH-001\.security_status/, (d) => { ctl(d, 'CR-AUTH-001').security_status = 'PASS_AUTOMATED'; }],
+	// Picks a release-blocking control that is currently MISSING_EVIDENCE, so the fixture never goes stale when evidence closes a control.
+	['N', 'control status changed without evidence change', 'STATUS_NOT_RECOMPUTABLE', /^CR-[A-Z]+-\d{3}\.security_status: recorded "PASS_AUTOMATED"/, (d) => { const target = d.controls.controls.find((c) => c.release_class === 'RELEASE_BLOCKING' && c.security_status === 'MISSING_EVIDENCE'); if (!target) throw new Error('no MISSING_EVIDENCE control left for fixture N'); target.security_status = 'PASS_AUTOMATED'; }],
 	['N2', 'deviation reported as PASS', 'STATUS_NOT_RECOMPUTABLE', /CR-CRYPTO-008\.security_status/, (d) => { ctl(d, 'CR-CRYPTO-008').security_status = 'PASS_MANUAL'; }],
 	['O', 'mutation evidence covering a property no case targets', 'MUTATION_COVERS_MISMATCH', /EV-KB-L3/, (d) => { evi(d, 'EV-KB-L3').covers.push({ control: 'CR-AUTH-001', properties: ['P4'], scope: 'FULL', result: 'SUPPORTS', note: 'x' }); }],
 	['P', 'reproducible known-bad evidence without mutation cases', 'KNOWN_BAD_WITHOUT_MUTATION_RUNNER', /EV-FAKE-KB/, (d) => { d.evidence.evidence.push({ ...clone(evi(d, 'EV-SIWE')), id: 'EV-FAKE-KB', type: 'known-bad', level: 'E4', known_bad_checked: true, known_bad_result: 'KILLED' }); }]
@@ -90,7 +91,10 @@ function runMutationFixture() {
 		edits: [{ file: 'security/crsf/selftest/fixtures/mut-target.mjs', find: 'return 1;', replace: 'return 2;' }],
 		tests: ['security/crsf/selftest/fixtures/mut-weak-check.mjs'], expected_failures: [{ test: '.*' }]
 	};
-	const ws = createWorkspace(REPO);
+	let ws;
+	try { ws = createWorkspace(REPO); } catch (error) {
+		return { id: 'M', description: 'mutation marked KILLED although the mapped test still passes', expected: 'MUTATION_CLAIM_MISMATCH', rejected: false, codes: [`workspace error: ${error.code ?? error.message}`] };
+	}
 	let result;
 	try { result = runMutation(fake, ws, env, 60_000); } finally { ws.dispose(); }
 	const mismatches = mutationClaimMismatches([fake], { [fake.id]: result });

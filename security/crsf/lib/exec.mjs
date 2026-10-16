@@ -74,6 +74,9 @@ process.on('exit', () => { for (const dir of live) { try { rmSync(dir, { recursi
 export function createWorkspace(repoRoot) {
 	const dir = mkdtempSync(path.join(os.tmpdir(), 'crsf-mutation-'));
 	live.add(dir);
+	try { return fillWorkspace(repoRoot, dir); } catch (error) { rmSync(dir, { recursive: true, force: true }); live.delete(dir); throw error; }
+}
+function fillWorkspace(repoRoot, dir) {
 	const listed = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { cwd: repoRoot, encoding: 'utf8' }).split('\0').filter(Boolean);
 	for (const rel of listed) {
 		const from = path.join(repoRoot, rel);
@@ -207,7 +210,11 @@ export function executeMutations(cases, { repoRoot, env, caps }) {
 	const runnable = cases.filter((m) => !missingCapabilities(m.environment, caps).length);
 	for (const m of cases.filter((x) => !runnable.includes(x))) results[m.id] = { result: 'NOT_RUN', reason: `missing capability: ${missingCapabilities(m.environment, caps).join(', ')}`, intended: [], other: [] };
 	if (!runnable.length) return { results, baseline: { ok: true, reason: 'nothing to run' } };
-	const ws = createWorkspace(repoRoot);
+	let ws;
+	try { ws = createWorkspace(repoRoot); } catch (error) {
+		for (const m of runnable) results[m.id] = { result: 'INVALID', reason: `workspace could not be created: ${error.code ?? error.message}`, intended: [], other: [] };
+		return { results, baseline: { ok: false, reason: `workspace could not be created: ${error.code ?? error.message}` } };
+	}
 	try {
 		const files = [...new Set(runnable.flatMap((m) => m.tests))].sort();
 		const baseline = runBaseline(files, ws, env, 600_000);

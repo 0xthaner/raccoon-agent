@@ -152,7 +152,7 @@
 		},
 		{
 			"id": "MUT-CR-API-002-P1-NEW1",
-			"origin": "new (Phase 2A)",
+			"origin": "new (Phase 2A); tests/expectation updated in Phase 2B",
 			"targets": [
 				{
 					"control": "CR-API-002",
@@ -168,19 +168,55 @@
 				}
 			],
 			"tests": [
-				"test/m1-alert-run-budget.test.mjs",
-				"test/api-hardening.test.mjs",
-				"test/alerts.test.mjs"
+				"test/cron-auth.test.mjs",
+				"test/m1-alert-run-budget.test.mjs"
 			],
 			"environment": [
 				"node"
 			],
-			"expected_failures": [],
-			"expected_result": "SURVIVED",
+			"expected_failures": [
+				{
+					"test": "^CRON-AUTH: missing, wrong or malformed"
+				}
+			],
+			"expected_result": "KILLED",
 			"detection": "behavioral",
-			"note": "Known test gap found in Phase 2A: no mapped test calls /api/alerts without CRON_SECRET. Recorded as SURVIVED; blocks E4 for CR-API-002 P1 until a test kills it.",
 			"timeout_ms": 300000,
 			"evidence_id": "EV-KB-CRON"
+		},
+		{
+			"id": "MUT-CR-API-002-P1-NEW2",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-CRON",
+			"targets": [
+				{
+					"control": "CR-API-002",
+					"property": "P1"
+				}
+			],
+			"description": "cron secret compared by length only",
+			"edits": [
+				{
+					"file": "api/alerts.mjs",
+					"find": "return received.length === wanted.length && timingSafeEqual(received, wanted);",
+					"replace": "return received.length === wanted.length;"
+				}
+			],
+			"tests": [
+				"test/cron-auth.test.mjs",
+				"test/m1-alert-run-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^CRON-AUTH: missing, wrong or malformed"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		},
 		{
 			"id": "MUT-CR-API-002-P2-NEW1",
@@ -217,6 +253,74 @@
 			"detection": "behavioral",
 			"timeout_ms": 300000,
 			"evidence_id": "EV-KB-AUTH"
+		},
+		{
+			"id": "MUT-CR-API-002-P3-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-CRON",
+			"targets": [
+				{
+					"control": "CR-API-002",
+					"property": "P3"
+				}
+			],
+			"description": "cron: unconfigured CRON_SECRET no longer fails closed",
+			"edits": [
+				{
+					"file": "api/alerts.mjs",
+					"find": "if (!expected || typeof header !== 'string'",
+					"replace": "if (typeof header !== 'string'"
+				}
+			],
+			"tests": [
+				"test/cron-auth.test.mjs",
+				"test/m1-alert-run-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^CRON-AUTH: an unconfigured CRON_SECRET"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-API-002-P3-NEW2",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-TELEGRAM",
+			"targets": [
+				{
+					"control": "CR-API-002",
+					"property": "P3"
+				}
+			],
+			"description": "webhook: unconfigured secret no longer fails closed",
+			"edits": [
+				{
+					"file": "api/telegram.mjs",
+					"find": "if (!expected || typeof received !== 'string') return false;",
+					"replace": "if (typeof received !== 'string') return false;"
+				}
+			],
+			"tests": [
+				"test/telegram-webhook-auth.test.mjs",
+				"test/telegram-private-only.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^WEBHOOK-AUTH: an unconfigured webhook secret"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		},
 		{
 			"id": "MUT-CR-AUTH-001-P1-NEW1",
@@ -378,6 +482,190 @@
 			"evidence_id": "EV-KB-AUTH"
 		},
 		{
+			"id": "MUT-CR-AUTH-001-P4-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-AUTH",
+			"targets": [
+				{
+					"control": "CR-AUTH-001",
+					"property": "P4"
+				}
+			],
+			"description": "issued-at not bound to the stored challenge",
+			"edits": [
+				{
+					"file": "src/siwe-auth.mjs",
+					"find": "\tif (issuedAt !== expected.issuedAt) return 'ISSUED_AT_INVALID';\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/siwe-auth.test.mjs",
+				"test/siwe-signature.test.mjs",
+				"test/siwe-time-binding.test.mjs",
+				"test/dashboard-login-behavior.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SIWE-TIME: an issued-at that differs"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-001-P4-NEW2",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-AUTH",
+			"targets": [
+				{
+					"control": "CR-AUTH-001",
+					"property": "P4"
+				}
+			],
+			"description": "future issued-at accepted",
+			"edits": [
+				{
+					"file": "src/siwe-auth.mjs",
+					"find": "\tif (issuedAt > now + SIWE_CLOCK_SKEW_MS) return 'ISSUED_AT_INVALID';\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/siwe-auth.test.mjs",
+				"test/siwe-signature.test.mjs",
+				"test/siwe-time-binding.test.mjs",
+				"test/dashboard-login-behavior.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^34 ein zukuenftiges Issued-at"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-001-P4-NEW3",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-AUTH",
+			"targets": [
+				{
+					"control": "CR-AUTH-001",
+					"property": "P4"
+				}
+			],
+			"description": "expiration-time not bound to the stored challenge",
+			"edits": [
+				{
+					"file": "src/siwe-auth.mjs",
+					"find": "\tif (parsed.expirationTime.getTime() !== expected.expiresAt) return 'EXPIRED';\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/siwe-auth.test.mjs",
+				"test/siwe-signature.test.mjs",
+				"test/siwe-time-binding.test.mjs",
+				"test/dashboard-login-behavior.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SIWE-TIME: an expiration-time that differs"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-001-P4-NEW4",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-AUTH",
+			"targets": [
+				{
+					"control": "CR-AUTH-001",
+					"property": "P4"
+				}
+			],
+			"description": "expired challenge accepted",
+			"edits": [
+				{
+					"file": "src/siwe-auth.mjs",
+					"find": "\tif (now >= expected.expiresAt) return 'EXPIRED';\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/siwe-auth.test.mjs",
+				"test/siwe-signature.test.mjs",
+				"test/siwe-time-binding.test.mjs",
+				"test/dashboard-login-behavior.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^33 eine abgelaufene Nachricht"
+				},
+				{
+					"test": "^18 die Signatur einer abgelaufenen"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-001-P5-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-AUTH",
+			"targets": [
+				{
+					"control": "CR-AUTH-001",
+					"property": "P5"
+				}
+			],
+			"description": "SIWE address not compared with the claimed wallet",
+			"edits": [
+				{
+					"file": "src/siwe-auth.mjs",
+					"find": "\tif (String(parsed.address).toLowerCase() !== String(expected.wallet).toLowerCase()) {\n\t\treturn 'ADDRESS_MISMATCH';\n\t}\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/siwe-auth.test.mjs",
+				"test/siwe-signature.test.mjs",
+				"test/siwe-time-binding.test.mjs",
+				"test/dashboard-login-behavior.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^25 bis 32",
+					"message": "ADDRESS_MISMATCH"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
 			"id": "MUT-CR-AUTH-002-P1-NEW1",
 			"origin": "new (Phase 2A)",
 			"targets": [
@@ -414,6 +702,85 @@
 			"detection": "behavioral",
 			"timeout_ms": 300000,
 			"evidence_id": "EV-KB-AUTH"
+		},
+		{
+			"id": "MUT-CR-AUTH-002-P2-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-AUTH",
+			"targets": [
+				{
+					"control": "CR-AUTH-002",
+					"property": "P2"
+				}
+			],
+			"description": "failed signature still consumes the challenge",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\treturn response.status(401).json({ ok: false, error: 'Wallet-Signatur konnte nicht bestätigt werden.' });",
+					"replace": "\t\tawait consumeDashboardChallenge(challenge.nonce, wallet);\n\t\treturn response.status(401).json({ ok: false, error: 'Wallet-Signatur konnte nicht bestätigt werden.' });"
+				}
+			],
+			"tests": [
+				"test/dashboard-login-behavior.test.mjs",
+				"test/eoa-session-transport.test.mjs",
+				"test/l4-contract-detect-ttl.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "signature by another key: 401, no consume"
+				},
+				{
+					"test": "^H1 login with a malformed 65-byte signature"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-002-P2-NEW2",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-AUTH",
+			"targets": [
+				{
+					"control": "CR-AUTH-002",
+					"property": "P2"
+				}
+			],
+			"description": "failed signature still issues a session",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\treturn response.status(401).json({ ok: false, error: 'Wallet-Signatur konnte nicht bestätigt werden.' });",
+					"replace": "\t\treturn issueLoginSession(request, response, wallet, 'eoa', 'signature');"
+				}
+			],
+			"tests": [
+				"test/dashboard-login-behavior.test.mjs",
+				"test/eoa-session-transport.test.mjs",
+				"test/l4-contract-detect-ttl.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "signature by another key: 401, no consume"
+				},
+				{
+					"test": "^LOGIN owner signs a different text"
+				},
+				{
+					"test": "^H1 login with a malformed 65-byte signature"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		},
 		{
 			"id": "MUT-CR-AUTH-003-P1-NEW1",
@@ -501,6 +868,207 @@
 			"detection": "behavioral",
 			"timeout_ms": 300000,
 			"evidence_id": "EV-KB-AUTH"
+		},
+		{
+			"id": "MUT-CR-AUTH-003-P3-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-AUTH",
+			"targets": [
+				{
+					"control": "CR-AUTH-003",
+					"property": "P3"
+				}
+			],
+			"description": "isValidSignature not pinned to the common block",
+			"edits": [
+				{
+					"file": "src/contract-signature.mjs",
+					"find": "args: [hash, signature], blockNumber });",
+					"replace": "args: [hash, signature] });"
+				}
+			],
+			"tests": [
+				"test/erc1271.test.mjs",
+				"test/dual-rpc-erc1271.test.mjs",
+				"test/safe-session-authority.test.mjs",
+				"test/onchain-safe-login.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^DUAL 1:"
+				},
+				{
+					"test": "^DUAL 13:"
+				},
+				{
+					"test": "^DUAL 14 "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-003-P3-NEW2",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-AUTH",
+			"targets": [
+				{
+					"control": "CR-AUTH-003",
+					"property": "P3"
+				}
+			],
+			"description": "different block hashes under the same number accepted",
+			"edits": [
+				{
+					"file": "src/contract-signature.mjs",
+					"find": "\tif (hashes.alchemy.value !== hashes.infura.value) return { status: 'RPC_DISAGREEMENT' };\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/erc1271.test.mjs",
+				"test/dual-rpc-erc1271.test.mjs",
+				"test/safe-session-authority.test.mjs",
+				"test/onchain-safe-login.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^DUAL 11:"
+				},
+				{
+					"test": "^10 provider disagreement on the common block"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-003-P4-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-AUTH",
+			"targets": [
+				{
+					"control": "CR-AUTH-003",
+					"property": "P4"
+				}
+			],
+			"description": "provider error counted as VALID",
+			"edits": [
+				{
+					"file": "src/contract-signature.mjs",
+					"find": "return contractSaidNo ? 'INVALID' : 'UNAVAILABLE';",
+					"replace": "return contractSaidNo ? 'INVALID' : 'VALID';"
+				}
+			],
+			"tests": [
+				"test/erc1271.test.mjs",
+				"test/dual-rpc-erc1271.test.mjs",
+				"test/safe-session-authority.test.mjs",
+				"test/onchain-safe-login.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^DUAL 6/7/8:"
+				},
+				{
+					"test": "^DUAL 9/10:"
+				},
+				{
+					"test": "^8: 1271-Aufruf"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-003-P4-NEW2",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-AUTH",
+			"targets": [
+				{
+					"control": "CR-AUTH-003",
+					"property": "P4"
+				}
+			],
+			"description": "overall deadline resolves as VALID",
+			"edits": [
+				{
+					"file": "src/contract-signature.mjs",
+					"find": "resolve('RPC_UNAVAILABLE'), deadlineMs); });\n\ttry {\n\t\tconst result = await Promise.race([consensus(p, { address, message, signature }), deadline]);",
+					"replace": "resolve('VALID'), deadlineMs); });\n\ttry {\n\t\tconst result = await Promise.race([consensus(p, { address, message, signature }), deadline]);"
+				}
+			],
+			"tests": [
+				"test/erc1271.test.mjs",
+				"test/dual-rpc-erc1271.test.mjs",
+				"test/safe-session-authority.test.mjs",
+				"test/onchain-safe-login.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "overall deadline fails closed"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-003-P4-NEW3",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-AUTH",
+			"targets": [
+				{
+					"control": "CR-AUTH-003",
+					"property": "P4"
+				}
+			],
+			"description": "getCode disagreement between providers ignored",
+			"edits": [
+				{
+					"file": "src/contract-signature.mjs",
+					"find": "\tif (hasA !== hasB || codes.alchemy.value !== codes.infura.value) return 'RPC_DISAGREEMENT';\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/erc1271.test.mjs",
+				"test/dual-rpc-erc1271.test.mjs",
+				"test/safe-session-authority.test.mjs",
+				"test/onchain-safe-login.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^DUAL 4:"
+				},
+				{
+					"test": "^DUAL 5:"
+				},
+				{
+					"test": "^DUAL 5b:"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		},
 		{
 			"id": "MUT-CR-AUTH-005-P1-L4A",
@@ -659,6 +1227,153 @@
 			"detection": "behavioral",
 			"timeout_ms": 300000,
 			"evidence_id": "EV-KB-AUTH"
+		},
+		{
+			"id": "MUT-CR-AUTH-007-P1-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-SESSION",
+			"targets": [
+				{
+					"control": "CR-AUTH-007",
+					"property": "P1"
+				}
+			],
+			"description": "contract sessions need no fresh authority",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\tif (session.kind === 'contract') return true;\n",
+					"replace": "\tif (session.kind === 'contract') return false;\n"
+				}
+			],
+			"tests": [
+				"test/safe-session-authority.test.mjs",
+				"test/safe-app-backend.test.mjs",
+				"test/onchain-safe-login.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SA-L1 6:"
+				},
+				{
+					"test": "^SA-L1 9:"
+				},
+				{
+					"test": "^SA-L1 8:"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-007-P2-NEW2",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-SESSION",
+			"targets": [
+				{
+					"control": "CR-AUTH-007",
+					"property": "P2"
+				}
+			],
+			"description": "legacy token never needs fresh authority",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "try { return !await noContractCodeByQuorum(session.wallet); } catch { return true; }",
+					"replace": "return false;"
+				}
+			],
+			"tests": [
+				"test/safe-session-authority.test.mjs",
+				"test/safe-app-backend.test.mjs",
+				"test/onchain-safe-login.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "sessions issued before this change"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-007-P2-NEW3",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-SESSION",
+			"targets": [
+				{
+					"control": "CR-AUTH-007",
+					"property": "P2"
+				}
+			],
+			"description": "legacy token: a getCode outage counts as \"no contract code\"",
+			"edits": [
+				{
+					"file": "src/contract-signature.mjs",
+					"find": "return codes.alchemy.ok && codes.infura.ok && codes.alchemy.value === '0x' && codes.infura.value === '0x';",
+					"replace": "return !(codes.alchemy.ok && codes.infura.ok) || (codes.alchemy.value === '0x' && codes.infura.value === '0x');"
+				}
+			],
+			"tests": [
+				"test/safe-session-authority.test.mjs",
+				"test/safe-app-backend.test.mjs",
+				"test/onchain-safe-login.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "sessions issued before this change",
+					"message": "getCode-Ausfall"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-007-P3-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-SESSION",
+			"targets": [
+				{
+					"control": "CR-AUTH-007",
+					"property": "P3"
+				}
+			],
+			"description": "fresh confirmation nonce not consumed",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\tif (!await consumeDashboardChallenge(challenge.nonce, wallet)) {\n\t\tawait recordSecurityEvent(SECURITY_EVENT.SIWE_REPLAY_BLOCKED, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });\n\t\tresponse.status(409)",
+					"replace": "\tif (false && !await consumeDashboardChallenge(challenge.nonce, wallet)) {\n\t\tawait recordSecurityEvent(SECURITY_EVENT.SIWE_REPLAY_BLOCKED, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });\n\t\tresponse.status(409)"
+				}
+			],
+			"tests": [
+				"test/safe-session-authority.test.mjs",
+				"test/safe-app-backend.test.mjs",
+				"test/onchain-safe-login.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SA-L1 7:"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		},
 		{
 			"id": "MUT-CR-CONC-001-P1-H2A",
@@ -1476,6 +2191,77 @@
 			"evidence_id": "EV-KB-L5"
 		},
 		{
+			"id": "MUT-CR-CONC-005-P1-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-REVOKE",
+			"targets": [
+				{
+					"control": "CR-CONC-005",
+					"property": "P1"
+				}
+			],
+			"description": "stored cutoff overwritten instead of max-merged",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261006120000_atomic_dashboard_revocation.sql",
+					"find": "    effective_cutoff := greatest(effective_cutoff, parsed);\n",
+					"replace": "    effective_cutoff := effective_cutoff;\n"
+				}
+			],
+			"tests": [
+				"test/session-revocation-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^REVOKE-CONC"
+				},
+				{
+					"test": "cannot revoke newer sessions"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-CONC-005-P1-NEW2",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-REVOKE",
+			"targets": [
+				{
+					"control": "CR-CONC-005",
+					"property": "P1"
+				}
+			],
+			"description": "advisory lock removed from the revocation function",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261006120000_atomic_dashboard_revocation.sql",
+					"find": "  perform pg_advisory_xact_lock(hashtextextended('dashboard-revoke:' || normalized, 0));\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/session-revocation-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^REVOKE-CONC"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
 			"id": "MUT-CR-INPUT-010-P2-L3Y3",
 			"origin": "scratchpad l3mut Y3 (rebuilt)",
 			"targets": [
@@ -1851,6 +2637,91 @@
 			"evidence_id": "EV-KB-L4"
 		},
 		{
+			"id": "MUT-CR-SESSION-002-P2-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-SESSION",
+			"targets": [
+				{
+					"control": "CR-SESSION-002",
+					"property": "P2"
+				}
+			],
+			"description": "session tokens exempt from exp",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "|| !Number.isFinite(data.exp) || Date.now() > data.exp) return null;",
+					"replace": "|| !Number.isFinite(data.exp) || (data.type !== 'session' && Date.now() > data.exp)) return null;"
+				}
+			],
+			"tests": [
+				"test/session-token-boundaries.test.mjs",
+				"test/dashboard-auth-boundaries.test.mjs",
+				"test/eoa-session-transport.test.mjs",
+				"test/safe-session-authority.test.mjs",
+				"test/safe-app-session.test.mjs",
+				"test/same-origin-boundary.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SESSION-EXPIRY: an expired session token"
+				},
+				{
+					"test": "a contract session is refused after 24 hours"
+				},
+				{
+					"test": "^E an expired session requires"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-SESSION-002-P3-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-SESSION",
+			"targets": [
+				{
+					"control": "CR-SESSION-002",
+					"property": "P3"
+				}
+			],
+			"description": "action tokens exempt from exp",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "|| !Number.isFinite(data.exp) || Date.now() > data.exp) return null;",
+					"replace": "|| !Number.isFinite(data.exp) || (data.type !== 'action' && Date.now() > data.exp)) return null;"
+				}
+			],
+			"tests": [
+				"test/session-token-boundaries.test.mjs",
+				"test/dashboard-auth-boundaries.test.mjs",
+				"test/eoa-session-transport.test.mjs",
+				"test/safe-session-authority.test.mjs",
+				"test/safe-app-session.test.mjs",
+				"test/same-origin-boundary.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SESSION-EXPIRY: an expired action confirmation"
+				},
+				{
+					"test": "^SA-L1 15/16"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
 			"id": "MUT-CR-SESSION-002-P4-H2H",
 			"origin": "scratchpad h2mut H (rebuilt)",
 			"targets": [
@@ -1924,8 +2795,495 @@
 			"evidence_id": "EV-KB-L4"
 		},
 		{
+			"id": "MUT-CR-SESSION-003-P1-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-SESSION",
+			"targets": [
+				{
+					"control": "CR-SESSION-003",
+					"property": "P1"
+				}
+			],
+			"description": "challenge token accepted as session",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "return data?.type === 'session' ? data : null;",
+					"replace": "return data?.type === 'session' || data?.type === 'challenge' ? data : null;"
+				}
+			],
+			"tests": [
+				"test/session-token-boundaries.test.mjs",
+				"test/dashboard-auth-boundaries.test.mjs",
+				"test/eoa-session-transport.test.mjs",
+				"test/safe-session-authority.test.mjs",
+				"test/safe-app-session.test.mjs",
+				"test/same-origin-boundary.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SESSION-TYPES: challenge, session and action tokens"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-SESSION-003-P1-NEW2",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-SESSION",
+			"targets": [
+				{
+					"control": "CR-SESSION-003",
+					"property": "P1"
+				}
+			],
+			"description": "any token type accepted as action confirmation",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "return data?.type === 'action' && data.purpose === purpose ? data : null;",
+					"replace": "return data && (data.type !== 'action' || data.purpose === purpose) ? data : null;"
+				}
+			],
+			"tests": [
+				"test/session-token-boundaries.test.mjs",
+				"test/dashboard-auth-boundaries.test.mjs",
+				"test/eoa-session-transport.test.mjs",
+				"test/safe-session-authority.test.mjs",
+				"test/safe-app-session.test.mjs",
+				"test/same-origin-boundary.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SESSION-TYPES: challenge, session and action tokens"
+				},
+				{
+					"test": "^SA-L1 12/13"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-SESSION-003-P2-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-SESSION",
+			"targets": [
+				{
+					"control": "CR-SESSION-003",
+					"property": "P2"
+				}
+			],
+			"description": "action confirmation not bound to its purpose",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "return data?.type === 'action' && data.purpose === purpose ? data : null;",
+					"replace": "return data?.type === 'action' ? data : null;"
+				}
+			],
+			"tests": [
+				"test/session-token-boundaries.test.mjs",
+				"test/dashboard-auth-boundaries.test.mjs",
+				"test/eoa-session-transport.test.mjs",
+				"test/safe-session-authority.test.mjs",
+				"test/safe-app-session.test.mjs",
+				"test/same-origin-boundary.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SESSION-TYPES: an action confirmation is bound"
+				},
+				{
+					"test": "^SA-L1 11:"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-SESSION-005-P1-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-SESSION",
+			"targets": [
+				{
+					"control": "CR-SESSION-005",
+					"property": "P1"
+				}
+			],
+			"description": "login response body carries the session token",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "// Die Safe App haelt ihre Sitzung im partitionierten HttpOnly-Cookie (oben).\n\t\treturn response.status(200).json(data);",
+					"replace": "// Die Safe App haelt ihre Sitzung im partitionierten HttpOnly-Cookie (oben).\n\t\treturn response.status(200).json({ ...data, sessionToken: decodeURIComponent(cookie.split(';')[0].split('=').slice(1).join('=')) });"
+				}
+			],
+			"tests": [
+				"test/session-token-boundaries.test.mjs",
+				"test/dashboard-auth-boundaries.test.mjs",
+				"test/eoa-session-transport.test.mjs",
+				"test/safe-session-authority.test.mjs",
+				"test/safe-app-session.test.mjs",
+				"test/same-origin-boundary.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^M1 "
+				},
+				{
+					"test": "^A Safe App login"
+				},
+				{
+					"test": "^I a malicious frontend"
+				},
+				{
+					"test": "^SA-L1 3:"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-SESSION-005-P2-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-SESSION",
+			"targets": [
+				{
+					"control": "CR-SESSION-005",
+					"property": "P2"
+				}
+			],
+			"description": "Authorization: Bearer accepted as session fallback",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "const cookie = verifyDashboardSession(readSessionCookie(request));",
+					"replace": "const cookie = verifyDashboardSession(readSessionCookie(request) ?? String(request?.headers?.authorization ?? '').replace(/^Bearer /i, ''));"
+				}
+			],
+			"tests": [
+				"test/session-token-boundaries.test.mjs",
+				"test/dashboard-auth-boundaries.test.mjs",
+				"test/eoa-session-transport.test.mjs",
+				"test/safe-session-authority.test.mjs",
+				"test/safe-app-session.test.mjs",
+				"test/same-origin-boundary.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SESSION-BEARER"
+				},
+				{
+					"test": "^I a malicious frontend"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-SESSION-007-P1-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-REVOKE",
+			"targets": [
+				{
+					"control": "CR-SESSION-007",
+					"property": "P1"
+				}
+			],
+			"description": "logout clears cookies but never revokes server-side",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "\t\tawait revoke(session.wallet);",
+					"replace": "\t\tvoid revoke;"
+				}
+			],
+			"tests": [
+				"test/session-revocation-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^REVOKE: logout revokes every earlier session"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-SESSION-007-P2-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-REVOKE",
+			"targets": [
+				{
+					"control": "CR-SESSION-007",
+					"property": "P2"
+				}
+			],
+			"description": "positions endpoint ignores revocation",
+			"edits": [
+				{
+					"file": "api/positions.mjs",
+					"find": "\t\tif (revoked) return response.status(401).json({ ok: false, code: 'SESSION_REVOKED'",
+					"replace": "\t\tif (false) return response.status(401).json({ ok: false, code: 'SESSION_REVOKED'"
+				}
+			],
+			"tests": [
+				"test/session-revocation-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^REVOKE: logout revokes every earlier session",
+					"message": "GET /api/positions"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-SESSION-007-P2-NEW2",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-REVOKE",
+			"targets": [
+				{
+					"control": "CR-SESSION-007",
+					"property": "P2"
+				}
+			],
+			"description": "attributions endpoint ignores revocation",
+			"edits": [
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\t\tif (revoked) { response.status(401)",
+					"replace": "\t\tif (false) { response.status(401)"
+				}
+			],
+			"tests": [
+				"test/session-revocation-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^REVOKE: logout revokes every earlier session",
+					"message": "GET /api/position-attributions"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-SESSION-007-P2-NEW3",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-REVOKE",
+			"targets": [
+				{
+					"control": "CR-SESSION-007",
+					"property": "P2"
+				}
+			],
+			"description": "dashboard read ignores revocation",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\tif (revoked) {\n\t\t\tresponse.setHeader('set-cookie', CLEAR_SESSION_COOKIES);\n\t\t\treturn response.status(401).json({ ok: false, code: 'SESSION_REVOKED'",
+					"replace": "\t\tif (false) {\n\t\t\tresponse.setHeader('set-cookie', CLEAR_SESSION_COOKIES);\n\t\t\treturn response.status(401).json({ ok: false, code: 'SESSION_REVOKED'"
+				}
+			],
+			"tests": [
+				"test/session-revocation-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^REVOKE: logout revokes every earlier session",
+					"message": "GET /api/dashboard"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-SESSION-007-P2-NEW4",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-REVOKE",
+			"targets": [
+				{
+					"control": "CR-SESSION-007",
+					"property": "P2"
+				}
+			],
+			"description": "a session issued exactly at the cutoff stays valid",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "return Number.isFinite(revokedAt) && issuedAt <= revokedAt;",
+					"replace": "return Number.isFinite(revokedAt) && issuedAt < revokedAt;"
+				}
+			],
+			"tests": [
+				"test/session-revocation-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^REVOKE-CONC",
+					"message": "issued at the cutoff"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-001-P1-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-TELEGRAM",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-001",
+					"property": "P1"
+				}
+			],
+			"description": "webhook secret check skipped",
+			"edits": [
+				{
+					"file": "api/telegram.mjs",
+					"find": "if (!validSecret(request.headers['x-telegram-bot-api-secret-token'])) {",
+					"replace": "if (false) {"
+				}
+			],
+			"tests": [
+				"test/telegram-webhook-auth.test.mjs",
+				"test/telegram-private-only.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^WEBHOOK-AUTH: missing, empty or wrong"
+				},
+				{
+					"test": "^H: authentication still comes first"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-001-P1-NEW2",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-TELEGRAM",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-001",
+					"property": "P1"
+				}
+			],
+			"description": "webhook secret compared by length only",
+			"edits": [
+				{
+					"file": "api/telegram.mjs",
+					"find": "return a.length === b.length && timingSafeEqual(a, b);",
+					"replace": "return a.length === b.length;"
+				}
+			],
+			"tests": [
+				"test/telegram-webhook-auth.test.mjs",
+				"test/telegram-private-only.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^WEBHOOK-AUTH: missing, empty or wrong"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-001-P2-NEW1",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-TELEGRAM",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-001",
+					"property": "P2"
+				}
+			],
+			"description": "private-chat guard removed from the webhook",
+			"edits": [
+				{
+					"file": "api/telegram.mjs",
+					"find": "\tif (!isPrivateChatUpdate(request.body)) return response.status(200).json({ ok: true });\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/telegram-webhook-auth.test.mjs",
+				"test/telegram-private-only.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^webhook ignores "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
 			"id": "MUT-CR-TELEGRAM-001-P3-NEW1",
-			"origin": "new (Phase 2A)",
+			"origin": "new (Phase 2A); tests/expectation updated in Phase 2B",
 			"targets": [
 				{
 					"control": "CR-TELEGRAM-001",
@@ -1941,24 +3299,55 @@
 				}
 			],
 			"tests": [
-				"test/telegram-private-only.test.mjs",
-				"test/telegram-stale-authority.test.mjs",
-				"test/telegram-reconnect.test.mjs",
-				"test/api-hardening.test.mjs"
+				"test/telegram-webhook-auth.test.mjs",
+				"test/telegram-private-only.test.mjs"
 			],
 			"environment": [
 				"node"
 			],
 			"expected_failures": [
 				{
-					"test": "^webhook order"
+					"test": "^WEBHOOK-REPLAY"
 				}
 			],
 			"expected_result": "KILLED",
-			"detection": "static",
-			"note": "Killed only by source-text/export-surface checks; recorded but never counted as E4 known-bad proof.",
+			"detection": "behavioral",
 			"timeout_ms": 300000,
-			"evidence_id": "EV-KB-AUTH"
+			"evidence_id": "EV-KB-TELEGRAM"
+		},
+		{
+			"id": "MUT-CR-TELEGRAM-001-P3-NEW2",
+			"origin": "new (Phase 2B)",
+			"evidence_id": "EV-KB-TELEGRAM",
+			"targets": [
+				{
+					"control": "CR-TELEGRAM-001",
+					"property": "P3"
+				}
+			],
+			"description": "duplicate update_id (23505) treated as a new update",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "if (result.error?.code === '23505') return false;",
+					"replace": "if (result.error?.code === '23505') return true;"
+				}
+			],
+			"tests": [
+				"test/telegram-webhook-auth.test.mjs",
+				"test/telegram-private-only.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^WEBHOOK-REPLAY"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		},
 		{
 			"id": "MUT-CR-TELEGRAM-002-P1-L2X4",

@@ -359,7 +359,13 @@ function checkLock(def, ctx) {
 	}
 	for (const id of Object.keys(now.controls)) if (!lock.controls[id]) changed.push({ id, kind: 'ADDED' });
 	const profileChanged = lock.profile_rules_digest !== now.profile_rules_digest;
-	if (!changed.length && !profileChanged) return errors;
+	if (!changed.length && !profileChanged) {
+		if (lock.crsf_version !== version) {
+			if (!def['framework-changes'].versions.some((v) => v.crsf_version === version)) err('VERSION_WITHOUT_CHANGE_RECORD', version);
+			else err('LOCK_UPDATE_REQUIRED', `framework-lock.json is at ${lock.crsf_version}; regenerate with crsf-gen --write`);
+		}
+		return errors;
+	}
 	if (lock.crsf_version === version) {
 		if (profileChanged) err('PROFILE_CHANGED_WITHOUT_VERSION', 'profile rules differ from framework-lock.json at the same crsf_version');
 		for (const ch of changed) {

@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2a",
+	"crsf_version": "1.0-draft-phase2b",
 	"asvs": "5.0.0",
 	"input": "security/crsf/vendor/asvs-5.0.0.flat.json",
 	"input_sha256": "8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311",
@@ -529,7 +529,7 @@
 				"CR-SESSION-004",
 				"CR-SESSION-005"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1222,7 +1222,7 @@
 			"controls": [
 				"CR-AUTH-002"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1583,7 +1583,7 @@
 				"CR-SESSION-007",
 				"CR-CONC-005"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1603,7 +1603,7 @@
 			"controls": [
 				"CR-SESSION-007"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1654,7 +1654,7 @@
 			"controls": [
 				"CR-AUTH-007"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1777,7 +1777,7 @@
 			"controls": [
 				"CR-SESSION-007"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1851,7 +1851,7 @@
 			"controls": [
 				"CR-SESSION-002"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1862,7 +1862,7 @@
 			"controls": [
 				"CR-SESSION-003"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -2622,7 +2622,7 @@
 			"controls": [
 				"CR-TELEGRAM-001"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -2929,7 +2929,7 @@
 			"controls": [
 				"CR-SESSION-005"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
