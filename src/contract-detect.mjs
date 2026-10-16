@@ -31,6 +31,7 @@ export const CODE_CACHE_TTL_MS = 60_000;
 	abgelaufene zuerst, dann die aeltesten.
 */
 export const CODE_CACHE_MAX_ENTRIES = 1_000;
+const BYTECODE = /^0x(?:[0-9a-fA-F]{2})+$/;
 const defaultCodeCache = new Map();
 
 function remember(cache, key, entry, now) {
@@ -73,7 +74,12 @@ export async function isDeployedContract(address, { getCode = null, client, cach
 	}
 	// Wirft bei RPC-Fehler -> propagiert (wird NICHT gecacht).
 	const code = await codeOf(address);
-	const isContract = Boolean(code && code !== '0x');
+	// Restaudit L4: nur leerer Code (viem: undefined, roh: '0x', oder null) ist eine EOA,
+	// nur wohlgeformter Bytecode ein Contract. Alles andere (kaputte oder manipulierte
+	// Antwort) wirft wie ein RPC-Fehler - nicht gecacht, der Aufrufer nimmt die kurze
+	// EOA-TTL. Vorher galt jede nicht leere Antwort als Contract (lange TTL).
+	if (code != null && code !== '0x' && !(typeof code === 'string' && BYTECODE.test(code))) throw new Error('Unerwartete getCode-Antwort.');
+	const isContract = typeof code === 'string' && BYTECODE.test(code);
 	if (key) remember(cache, key, { isContract, expires: now + CODE_CACHE_TTL_MS }, now);
 	return isContract;
 }
