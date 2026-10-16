@@ -69,6 +69,10 @@ test('7 die Wallet-Schranken sind nicht weiter als die IP-Schranken', () => {
 test('8 die Wallet-Schranken verwenden die gemeinsame Infrastruktur, keinen Ad-hoc-Limiter', () => {
 	// enforceRateLimitFor ist DB-gestuetzt und faellt ohne Secret zu (fail closed).
 	assert.match(dashboard, /enforceRateLimitFor,/);
-	// Kein eigener In-Memory-Zaehler fuer Wallet-Limits.
-	assert.equal(/new Map\(\)[^]*dashboard-challenge-wallet/.test(dashboard), false);
+	// Kein eigener In-Memory-Zaehler fuer Wallet-Limits. Restaudit M2: die einzigen Maps
+	// sind der Cover-Cache und die laufenden Abfragen (Optimierung je Instanz) - kein
+	// Zaehler, keine Grenze. Die Lese-Budgets laufen ueber enforceRateLimitFor.
+	assert.deepEqual([...dashboard.matchAll(/const (\w+) = new Map\(\)/g)].map((m) => m[1]), ['coverCache', 'coverLookups']);
+	assert.equal(/(coverCache|coverLookups)\.set\([^;]*\+\s*1/.test(dashboard), false, 'keine Map als Zaehler');
+	for (const scope of ['dashboard-read-wallet', 'dashboard-read-global']) assert.match(dashboard, new RegExp(`enforceRateLimitFor\\(response, '${scope}'`));
 });

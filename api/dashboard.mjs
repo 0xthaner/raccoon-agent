@@ -9,8 +9,71 @@ import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin }
 import { recordSecurityEvent, securityFingerprint, SECURITY_EVENT } from '../src/security-events.mjs';
 import { queryParams, singleQueryValue } from '../src/request-query.mjs';
 
-async function dashboardData(wallet) {
-	const [result, telegramState] = await Promise.all([getWalletCovers(wallet), getWalletLinkStateByWallet(wallet)]);
+/*
+	Restaudit M2, 16.10.2026: der authentisierte Lesepfad (GET) loest Provider-Arbeit
+	aus - Alchemy-NFT-Index, Nexus-Produktliste, RPC getCovers. Bis dahin stand davor
+	nur eine IP-Grenze; mit einer gueltigen Sitzung und wechselnden IPs liess sich das
+	beliebig oft ausloesen.
+
+	SICHERHEITSGRENZE (in der Datenbank gezaehlt, gilt ueber alle Instanzen): vor jeder
+	echten Cover-Abfrage ein Budget je Wallet (aus der verifizierten Sitzung, nie aus
+	Query oder Body) und ein globales. Gezaehlt wird nur, was wirklich zum Provider
+	geht. Abgelehnt: 429 mit Retry-After, keine Abfrage.
+
+	NUR OPTIMIERUNG, KEINE GRENZE: ein kurzer In-Memory-Cache je Wallet und das
+	Buendeln gleichzeitiger Abfragen derselben Wallet - beides nur innerhalb EINER
+	Serverless-Instanz. Gecacht wird nur das Cover-Ergebnis, nie Sitzung oder
+	Telegram-Status; Fehler werden nie gecacht. Ein gueltiger Cache-Treffer kostet kein
+	Budget, weil keine Provider-Arbeit entsteht.
+
+	Der Login teilt Cache und Buendelung, aber nicht diese Budgets: er ist bereits
+	enger begrenzt (frische Signatur und verbrauchte Nonce je Aufruf, 10 je Wallet und
+	200 global in 10 Minuten).
+*/
+const DASHBOARD_READ_WALLET_LIMIT = Object.freeze({ max: 30, windowSeconds: 600 });
+const DASHBOARD_READ_GLOBAL_LIMIT = Object.freeze({ max: 300, windowSeconds: 600 });
+const COVER_CACHE_TTL_MS = 20_000;
+const COVER_CACHE_MAX_ENTRIES = 500;
+const coverCache = new Map();
+const coverLookups = new Map();
+class CoverLookupNotAdmitted extends Error {}
+
+function cachedWalletCovers(wallet, { admit = async () => true } = {}) {
+	const key = wallet.toLowerCase();
+	const hit = coverCache.get(key);
+	if (hit && Date.now() < hit.expires) return Promise.resolve(hit.value);
+	if (hit) coverCache.delete(key);
+	const running = coverLookups.get(key);
+	if (running) return running;
+	// Synchron eintragen, BEVOR auf das Budget gewartet wird: eine zweite Anfrage
+	// derselben Wallet haengt sich an, statt ein zweites Budget und eine zweite Abfrage zu verbrauchen.
+	const pending = Promise.resolve()
+		.then(() => admit())
+		.then((admitted) => {
+			if (!admitted) throw new CoverLookupNotAdmitted();
+			return getWalletCovers(key);
+		})
+		.then((value) => {
+			coverCache.delete(key);
+			coverCache.set(key, { value, expires: Date.now() + COVER_CACHE_TTL_MS });
+			while (coverCache.size > COVER_CACHE_MAX_ENTRIES) coverCache.delete(coverCache.keys().next().value);
+			return value;
+		})
+		.finally(() => { coverLookups.delete(key); });
+	coverLookups.set(key, pending);
+	return pending;
+}
+
+// Login: dieselbe Buendelung; haengt er an einer abgelehnten Lese-Abfrage, fragt er selbst.
+function loginWalletCovers(wallet) {
+	return cachedWalletCovers(wallet).catch((error) => {
+		if (error instanceof CoverLookupNotAdmitted) return getWalletCovers(wallet.toLowerCase());
+		throw error;
+	});
+}
+
+async function dashboardData(wallet, lookupCovers = loginWalletCovers) {
+	const [result, telegramState] = await Promise.all([lookupCovers(wallet), getWalletLinkStateByWallet(wallet)]);
 	const telegramLink = telegramState.link;
 	const covers = result.covers.map((cover) => ({
 		coverId: cover.coverId, productId: cover.productId, productName: cover.productName,
@@ -169,7 +232,27 @@ export default async function handler(request, response) {
 			response.setHeader('set-cookie', CLEAR_SESSION_COOKIES);
 			return response.status(401).json({ ok: false, code: 'SESSION_REVOKED', error: 'Die Wallet-Verbindung wurde vollständig zurückgesetzt.' });
 		}
-		return response.status(200).json(await dashboardData(saved.wallet));
+		// Restaudit M2: Budgets je Wallet und global VOR der Provider-Arbeit (siehe oben).
+		const sessionWallet = saved.wallet.toLowerCase();
+		let denied = false;
+		const admit = async () => {
+			const admitted = await enforceRateLimitFor(response, 'dashboard-read-wallet', sessionWallet, DASHBOARD_READ_WALLET_LIMIT.max, DASHBOARD_READ_WALLET_LIMIT.windowSeconds)
+				&& await enforceRateLimitFor(response, 'dashboard-read-global', 'all', DASHBOARD_READ_GLOBAL_LIMIT.max, DASHBOARD_READ_GLOBAL_LIMIT.windowSeconds);
+			if (!admitted) denied = true;
+			return admitted;
+		};
+		let data;
+		try {
+			data = await dashboardData(sessionWallet, (target) => cachedWalletCovers(target, { admit }));
+		} catch (error) {
+			if (!(error instanceof CoverLookupNotAdmitted)) throw error;
+			// Eigene Ablehnung: 429 mit Retry-After ist schon geschrieben (und als Ereignis erfasst).
+			if (denied) return;
+			// Angehaengt an eine fremde, abgelehnte Abfrage: ebenfalls 429, ohne eigene Abfrage.
+			response.setHeader('retry-after', String(DASHBOARD_READ_WALLET_LIMIT.windowSeconds));
+			return response.status(429).json({ ok: false, error: 'Too many requests. Please try again later.' });
+		}
+		return response.status(200).json(data);
 	}
 	if (request.method === 'DELETE') {
 		if (!requireSameOrigin(request, response) || !optionalJson(request, response)) return;
