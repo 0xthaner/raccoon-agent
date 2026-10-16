@@ -189,6 +189,32 @@
 										"remaining_assumptions": {
 											"type": "string",
 											"minLength": 20
+										},
+										"affected_population": {
+											"type": "string",
+											"minLength": 20
+										},
+										"order_before": {
+											"type": "object",
+											"additionalProperties": {
+												"type": "string",
+												"minLength": 10
+											}
+										},
+										"order_after": {
+											"type": "object",
+											"additionalProperties": {
+												"type": "string",
+												"minLength": 10
+											}
+										},
+										"application_files_changed": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"minLength": 1
+											},
+											"minItems": 1
 										}
 									}
 								}

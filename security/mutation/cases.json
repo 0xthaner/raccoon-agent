@@ -5492,6 +5492,176 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P1-F2F1A",
+			"origin": "new (Phase 2G)",
+			"evidence_id": "EV-KB-LEGACY-ORDER",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P1"
+				}
+			],
+			"description": "POST {action}: freshAuthorityRequired (provider getCode) moved before the per-wallet/global gates (the original F-2F-1 order)",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\tif (!await legacyKindLookupAdmitted(response, session)) return;\n\t\tif (!await freshAuthorityRequired(session)) return response.status(200).json({ ok: true, freshSignatureRequired: false });",
+					"replace": "\t\tif (!await freshAuthorityRequired(session)) return response.status(200).json({ ok: true, freshSignatureRequired: false });\n\t\tif (!await legacyKindLookupAdmitted(response, session)) return;"
+				}
+			],
+			"tests": [
+				"test/dashboard-legacy-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^LEGACY-ORDER (wallet|global) gate",
+					"message": "^POST action"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P1-F2F1B1",
+			"origin": "new (Phase 2G)",
+			"evidence_id": "EV-KB-LEGACY-ORDER",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P1"
+				}
+			],
+			"description": "DELETE sign-out: the per-wallet/global gate before the legacy kind lookup is bypassed",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\tif (saved && !await legacyKindLookupAdmitted(response, saved)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/dashboard-legacy-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^LEGACY-ORDER (wallet|global) gate",
+					"message": "^DELETE sign-out"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P1-F2F1B2",
+			"origin": "new (Phase 2G)",
+			"evidence_id": "EV-KB-LEGACY-ORDER",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P1"
+				}
+			],
+			"description": "DELETE ?telegram=1: the per-wallet/global gate before the legacy kind lookup is bypassed",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\t\tif (!await legacyKindLookupAdmitted(response, saved)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/dashboard-legacy-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^LEGACY-ORDER (wallet|global) gate",
+					"message": "^DELETE telegram"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P1-F2F1C",
+			"origin": "new (Phase 2G)",
+			"evidence_id": "EV-KB-LEGACY-ORDER",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P1"
+				}
+			],
+			"description": "shared legacy gate: the global action budget (dashboard-action-verify-global) removed",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\n\t\t&& await enforceRateLimitFor(response, 'dashboard-action-verify-global', 'all', 100, 600);",
+					"replace": ";"
+				}
+			],
+			"tests": [
+				"test/dashboard-legacy-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^LEGACY-ORDER global gate",
+					"message": "^POST action"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P1-F2F1D",
+			"origin": "new (Phase 2G)",
+			"evidence_id": "EV-KB-LEGACY-ORDER",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P1"
+				}
+			],
+			"description": "shared legacy gate: the per-wallet action limit (dashboard-action-wallet) removed",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\treturn await enforceRateLimitFor(response, 'dashboard-action-wallet', session.wallet.toLowerCase(), 10, 600)\n\t\t&& await enforceRateLimitFor(",
+					"replace": "\treturn await enforceRateLimitFor("
+				}
+			],
+			"tests": [
+				"test/dashboard-legacy-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^LEGACY-ORDER wallet gate",
+					"message": "^POST action"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

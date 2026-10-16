@@ -914,6 +914,79 @@
 					"reason": "Stop condition B (real application finding F-2F-1) reached during CR-RESOURCE-001 inventory, the first item of Phase 2F. Not attempted: CR-RESOURCE-001 P2-P4 evidence, CR-INPUT-004, CR-BROWSER-004, CR-VERIFY-003, CR-VERIFY-004."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2g",
+			"summary": "Phase 2G: F-2F-1 fixed (dashboard action limits before the legacy provider lookup); CR-RESOURCE-001 recomputed (no FAIL; P1 evidence partial, P2-P4 unchanged).",
+			"changes": [
+				{
+					"id": "F-2F-1",
+					"kind": "FINDING_FIXED",
+					"reason": "Application finding F-2F-1 (Low, Phase 2F) fixed in api/dashboard.mjs; proven behaviourally and by five KILLED mutations; the VIOLATION probe is inverted to a regression proof.",
+					"finding": {
+						"control": "CR-RESOURCE-001",
+						"property": "P1",
+						"status_before": "OPEN",
+						"status_after": "FIXED",
+						"affected_population": "Dashboard sessions without `kind`, i.e. issued before 2026-10-14 (commit 2edae68). Their 7-day lifetime ends by about 2026-10-21; the defect was fixed in code regardless of that expiry.",
+						"root_cause": "freshAuthorityRequired decides sessions without kind by noContractCodeByQuorum (eth_getCode at Alchemy AND Infura). On POST {action} it ran after the per-IP gate but before the per-wallet gate (dashboard-action-wallet) and with no global gate; on DELETE (sign-out, ?telegram=1) after only the per-IP gate. The rate-limit placement assumed that freshAuthorityRequired is local, which holds only for typed sessions.",
+						"code_change": "api/dashboard.mjs: new helper legacyKindLookupAdmitted(response, session) - for a session without kind it applies the existing per-wallet action gate (dashboard-action-wallet, 10/600 s) and the existing global dual-RPC action budget (dashboard-action-verify-global, 100/600 s, META-AUDIT M-2) and writes the 429 itself; typed sessions pass through untouched. Called before freshAuthorityRequired on POST {action}, DELETE sign-out and DELETE ?telegram=1; on POST the later wallet gate now runs only for typed sessions (no double charge). freshAuthorityRequired, noContractCodeByQuorum, verifyFreshAuthority, SIWE and ERC-1271 are unchanged.",
+						"before_behavior": "A legacy session triggered two provider requests per request with only the per-IP limit in front; on POST the wallet limit could deny only after the provider work (429 after the RPCs); DELETE had no wallet or global limit. IP rotation with one valid legacy session drove unbounded provider requests.",
+						"after_behavior": "A legacy request that any of the IP, wallet or global gates rejects gets 429 with zero provider calls and no write; an admitted legacy request is classified exactly as before (unknown is never EOA, fresh authority unchanged); typed sessions keep their previous gates and make no provider call.",
+						"order_before": {
+							"post_action_legacy": "IP dashboard-action -> session HMAC -> revoked check -> freshAuthorityRequired -> getCode Alchemy + Infura -> dashboard-action-wallet -> challenge store (no global gate)",
+							"delete_legacy": "IP dashboard-delete -> session HMAC -> revoked check -> freshAuthorityRequired -> getCode Alchemy + Infura -> sign-out / fresh authority / unlink (no wallet or global gate)"
+						},
+						"order_after": {
+							"post_action_legacy": "IP dashboard-action -> session HMAC -> revoked check -> dashboard-action-wallet -> dashboard-action-verify-global -> freshAuthorityRequired -> getCode Alchemy + Infura -> challenge store",
+							"delete_legacy": "IP dashboard-delete -> session HMAC -> revoked check -> dashboard-action-wallet -> dashboard-action-verify-global -> freshAuthorityRequired -> getCode Alchemy + Infura -> sign-out / fresh authority (verifyFreshAuthority keeps its own gates) / unlink",
+							"typed_sessions": "unchanged: eoa POST IP only; contract POST IP -> dashboard-action-wallet; eoa/contract DELETE IP only before the local decision"
+						},
+						"application_files_changed": [
+							"api/dashboard.mjs"
+						],
+						"regression_tests": [
+							"test/dashboard-legacy-rate-order.test.mjs (LEGACY-ORDER IP/wallet/global, LEGACY-ALLOWED, TYPED-UNCHANGED)",
+							"security/crsf/probes/resource-legacy-session-probe.mjs (regression proof)",
+							"test/hard004.test.mjs (harness: injects enforceRateLimitFor, assertions unchanged)"
+						],
+						"mutation_ids": [
+							"MUT-CR-RESOURCE-001-P1-F2F1A",
+							"MUT-CR-RESOURCE-001-P1-F2F1B1",
+							"MUT-CR-RESOURCE-001-P1-F2F1B2",
+							"MUT-CR-RESOURCE-001-P1-F2F1C",
+							"MUT-CR-RESOURCE-001-P1-F2F1D"
+						],
+						"mutation_result": "KILLED",
+						"call_sites_proven": [
+							"api/dashboard.mjs POST {action} (challenge issuance)",
+							"api/dashboard.mjs DELETE sign-out",
+							"api/dashboard.mjs DELETE ?telegram=1"
+						],
+						"remaining_assumptions": "Limiter store and providers are stubs/offline wire (the limiter atomicity is CR-RESOURCE-002). The global key is shared with fresh-authority verification by design (one dual-RPC action budget), so exhausting it also pauses Safe fresh confirmations - the same trade-off META-AUDIT M-2 already made. The Telegram unlink path (src/bot.mjs walletWideFromChatAllowed) was checked and is not affected: at most one lookup per linked wallet, and the wallets are unlinked in the same step. CR-RESOURCE-001 P1 login/on-chain/verify ordering and P2-P4 remain without full behavioural evidence."
+					}
+				},
+				{
+					"id": "CR-RESOURCE-001",
+					"kind": "STATUS_CHANGE",
+					"old_status": "FAIL",
+					"new_status": "MISSING_EVIDENCE",
+					"minimum_level": "E3",
+					"evidence_added": [
+						"test/dashboard-legacy-rate-order.test.mjs (EV-LEGACY-ORDER)",
+						"EV-KB-LEGACY-ORDER: MUT-CR-RESOURCE-001-P1-F2F1A/B1/B2/C/D",
+						"EV-PROBE-LEGACY-RPC now SUPPORTS"
+					],
+					"why_sufficient": "The VIOLATION is removed only because the probe now observes the fixed order. The status is recomputed by the engine; P1 evidence is PARTIAL (action paths only), so the control does not reach PASS through this fix.",
+					"remains_unproven": "P1 login / on-chain / verify ordering; P2-P4 (unchanged from Phase 2F).",
+					"reason": "finding F-2F-1 fixed (Phase 2G); status recomputed"
+				},
+				{
+					"id": "CHANGE_RECORD_FORMAT",
+					"kind": "FRAMEWORK_FIX",
+					"reason": "The finding block of framework-changes records gains optional affected_population, order_before, order_after and application_files_changed fields (documentation only; the FINDING_FIX_NOT_PROVEN check is unchanged)."
+				}
+			]
 		}
 	]
 }

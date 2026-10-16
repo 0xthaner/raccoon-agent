@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2f",
+	"crsf_version": "1.0-draft-phase2g",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -5872,17 +5872,17 @@
 			"source": "repository",
 			"artifact": "security/crsf/probes/resource-legacy-session-probe.mjs",
 			"test_or_proof": "node security/crsf/probes/resource-legacy-session-probe.mjs",
-			"property_proven": "observation (finding F-2F-1): with the real api/dashboard.mjs handler and the real src/http-security.mjs guards, a limiter that admits per-IP keys and denies every per-wallet and global key still lets a legacy session (no kind) trigger the two-provider getCode on POST {action} (wallet limit consulted only afterwards, 429 after the provider work) and on DELETE (no wallet or global limit on the path); controls: sessions with kind eoa/contract never reach a provider",
-			"property_not_proven": "real provider cost/quota effects; how many legacy sessions still exist in production (issued before 2026-10-14, at most 7 days valid)",
+			"property_proven": "regression proof (F-2F-1 fixed in Phase 2G): with every per-wallet and global key denied, a legacy session (no kind) reaches no provider on POST {action} or DELETE (429); with every gate admitting it is still classified by the providers; sessions with kind never reach a provider; the probe exits 1 if the defect returns",
+			"property_not_proven": "per-provider call counts and the telegram path (EV-LEGACY-ORDER); real providers",
 			"covers": [
 				{
 					"control": "CR-RESOURCE-001",
 					"properties": [
 						"P1"
 					],
-					"scope": "FULL",
-					"result": "VIOLATION",
-					"note": "F-2F-1: legacy dashboard sessions (no kind) reach noContractCodeByQuorum (eth_getCode at Alchemy and Infura) on POST {action} before the per-wallet limit and with no global limit, and on DELETE (sign-out / Telegram disconnect) with only the per-IP limit"
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "Phase 2F: reproduced F-2F-1 (VIOLATION); Phase 2G: inverted to a regression proof after the fix; covers the provider work of the dashboard action paths (legacy kind lookup on POST {action}, DELETE sign-out, DELETE ?telegram=1); login, on-chain approval and fresh-authority verification ordering are not behaviourally proven by this item"
 				}
 			],
 			"reproducible": true,
@@ -5908,7 +5908,104 @@
 				"CR-RESOURCE-001"
 			],
 			"coverage": "PARTIAL",
-			"reason_for_partial": "CR-RESOURCE-001[P1]: F-2F-1: legacy dashboard sessions (no kind) reach noContractCodeByQuorum (eth_getCode at Alchemy and Infura) on POST {action} before the per-wallet limit and with no global limit, and on DELETE (sign-out / Telegram disconnect) with only the per-IP limit"
+			"reason_for_partial": "CR-RESOURCE-001[P1]: Phase 2F: reproduced F-2F-1 (VIOLATION); Phase 2G: inverted to a regression proof after the fix; covers the provider work of the dashboard action paths (legacy kind lookup on POST {action}, DELETE sign-out, DELETE ?telegram=1); login, on-chain approval and fresh-authority verification ordering are not behaviourally proven by this item"
+		},
+		{
+			"id": "EV-LEGACY-ORDER",
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/dashboard-legacy-rate-order.test.mjs",
+			"test_or_proof": "test/dashboard-legacy-rate-order.test.mjs",
+			"property_proven": "real api/dashboard.mjs + real src/http-security.mjs guards + real noContractCodeByQuorum on two offline wire providers with per-provider request counters: for a legacy session (no kind) on POST {action}, DELETE sign-out and DELETE ?telegram=1, a denied per-IP, per-wallet (dashboard-action-wallet) or global (dashboard-action-verify-global) limit yields 429 with Alchemy 0, Infura 0 eth_getCode calls and no challenge store, revocation or unlink, and no later gate is consulted; admitted legacy requests are still classified by both providers (contract code -> fresh authority required; both 0x -> legacy EOA behaviour); the wallet budget is charged once; sessions with kind eoa/contract make no provider call and pass exactly their previous gates",
+			"property_not_proven": "login, on-chain approval and fresh-authority verification ordering (other evidence); real limiter store and real providers (stubs/offline wire)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P1]: covers the provider work of the dashboard action paths (legacy kind lookup on POST {action}, DELETE sign-out, DELETE ?telegram=1); login, on-chain approval and fresh-authority verification ordering are not behaviourally proven by this item",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "covers the provider work of the dashboard action paths (legacy kind lookup on POST {action}, DELETE sign-out, DELETE ?telegram=1); login, on-chain approval and fresh-authority verification ordering are not behaviourally proven by this item"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "legacy-order",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/dashboard-legacy-rate-order.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-LEGACY-ORDER",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 5 case(s)",
+			"property_proven": "moving the provider lookup before the gates on POST, bypassing the gate on DELETE sign-out or on DELETE ?telegram=1, or removing the global or the per-wallet gate from the shared helper is each caught behaviourally (provider calls or writes observed under a denied limit)",
+			"property_not_proven": "login / on-chain / verify paths",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-RESOURCE-001-P1-F2F1A, MUT-CR-RESOURCE-001-P1-F2F1B1, MUT-CR-RESOURCE-001-P1-F2F1B2, MUT-CR-RESOURCE-001-P1-F2F1C, MUT-CR-RESOURCE-001-P1-F2F1D; covers the provider work of the dashboard action paths (legacy kind lookup on POST {action}, DELETE sign-out, DELETE ?telegram=1); login, on-chain approval and fresh-authority verification ordering are not behaviourally proven by this item"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "legacy-order",
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-RESOURCE-001-P1-F2F1A",
+					"MUT-CR-RESOURCE-001-P1-F2F1B1",
+					"MUT-CR-RESOURCE-001-P1-F2F1B2",
+					"MUT-CR-RESOURCE-001-P1-F2F1C",
+					"MUT-CR-RESOURCE-001-P1-F2F1D"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P1]: mutation cases: MUT-CR-RESOURCE-001-P1-F2F1A, MUT-CR-RESOURCE-001-P1-F2F1B1, MUT-CR-RESOURCE-001-P1-F2F1B2, MUT-CR-RESOURCE-001-P1-F2F1C, MUT-CR-RESOURCE-001-P1-F2F1D; covers the provider work of the dashboard action paths (legacy kind lookup on POST {action}, DELETE sign-out, DELETE ?telegram=1); login, on-chain approval and fresh-authority verification ordering are not behaviourally proven by this item"
 		}
 	]
 }

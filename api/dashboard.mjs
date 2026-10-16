@@ -103,6 +103,21 @@ async function freshAuthorityRequired(session) {
 	try { return !await noContractCodeByQuorum(session.wallet); } catch { return true; }
 }
 
+/*
+	CRSF F-2F-1, 16.10.2026: nur eine Alt-Sitzung ohne Art loest in
+	freshAuthorityRequired Provider-Arbeit aus (getCode bei Alchemy UND Infura).
+	Vorher lief sie nur hinter der IP-Schranke - mit rotierenden IPs liess eine
+	einzige Alt-Sitzung beliebig viele RPCs ausloesen. Jetzt greifen VORHER die
+	vorhandene Wallet-Schranke der Aktionen und das vorhandene globale Budget der
+	Dual-RPC-Aktionspruefung (META-AUDIT M-2). Sitzungen mit Art entscheiden lokal
+	und bleiben unveraendert. Schreibt bei Ablehnung die 429-Antwort selbst.
+*/
+async function legacyKindLookupAdmitted(response, session) {
+	if (session.kind !== undefined) return true;
+	return await enforceRateLimitFor(response, 'dashboard-action-wallet', session.wallet.toLowerCase(), 10, 600)
+		&& await enforceRateLimitFor(response, 'dashboard-action-verify-global', 'all', 100, 600);
+}
+
 /**
  * Prueft die frische Bestaetigung `{ token, signature }` fuer genau diesen Zweck
  * und genau diese Sitzungs-Wallet und verbraucht ihre Nonce atomar. Schreibt bei
@@ -261,6 +276,7 @@ export default async function handler(request, response) {
 		const saved = resolvedDelete.conflict ? null : resolvedDelete.session;
 		if (singleQueryValue(queryParams(request), 'telegram') === '1') {
 			if (!saved || await isDashboardSessionRevoked(saved.wallet, sessionIssuedAt(saved))) return response.status(401).json({ ok: false, error: 'Keine aktive Dashboard-Sitzung.' });
+			if (!await legacyKindLookupAdmitted(response, saved)) return;
 			// AUDIT SA-L1: Contract-Wallet -> nur mit frischer Bestaetigung fuer genau "telegram-disconnect".
 			const contractAuthority = await freshAuthorityRequired(saved);
 			if (contractAuthority && !await verifyFreshAuthority(request, response, saved.wallet, 'telegram-disconnect')) return;
@@ -288,6 +304,7 @@ export default async function handler(request, response) {
 		// Bestaetigung fuer genau "session-revoke". Ohne sie wird nur DIESES Geraet
 		// abgemeldet (Cookie weg), niemand sonst. Eine mitgeschickte, aber ungueltige
 		// Bestaetigung aendert nichts und wird gemeldet.
+		if (saved && !await legacyKindLookupAdmitted(response, saved)) return;
 		if (saved && await freshAuthorityRequired(saved)) {
 			const body = request.body && typeof request.body === 'object' ? request.body : {};
 			if (body.token === undefined && body.signature === undefined) {
@@ -327,8 +344,10 @@ export default async function handler(request, response) {
 		let revoked;
 		try { revoked = await isDashboardSessionRevoked(session.wallet, sessionIssuedAt(session)); } catch { return response.status(503).json({ ok: false, code: 'SESSION_CHECK_UNAVAILABLE', error: 'Sitzung konnte gerade nicht geprüft werden.' }); }
 		if (revoked) return response.status(401).json({ ok: false, code: 'SESSION_REVOKED', error: 'Die Wallet-Verbindung wurde vollständig zurückgesetzt.' });
+		if (!await legacyKindLookupAdmitted(response, session)) return;
 		if (!await freshAuthorityRequired(session)) return response.status(200).json({ ok: true, freshSignatureRequired: false });
-		if (!await enforceRateLimitFor(response, 'dashboard-action-wallet', session.wallet, 10, 600)) return;
+		// Alt-Sitzungen haben die Wallet-Schranke oben schon verbraucht (kein doppelter Abzug).
+		if (session.kind !== undefined && !await enforceRateLimitFor(response, 'dashboard-action-wallet', session.wallet, 10, 600)) return;
 		const action = createActionChallenge(session.wallet, body.action);
 		await storeDashboardChallenge({ nonce: action.data.nonce, wallet: action.data.wallet, expiresAt: action.data.exp });
 		return response.status(200).json({ ok: true, freshSignatureRequired: true, action: body.action, token: action.token, message: action.message });
