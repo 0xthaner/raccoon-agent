@@ -56,26 +56,6 @@ export async function consumePendingLink(code, wallet, { client = db } = {}) {
 	return { status: 'invalid', chatId: null };
 }
 
-export async function createTelegramHandoff({ code, wallet, expiresAt }) {
-	const normalized = wallet.toLowerCase();
-	const [expired, existing] = await Promise.all([
-		db.from('telegram_handoffs').delete().lt('expires_at', new Date().toISOString()),
-		db.from('telegram_handoffs').delete().eq('wallet', normalized).is('used_at', null)
-	]);
-	value(expired); value(existing);
-	value(await db.from('telegram_handoffs').insert({
-		code,
-		wallet: normalized,
-		expires_at: new Date(expiresAt).toISOString()
-	}));
-}
-
-export async function consumeTelegramHandoff(code, chatId) {
-	const wallet = value(await db.rpc('consume_telegram_handoff', { handoff_code: code, telegram_chat_id: String(chatId) }));
-	if (wallet) value(await db.from('pending_links').delete().like('chat_id', `unlinked:${chatId}:%`));
-	return wallet;
-}
-
 export async function createDashboardAccess({ code, wallet, expiresAt }) {
 	value(await db.from('pending_links').delete().lt('expires_at', new Date().toISOString()));
 	value(await db.from('pending_links').insert({

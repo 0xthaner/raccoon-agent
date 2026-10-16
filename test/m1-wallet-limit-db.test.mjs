@@ -113,10 +113,10 @@ test('M1-DB', { skip, timeout: 240_000 }, async (t) => {
 	await t.test('the legacy entry points enforce the same limit (no second path without it)', async () => {
 		await pending(c, 'legacy', '1001');
 		assert.equal((await c.query(`select public.consume_wallet_link('legacy', $1) as r`, [wallet(50)])).rows[0].r, null);
-		await c.query(`insert into public.telegram_handoffs (code, wallet, expires_at) values ('hand', $1, now() + interval '5 minutes')`, [wallet(51)]);
-		assert.equal((await c.query(`select public.consume_telegram_handoff('hand', '1001') as r`)).rows[0].r, null);
 		assert.equal(await count(c, '1001'), MAX);
-		assert.equal((await c.query(`select used_at from public.telegram_handoffs where code = 'hand'`)).rows[0].used_at, null);
+		// Restaudit L2: der unsignierte Handoff-Weg existiert nach der letzten Migration nicht mehr.
+		const gone = (await c.query(`select to_regprocedure('public.consume_telegram_handoff(text,text)') as fn, to_regclass('public.telegram_handoffs') as tbl`)).rows[0];
+		assert.deepEqual(gone, { fn: null, tbl: null });
 		await pending(c, 'legacyOk', '6006');
 		assert.equal((await c.query(`select public.consume_wallet_link('legacyOk', $1) as r`, [wallet(52)])).rows[0].r, '6006');
 	});
@@ -143,7 +143,7 @@ test('M1-DB', { skip, timeout: 240_000 }, async (t) => {
 
 	await t.test('grants: only service_role reaches the new functions; internal helpers reach nobody; run state server-only', async () => {
 		const can = async (role, fn) => (await c.query('select has_function_privilege($1, $2, \'execute\') as ok', [role, fn])).rows[0].ok;
-		for (const fn of ['public.consume_wallet_link_v2(text,text)', 'public.alert_subscriptions_page(text,text,text,text,integer)', 'public.consume_wallet_link(text,text)', 'public.consume_telegram_handoff(text,text)']) {
+		for (const fn of ['public.consume_wallet_link_v2(text,text)', 'public.alert_subscriptions_page(text,text,text,text,integer)', 'public.consume_wallet_link(text,text)']) {
 			assert.equal(await can('service_role', fn), true, fn);
 			for (const role of ['anon', 'authenticated']) assert.equal(await can(role, fn), false, `${role} ${fn}`);
 		}

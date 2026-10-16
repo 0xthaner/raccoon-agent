@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { checkRateLimit, createDashboardAccess, createPendingLink, createTelegramHandoff } from './db.mjs';
+import { checkRateLimit, createDashboardAccess, createPendingLink } from './db.mjs';
 import { recordSecurityEvent, securityFingerprint, SECURITY_EVENT } from './security-events.mjs';
 import { telegramExpectation, telegramSiweMessage } from './siwe-auth.mjs';
 
@@ -55,13 +55,6 @@ export function isTelegramLinkCode(code) {
 
 export function isTelegramLinkRow(row) {
 	return typeof row?.chat_id === 'string' && PRIVATE_CHAT_ID.test(row.chat_id);
-}
-
-export async function newTelegramHandoff(wallet) {
-	const code = randomBytes(18).toString('base64url');
-	const expiresAt = Date.now() + LINK_LIFETIME_MS;
-	await createTelegramHandoff({ code, wallet, expiresAt });
-	return { code, expiresAt };
 }
 
 export async function newDashboardAccess(wallet) {

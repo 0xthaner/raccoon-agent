@@ -7,7 +7,8 @@ const dashboardSource = await readFile(new URL('../api/dashboard.mjs', import.me
 
 test('remembered-wallet lookups delimit the complete Telegram chat id', () => {
 	assert.equal(dbSource.includes('`unlinked:${chatId}%`'), false);
-	assert.equal((dbSource.match(/`unlinked:\$\{chatId\}:%`/g) ?? []).length, 5);
+	// Restaudit L2: eine der fuenf Stellen lag im entfernten consumeTelegramHandoff.
+	assert.equal((dbSource.match(/`unlinked:\$\{chatId\}:%`/g) ?? []).length, 4);
 });
 
 test('wallet lookup never selects an arbitrary Telegram chat', () => {
