@@ -84,16 +84,18 @@ function coversFor(ctx, def, c) {
  * property SURVIVED / KILLED_OTHER / INVALID. Static-detection kills are neutral.
  */
 export function knownBadEffective(ctx, e, controlId, propertyId, outcomes) {
-	const cases = (ctx.casesByEvidence.get(e.id) ?? []).filter((m) => m.targets.some((t) => t.control === controlId && t.property === propertyId));
-	if (!cases.length) return { ok: false, why: 'no mutation case targets this property' };
+	const all = (ctx.casesByEvidence.get(e.id) ?? []).filter((m) => m.targets.some((t) => t.control === controlId && t.property === propertyId));
+	// EQUIVALENT cases are neutral: never proof, never a gap - but always listed in the report.
+	const cases = all.filter((m) => m.expected_result !== 'EQUIVALENT');
+	if (!cases.length) return { ok: false, why: all.length ? 'only EQUIVALENT cases target this property' : 'no mutation case targets this property' };
 	const res = cases.map((m) => ({ m, r: outcomes.mutations[m.id]?.result ?? 'NOT_RUN' }));
 	const bad = res.filter(({ r }) => ['SURVIVED', 'KILLED_OTHER', 'INVALID'].includes(r));
 	if (bad.length) return { ok: false, why: `mutation ${bad.map(({ m, r }) => `${m.id}=${r}`).join(', ')}` };
+	// Phase 2C (F-2C-2): a variant that did not run is unverified - never credit a property while any of its cases is NOT_RUN.
+	const notRun = res.filter(({ r }) => r === 'NOT_RUN');
+	if (notRun.length) return { ok: false, why: `mutation not run: ${notRun.map(({ m }) => m.id).join(', ')}` };
 	const behavioral = res.filter(({ m, r }) => r === 'KILLED' && m.detection === 'behavioral');
-	if (!behavioral.length) {
-		const notRun = res.filter(({ r }) => r === 'NOT_RUN');
-		return { ok: false, why: notRun.length ? `mutation not run: ${notRun.map(({ m }) => m.id).join(', ')}` : 'only static-detection kills' };
-	}
+	if (!behavioral.length) return { ok: false, why: 'only static-detection kills' };
 	return { ok: true, why: behavioral.map(({ m }) => m.id).join(', ') };
 }
 
@@ -274,7 +276,10 @@ export function checkIntegrity(def, declared) {
 		const pids = c.properties.map((p) => p.id);
 		if (new Set(pids).size !== pids.length) err('DUPLICATE_PROPERTY', c.id);
 	}
+	const cap = def.profile.evidence_level_cap_by_type ?? {};
 	for (const e of def.evidence.evidence) {
+		// Phase 2C (F-2C-3): a self-declared level may not exceed what the evidence type can show.
+		if (cap[e.type] && ctx.levels.indexOf(e.level) > ctx.levels.indexOf(cap[e.type])) err('LEVEL_EXCEEDS_TYPE', `${e.id}: ${e.type} capped at ${cap[e.type]}, declared ${e.level}`);
 		for (const cv of e.covers) {
 			const c = ctx.ctlById.get(cv.control);
 			if (!c) { err('UNKNOWN_CONTROL_REFERENCE', `${e.id} -> ${cv.control}`); continue; }
@@ -292,7 +297,8 @@ export function checkIntegrity(def, declared) {
 			const targets = new Set(cases.flatMap((m) => m.targets.map((t) => `${t.control}.${t.property}`)));
 			const covered = new Set(e.covers.flatMap((cv) => cv.properties.map((p) => `${cv.control}.${p}`)));
 			if (canonical([...targets].sort()) !== canonical([...covered].sort())) err('MUTATION_COVERS_MISMATCH', e.id);
-			const declaredKb = cases.every((m) => m.expected_result === 'KILLED') ? 'KILLED' : cases.every((m) => m.expected_result === 'SURVIVED') ? 'SURVIVED' : 'MIXED';
+			const counted = cases.filter((m) => m.expected_result !== 'EQUIVALENT');
+			const declaredKb = !counted.length ? 'MIXED' : counted.every((m) => m.expected_result === 'KILLED') ? 'KILLED' : counted.every((m) => m.expected_result === 'SURVIVED') ? 'SURVIVED' : 'MIXED';
 			if (declaredKb === 'MIXED' || e.known_bad_result !== declaredKb) err('KNOWN_BAD_RESULT_MISMATCH', `${e.id}: declared ${e.known_bad_result}, cases ${declaredKb}`);
 			if (!e.known_bad_checked) err('KNOWN_BAD_FLAG', e.id);
 		} else if (e.type === 'known-bad' && e.reproducible) err('KNOWN_BAD_WITHOUT_MUTATION_RUNNER', `${e.id}: reproducible known-bad evidence must be backed by mutation cases`);
@@ -301,6 +307,11 @@ export function checkIntegrity(def, declared) {
 		if (!ctx.evById.has(m.evidence_id)) err('UNKNOWN_EVIDENCE_REFERENCE', `${m.id} -> ${m.evidence_id}`);
 		for (const t of m.targets) { const c = ctx.ctlById.get(t.control); if (!c || !c.properties.some((p) => p.id === t.property)) err('UNKNOWN_CONTROL_REFERENCE', `${m.id} -> ${t.control}.${t.property}`); }
 		if (m.expected_result === 'KILLED' && !m.expected_failures.length) err('MUTATION_WITHOUT_EXPECTED_FAILURE', m.id);
+		if (m.expected_result === 'EQUIVALENT' && !(m.equivalence?.kind && typeof m.equivalence.proof === 'string' && m.equivalence.proof.length >= 80)) err('EQUIVALENT_WITHOUT_PROOF', m.id);
+		if (m.expected_result !== 'EQUIVALENT' && m.equivalence) err('EQUIVALENCE_ON_NON_EQUIVALENT', m.id);
+		if (m.expected_result === 'EQUIVALENT' && m.expected_failures.length) err('EQUIVALENT_WITH_EXPECTED_FAILURE', m.id);
+		if (m.layering === 'MULTI_LAYER' && (m.edits.length < 2 || !(typeof m.layering_rationale === 'string' && m.layering_rationale.length >= 40))) err('MULTI_LAYER_WITHOUT_RATIONALE', m.id);
+		if (m.layering !== 'MULTI_LAYER' && m.layering_rationale) err('RATIONALE_WITHOUT_MULTI_LAYER', m.id);
 	}
 	for (const d of def.deviations.deviations) {
 		for (const eid of d.evidence_ids) if (!ctx.evById.has(eid)) err('UNKNOWN_EVIDENCE_REFERENCE', `${d.id} -> ${eid}`);

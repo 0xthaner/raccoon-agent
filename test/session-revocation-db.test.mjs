@@ -18,6 +18,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { postgrestOverPg } from '../test-support/pg-postgrest.mjs';
+import { dropTestDatabase } from '../test-support/drop-test-db.mjs';
 
 const URL_ = process.env.M1_DB_TEST_PG_URL;
 const MODULE = process.env.M1_DB_TEST_PG_MODULE;
@@ -161,9 +162,6 @@ test('REVOKE-DB', { skip, timeout: 300_000 }, async (t) => {
 		await sql?.end();
 		await rest?.close();
 		// Wegwerf-Datenbank wieder entfernen, damit wiederholte Laeufe (Mutationen) nichts anhaeufen.
-		const admin = new pg.Client({ connectionString: URL_ });
-		await admin.connect();
-		await admin.query(`drop database if exists ${dbUrl.split('/').pop()} with (force)`);
-		await admin.end();
+		await dropTestDatabase(pg, URL_, dbUrl);
 	}
 });

@@ -1,6 +1,6 @@
 {
-	"crsf_version": "1.0-draft-phase2b",
-	"profile_rules_digest": "468dabfd847fd0b28209af6e8f79b58b07643d55b9364223f94842bd91e91a72",
+	"crsf_version": "1.0-draft-phase2c",
+	"profile_rules_digest": "69903f722ea1eca0b5ec3c65c63dd1e8dbcbe3583a182a7f3d87f47d175a43f4",
 	"controls": {
 		"CR-API-001": {
 			"release_class": "RELEASE_BLOCKING",

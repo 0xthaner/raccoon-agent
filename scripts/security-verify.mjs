@@ -150,7 +150,12 @@ const report = {
 	unexpected_skips: guard.unexpected_skips, unexpected_cancellations: guard.cancelled, todo_count: guard.todo.length, failed_tests: guard.failed,
 	allowed_infrastructure_skips: guard.allowed_skips,
 	mutation_baseline: mutationRun.baseline,
-	mutation_results: Object.entries(mutationRun.results).sort(([a], [b]) => a.localeCompare(b)).map(([id, r]) => ({ id, declared: def.mutations?.cases.find((m) => m.id === id)?.expected_result, observed: r.result, reason: r.reason, intended_failures: r.intended })),
+	mutation_results: Object.entries(mutationRun.results).sort(([a], [b]) => a.localeCompare(b)).map(([id, r]) => {
+		const m = def.mutations?.cases.find((x) => x.id === id);
+		// A declared-EQUIVALENT mutant that survived is reported as EQUIVALENT (visible, never E4, never a gap).
+		const observed = m?.expected_result === 'EQUIVALENT' && r.result === 'SURVIVED' ? 'EQUIVALENT' : r.result;
+		return { id, declared: m?.expected_result, observed, layering: m?.layering ?? null, reason: r.reason, intended_failures: r.intended };
+	}),
 	mutation_claim_mismatches: claimMismatches,
 	affected_domains: drift,
 	release_blocking_controls: rb.length,

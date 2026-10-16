@@ -20,6 +20,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { postgrestOverPg } from '../test-support/pg-postgrest.mjs';
+import { dropTestDatabase } from '../test-support/drop-test-db.mjs';
 
 const URL_ = process.env.M1_DB_TEST_PG_URL;
 const MODULE = process.env.M1_DB_TEST_PG_MODULE;
@@ -119,6 +120,7 @@ function gate() {
 
 test('L5-DB', { skip, timeout: 300_000 }, async (t) => {
 	await setup();
+	t.after(() => dropTestDatabase(pg, URL_, dbUrl));
 	try {
 
 	t.beforeEach(async () => { await sql.query('delete from public.position_cover_attributions'); });

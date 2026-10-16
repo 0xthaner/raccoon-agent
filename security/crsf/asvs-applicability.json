@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2b",
+	"crsf_version": "1.0-draft-phase2c",
 	"asvs": "5.0.0",
 	"input": "security/crsf/vendor/asvs-5.0.0.flat.json",
 	"input_sha256": "8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311",
@@ -1440,7 +1440,7 @@
 			"controls": [
 				"CR-AUTH-008"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1529,7 +1529,7 @@
 			"controls": [
 				"CR-AUTH-006"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1549,7 +1549,7 @@
 			"controls": [
 				"CR-AUTH-006"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1724,7 +1724,7 @@
 				"CR-API-002",
 				"CR-DB-002"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1735,7 +1735,7 @@
 			"controls": [
 				"CR-API-001"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1766,7 +1766,7 @@
 			"controls": [
 				"CR-API-001"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -1798,7 +1798,7 @@
 				"CR-API-001",
 				"CR-TELEGRAM-004"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -2402,7 +2402,7 @@
 			"controls": [
 				"CR-AUTH-008"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -2634,7 +2634,7 @@
 				"CR-DB-001",
 				"CR-DB-002"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{

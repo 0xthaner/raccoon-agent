@@ -50,6 +50,12 @@ export const DEFINITION_FIXTURES = [
 	['N', 'control status changed without evidence change', 'STATUS_NOT_RECOMPUTABLE', /^CR-[A-Z]+-\d{3}\.security_status: recorded "PASS_AUTOMATED"/, (d) => { const target = d.controls.controls.find((c) => c.release_class === 'RELEASE_BLOCKING' && c.security_status === 'MISSING_EVIDENCE'); if (!target) throw new Error('no MISSING_EVIDENCE control left for fixture N'); target.security_status = 'PASS_AUTOMATED'; }],
 	['N2', 'deviation reported as PASS', 'STATUS_NOT_RECOMPUTABLE', /CR-CRYPTO-008\.security_status/, (d) => { ctl(d, 'CR-CRYPTO-008').security_status = 'PASS_MANUAL'; }],
 	['O', 'mutation evidence covering a property no case targets', 'MUTATION_COVERS_MISMATCH', /EV-KB-L3/, (d) => { evi(d, 'EV-KB-L3').covers.push({ control: 'CR-AUTH-001', properties: ['P4'], scope: 'FULL', result: 'SUPPORTS', note: 'x' }); }],
+	['Q', 'EQUIVALENT mutant without a written proof', 'EQUIVALENT_WITHOUT_PROOF', /MUT-CR-AUTH-007-P2-NEW1/, (d) => { delete d.mutations.cases.find((m) => m.id === 'MUT-CR-AUTH-007-P2-NEW1').equivalence; }],
+	['Q2', 'EQUIVALENT proof too thin to review', 'SCHEMA', /equivalence\.proof: shorter than 80/, (d) => { d.mutations.cases.find((m) => m.id === 'MUT-CR-AUTH-007-P2-NEW1').equivalence.proof = 'trust me'; }],
+	['Q3', 'KILLED cases relabelled EQUIVALENT to dodge a gap (recorded PASS no longer recomputes)', 'STATUS_NOT_RECOMPUTABLE', /CR-TELEGRAM-003\.security_status/, (d) => { for (const m of d.mutations.cases.filter((x) => x.targets.some((t) => t.control === 'CR-TELEGRAM-003' && t.property === 'P2'))) { m.expected_result = 'EQUIVALENT'; m.expected_failures = []; m.equivalence = { kind: 'REDUNDANT_LAYER', proof: 'x'.repeat(90) }; } }],
+	['S', 'MULTI_LAYER mutation without a rationale', 'MULTI_LAYER_WITHOUT_RATIONALE', /MUT-CR-AUTH-004-P1-NEW1/, (d) => { delete d.mutations.cases.find((m) => m.id === 'MUT-CR-AUTH-004-P1-NEW1').layering_rationale; }],
+	['S2', 'MULTI_LAYER label on a single-edit mutation', 'MULTI_LAYER_WITHOUT_RATIONALE', /MUT-CR-AUTH-001-P3-NEW1/, (d) => { const m = d.mutations.cases.find((x) => x.id === 'MUT-CR-AUTH-001-P3-NEW1'); m.layering = 'MULTI_LAYER'; m.layering_rationale = 'pretending one removed check is a multi-layer defect here'; }],
+	['T', 'sequential behavioural test declared as E5 real-system concurrency evidence', 'LEVEL_EXCEEDS_TYPE', /EV-FAKE-CONCURRENCY/, (d) => { d.evidence.evidence.push({ ...clone(evi(d, 'EV-L3')), id: 'EV-FAKE-CONCURRENCY', level: 'E5', covers: [{ control: 'CR-CONC-001', properties: ['P1'], scope: 'FULL', result: 'SUPPORTS', note: null }], control_ids: ['CR-CONC-001'], coverage: 'PARTIAL', reason_for_partial: 'CR-CONC-001[P1]: x' }); }],
 	['P', 'reproducible known-bad evidence without mutation cases', 'KNOWN_BAD_WITHOUT_MUTATION_RUNNER', /EV-FAKE-KB/, (d) => { d.evidence.evidence.push({ ...clone(evi(d, 'EV-SIWE')), id: 'EV-FAKE-KB', type: 'known-bad', level: 'E4', known_bad_checked: true, known_bad_result: 'KILLED' }); }]
 ];
 
@@ -101,6 +107,18 @@ function runMutationFixture() {
 	return { id: 'M', description: 'mutation marked KILLED although the mapped test still passes', expected: 'MUTATION_CLAIM_MISMATCH', rejected: result.result === 'SURVIVED' && mismatches.length === 1, codes: [`observed=${result.result}`] };
 }
 
+/** R: a mutation declared EQUIVALENT that the mapped test actually kills must be reported as a claim violation. */
+function runEquivalentClaimFixture() {
+	const env = childEnv(detectCapabilities());
+	const fake = { id: 'MUT-CR-VERIFY-009-P1-EQFIXTURE', expected_result: 'EQUIVALENT', detection: 'behavioral', timeout_ms: 60_000, edits: [{ file: 'security/crsf/selftest/fixtures/mut-target.mjs', find: 'return 1;', replace: 'return 2;' }], tests: ['security/crsf/selftest/fixtures/mut-strict-check.mjs'], expected_failures: [] };
+	let ws;
+	try { ws = createWorkspace(REPO); } catch (error) { return { id: 'R', description: 'declared EQUIVALENT mutant that the tests kill', expected: 'MUTATION_CLAIM_MISMATCH', rejected: false, codes: [`workspace error: ${error.code ?? error.message}`] }; }
+	let result;
+	try { result = runMutation(fake, ws, env, 60_000); } finally { ws.dispose(); }
+	const mismatches = mutationClaimMismatches([fake], { [fake.id]: result });
+	return { id: 'R', description: 'declared EQUIVALENT mutant that the tests kill', expected: 'MUTATION_CLAIM_MISMATCH', rejected: result.result !== 'SURVIVED' && mismatches.length === 1, codes: [`observed=${result.result}`] };
+}
+
 function runGeneratorDeterminism(base) {
 	const a = JSON.stringify(generate(clone(base))), b = JSON.stringify(generate(clone(base)));
 	return { id: 'GEN', description: 'generator output is deterministic', expected: 'identical', rejected: a === b, codes: [a === b ? 'identical' : 'different'] };
@@ -110,7 +128,7 @@ export function runSelfTests() {
 	const base = loadDefinition(CRSF, path.resolve(CRSF, '../mutation/cases.json'));
 	const schemas = loadSchemas(path.join(CRSF, 'schema'));
 	const baseline = definitionErrors(base, schemas);
-	const fixtures = [...runDefinitionFixtures(base, schemas), ...runExecutionFixtures(), runMutationFixture(), runGeneratorDeterminism(base)];
+	const fixtures = [...runDefinitionFixtures(base, schemas), ...runExecutionFixtures(), runMutationFixture(), runEquivalentClaimFixture(), runGeneratorDeterminism(base)];
 	const passed = baseline.length === 0 && fixtures.every((f) => f.rejected);
 	return { passed, baseline_errors: baseline, fixtures, total: fixtures.length, rejected: fixtures.filter((f) => f.rejected).length };
 }

@@ -32,6 +32,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { isAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { queryParams, singleQueryValue } from '../src/request-query.mjs';
+import { dropTestDatabase } from '../test-support/drop-test-db.mjs';
 
 const URL_ = process.env.M1_DB_TEST_PG_URL;
 const MODULE = process.env.M1_DB_TEST_PG_MODULE;
@@ -182,6 +183,7 @@ const observed = [];
 
 test('H2-DB', { skip, timeout: 600_000 }, async (t) => {
 	await setup();
+	if (!POSTGREST) t.after(() => dropTestDatabase(pg, URL_, dbUrl));
 	try {
 
 	await t.test('H2 consumeDashboardChallenge: for 2, 10 and 40 concurrent consumers exactly one succeeds, every round', async () => {

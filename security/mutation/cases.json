@@ -3,6 +3,105 @@
 	"schema": "security/crsf/schema/mutations.schema.json",
 	"cases": [
 		{
+			"id": "MUT-CR-API-001-P1-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-SCOPE",
+			"targets": [
+				{
+					"control": "CR-API-001",
+					"property": "P1"
+				}
+			],
+			"description": "dashboard read wallet taken from a client header when present",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\tconst sessionWallet = saved.wallet.toLowerCase();",
+					"replace": "\t\tconst sessionWallet = String(request.headers['x-wallet'] ?? saved.wallet).toLowerCase();"
+				}
+			],
+			"tests": [
+				"test/object-scope.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SCOPE-DASHBOARD: identity hints"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-API-001-P1-NEW2",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-SCOPE",
+			"targets": [
+				{
+					"control": "CR-API-001",
+					"property": "P1"
+				}
+			],
+			"description": "dashboard read wallet taken from the request body when present",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\tconst sessionWallet = saved.wallet.toLowerCase();",
+					"replace": "\t\tconst sessionWallet = String(request.body?.wallet ?? saved.wallet).toLowerCase();"
+				}
+			],
+			"tests": [
+				"test/object-scope.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SCOPE-DASHBOARD: identity hints"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-API-001-P2-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-SCOPE",
+			"targets": [
+				{
+					"control": "CR-API-001",
+					"property": "P2"
+				}
+			],
+			"description": "positions wallet taken from a client header when present",
+			"edits": [
+				{
+					"file": "api/positions.mjs",
+					"find": "\t\tconst wallet = session.wallet.toLowerCase();",
+					"replace": "\t\tconst wallet = String(request.headers['x-wallet'] ?? session.wallet).toLowerCase();"
+				}
+			],
+			"tests": [
+				"test/object-scope.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SCOPE-POSITIONS: positions are read for the session wallet"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
 			"id": "MUT-CR-API-001-P3-L5A",
 			"origin": "scratchpad l5mut A (rebuilt)",
 			"targets": [
@@ -1071,6 +1170,183 @@
 			"timeout_ms": 300000
 		},
 		{
+			"id": "MUT-CR-AUTH-004-P1-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-ONCHAIN",
+			"targets": [
+				{
+					"control": "CR-AUTH-004",
+					"property": "P1"
+				}
+			],
+			"description": "on-chain approval not bound to the claimed wallet at any layer",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "if (challenge?.type !== 'challenge' || !isAddress(wallet) || challenge.wallet !== wallet.toLowerCase()) return response.status(401).json({ ok: false, error: 'Dashboard-Anmeldung ungültig oder abgelaufen.' });\n\t\t// Abfrage-Budget",
+					"replace": "if (challenge?.type !== 'challenge' || !isAddress(wallet)) return response.status(401).json({ ok: false, error: 'Dashboard-Anmeldung ungültig oder abgelaufen.' });\n\t\t// Abfrage-Budget"
+				},
+				{
+					"file": "src/contract-signature.mjs",
+					"find": "if (challenge?.type !== 'challenge' || typeof wallet !== 'string' || challenge.wallet !== wallet.toLowerCase()) return 'INVALID_CHALLENGE';",
+					"replace": "if (challenge?.type !== 'challenge' || typeof wallet !== 'string') return 'INVALID_CHALLENGE';"
+				},
+				{
+					"file": "src/db.mjs",
+					"find": "\t\t.eq('wallet', wallet.toLowerCase())\n\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.maybeSingle());",
+					"replace": "\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.maybeSingle());"
+				},
+				{
+					"file": "src/db.mjs",
+					"find": "\t\t.eq('wallet', wallet.toLowerCase())\n\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows.length === 1;",
+					"replace": "\t\t.is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows.length === 1;"
+				}
+			],
+			"tests": [
+				"test/dashboard-login-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^ONCHAIN-DB-BINDING: an attacker Safe"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"layering": "MULTI_LAYER",
+			"layering_rationale": "The challenge-to-wallet binding is checked by the handler, by the approval verifier and by the wallet predicate of both SQL statements; the takeover \"attacker Safe logs in as the victim\" only exists when all four are gone."
+		},
+		{
+			"id": "MUT-CR-AUTH-004-P2-EQ1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-ONCHAIN",
+			"targets": [
+				{
+					"control": "CR-AUTH-004",
+					"property": "P2"
+				}
+			],
+			"description": "only the handler open-check removed (redundant layer)",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\tif (!open) return response.status(409).json({ ok: false, code: 'CHALLENGE_CLOSED', error: 'Diese Login-Anfrage ist abgelaufen oder wurde bereits verwendet.' });\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/dashboard-login-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [],
+			"expected_result": "EQUIVALENT",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"equivalence": {
+				"kind": "REDUNDANT_LAYER",
+				"proof": "The on-chain branch always calls consumeDashboardChallenge before issueLoginSession; that atomic UPDATE carries the same wallet, used_at and expires_at predicates as the removed read-check (src/db.mjs), so without the open-check an expired or used challenge still yields no session - only the RPC is no longer skipped."
+			}
+		},
+		{
+			"id": "MUT-CR-AUTH-004-P2-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-ONCHAIN",
+			"targets": [
+				{
+					"control": "CR-AUTH-004",
+					"property": "P2"
+				}
+			],
+			"description": "server-side expiry dropped at every layer of the on-chain login",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\tif (!open) return response.status(409).json({ ok: false, code: 'CHALLENGE_CLOSED', error: 'Diese Login-Anfrage ist abgelaufen oder wurde bereits verwendet.' });\n",
+					"replace": ""
+				},
+				{
+					"file": "src/db.mjs",
+					"find": ".is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.maybeSingle());",
+					"replace": ".is('used_at', null)\n\t\t.maybeSingle());"
+				},
+				{
+					"file": "src/db.mjs",
+					"find": ".is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows.length === 1;",
+					"replace": ".is('used_at', null)\n\t\t.select('nonce'));\n\treturn rows.length === 1;"
+				}
+			],
+			"tests": [
+				"test/dashboard-login-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^ONCHAIN-DB-EXPIRY"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"layering": "MULTI_LAYER",
+			"layering_rationale": "Stored expiry is enforced redundantly by the handler open-check and by both SQL predicates (open read and atomic consume); the defect \"expired challenge accepted\" only exists when all three are gone."
+		},
+		{
+			"id": "MUT-CR-AUTH-004-P2-NEW2",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-ONCHAIN",
+			"targets": [
+				{
+					"control": "CR-AUTH-004",
+					"property": "P2"
+				}
+			],
+			"description": "single use dropped at every layer of the on-chain login",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\tif (!open) return response.status(409).json({ ok: false, code: 'CHALLENGE_CLOSED', error: 'Diese Login-Anfrage ist abgelaufen oder wurde bereits verwendet.' });\n",
+					"replace": ""
+				},
+				{
+					"file": "src/db.mjs",
+					"find": ".is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.maybeSingle());",
+					"replace": ".gt('expires_at', new Date().toISOString())\n\t\t.maybeSingle());"
+				},
+				{
+					"file": "src/db.mjs",
+					"find": ".is('used_at', null)\n\t\t.gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows.length === 1;",
+					"replace": ".gt('expires_at', new Date().toISOString())\n\t\t.select('nonce'));\n\treturn rows.length === 1;"
+				}
+			],
+			"tests": [
+				"test/dashboard-login-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^ONCHAIN-DB-SINGLE-USE"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"layering": "MULTI_LAYER",
+			"layering_rationale": "Single use is enforced redundantly by the handler open-check and by the used_at predicate in both SQL statements; the defect \"approval replayable\" only exists when all three are gone."
+		},
+		{
 			"id": "MUT-CR-AUTH-005-P1-L4A",
 			"origin": "scratchpad l4mut A (rebuilt)",
 			"targets": [
@@ -1229,6 +1505,160 @@
 			"evidence_id": "EV-KB-AUTH"
 		},
 		{
+			"id": "MUT-CR-AUTH-006-P1-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-LOGIN",
+			"targets": [
+				{
+					"control": "CR-AUTH-006",
+					"property": "P1"
+				}
+			],
+			"description": "session bound to the challenge wallet instead of the verified signer",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "challenge.wallet !== wallet.toLowerCase() || typeof signature !== 'string') return response.status(401)",
+					"replace": "typeof signature !== 'string') return response.status(401)"
+				},
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\tif (!await consumeDashboardChallenge(challenge.nonce, wallet)) {\n\t\tawait recordSecurityEvent(SECURITY_EVENT.SIWE_REPLAY_BLOCKED, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });\n\t\treturn response.status(409).json({ ok: false, error: 'Diese Login-Anfrage wurde bereits verwendet.' });\n\t}\n\treturn issueLoginSession(request, response, wallet, authority",
+					"replace": "\tif (!await consumeDashboardChallenge(challenge.nonce, challenge.wallet)) {\n\t\tawait recordSecurityEvent(SECURITY_EVENT.SIWE_REPLAY_BLOCKED, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });\n\t\treturn response.status(409).json({ ok: false, error: 'Diese Login-Anfrage wurde bereits verwendet.' });\n\t}\n\treturn issueLoginSession(request, response, challenge.wallet, authority"
+				}
+			],
+			"tests": [
+				"test/dashboard-login-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^LOGIN-BINDING: an attacker key"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"layering": "MULTI_LAYER",
+			"layering_rationale": "Signer and session wallet are one variable; decoupling them needs dropping the claimed-wallet check AND consuming/issuing for the challenge wallet - together the defect \"session for a wallet that did not sign\"."
+		},
+		{
+			"id": "MUT-CR-AUTH-006-P2-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-LOGIN",
+			"targets": [
+				{
+					"control": "CR-AUTH-006",
+					"property": "P2"
+				}
+			],
+			"description": "every signature login gets an EOA session (contract authority ignored)",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "return issueLoginSession(request, response, wallet, authority === 'contract' ? 'contract' : 'eoa', 'signature');",
+					"replace": "return issueLoginSession(request, response, wallet, 'eoa', 'signature');"
+				}
+			],
+			"tests": [
+				"test/safe-session-authority.test.mjs",
+				"test/eoa-session-transport.test.mjs",
+				"test/safe-app-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SA-L1 2/4"
+				},
+				{
+					"test": "^M1 closed for Safes"
+				},
+				{
+					"test": "^A Safe App login"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-006-P2-NEW2",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-LOGIN",
+			"targets": [
+				{
+					"control": "CR-AUTH-006",
+					"property": "P2"
+				}
+			],
+			"description": "every signature login gets a contract session",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "return issueLoginSession(request, response, wallet, authority === 'contract' ? 'contract' : 'eoa', 'signature');",
+					"replace": "return issueLoginSession(request, response, wallet, 'contract', 'signature');"
+				}
+			],
+			"tests": [
+				"test/safe-session-authority.test.mjs",
+				"test/eoa-session-transport.test.mjs",
+				"test/safe-app-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SA-L1 5:"
+				},
+				{
+					"test": "^M1 an ordinary EOA login"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-006-P3-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-LOGIN",
+			"targets": [
+				{
+					"control": "CR-AUTH-006",
+					"property": "P3"
+				}
+			],
+			"description": "session issue time pinned per wallet (re-login reuses the old token)",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "\tconst data = { type: 'session', wallet: wallet.toLowerCase(), kind, iat: now, exp: now + sessionTtl(kind) };",
+					"replace": "\tconst pinned = (globalThis.__crsfFirstIat ??= new Map());\n\tif (!pinned.has(wallet.toLowerCase())) pinned.set(wallet.toLowerCase(), now);\n\tconst iat = pinned.get(wallet.toLowerCase());\n\tconst data = { type: 'session', wallet: wallet.toLowerCase(), kind, iat, exp: iat + sessionTtl(kind) };"
+				}
+			],
+			"tests": [
+				"test/dashboard-login-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^LOGIN-FRESH"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
 			"id": "MUT-CR-AUTH-007-P1-NEW1",
 			"origin": "new (Phase 2B)",
 			"evidence_id": "EV-KB-SESSION",
@@ -1268,6 +1698,41 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-007-P2-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-SESSION",
+			"targets": [
+				{
+					"control": "CR-AUTH-007",
+					"property": "P2"
+				}
+			],
+			"description": "legacy token: catch branch waives fresh authority (unreachable branch)",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "try { return !await noContractCodeByQuorum(session.wallet); } catch { return true; }",
+					"replace": "try { return !await noContractCodeByQuorum(session.wallet); } catch { return false; }"
+				}
+			],
+			"tests": [
+				"test/safe-session-authority.test.mjs",
+				"test/safe-app-backend.test.mjs",
+				"test/onchain-safe-login.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [],
+			"expected_result": "EQUIVALENT",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"equivalence": {
+				"kind": "UNREACHABLE",
+				"proof": "noContractCodeByQuorum never throws on provider failure: perProvider() maps every provider error to {ok:false} and erc1271Providers() performs no I/O, so the catch branch cannot execute; the reachable outage path is proven by MUT-CR-AUTH-007-P2-NEW3."
+			}
 		},
 		{
 			"id": "MUT-CR-AUTH-007-P2-NEW2",
@@ -1369,6 +1834,174 @@
 			"expected_failures": [
 				{
 					"test": "^SA-L1 7:"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-008-P1-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-RANDOM",
+			"targets": [
+				{
+					"control": "CR-AUTH-008",
+					"property": "P1"
+				}
+			],
+			"description": "login challenge nonce from Math.random",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "\t\tnonce: randomBytes(16).toString('hex'),\n\t\tiat: now,",
+					"replace": "\t\tnonce: Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),\n\t\tiat: now,"
+				}
+			],
+			"tests": [
+				"test/csprng-construction.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "dashboard login challenge nonce"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-008-P1-NEW2",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-RANDOM",
+			"targets": [
+				{
+					"control": "CR-AUTH-008",
+					"property": "P1"
+				}
+			],
+			"description": "link nonce derived from the clock",
+			"edits": [
+				{
+					"file": "src/linking.mjs",
+					"find": "\tconst nonce = randomBytes(16).toString('hex');",
+					"replace": "\tconst nonce = Date.now().toString(16).padStart(32, '0');"
+				}
+			],
+			"tests": [
+				"test/csprng-construction.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "Telegram link code"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-008-P2-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-RANDOM",
+			"targets": [
+				{
+					"control": "CR-AUTH-008",
+					"property": "P2"
+				}
+			],
+			"description": "dashboard access code reduced to 64 bits",
+			"edits": [
+				{
+					"file": "src/linking.mjs",
+					"find": "\tconst code = randomBytes(24).toString('base64url');",
+					"replace": "\tconst code = randomBytes(8).toString('base64url');"
+				}
+			],
+			"tests": [
+				"test/csprng-construction.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "dashboard access code"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-008-P2-NEW2",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-RANDOM",
+			"targets": [
+				{
+					"control": "CR-AUTH-008",
+					"property": "P2"
+				}
+			],
+			"description": "request id truncated to 64 random bits (padded to the same length)",
+			"edits": [
+				{
+					"file": "src/siwe-auth.mjs",
+					"find": "\treturn randomBytes(16).toString('hex');\n}",
+					"replace": "\treturn randomBytes(16).toString('hex').slice(0, 16).padEnd(32, '0');\n}"
+				}
+			],
+			"tests": [
+				"test/csprng-construction.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "SIWE request ids"
+				},
+				{
+					"test": "request id"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-AUTH-008-P2-NEW3",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-RANDOM",
+			"targets": [
+				{
+					"control": "CR-AUTH-008",
+					"property": "P2"
+				}
+			],
+			"description": "link code from 9 random bytes, padded to the expected format",
+			"edits": [
+				{
+					"file": "src/linking.mjs",
+					"find": "\tconst code = randomBytes(18).toString('base64url');",
+					"replace": "\tconst code = randomBytes(9).toString('base64url').padEnd(24, 'A');"
+				}
+			],
+			"tests": [
+				"test/csprng-construction.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "Telegram link code"
 				}
 			],
 			"expected_result": "KILLED",
@@ -2255,6 +2888,244 @@
 			"expected_failures": [
 				{
 					"test": "^REVOKE-CONC"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-DB-001-P1-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-DBPRIV",
+			"targets": [
+				{
+					"control": "CR-DB-001",
+					"property": "P1"
+				}
+			],
+			"description": "row level security not enabled on position_cover_attributions",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261014120000_position_cover_attributions.sql",
+					"find": "alter table public.position_cover_attributions enable row level security;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/db-privileges-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^DBPRIV: every public table has row level security"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-DB-001-P2-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-DBPRIV",
+			"targets": [
+				{
+					"control": "CR-DB-001",
+					"property": "P2"
+				}
+			],
+			"description": "SELECT granted to authenticated on position_cover_attributions",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261014120000_position_cover_attributions.sql",
+					"find": "grant select, insert, update, delete on table public.position_cover_attributions to service_role;\n",
+					"replace": "grant select, insert, update, delete on table public.position_cover_attributions to service_role;\ngrant select on table public.position_cover_attributions to authenticated;\n"
+				}
+			],
+			"tests": [
+				"test/db-privileges-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^DBPRIV: anon and authenticated"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-DB-001-P2-NEW2",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-DBPRIV",
+			"targets": [
+				{
+					"control": "CR-DB-001",
+					"property": "P2"
+				}
+			],
+			"description": "anon may insert into telegram_updates",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261016150000_l1_attribution_limit.sql",
+					"find": "grant execute on function public.upsert_position_attribution_limited(text, text, text, text, integer, bigint, timestamptz) to service_role;",
+					"replace": "grant execute on function public.upsert_position_attribution_limited(text, text, text, text, integer, bigint, timestamptz) to service_role;\ngrant insert on table public.telegram_updates to anon;"
+				}
+			],
+			"tests": [
+				"test/db-privileges-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^DBPRIV: anon and authenticated"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-DB-001-P3-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-DBPRIV",
+			"targets": [
+				{
+					"control": "CR-DB-001",
+					"property": "P3"
+				}
+			],
+			"description": "CREATE on schema public granted to authenticated",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261016150000_l1_attribution_limit.sql",
+					"find": "grant execute on function public.upsert_position_attribution_limited(text, text, text, text, integer, bigint, timestamptz) to service_role;",
+					"replace": "grant execute on function public.upsert_position_attribution_limited(text, text, text, text, integer, bigint, timestamptz) to service_role;\ngrant create on schema public to authenticated;"
+				}
+			],
+			"tests": [
+				"test/db-privileges-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^DBPRIV: no API role"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-DB-002-P1-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-DBPRIV",
+			"targets": [
+				{
+					"control": "CR-DB-002",
+					"property": "P1"
+				}
+			],
+			"description": "runtime RPC executable by authenticated",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261016150000_l1_attribution_limit.sql",
+					"find": "grant execute on function public.upsert_position_attribution_limited(text, text, text, text, integer, bigint, timestamptz) to service_role;",
+					"replace": "grant execute on function public.upsert_position_attribution_limited(text, text, text, text, integer, bigint, timestamptz) to service_role, authenticated;"
+				}
+			],
+			"tests": [
+				"test/db-privileges-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^DBPRIV: function execute rights"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-DB-002-P1-NEW2",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-DBPRIV",
+			"targets": [
+				{
+					"control": "CR-DB-002",
+					"property": "P1"
+				}
+			],
+			"description": "internal helper lock_chat_wallets left executable by service_role",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261015200000_m1_wallet_limit_alert_budget.sql",
+					"find": "revoke all on function public.lock_chat_wallets(text) from public, anon, authenticated, service_role;",
+					"replace": "revoke all on function public.lock_chat_wallets(text) from public, anon, authenticated;"
+				}
+			],
+			"tests": [
+				"test/db-privileges-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^DBPRIV: function execute rights"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-DB-002-P1-NEW3",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-DBPRIV",
+			"targets": [
+				{
+					"control": "CR-DB-002",
+					"property": "P1"
+				}
+			],
+			"description": "PUBLIC keeps EXECUTE on alert_subscriptions_page",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261015200000_m1_wallet_limit_alert_budget.sql",
+					"find": "revoke all on function public.alert_subscriptions_page(text, text, text, text, integer) from public, anon, authenticated;",
+					"replace": "revoke all on function public.alert_subscriptions_page(text, text, text, text, integer) from anon, authenticated;"
+				}
+			],
+			"tests": [
+				"test/db-privileges-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^DBPRIV: function execute rights"
 				}
 			],
 			"expected_result": "KILLED",
@@ -3935,6 +4806,240 @@
 			"detection": "behavioral",
 			"timeout_ms": 300000,
 			"evidence_id": "EV-KB-L3"
+		},
+		{
+			"id": "MUT-CR-VERIFY-001-P1-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-GUARD",
+			"targets": [
+				{
+					"control": "CR-VERIFY-001",
+					"property": "P1"
+				}
+			],
+			"description": "guard counts cancelled tests but does not fail on them",
+			"edits": [
+				{
+					"file": "scripts/run-tests-guarded.mjs",
+					"find": "\tproblems.push(`${cancelled ? 'CANCELLED ' : 'FAILED    '} ${relative(file)} :: ${name}`);",
+					"replace": "\tif (!cancelled) problems.push(`${cancelled ? 'CANCELLED ' : 'FAILED    '} ${relative(file)} :: ${name}`);"
+				}
+			],
+			"tests": [
+				"test/guard-behaviour.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^GUARD-CANCEL"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-002-P1-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-GUARD",
+			"targets": [
+				{
+					"control": "CR-VERIFY-002",
+					"property": "P1"
+				}
+			],
+			"description": "guard accepts every skip",
+			"edits": [
+				{
+					"file": "scripts/run-tests-guarded.mjs",
+					"find": "\t\tif (!isAllowedSkip(id)) problems.push(`SKIPPED    ${id}`);\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/guard-behaviour.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^GUARD-SKIP"
+				},
+				{
+					"test": "^GUARD-DBSKIP"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-002-P2-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-GUARD",
+			"targets": [
+				{
+					"control": "CR-VERIFY-002",
+					"property": "P2"
+				}
+			],
+			"description": "guard ignores todo tests",
+			"edits": [
+				{
+					"file": "scripts/run-tests-guarded.mjs",
+					"find": "if (todo !== undefined) { count.todo++; problems.push(`TODO       ${id}`); return; }",
+					"replace": "if (todo !== undefined) { count.todo++; return; }"
+				}
+			],
+			"tests": [
+				"test/guard-behaviour.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^GUARD-TODO"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-002-P3-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-GUARD",
+			"targets": [
+				{
+					"control": "CR-VERIFY-002",
+					"property": "P3"
+				}
+			],
+			"description": "M1 DB skip allowed even with a disposable Postgres configured",
+			"edits": [
+				{
+					"file": "scripts/skip-policy.mjs",
+					"find": "['test/m1-wallet-limit-db.test.mjs :: M1-DB', (env) => !env.M1_DB_TEST_PG_URL],",
+					"replace": "['test/m1-wallet-limit-db.test.mjs :: M1-DB', () => true],"
+				}
+			],
+			"tests": [
+				"test/guard-behaviour.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^GUARD-DBSKIP: the allowlisted DB skip passes only"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-002-P3-NEW2",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-GUARD",
+			"targets": [
+				{
+					"control": "CR-VERIFY-002",
+					"property": "P3"
+				}
+			],
+			"description": "skip allowlist matched by test name only",
+			"edits": [
+				{
+					"file": "scripts/skip-policy.mjs",
+					"find": "\treturn ALLOWED_SKIPS.get(id)?.(env) === true;",
+					"replace": "\treturn [...ALLOWED_SKIPS].some(([key, allowed]) => key.split(' :: ')[1] === String(id).split(' :: ')[1] && allowed(env) === true);"
+				}
+			],
+			"tests": [
+				"test/guard-behaviour.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^GUARD-DBSKIP: the allowlist is exact"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-005-P1-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-ENGINE",
+			"targets": [
+				{
+					"control": "CR-VERIFY-005",
+					"property": "P1"
+				}
+			],
+			"description": "any failure under mutation counts as the intended kill",
+			"edits": [
+				{
+					"file": "security/crsf/lib/exec.mjs",
+					"find": "\t\tconst intended = failing.filter((r) => r.outcome === 'fail' && mutation.expected_failures.some((e) => matches(e, r)));",
+					"replace": "\t\tconst intended = failing.filter((r) => r.outcome === 'fail');"
+				}
+			],
+			"tests": [
+				"test/crsf-engine.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^VERIFY-005: the named expected failure"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-009-P1-NEW1",
+			"origin": "new (Phase 2C)",
+			"evidence_id": "EV-KB-ENGINE",
+			"targets": [
+				{
+					"control": "CR-VERIFY-009",
+					"property": "P1"
+				}
+			],
+			"description": "a SURVIVED mutant no longer invalidates the known-bad proof",
+			"edits": [
+				{
+					"file": "security/crsf/lib/engine.mjs",
+					"find": "const bad = res.filter(({ r }) => ['SURVIVED', 'KILLED_OTHER', 'INVALID'].includes(r));",
+					"replace": "const bad = res.filter(({ r }) => ['KILLED_OTHER', 'INVALID'].includes(r));"
+				}
+			],
+			"tests": [
+				"test/crsf-engine.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^VERIFY-009: one SURVIVED case"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

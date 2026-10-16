@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2b",
+	"crsf_version": "1.0-draft-phase2c",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -450,6 +450,63 @@
 			}
 		},
 		{
+			"id": "EV-CRSF-ENGINE",
+			"control_ids": [
+				"CR-VERIFY-005",
+				"CR-VERIFY-009"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/crsf-engine.test.mjs",
+			"test_or_proof": "test/crsf-engine.test.mjs",
+			"property_proven": "the real mutation runner reports KILLED only for the named expected failure (else KILLED_OTHER/SURVIVED/INVALID); a declared EQUIVALENT that is detected is a claim violation; one SURVIVED/KILLED_OTHER/INVALID/NOT_RUN case, EQUIVALENT-only or static-only kills never prove a property",
+			"property_not_proven": "correctness of every other engine rule (covered by the framework self-test)",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-VERIFY-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-VERIFY-009",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "crsf-fixtures",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/crsf-engine.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
 			"id": "EV-CRSF-SELFTEST",
 			"type": "behavioral",
 			"level": "E3",
@@ -545,6 +602,115 @@
 				],
 				"environment": [
 					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-CSPRNG",
+			"control_ids": [
+				"CR-AUTH-008"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/csprng-construction.test.mjs",
+			"test_or_proof": "test/csprng-construction.test.mjs",
+			"property_proven": "challenge/action nonces, request ids, link code/nonce and dashboard access code are each the complete hex/base64url encoding of one node:crypto.randomBytes draw of 16/18/24 bytes; Math.random never used; no clock or counter mixed in",
+			"property_not_proven": "the quality of the OS CSPRNG behind node:crypto (platform assumption)",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-AUTH-008",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "csprng-spy",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/csprng-construction.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-DBPRIV-DB",
+			"control_ids": [
+				"CR-DB-001",
+				"CR-DB-002"
+			],
+			"type": "real-system",
+			"level": "E5",
+			"source": "repository",
+			"artifact": "test/db-privileges-db.test.mjs",
+			"test_or_proof": "test/db-privileges-db.test.mjs (DBPRIV-DB, disposable Postgres, Supabase default grants emulated, all migrations)",
+			"property_proven": "RLS on every public table; anon/authenticated hold no table privilege and really get 42501 on read/insert/delete of every table; no role can CREATE in public; function EXECUTE matches the allowlist exactly (5 runtime RPCs + legacy consume_wallet_link for service_role only; internal helpers for nobody; PUBLIC nowhere); SECURITY DEFINER set and pinned search_path",
+			"property_not_proven": "the production database itself (emulated Supabase defaults, not supabase_admin-owned objects; production state stays EV-PROD-DB, manual)",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-DB-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-DB-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"disposable Postgres 17 (M1_DB_TEST_PG_URL)"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": "Supabase default privileges emulated from the documented defaults",
+			"recorded": null,
+			"fixture_group": "raw-pg",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/db-privileges-db.test.mjs"
+				],
+				"environment": [
+					"node",
+					"postgres"
 				],
 				"timeout_ms": 300000,
 				"expected_result": "PASS",
@@ -893,6 +1059,65 @@
 			}
 		},
 		{
+			"id": "EV-GUARD",
+			"control_ids": [
+				"CR-VERIFY-001",
+				"CR-VERIFY-002"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/guard-behaviour.test.mjs",
+			"test_or_proof": "test/guard-behaviour.test.mjs (real guard + skip policy in throwaway projects)",
+			"property_proven": "the guard fails on cancelled, failed, todo and unexpectedly skipped tests; the DB skip allowlist is exact (file + name) and only valid while M1_DB_TEST_PG_URL is unset; a run without test files fails",
+			"property_not_proven": "a test file that contains no tests at all still passes (finding F-2C-1)",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-VERIFY-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-VERIFY-002",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "guard-sandbox",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/guard-behaviour.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
 			"id": "EV-H2-DB",
 			"control_ids": [
 				"CR-AUTH-004",
@@ -979,7 +1204,7 @@
 				"CR-CONC-001"
 			],
 			"type": "static",
-			"level": "E2",
+			"level": "E1",
 			"source": "repository",
 			"artifact": "test/consume-challenge-request.test.mjs",
 			"test_or_proof": "test/consume-challenge-request.test.mjs",
@@ -1495,6 +1720,191 @@
 			"reason_for_partial": "CR-API-002[P1,P3]: mutation cases: MUT-CR-API-002-P1-NEW1, MUT-CR-API-002-P1-NEW2, MUT-CR-API-002-P3-NEW1"
 		},
 		{
+			"id": "EV-KB-DBPRIV",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 7 case(s)",
+			"property_proven": "privilege regressions (RLS off, table grant, CREATE grant, RPC grant to authenticated, exposed helper, PUBLIC execute) are each caught by the real-Postgres privilege test",
+			"property_not_proven": "production database",
+			"covers": [
+				{
+					"control": "CR-DB-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-DB-001-P1-NEW1, MUT-CR-DB-001-P2-NEW1, MUT-CR-DB-001-P2-NEW2, MUT-CR-DB-001-P3-NEW1"
+				},
+				{
+					"control": "CR-DB-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-DB-002-P1-NEW1, MUT-CR-DB-002-P1-NEW2, MUT-CR-DB-002-P1-NEW3"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node",
+				"postgres"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "raw-pg",
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-DB-001-P1-NEW1",
+					"MUT-CR-DB-001-P2-NEW1",
+					"MUT-CR-DB-001-P2-NEW2",
+					"MUT-CR-DB-001-P3-NEW1",
+					"MUT-CR-DB-002-P1-NEW1",
+					"MUT-CR-DB-002-P1-NEW2",
+					"MUT-CR-DB-002-P1-NEW3"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-DB-001",
+				"CR-DB-002"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
+			"id": "EV-KB-ENGINE",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 2 case(s)",
+			"property_proven": "runner/engine mutations that count wrong-reason failures as kills or ignore SURVIVED cases are caught",
+			"property_not_proven": "other engine rules",
+			"covers": [
+				{
+					"control": "CR-VERIFY-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-VERIFY-005-P1-NEW1"
+				},
+				{
+					"control": "CR-VERIFY-009",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-VERIFY-009-P1-NEW1"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "crsf-fixtures",
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-VERIFY-005-P1-NEW1",
+					"MUT-CR-VERIFY-009-P1-NEW1"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-VERIFY-005",
+				"CR-VERIFY-009"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
+			"id": "EV-KB-GUARD",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 5 case(s)",
+			"property_proven": "guard mutations accepting cancelled, skipped or todo tests, or loosening the DB skip allowlist, are caught behaviourally",
+			"property_not_proven": "empty test files (F-2C-1)",
+			"covers": [
+				{
+					"control": "CR-VERIFY-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-VERIFY-001-P1-NEW1"
+				},
+				{
+					"control": "CR-VERIFY-002",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-VERIFY-002-P1-NEW1, MUT-CR-VERIFY-002-P2-NEW1, MUT-CR-VERIFY-002-P3-NEW1, MUT-CR-VERIFY-002-P3-NEW2"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "guard-sandbox",
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-VERIFY-001-P1-NEW1",
+					"MUT-CR-VERIFY-002-P1-NEW1",
+					"MUT-CR-VERIFY-002-P2-NEW1",
+					"MUT-CR-VERIFY-002-P3-NEW1",
+					"MUT-CR-VERIFY-002-P3-NEW2"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-VERIFY-001",
+				"CR-VERIFY-002"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
 			"id": "EV-KB-H2",
 			"type": "known-bad",
 			"level": "E4",
@@ -1924,6 +2334,162 @@
 			"reason_for_partial": "CR-API-001[P3]: mutation cases: MUT-CR-API-001-P3-L5A, MUT-CR-API-001-P3-L5B, MUT-CR-API-001-P3-L5G; CR-CONC-004[P1]: mutation cases: MUT-CR-CONC-004-P1-L5F, MUT-CR-CONC-004-P1-L5H; CR-PROVIDER-001[P4]: mutation cases: MUT-CR-PROVIDER-001-P4-L5C, MUT-CR-PROVIDER-001-P4-L5D, MUT-CR-PROVIDER-001-P4-L5E, MUT-CR-PROVIDER-001-P4-L5I"
 		},
 		{
+			"id": "EV-KB-LOGIN",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 4 case(s)",
+			"property_proven": "session wallet decoupled from the signer (MULTI_LAYER), kind not derived from authority, and pinned issue time are caught",
+			"property_not_proven": "real wallets",
+			"covers": [
+				{
+					"control": "CR-AUTH-006",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-AUTH-006-P1-NEW1, MUT-CR-AUTH-006-P2-NEW1, MUT-CR-AUTH-006-P2-NEW2, MUT-CR-AUTH-006-P3-NEW1"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node",
+				"postgres"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "pg-postgrest-adapter",
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-AUTH-006-P1-NEW1",
+					"MUT-CR-AUTH-006-P2-NEW1",
+					"MUT-CR-AUTH-006-P2-NEW2",
+					"MUT-CR-AUTH-006-P3-NEW1"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-AUTH-006"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
+			"id": "EV-KB-ONCHAIN",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 4 case(s)",
+			"property_proven": "expiry, single use and wallet binding of the on-chain login removed at every redundant layer (MULTI_LAYER) are caught end-to-end on real Postgres; the single-layer open-check removal is declared EQUIVALENT",
+			"property_not_proven": "real Safe contracts",
+			"covers": [
+				{
+					"control": "CR-AUTH-004",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-AUTH-004-P1-NEW1, MUT-CR-AUTH-004-P2-EQ1, MUT-CR-AUTH-004-P2-NEW1, MUT-CR-AUTH-004-P2-NEW2"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node",
+				"postgres"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "pg-postgrest-adapter",
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-AUTH-004-P1-NEW1",
+					"MUT-CR-AUTH-004-P2-EQ1",
+					"MUT-CR-AUTH-004-P2-NEW1",
+					"MUT-CR-AUTH-004-P2-NEW2"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-AUTH-004"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-AUTH-004[P1,P2]: mutation cases: MUT-CR-AUTH-004-P1-NEW1, MUT-CR-AUTH-004-P2-EQ1, MUT-CR-AUTH-004-P2-NEW1, MUT-CR-AUTH-004-P2-NEW2"
+		},
+		{
+			"id": "EV-KB-RANDOM",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 5 case(s)",
+			"property_proven": "Math.random, clock-derived, shortened or truncated nonces/codes are each caught by the CSPRNG construction test",
+			"property_not_proven": "OS entropy quality",
+			"covers": [
+				{
+					"control": "CR-AUTH-008",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-AUTH-008-P1-NEW1, MUT-CR-AUTH-008-P1-NEW2, MUT-CR-AUTH-008-P2-NEW1, MUT-CR-AUTH-008-P2-NEW2, MUT-CR-AUTH-008-P2-NEW3"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "csprng-spy",
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-AUTH-008-P1-NEW1",
+					"MUT-CR-AUTH-008-P1-NEW2",
+					"MUT-CR-AUTH-008-P2-NEW1",
+					"MUT-CR-AUTH-008-P2-NEW2",
+					"MUT-CR-AUTH-008-P2-NEW3"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-AUTH-008"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
 			"id": "EV-KB-REVOKE",
 			"type": "known-bad",
 			"level": "E4",
@@ -1989,12 +2555,61 @@
 			"reason_for_partial": null
 		},
 		{
+			"id": "EV-KB-SCOPE",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 3 case(s)",
+			"property_proven": "header- or body-supplied wallet overrides on dashboard and positions reads are caught",
+			"property_not_proven": "other endpoints (attributions/callbacks: Phase 2A/2B cases)",
+			"covers": [
+				{
+					"control": "CR-API-001",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-API-001-P1-NEW1, MUT-CR-API-001-P1-NEW2, MUT-CR-API-001-P2-NEW1"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "loadHandler-deps",
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-API-001-P1-NEW1",
+					"MUT-CR-API-001-P1-NEW2",
+					"MUT-CR-API-001-P2-NEW1"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-API-001"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-001[P1,P2]: mutation cases: MUT-CR-API-001-P1-NEW1, MUT-CR-API-001-P1-NEW2, MUT-CR-API-001-P2-NEW1"
+		},
+		{
 			"id": "EV-KB-SESSION",
 			"type": "known-bad",
 			"level": "E4",
 			"source": "repository",
 			"artifact": "security/mutation/cases.json",
-			"test_or_proof": "npm run security:verify (mutation runner): 11 case(s)",
+			"test_or_proof": "npm run security:verify (mutation runner): 12 case(s)",
 			"property_proven": "session/action expiry, token-type separation, action purpose binding, no body token, no Bearer fallback, contract fresh authority, legacy-token fail-closed and single-use fresh confirmation are each caught behaviourally",
 			"property_not_proven": "constant-time MAC comparison (not behaviourally observable); real browser cookie handling",
 			"covers": [
@@ -2007,7 +2622,7 @@
 					],
 					"scope": "FULL",
 					"result": "SUPPORTS",
-					"note": "mutation cases: MUT-CR-AUTH-007-P1-NEW1, MUT-CR-AUTH-007-P2-NEW2, MUT-CR-AUTH-007-P2-NEW3, MUT-CR-AUTH-007-P3-NEW1"
+					"note": "mutation cases: MUT-CR-AUTH-007-P1-NEW1, MUT-CR-AUTH-007-P2-NEW1, MUT-CR-AUTH-007-P2-NEW2, MUT-CR-AUTH-007-P2-NEW3, MUT-CR-AUTH-007-P3-NEW1"
 				},
 				{
 					"control": "CR-SESSION-002",
@@ -2053,6 +2668,7 @@
 				"runner": "mutation",
 				"mutation_ids": [
 					"MUT-CR-AUTH-007-P1-NEW1",
+					"MUT-CR-AUTH-007-P2-NEW1",
 					"MUT-CR-AUTH-007-P2-NEW2",
 					"MUT-CR-AUTH-007-P2-NEW3",
 					"MUT-CR-AUTH-007-P3-NEW1",
@@ -2566,6 +3182,68 @@
 				],
 				"environment": [
 					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-LOGIN-DB",
+			"control_ids": [
+				"CR-AUTH-004",
+				"CR-AUTH-006"
+			],
+			"type": "real-system",
+			"level": "E5",
+			"source": "repository",
+			"artifact": "test/dashboard-login-db.test.mjs",
+			"test_or_proof": "test/dashboard-login-db.test.mjs (DASHBOARD-LOGIN-DB, real src/db.mjs challenge and revocation functions on disposable Postgres, dual-RPC chain model)",
+			"property_proven": "on-chain approval: stored expiry, single use (sequential and 10 concurrent posts) and wallet binding (attacker Safe approving the victim text, other challenge, other Safe) enforced end-to-end; signature login: an attacker key cannot use a victim challenge; every login issues a new token and a login after logout is unrevoked",
+			"property_not_proven": "real Safe contracts and production PostgREST",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-AUTH-006[P1,P3]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-AUTH-004",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-AUTH-006",
+					"properties": [
+						"P1",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"disposable Postgres 17 (M1_DB_TEST_PG_URL)"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": "pg bigint parsed as Number to match PostgREST JSON",
+			"recorded": null,
+			"fixture_group": "pg-postgrest-adapter",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/dashboard-login-db.test.mjs"
+				],
+				"environment": [
+					"node",
+					"postgres"
 				],
 				"timeout_ms": 300000,
 				"expected_result": "PASS",
@@ -3812,7 +4490,7 @@
 				"CR-RESOURCE-001"
 			],
 			"type": "static",
-			"level": "E2",
+			"level": "E1",
 			"source": "repository",
 			"artifact": "test/dashboard-global-budget.test.mjs, test/dashboard-wallet-rate-limit.test.mjs, test/link-code-rate-limit.test.mjs",
 			"test_or_proof": "test/dashboard-global-budget.test.mjs, test/dashboard-wallet-rate-limit.test.mjs, test/link-code-rate-limit.test.mjs",
@@ -4009,6 +4687,54 @@
 					"test/safe-app-backend.test.mjs",
 					"test/safe-app-session.test.mjs",
 					"test/safe-session-authority.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-SCOPE",
+			"control_ids": [
+				"CR-API-001"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/object-scope.test.mjs",
+			"test_or_proof": "test/object-scope.test.mjs",
+			"property_proven": "real dashboard and positions handlers read only the session wallet; header/query/body hints, a foreign cookie name and a Bearer token for wallet B never retarget a lookup or appear in the response",
+			"property_not_proven": "cover/positions provider behaviour itself",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-001[P1,P2]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-API-001",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": "dashboard handler loaded with injected dependencies (M2 pattern)",
+			"recorded": null,
+			"fixture_group": "loadHandler-deps",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/object-scope.test.mjs"
 				],
 				"environment": [
 					"node"

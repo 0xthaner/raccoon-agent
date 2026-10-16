@@ -1,6 +1,6 @@
 {
 	"id": "CRSF-1.0/COVER-RACCOON-PROFILE",
-	"crsf_version": "1.0-draft-phase2b",
+	"crsf_version": "1.0-draft-phase2c",
 	"asvs_target": {
 		"baseline": "ASVS L2 (all applicable L1 + L2 requirements are in scope)",
 		"selected_l3": [
@@ -99,8 +99,9 @@
 		"FAIL arises only from an evidence finding VIOLATION; it can only disappear with an entry in classification-changes.json.",
 		"E6 is not claimed: no independent external review exists.",
 		"Executable evidence counts only if it was executed in this run and passed; evidence that could not run (missing environment) counts as missing, never as passed.",
-		"Mutation (known-bad) evidence counts for a property only if at least one case targeting it was KILLED by its expected failing test with behavioural detection, and no case targeting it SURVIVED, was killed for another reason, or was invalid.",
-		"A declared mutation result that differs from the observed result invalidates the framework run."
+		"Mutation (known-bad) evidence counts for a property only if at least one case targeting it was KILLED by its expected failing test with behavioural detection, and no case targeting it SURVIVED, was killed for another reason, was invalid, or did not run in this run. EQUIVALENT cases are neutral.",
+		"A declared mutation result that differs from the observed result invalidates the framework run.",
+		"An evidence item may not declare a level above the cap of its type (evidence_level_cap_by_type); E5 therefore requires real-system evidence."
 	],
 	"status_axes": {
 		"conformance_status": "Does the implementation meet the literal external (or CRSF-internal) requirement? CONFORMANT | NON_CONFORMANT | NOT_DEMONSTRATED | ACCEPTED_PROTOCOL_DEVIATION | ACCEPTED_PLATFORM_DEVIATION | NOT_APPLICABLE | DEFERRED. NOT_DEMONSTRATED is a Phase-1C extension: without evidence neither CONFORMANT nor NON_CONFORMANT can be asserted.",
@@ -204,9 +205,12 @@
 			"KILLED_OTHER",
 			"SURVIVED",
 			"INVALID",
-			"NOT_RUN"
+			"NOT_RUN",
+			"EQUIVALENT"
 		],
-		"detection": "behavioral kills count for E4; static (source-text) kills are recorded but never count"
+		"detection": "behavioral kills count for E4; static (source-text) kills are recorded but never count",
+		"equivalence": "EQUIVALENT requires a written proof (kind UNREACHABLE or REDUNDANT_LAYER). It never counts as E4 and never as SURVIVED, stays visible in every report, and becomes a claim violation if any mapped test kills it.",
+		"multi_layer": "MULTI_LAYER: several edits that together form ONE logical defect across deliberately redundant checks; needs >= 2 edits and a written rationale. A single redundant layer removal is EQUIVALENT (REDUNDANT_LAYER), never a SURVIVED security failure."
 	},
 	"verify_policy": {
 		"framework_invalid": "exit 1",
@@ -215,5 +219,15 @@
 		"release_blocking_fail": "exit 1",
 		"release_assertion_incomplete": "exit 0 by default; exit 2 with --require-release-assertion",
 		"release_assertion_rule": "RELEASE_SECURITY_ASSERTION is PASS only if every RELEASE_BLOCKING control is PASS_AUTOMATED in the observed run; any RELEASE_BLOCKING FAIL => FAIL; otherwise INCOMPLETE_EVIDENCE"
+	},
+	"evidence_level_cap_by_type": {
+		"static": "E1",
+		"config": "E1",
+		"manual-inspection": "E1",
+		"document-inspection": "E1",
+		"behavioral": "E3",
+		"known-bad": "E4",
+		"real-system": "E5",
+		"manual-production": "E5"
 	}
 }

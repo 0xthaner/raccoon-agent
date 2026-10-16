@@ -19,6 +19,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { postgrestOverPg } from '../test-support/pg-postgrest.mjs';
+import { dropTestDatabase } from '../test-support/drop-test-db.mjs';
 
 const URL_ = process.env.M1_DB_TEST_PG_URL;
 const MODULE = process.env.M1_DB_TEST_PG_MODULE;
@@ -107,6 +108,7 @@ const observed = [];
 
 test('L1-DB', { skip, timeout: 600_000 }, async (t) => {
 	await setup();
+	t.after(() => dropTestDatabase(pg, URL_, dbUrl));
 	sql = await connect();
 	try {
 

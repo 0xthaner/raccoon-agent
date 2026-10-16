@@ -269,6 +269,197 @@
 					"reason": "No control definition, release class, minimum level or profile threshold changed; lock regenerated for 1.0-draft-phase2b only."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2c",
+			"summary": "Evidence closure continued: 10 release-blocking controls closed (CR-DB-001/002, CR-AUTH-004/006/008, CR-API-001, CR-VERIFY-001/002/005/009); EQUIVALENT and MULTI_LAYER mutation semantics; two framework fixes; one test-infrastructure finding; two framework-policy gaps reported. No application code changed.",
+			"changes": [
+				{
+					"id": "CR-DB-001",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E5",
+					"evidence_added": [
+						"test/db-privileges-db.test.mjs (EV-DBPRIV-DB, real Postgres)",
+						"EV-KB-DBPRIV: MUT-CR-DB-001-P1-NEW1, -P2-NEW1/NEW2, -P3-NEW1"
+					],
+					"why_sufficient": "Real Postgres with Supabase default grants emulated before all migrations: RLS on every table; anon/authenticated hold no table privilege and are refused (42501) on real read/insert/delete; no role can CREATE in public. Disabling RLS, granting SELECT/INSERT or CREATE are each caught. Replaces the manual-only production check as reproducible evidence.",
+					"remains_unproven": "The production database itself (supabase_admin-owned objects, real Supabase defaults); EV-PROD-DB remains the manual production record.",
+					"reason": "new reproducible evidence (Phase 2C)"
+				},
+				{
+					"id": "CR-DB-002",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E5",
+					"evidence_added": [
+						"test/db-privileges-db.test.mjs (EV-DBPRIV-DB)",
+						"EV-KB-DBPRIV: MUT-CR-DB-002-P1-NEW1/NEW2/NEW3"
+					],
+					"why_sufficient": "Every public function: no anon/authenticated/PUBLIC execute (catalog and real call -> 42501); service_role reaches exactly the 5 runtime RPCs plus the documented legacy consume_wallet_link; internal helpers are callable by nobody. Granting a runtime RPC to authenticated, leaving a helper to service_role, or leaving PUBLIC execute are each caught.",
+					"remains_unproven": "consume_wallet_link (legacy, service_role only) still exists - known hardening item, not a violation of P1.",
+					"reason": "new reproducible evidence (Phase 2C)"
+				},
+				{
+					"id": "CR-AUTH-008",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E3",
+					"evidence_added": [
+						"test/csprng-construction.test.mjs (EV-CSPRNG)",
+						"EV-KB-RANDOM: MUT-CR-AUTH-008-P1-NEW1/NEW2, -P2-NEW1/NEW2/NEW3"
+					],
+					"why_sufficient": "Construction proof, not statistics: with node:crypto.randomBytes intercepted, every challenge/action nonce, request id, link code/nonce and access code equals the full encoding of one randomBytes draw of >= 16 bytes (128/144/192 bits); Math.random throws if used. Math.random, clock-derived, shortened, truncated or padded values are each caught.",
+					"remains_unproven": "The OS CSPRNG behind node:crypto (platform assumption).",
+					"reason": "new reproducible evidence (Phase 2C)"
+				},
+				{
+					"id": "CR-API-001",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E4",
+					"evidence_added": [
+						"test/object-scope.test.mjs (EV-SCOPE)",
+						"EV-KB-SCOPE: MUT-CR-API-001-P1-NEW1/NEW2, -P2-NEW1"
+					],
+					"why_sufficient": "P1/P2: the real dashboard and positions handlers read only the session wallet; header, query, body, foreign-cookie and Bearer hints for another wallet never reach a lookup or the response; taking the wallet from a header or body is killed. P3/P4 from Phase 2A.",
+					"remains_unproven": "Endpoints added later must be added to the scope test.",
+					"reason": "new reproducible evidence (Phase 2C)"
+				},
+				{
+					"id": "CR-AUTH-004",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E4",
+					"evidence_added": [
+						"test/dashboard-login-db.test.mjs (EV-LOGIN-DB, real Postgres)",
+						"EV-KB-ONCHAIN: MUT-CR-AUTH-004-P1-NEW1, -P2-NEW1/NEW2 (MULTI_LAYER); -P2-EQ1 (EQUIVALENT, REDUNDANT_LAYER)"
+					],
+					"why_sufficient": "End-to-end with the real challenge SQL: expired stored rows, replays (sequential and 10 concurrent) and an attacker Safe approving the victim text never yield a session. Each defect is a MULTI_LAYER mutation that removes every redundant layer (handler check, approval verifier, SQL predicates) and is killed; the single-layer removal is recorded as EQUIVALENT with proof instead of as a gap.",
+					"remains_unproven": "Real Safe contracts on mainnet (simulated chain).",
+					"reason": "new reproducible evidence (Phase 2C)"
+				},
+				{
+					"id": "CR-AUTH-006",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E4",
+					"evidence_added": [
+						"test/dashboard-login-db.test.mjs (EV-LOGIN-DB)",
+						"EV-KB-LOGIN: MUT-CR-AUTH-006-P1-NEW1 (MULTI_LAYER), -P2-NEW1/NEW2, -P3-NEW1"
+					],
+					"why_sufficient": "P1: decoupling the session wallet from the signer (claimed-wallet check + consume/issue for the challenge wallet) lets an attacker key turn a victim challenge into a victim session - killed. P2: ignoring or forcing contract authority killed by existing session-kind tests. P3: pinning the issue time (re-login reuses the old token, which stays revoked) killed by a real logout-then-login.",
+					"remains_unproven": "Phase 2B called P1/P3 untestable; the gap was the missing end-to-end attack test, not the threshold.",
+					"reason": "new reproducible evidence (Phase 2C)"
+				},
+				{
+					"id": "CR-VERIFY-001",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E4",
+					"evidence_added": [
+						"test/guard-behaviour.test.mjs (EV-GUARD)",
+						"EV-KB-GUARD: MUT-CR-VERIFY-001-P1-NEW1"
+					],
+					"why_sufficient": "The real guard in a throwaway project fails on a cancelled subtest; a guard that stops reporting cancellations is killed.",
+					"remains_unproven": "Nothing for P1.",
+					"reason": "new reproducible evidence (Phase 2C)"
+				},
+				{
+					"id": "CR-VERIFY-002",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E4",
+					"evidence_added": [
+						"test/guard-behaviour.test.mjs (EV-GUARD)",
+						"EV-KB-GUARD: MUT-CR-VERIFY-002-P1-NEW1, -P2-NEW1, -P3-NEW1/NEW2"
+					],
+					"why_sufficient": "Unexpected skip and todo fail the run; the DB skip passes only with exact file+name and only while M1_DB_TEST_PG_URL is unset; accepting every skip, ignoring todo, ignoring the DB variable or matching by name only are each killed.",
+					"remains_unproven": "Finding F-2C-1: a test FILE without any test still passes the guard (not one of P1-P3; reported, not fixed).",
+					"reason": "new reproducible evidence (Phase 2C)"
+				},
+				{
+					"id": "CR-VERIFY-005",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E4",
+					"evidence_added": [
+						"test/crsf-engine.test.mjs (EV-CRSF-ENGINE)",
+						"EV-KB-ENGINE: MUT-CR-VERIFY-005-P1-NEW1"
+					],
+					"why_sufficient": "The real mutation runner reports KILLED only for the named expected failure (and message); other failures are KILLED_OTHER, behaviour-preserving edits SURVIVED, ambiguous anchors INVALID; counting any failure as the kill is caught.",
+					"remains_unproven": "Choice of expected failures per case remains a human review step (documented per case).",
+					"reason": "new reproducible evidence (Phase 2C)"
+				},
+				{
+					"id": "CR-VERIFY-009",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E4",
+					"evidence_added": [
+						"test/crsf-engine.test.mjs (EV-CRSF-ENGINE)",
+						"EV-KB-ENGINE: MUT-CR-VERIFY-009-P1-NEW1"
+					],
+					"why_sufficient": "One SURVIVED, KILLED_OTHER, INVALID or NOT_RUN case removes the known-bad proof of its property (status drops to MISSING_EVIDENCE); EQUIVALENT-only and static-only kills never prove; an engine ignoring SURVIVED is caught.",
+					"remains_unproven": "Nothing for P1.",
+					"reason": "new reproducible evidence (Phase 2C)"
+				},
+				{
+					"id": "F-2C-1",
+					"kind": "NEW_FINDING",
+					"reason": "Test infrastructure (Low): node:test reports a test file without tests as one passing entry, so scripts/run-tests-guarded.mjs passes a security test file that lost all its tests. Reproduced in a throwaway project. Not fixed in this evidence pass; fix direction: count only non-file test events or require >= 1 test per file."
+				},
+				{
+					"id": "F-2C-2",
+					"kind": "FRAMEWORK_FIX",
+					"reason": "Engine credited a property while one of its mutation cases was NOT_RUN if another case was KILLED; now NOT_RUN blocks (never credit missing capabilities). Found by test/crsf-engine.test.mjs."
+				},
+				{
+					"id": "F-2C-3",
+					"kind": "FRAMEWORK_FIX",
+					"reason": "Engine trusted self-declared evidence levels, so behavioural evidence labelled E5 could satisfy a real-concurrency control; new per-type level cap (LEVEL_EXCEEDS_TYPE). EV-H2-REQ and EV-RL lowered from E2 to E1 (static); no status changed."
+				},
+				{
+					"id": "PROFILE",
+					"kind": "PROFILE_EXTENDED",
+					"reason": "EQUIVALENT and MULTI_LAYER mutation semantics, NOT_RUN blocks known-bad proof, evidence_level_cap_by_type. No release class or minimum level changed."
+				},
+				{
+					"id": "CR-API-004",
+					"kind": "FRAMEWORK_POLICY_GAP",
+					"reason": "P1 is worded \"every no-param endpoint rejects any query\"; alerts, config, csp-report, telegram and link/verify ignore (never read) the query instead of rejecting it. Security-wise the query cannot alter scope, but the literal property is not met. Not recorded as VIOLATION (would turn an over-specified internal wording into a release-blocking FAIL) and not silently reinterpreted: left MISSING_EVIDENCE for an owner decision (reword P1 to \"no endpoint derives behaviour from undeclared query parameters\", or add query rejection)."
+				},
+				{
+					"id": "CR-SESSION-001",
+					"kind": "FRAMEWORK_POLICY_GAP",
+					"reason": "P2 (constant-time comparison) and P3 (algorithm/key not selectable) are construction properties; E4 (known-bad mutation) cannot observe constant time in a JS runtime, and the algorithm is structurally fixed. Threshold not lowered; needs an explicit framework decision (e.g. E1 static evidence for these sub-properties)."
+				},
+				{
+					"id": "MUT-CR-AUTH-007-P2-NEW1",
+					"kind": "EQUIVALENT_RECORDED",
+					"reason": "Dropped in Phase 2B; now kept visible as EQUIVALENT (UNREACHABLE) with written proof."
+				},
+				{
+					"id": "test/*-db.test.mjs",
+					"kind": "TEST_INFRA",
+					"reason": "m1/h2/l1/l5 DB tests now drop their disposable database after the run (test-support/drop-test-db.mjs); new DB tests do the same. Phase 2B accumulated 454 databases and exhausted the scratch disk."
+				},
+				{
+					"id": "scripts/skip-policy.mjs",
+					"kind": "TEST_INFRA",
+					"reason": "allowed skips added for DBPRIV-DB and DASHBOARD-LOGIN-DB, only while M1_DB_TEST_PG_URL is unset."
+				}
+			]
 		}
 	]
 }

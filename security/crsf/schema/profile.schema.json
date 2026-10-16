@@ -18,7 +18,8 @@
 		"property_kinds",
 		"deviation_rules",
 		"mutation_rules",
-		"verify_policy"
+		"verify_policy",
+		"evidence_level_cap_by_type"
 	],
 	"properties": {
 		"id": {
@@ -317,7 +318,9 @@
 				"edits",
 				"baseline",
 				"results",
-				"detection"
+				"detection",
+				"equivalence",
+				"multi_layer"
 			],
 			"properties": {
 				"workspace": {
@@ -341,6 +344,14 @@
 					"minItems": 1
 				},
 				"detection": {
+					"type": "string",
+					"minLength": 1
+				},
+				"equivalence": {
+					"type": "string",
+					"minLength": 1
+				},
+				"multi_layer": {
 					"type": "string",
 					"minLength": 1
 				}
@@ -382,6 +393,20 @@
 					"type": "string",
 					"minLength": 1
 				}
+			}
+		},
+		"evidence_level_cap_by_type": {
+			"type": "object",
+			"additionalProperties": {
+				"enum": [
+					"E0",
+					"E1",
+					"E2",
+					"E3",
+					"E4",
+					"E5",
+					"E6"
+				]
 			}
 		}
 	}

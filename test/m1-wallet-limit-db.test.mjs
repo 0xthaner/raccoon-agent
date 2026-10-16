@@ -17,6 +17,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
+import { dropTestDatabase } from '../test-support/drop-test-db.mjs';
 
 const URL_ = process.env.M1_DB_TEST_PG_URL;
 const MODULE = process.env.M1_DB_TEST_PG_MODULE;
@@ -58,6 +59,7 @@ async function count(c, chat) { return Number((await c.query('select count(*) fr
 
 test('M1-DB', { skip, timeout: 240_000 }, async (t) => {
 	await setup();
+	t.after(() => dropTestDatabase(pg, URL_, dbUrl));
 	const c = await client();
 	try {
 

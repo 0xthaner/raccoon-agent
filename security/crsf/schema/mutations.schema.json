@@ -87,7 +87,7 @@
 							"properties": {
 								"file": {
 									"type": "string",
-									"pattern": "^(src|api|supabase|web|scripts|security/crsf/selftest/fixtures)/"
+									"pattern": "^(src|api|supabase|web|scripts|security/crsf/lib|security/crsf/selftest/fixtures)/"
 								},
 								"find": {
 									"type": "string",
@@ -142,7 +142,8 @@
 					"expected_result": {
 						"enum": [
 							"KILLED",
-							"SURVIVED"
+							"SURVIVED",
+							"EQUIVALENT"
 						]
 					},
 					"detection": {
@@ -158,6 +159,35 @@
 					"note": {
 						"type": "string",
 						"minLength": 1
+					},
+					"equivalence": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": [
+							"kind",
+							"proof"
+						],
+						"properties": {
+							"kind": {
+								"enum": [
+									"UNREACHABLE",
+									"REDUNDANT_LAYER"
+								]
+							},
+							"proof": {
+								"type": "string",
+								"minLength": 80
+							}
+						}
+					},
+					"layering": {
+						"enum": [
+							"MULTI_LAYER"
+						]
+					},
+					"layering_rationale": {
+						"type": "string",
+						"minLength": 40
 					}
 				}
 			},

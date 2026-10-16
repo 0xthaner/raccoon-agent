@@ -199,7 +199,9 @@ export function mutationClaimMismatches(cases, results) {
 	for (const m of cases) {
 		const r = results[m.id]?.result ?? 'NOT_RUN';
 		if (r === 'NOT_RUN') continue;
-		if (r !== m.expected_result) out.push({ id: m.id, declared: m.expected_result, observed: r, reason: results[m.id]?.reason ?? '' });
+		// A declared EQUIVALENT mutant must survive; if any test detects it, the equivalence claim is false.
+		const expected = m.expected_result === 'EQUIVALENT' ? 'SURVIVED' : m.expected_result;
+		if (r !== expected) out.push({ id: m.id, declared: m.expected_result, observed: r, reason: results[m.id]?.reason ?? '' });
 	}
 	return out;
 }
