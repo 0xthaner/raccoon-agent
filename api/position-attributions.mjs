@@ -9,8 +9,10 @@
 	Server selbst ab und prueft es gegen den aktuellen oeffentlichen Stand.
 
 	GET    gespeicherte Zuordnungen dieser Wallet, abgeglichen: nur aktuell gueltige
-	       werden geliefert; nachweislich veraltete werden geloescht; bei einem
-	       Lesefehler wird nichts geloescht und nichts als aktuell gezeigt.
+	       werden geliefert; nachweislich veraltete werden geloescht (Datenschutz-
+	       information: "beim naechsten Abgleich"), aber nur, solange sie seit dem
+	       Lesen nicht neu bestaetigt wurden (Restaudit L5); bei einem Lesefehler wird
+	       nichts geloescht und nichts als aktuell gezeigt.
 	POST   eine Relation bestaetigen (idempotent). Nur nach erfolgreicher
 	       Pruefung von Position und Cover.
 	DELETE eine eigene Relation entfernen (idempotent).
@@ -19,7 +21,7 @@
 	1:1-Zuordnungen werden hier nie gespeichert.
 */
 import { resolveDashboardSession } from '../src/dashboard-auth.mjs';
-import { deletePositionAttribution, isDashboardSessionRevoked, listPositionAttributions, upsertPositionAttribution } from '../src/db.mjs';
+import { deletePositionAttribution, deleteStalePositionAttribution, isDashboardSessionRevoked, listPositionAttributions, upsertPositionAttribution } from '../src/db.mjs';
 import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin } from '../src/http-security.mjs';
 import { getWalletPositions, LookupNotAdmittedError } from '../src/positions/index.mjs';
 import { getWalletCovers } from '../src/covers.mjs';
@@ -48,7 +50,7 @@ export function createAttributionsHandler(deps) {
 }
 
 function createInnerHandler({
-	getPositions, getCovers, listRows, upsertRow, deleteRow, isRevoked,
+	getPositions, getCovers, listRows, upsertRow, deleteRow, deleteStaleRow, isRevoked,
 	rateLimit = enforceRateLimit, rateLimitFor = enforceRateLimitFor, resolveSession = resolveDashboardSession,
 	sameOrigin = requireSameOrigin, json = requireJson, now = () => Date.now()
 }) {
@@ -109,7 +111,7 @@ function createInnerHandler({
 			// Nur nachweislich veraltete Zeilen loeschen; ein Loeschfehler aendert die Antwort nicht.
 			let removed = 0;
 			for (const { row } of stale) {
-				try { removed += await deleteRow(wallet, row.deployment_key, Number(row.cover_id)); } catch { /* bleibt bis zum naechsten Abgleich */ }
+				try { removed += await deleteStaleRow(wallet, row.deployment_key, Number(row.cover_id), row.confirmed_at); } catch { /* bleibt bis zum naechsten Abgleich */ }
 			}
 			return response.status(200).json({ ok: true, attributions: valid.map(({ row }) => publicAttribution(row)), pending: unknown.length, removed });
 		}
@@ -155,5 +157,6 @@ export default createAttributionsHandler({
 	listRows: (wallet) => listPositionAttributions(wallet),
 	upsertRow: (relation) => upsertPositionAttribution(relation),
 	deleteRow: (wallet, deploymentKey, coverId) => deletePositionAttribution(wallet, deploymentKey, coverId),
+	deleteStaleRow: (wallet, deploymentKey, coverId, confirmedAt) => deleteStalePositionAttribution(wallet, deploymentKey, coverId, confirmedAt),
 	isRevoked: isDashboardSessionRevoked
 });

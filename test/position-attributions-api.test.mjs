@@ -65,6 +65,15 @@ function world() {
 			state.rows = state.rows.filter((r) => !(r.wallet === wallet && r.deployment_key === deploymentKey && r.cover_id === coverId));
 			return before - state.rows.length;
 		},
+		// Wie deleteStalePositionAttribution (Restaudit L5): nur, solange confirmed_at noch der gelesene Wert ist.
+		deleteStaleRow: async (wallet, deploymentKey, coverId, confirmedAt) => {
+			state.calls.push(['delete', wallet, deploymentKey, coverId, confirmedAt]);
+			if (state.fail.delete) throw new Error('db');
+			if (typeof confirmedAt !== 'string' || !confirmedAt) return 0;
+			const before = state.rows.length;
+			state.rows = state.rows.filter((r) => !(r.wallet === wallet && r.deployment_key === deploymentKey && r.cover_id === coverId && r.confirmed_at === confirmedAt));
+			return before - state.rows.length;
+		},
 		isRevoked: async (wallet) => { state.revocationChecks.push(wallet.toLowerCase()); if (state.fail.revoked) throw new Error('db'); return state.revoked.has(wallet.toLowerCase()); },
 		rateLimit: async () => true,
 		rateLimitFor: async () => true,
@@ -336,7 +345,7 @@ test('25: a failed or partial read never deletes and never shows stored relation
 	state.fail.positions = new LookupNotAdmittedError('budget');
 	const r = res();
 	let wrote = false;
-	const h = createAttributionsHandler({ ...world().deps, listRows: async () => [{ wallet: A, deployment_key: CORE, product_id: 97, cover_id: 1, source: 'user_confirmed' }], getPositions: async () => { throw new LookupNotAdmittedError('budget'); }, deleteRow: async () => { wrote = true; return 1; } });
+	const h = createAttributionsHandler({ ...world().deps, listRows: async () => [{ wallet: A, deployment_key: CORE, product_id: 97, cover_id: 1, source: 'user_confirmed' }], getPositions: async () => { throw new LookupNotAdmittedError('budget'); }, deleteRow: async () => { wrote = true; return 1; }, deleteStaleRow: async () => { wrote = true; return 1; } });
 	await h({ method: 'GET', headers: { cookie: cookie(A) }, query: {} }, r);
 	assert.equal(wrote, false, 'Budget erschoepft: nichts geloescht');
 });

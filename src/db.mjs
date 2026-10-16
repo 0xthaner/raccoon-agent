@@ -549,6 +549,20 @@ export async function deletePositionAttribution(wallet, deploymentKey, coverId) 
 }
 
 /*
+	Restaudit L5: Bereinigung beim Abgleich (GET). Geloescht wird eine nachweislich
+	veraltete Zeile nur, wenn sie noch GENAU die gelesene ist (gleiches confirmed_at).
+	Hat der Nutzer sie inzwischen neu bestaetigt (POST setzt confirmed_at neu), aendert
+	sich nichts - ein spaeter Abgleich auf altem Stand loescht keine frische Bestaetigung.
+	Ohne gelesenes confirmed_at wird nichts geloescht.
+*/
+export async function deleteStalePositionAttribution(wallet, deploymentKey, coverId, confirmedAt) {
+	if (typeof confirmedAt !== 'string' || !confirmedAt) return 0;
+	const rows = value(await db.from('position_cover_attributions').delete()
+		.match({ wallet: wallet.toLowerCase(), deployment_key: deploymentKey, cover_id: coverId, confirmed_at: confirmedAt }).select('cover_id'));
+	return rows.length;
+}
+
+/*
 	Taegliche Bereinigung, angestossen vom Lauf um 8 Uhr (api/alerts.mjs).
 
 	Bis 01.10.2026 wurden Protokolle nie geloescht, obwohl die
