@@ -1,0 +1,3684 @@
+{
+	"$comment": "CRSF Phase 2Q (CR-VERIFY-003): canonical register of historical security fixes. Checked by security/crsf/lib/fix-register.mjs (test/fix-register.test.mjs). One invariant per fix; PROVEN = E4 (behavioural regression test + known-bad mutation expected KILLED and executed by security:verify).",
+	"version": "1.0-draft-phase2q",
+	"discovery": {
+		"families": [
+			{
+				"name": "AGENT",
+				"pattern": "\\bAGENT-[A-Z]+-[A-Z]?[0-9]+[a-z]?\\b"
+			},
+			{
+				"name": "AUDIT-DATED",
+				"pattern": "\\bAUDIT-[0-9]{4}-[0-9]{2}-[0-9]{2}(?: F[0-9]+)?"
+			},
+			{
+				"name": "AUDIT-LETTER",
+				"pattern": "\\bAUDIT [A-Z]{1,3}-[A-Z][0-9]+\\b"
+			},
+			{
+				"name": "META-AUDIT",
+				"pattern": "\\bMETA-AUDIT [A-Z]-[0-9]+\\b"
+			},
+			{
+				"name": "RESTAUDIT",
+				"pattern": "\\bRestaudit [A-Z][0-9]+\\b"
+			},
+			{
+				"name": "CRSF-FINDING",
+				"pattern": "\\bF-[0-9][A-Z]-[0-9]+\\b"
+			},
+			{
+				"name": "HARD",
+				"pattern": "(?<![A-Z]-)\\bHARD-[0-9]+\\b"
+			}
+		],
+		"catch_all": "\\bAUDIT\\b|\\bRestaudit\\b|\\bMETA-AUDIT\\b|\\bAGENT-[A-Z]+-|\\bHARD-[0-9]",
+		"commit_keywords": "\\b(security|sicherheit|harden|haert|härt|xss|csp|audit|vuln|leak|secret|geheim|rate.?limit|revok|widerruf|fail.closed|isolat|privileg|standardrechte|injection|phish|signatur|ignore-scripts|integrit|pr[uü]fsumme|sha-256|supply|exploit|forg|f[aä]lsch|schutz|protect)",
+		"note": "patterns are defined in security/crsf/lib/fix-register.mjs; copied here for review only"
+	},
+	"fixes": [
+		{
+			"id": "FIX-A1-SESSION-SECRET",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-SEC-A1"
+			],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-SEC-A1 (a), internal review 29.08.2026",
+			"files": [
+				"src/dashboard-auth.mjs"
+			],
+			"bug": "without DASHBOARD_SESSION_SECRET the dashboard signed sessions with TELEGRAM_WEBHOOK_SECRET",
+			"invariant": "no dashboard token is signed or accepted unless DASHBOARD_SESSION_SECRET is set; the webhook secret is never a fallback",
+			"tests": [
+				{
+					"file": "test/dashboard-auth-boundaries.test.mjs",
+					"test": "^C19 und C20 ein fehlendes Dashboard-Secret faellt zu, auch mit gesetztem Telegram-Secret$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QA1SECRET"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-A1-LOGOUT-REVOKE",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-SEC-A1 (b)",
+			"files": [
+				"api/dashboard.mjs",
+				"src/dashboard-auth.mjs"
+			],
+			"bug": "logout only deleted browser cookies; a stolen session stayed valid for 7 days",
+			"invariant": "logout revokes the wallet sessions server-side (revocation cutoff), not only the cookies",
+			"tests": [
+				{
+					"file": "test/session-revocation-db.test.mjs",
+					"test": "^REVOKE: logout revokes every earlier session"
+				}
+			],
+			"mutations": [
+				"MUT-CR-SESSION-007-P1-NEW1"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-A1-LINKVERIFY-NO-SESSION",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-SEC-A1 (c)",
+			"files": [
+				"api/link/verify.mjs"
+			],
+			"bug": "a Telegram link signature set a dashboard session cookie",
+			"invariant": "a link-verify signature never sets a dashboard session cookie",
+			"tests": [
+				{
+					"file": "test/m1-link-limits.test.mjs",
+					"test": "^verify endpoint maps the DB outcome \"linked\" - limit: 409 WALLET_LIMIT \\+ bot notice, no \"linked\" message$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QA1VERIFY"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-A1-LEGACY-COOKIE",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-SEC-A1 (d)",
+			"files": [
+				"src/dashboard-auth.mjs"
+			],
+			"bug": "the legacy cookie without the __Host- prefix still authenticated",
+			"invariant": "only the __Host- session cookie authenticates; the legacy cookie name is ignored",
+			"tests": [
+				{
+					"file": "test/dashboard-auth-boundaries.test.mjs",
+					"test": "^D27 und D29 das Legacy-Cookie authentifiziert nicht mehr$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QA1LEGACY"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-A1-RATE-SECRET",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-SEC-A1 (e)",
+			"files": [
+				"src/http-security.mjs"
+			],
+			"bug": "the rate-limit HMAC key fell back to the webhook secret",
+			"invariant": "without DASHBOARD_SESSION_SECRET the rate limiter fails closed (503) and derives no key",
+			"tests": [
+				{
+					"file": "test/historical-fix-regressions.test.mjs",
+					"test": "^HIST AGENT-SEC-A1 the rate-limit identity never falls back to the Telegram webhook secret$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QA1RATE"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-A2-ACCESS-NO-SESSION",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-SEC-A2"
+			],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-SEC-A2 (server)",
+			"files": [
+				"api/dashboard.mjs"
+			],
+			"bug": "a Telegram access link logged the browser in directly",
+			"invariant": "redeeming an access code returns only the expected wallet; it never issues a session",
+			"tests": [
+				{
+					"file": "test/historical-fix-regressions.test.mjs",
+					"test": "^HIST AGENT-SEC-A2 redeeming a Telegram access code yields no session: no cookie, only the expected wallet$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QA2COOKIE"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-A2-URL-CLEARED",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-SEC-A2 (frontend)",
+			"files": [
+				"web/src/main.js"
+			],
+			"bug": "the access code stayed in the address bar (history, referrer, screenshots) while it was redeemed",
+			"invariant": "the frontend removes ?access= from the URL before the redeem request and redeems it only by POST",
+			"tests": [
+				{
+					"file": "test/historical-fix-frontend.test.mjs",
+					"test": "^HIST AGENT-SEC-A2 the access code leaves the visible URL before the network call and is redeemed only by POST$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QA2URL"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-A3-DOMAIN-BOUND-SIWE",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-SEC-A3"
+			],
+			"commits": [
+				"663a953",
+				"d52de31"
+			],
+			"origin": "AGENT-SEC-A3 / 663a953",
+			"files": [
+				"src/siwe-auth.mjs",
+				"api/dashboard.mjs"
+			],
+			"bug": "the signed message was not domain-bound and partly client-supplied",
+			"invariant": "the server rebuilds the SIWE message; domain, uri, chain id, nonce and address must equal the stored challenge",
+			"tests": [
+				{
+					"file": "test/siwe-auth.test.mjs",
+					"test": "^25 bis 32"
+				},
+				{
+					"file": "test/siwe-signature.test.mjs",
+					"test": "^8 bis 14"
+				},
+				{
+					"file": "test/siwe-auth.test.mjs",
+					"test": "^27 eine fremde Chain"
+				}
+			],
+			"mutations": [
+				"MUT-CR-AUTH-001-P1-NEW1",
+				"MUT-CR-AUTH-001-P1-NEW2",
+				"MUT-CR-AUTH-001-P2-NEW1",
+				"MUT-CR-AUTH-001-P3-NEW1",
+				"MUT-CR-AUTH-001-P5-NEW1"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-A3-LEGACY-CHALLENGE",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-SEC-A3 (old schema)",
+			"files": [
+				"src/dashboard-auth.mjs"
+			],
+			"bug": "challenges and sessions of the old message schema (no iat) stayed usable in parallel",
+			"invariant": "a challenge or session token without the server-side iat is rejected",
+			"tests": [
+				{
+					"file": "test/historical-fix-regressions.test.mjs",
+					"test": "^HIST AGENT-SEC-A3 challenges and sessions without the server-side iat \\(old message schema\\) are rejected$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QA3LEGACY"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-A4-FIELDS-BEFORE-SIGNATURE",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-SEC-A4"
+			],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-SEC-A4",
+			"files": [
+				"src/siwe-auth.mjs"
+			],
+			"bug": "field validation and signature check were separate paths per endpoint",
+			"invariant": "one shared SIWE boundary: a valid signature over a message with a wrong field is never VALID",
+			"tests": [
+				{
+					"file": "test/siwe-signature.test.mjs",
+					"test": "^8 bis 14 eine gueltig signierte, aber veraenderte Nachricht wird abgelehnt$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QA4ORDER"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-A5-PER-CODE-LIMIT",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-SEC-A5"
+			],
+			"commits": [
+				"d18c95b"
+			],
+			"origin": "AGENT-SEC-A5 / d18c95b",
+			"files": [
+				"api/link/verify.mjs"
+			],
+			"bug": "link verification was limited only per IP; a distributed attempt against one code passed",
+			"invariant": "link verify is limited per link code across all callers before anything is checked or consumed",
+			"tests": [
+				{
+					"file": "test/link-verify-rate-order.test.mjs",
+					"test": "^LINK-VERIFY-ORDER denied at wallet-link-code$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-RESOURCE-001-P2-2MA"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-A6-CONFIG-BOTNAME",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-SEC-A6"
+			],
+			"commits": [
+				"d18c95b"
+			],
+			"origin": "AGENT-SEC-A6",
+			"files": [
+				"api/config.mjs"
+			],
+			"bug": "/api/config delivered TELEGRAM_BOT_USERNAME unvalidated into frontend links",
+			"invariant": "/api/config delivers a bot name only in Telegram format (5-32 of A-Z a-z 0-9 _), else empty",
+			"tests": [
+				{
+					"file": "test/historical-fix-regressions.test.mjs",
+					"test": "^HIST AGENT-SEC-A6 /api/config delivers a Telegram bot name only in Telegram format$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QA6"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-A7-CSP-ENFORCED",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-SEC-A7"
+			],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-SEC-A7 (CSP)",
+			"files": [
+				"vercel.json"
+			],
+			"bug": "the strict CSP ran report-only",
+			"invariant": "every page path is served one enforcing Content-Security-Policy that the browser applies",
+			"tests": [
+				{
+					"file": "test/csp-browser-enforced.test.mjs",
+					"test": "^CSP-BROWSER headless Chrome enforces the vercel\\.json policy: no eval, no inline or injected script, no object/base$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QA7ENFORCE"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-A7-DEFAULT-PRIVILEGES",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"638f10a"
+			],
+			"origin": "AGENT-SEC-A7 (database) / 638f10a",
+			"files": [
+				"supabase/migrations/20260924170000_revoke_public_default_privileges.sql"
+			],
+			"bug": "new tables inherited Supabase default grants for anon/authenticated",
+			"invariant": "default privileges are closed: a future table or sequence grants anon/authenticated nothing",
+			"tests": [
+				{
+					"file": "test/db-privileges-db.test.mjs",
+					"test": "^DBPRIV: default privileges are closed - a table created after all migrations grants anon/authenticated nothing$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QA7DEFPRIV"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F1-FINISH",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-SEC-F1"
+			],
+			"commits": [
+				"d18c95b"
+			],
+			"origin": "AGENT-SEC-F1 (finish)",
+			"files": [
+				"web/src/main.js"
+			],
+			"bug": "the link success message was assembled as an HTML string",
+			"invariant": "finish() builds the success message from elements and text only",
+			"tests": [
+				{
+					"file": "test/historical-fix-frontend.test.mjs",
+					"test": "^HIST AGENT-SEC-F1 the link success message is built from elements - no markup sink in finish\\(\\)$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QF1FINISH"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F1-APPLYLANGUAGE",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"d18c95b"
+			],
+			"origin": "AGENT-SEC-F1 (applyLanguage)",
+			"files": [
+				"web/src/main.js",
+				"web/index.html"
+			],
+			"bug": "a translation helper wrote strings via innerHTML next to /api values",
+			"invariant": "translated text parts are written via textContent only",
+			"tests": [
+				{
+					"file": "test/browser-render-sinks.test.mjs",
+					"test": "^BROWSER-RENDER dashboard link \\(\\?access=\\) and session errors with hostile values #0 render text only$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QF1LANG"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F1-GUIDE-ICON",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"d18c95b"
+			],
+			"origin": "AGENT-SEC-F1 (guide.js)",
+			"files": [
+				"web/src/guide.js",
+				"web/guide.html"
+			],
+			"bug": "the guide replaced the Instagram icon via innerHTML at runtime",
+			"invariant": "guide.js writes no markup at runtime; the icon is static in guide.html",
+			"tests": [
+				{
+					"file": "test/browser-render-sinks.test.mjs",
+					"test": "^BROWSER-RENDER the user guide \\(guide\\.js\\) writes text only$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QF1GUIDE"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F2-BACKLINK",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-SEC-F2"
+			],
+			"commits": [
+				"d18c95b"
+			],
+			"origin": "AGENT-SEC-F2",
+			"files": [
+				"web/src/main.js"
+			],
+			"bug": "the back-to-Telegram link was built from /api/config without validation",
+			"invariant": "the back link exists only for a Telegram-format bot name and always points to https://t.me/<name>",
+			"tests": [
+				{
+					"file": "test/historical-fix-frontend.test.mjs",
+					"test": "^HIST AGENT-SEC-F2 the back-to-Telegram link exists only for a Telegram-format bot name$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QF2"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-W1-METHODS",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-SEC-W1"
+			],
+			"commits": [
+				"d714a3e"
+			],
+			"origin": "AGENT-SEC-W1 / d714a3e",
+			"files": [
+				"web/src/wallet-methods.js"
+			],
+			"bug": "the WalletConnect session requested the full default method list (transactions, typed data)",
+			"invariant": "the requested methods are only read, personal_sign and wallet_switchEthereumChain - nothing value-moving",
+			"tests": [
+				{
+					"file": "test/wallet-methods.test.mjs",
+					"test": "^W1 keine Liste enthaelt eine wertbewegende Methode$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QW1"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-W2-ORIGIN",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-SEC-W2"
+			],
+			"commits": [
+				"aec089d"
+			],
+			"origin": "AGENT-SEC-W2 (server)",
+			"files": [
+				"src/http-security.mjs"
+			],
+			"bug": "the expected origin fell back to https://<Host header>",
+			"invariant": "the expected origin comes only from configuration; the Host header never decides it",
+			"tests": [
+				{
+					"file": "test/same-origin-boundary.test.mjs",
+					"test": "^W2 der Host-Header bestimmt die Erwartung nicht mehr$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QW2ORIGIN"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-W2-DISCONNECT",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"aec089d"
+			],
+			"origin": "AGENT-SEC-W2 (frontend) / aec089d",
+			"files": [
+				"web/src/main.js"
+			],
+			"bug": "the WalletConnect session (with wallet-granted send rights) stayed open after login",
+			"invariant": "after the signature the WalletConnect session is disconnected, on success and failure",
+			"tests": [
+				{
+					"file": "test/historical-fix-frontend.test.mjs",
+					"test": "^HIST AGENT-SEC-W2 after the signature the WalletConnect session is disconnected \\(success and failure\\)$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QW2DISCONNECT"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-W3-REVOKE",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-SEC-W3"
+			],
+			"commits": [
+				"08a9e22"
+			],
+			"origin": "AGENT-SEC-W3 / 08a9e22",
+			"files": [
+				"web/src/main.js"
+			],
+			"bug": "the browser extension kept the site connected after login",
+			"invariant": "after the signature the page revokes the browser wallet permission (wallet_revokePermissions)",
+			"tests": [
+				{
+					"file": "test/historical-fix-frontend.test.mjs",
+					"test": "^HIST AGENT-SEC-W3 after the signature the page revokes the browser wallet permission \\(success and failure\\)$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QW3"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-API-001-BODY-SIZE",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-API-001"
+			],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-API-001",
+			"files": [
+				"src/http-security.mjs"
+			],
+			"bug": "body size was checked only via Content-Length",
+			"invariant": "body size is checked on the parsed body, independent of Content-Length; unserialisable bodies count as too large",
+			"tests": [
+				{
+					"file": "test/api-hardening.test.mjs",
+					"test": "^AGENT-API-001 uebergrosser Body OHNE Content-Length wird ebenfalls abgelehnt$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QAPI001"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-API-002-CSP-RATE",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-API-002"
+			],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-API-002",
+			"files": [
+				"api/csp-report.mjs"
+			],
+			"bug": "csp-report could be flooded without limit (log flooding)",
+			"invariant": "csp-report is rate limited before anything is parsed or logged",
+			"tests": [
+				{
+					"file": "test/historical-fix-regressions.test.mjs",
+					"test": "^HIST AGENT-API-002 csp-report is rate limited before anything is parsed or logged$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QAPI002"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-API-003-NO-DB-ERRORS",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-API-003"
+			],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-API-003",
+			"files": [
+				"api/alerts.mjs"
+			],
+			"bug": "the cron answer leaked raw database error text",
+			"invariant": "the cron answer carries only counts or a generic \"fehler\", never database error text",
+			"tests": [
+				{
+					"file": "test/historical-fix-regressions.test.mjs",
+					"test": "^HIST AGENT-API-003 the cron answer carries no internal database error text$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QAPI003"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-AUTH-001-ERC1271",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-AUTH-001"
+			],
+			"commits": [
+				"086df82",
+				"d52de31"
+			],
+			"origin": "AGENT-AUTH-001",
+			"files": [
+				"src/contract-signature.mjs"
+			],
+			"bug": "contract-wallet signatures needed a fail-closed ERC-1271 check",
+			"invariant": "only the exact ERC-1271 magic value counts; every RPC/decode error is invalid",
+			"tests": [
+				{
+					"file": "test/erc1271.test.mjs",
+					"test": "must be exactly the magic value"
+				},
+				{
+					"file": "test/erc1271.test.mjs",
+					"test": "falsche Magic"
+				},
+				{
+					"file": "test/dual-rpc-erc1271.test.mjs",
+					"test": "^DUAL 9/10"
+				},
+				{
+					"file": "test/dual-rpc-erc1271.test.mjs",
+					"test": "^DUAL 6/7/8:"
+				},
+				{
+					"file": "test/dual-rpc-erc1271.test.mjs",
+					"test": "^DUAL 9/10:"
+				},
+				{
+					"file": "test/erc1271.test.mjs",
+					"test": "^8: 1271-Aufruf"
+				}
+			],
+			"mutations": [
+				"MUT-CR-AUTH-003-P1-NEW1",
+				"MUT-CR-AUTH-003-P4-NEW1"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-AUTH-002-GET-READONLY",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-AUTH-002"
+			],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-AUTH-002",
+			"files": [
+				"api/dashboard.mjs"
+			],
+			"bug": "GET ?access= consumed the one-time code (state change in GET)",
+			"invariant": "GET never consumes an access code; it answers 405 ACCESS_REDEEM_VIA_POST",
+			"tests": [
+				{
+					"file": "test/historical-fix-regressions.test.mjs",
+					"test": "^HIST AGENT-AUTH-002 GET \\?access= never consumes the one-time code and points to POST$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QAUTH002"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-HARD-001-WALLET-LIMITS",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-HARD-001"
+			],
+			"commits": [
+				"04b2f04"
+			],
+			"origin": "AGENT-HARD-001 / 04b2f04",
+			"files": [
+				"api/dashboard.mjs"
+			],
+			"bug": "login and challenge issuance were limited per IP only",
+			"invariant": "login and challenge issuance are limited per wallet before signature/provider work",
+			"tests": [
+				{
+					"file": "test/dashboard-auth-rate-order.test.mjs",
+					"test": "^AUTH-ORDER login signature denied at dashboard-login-wallet$"
+				},
+				{
+					"file": "test/challenge-rate-order.test.mjs",
+					"test": "^CHALLENGE-ORDER denied at dashboard-challenge-wallet$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-RESOURCE-001-P1-2MA",
+				"MUT-CR-RESOURCE-001-P3-2MA"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-HARD-001-CODE-CACHE",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"04b2f04"
+			],
+			"origin": "AGENT-HARD-001 (cache)",
+			"files": [
+				"src/contract-detect.mjs"
+			],
+			"bug": "a contract-detection RPC failure could be cached as a classification",
+			"invariant": "a getCode RPC error is never cached; the next request asks again",
+			"tests": [
+				{
+					"file": "test/safe-app-backend.test.mjs",
+					"test": "^RPC-Fehler wird NICHT gecacht \\(Klassifikation bleibt offen\\)$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QHARD001CACHE"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-HARD-002-ATOMIC-REVOKE",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"HARD-002"
+			],
+			"commits": [
+				"75417e9"
+			],
+			"origin": "HARD-002 / 75417e9",
+			"files": [
+				"supabase/migrations/20261006120000_atomic_dashboard_revocation.sql"
+			],
+			"bug": "concurrent revocations could overwrite a newer cutoff",
+			"invariant": "the revocation cutoff is max-merged under an advisory lock",
+			"tests": [
+				{
+					"file": "test/session-revocation-db.test.mjs",
+					"test": "^REVOKE-CONC"
+				},
+				{
+					"file": "test/session-revocation-db.test.mjs",
+					"test": "cannot revoke newer sessions"
+				}
+			],
+			"mutations": [
+				"MUT-CR-CONC-005-P1-NEW1",
+				"MUT-CR-CONC-005-P1-NEW2"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-HARD-002-OPERATOR",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"75417e9"
+			],
+			"origin": "HARD-002 (operator containment) / 75417e9",
+			"files": [
+				"scripts/revoke-dashboard-wallet.mjs"
+			],
+			"bug": "an operator could not revoke a compromised wallet's sessions without the user",
+			"invariant": "the operator CLI revokes the normalized wallet's sessions and records a bounded incident",
+			"tests": [
+				{
+					"file": "test/dashboard-atomic-revoke.test.mjs",
+					"test": "^operator revokes normalized wallet then records a bounded incident and fixed operator source$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QHARD002OPERATOR"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-HARD-003-GLOBAL",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-HARD-003"
+			],
+			"commits": [
+				"676ca30"
+			],
+			"origin": "AGENT-HARD-003 / 676ca30",
+			"files": [
+				"api/dashboard.mjs"
+			],
+			"bug": "distributed attackers had no shared budget before provider work",
+			"invariant": "login and challenge issuance consume a global budget before signature/provider work",
+			"tests": [
+				{
+					"file": "test/dashboard-auth-rate-order.test.mjs",
+					"test": "^AUTH-ORDER login signature denied at dashboard-login-global$"
+				},
+				{
+					"file": "test/challenge-rate-order.test.mjs",
+					"test": "^CHALLENGE-ORDER denied at dashboard-challenge-global$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-RESOURCE-001-P1-2MB",
+				"MUT-CR-RESOURCE-001-P3-2MB"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-HARD-004-SIGNED-LINK",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"HARD-004"
+			],
+			"commits": [
+				"04e8ca2"
+			],
+			"origin": "HARD-004 / 04e8ca2",
+			"files": [
+				"src/bot.mjs",
+				"api/link/verify.mjs"
+			],
+			"bug": "a Telegram /start handoff bound a wallet without a wallet signature",
+			"invariant": "a wallet is linked to a chat only after a verified wallet signature; no direct handoff binds",
+			"tests": [
+				{
+					"file": "test/l2-telegram-handoff-removed.test.mjs",
+					"test": "^L2-C/E: POST"
+				},
+				{
+					"file": "test/hard004.test.mjs",
+					"test": "^signed Telegram binding"
+				}
+			],
+			"mutations": [
+				"MUT-CR-TELEGRAM-002-P1-L2X4",
+				"MUT-CR-TELEGRAM-002-P1-L2X5"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-HARD-004-REVOKED-LOGOUT",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"04e8ca2"
+			],
+			"origin": "HARD-004 (logout) / 04e8ca2",
+			"files": [
+				"api/dashboard.mjs"
+			],
+			"bug": "an already-revoked session could revoke (sign out) newer sessions of its wallet",
+			"invariant": "a revoked session only clears its own cookie; it never moves the wallet cutoff",
+			"tests": [
+				{
+					"file": "test/historical-fix-regressions.test.mjs",
+					"test": "^HIST HARD-004 an already-revoked session cannot sign out \\(revoke\\) the newer sessions of its wallet$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QHARD004"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-IR-001-CRON-ALERT",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-IR-001"
+			],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-IR-001",
+			"files": [
+				"api/alerts.mjs"
+			],
+			"bug": "a failing reminder run failed silently",
+			"invariant": "a failed reminder run alerts the operator once with a generic id and answers a generic 500",
+			"tests": [
+				{
+					"file": "test/historical-fix-regressions.test.mjs",
+					"test": "^HIST AGENT-IR-001 a failed reminder run alerts the operator once with a generic id and answers a generic 500$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QIR001"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-IR-002-SECURITY-EVENTS",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-IR-002"
+			],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-IR-002",
+			"files": [
+				"api/telegram.mjs",
+				"src/security-events.mjs"
+			],
+			"bug": "webhook forgeries left no trace",
+			"invariant": "a forged webhook call is recorded as a security event with a fingerprint, never the raw IP or token",
+			"tests": [
+				{
+					"file": "test/historical-fix-regressions.test.mjs",
+					"test": "^HIST AGENT-IR-002 a forged webhook call is recorded as a security event with a fingerprint, never the raw IP or token$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QIR002",
+				"MUT-CR-VERIFY-003-P1-2QIR002RAW"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-LLM-001-DATA-CHANNEL",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-LLM-001"
+			],
+			"commits": [
+				"d52de31"
+			],
+			"origin": "AGENT-LLM-001",
+			"files": [
+				"src/agent-knowledge.mjs"
+			],
+			"bug": "external product facts could reach the instruction channel (prompt injection)",
+			"invariant": "external facts appear only in the input channel as data, never in the instructions",
+			"tests": [
+				{
+					"file": "test/llm-trust-boundary.test.mjs",
+					"test": "^AGENT-LLM-001 C: ein manipulierter externer Fakt bleibt reine Daten \\(nur im input\\)$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QLLM001"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-SAFE-1-SERVER-TTL",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-SAFE-1"
+			],
+			"commits": [
+				"5b7197d"
+			],
+			"origin": "AGENT-SAFE-1",
+			"files": [
+				"api/dashboard.mjs"
+			],
+			"bug": "the long contract challenge TTL had to be server-decided and fail closed",
+			"invariant": "only a server-side getCode decides the contract TTL; detection failure or client hints give the EOA TTL",
+			"tests": [
+				{
+					"file": "test/l4-contract-detect-ttl.test.mjs",
+					"test": "^L4 TTL: 30 minutes only for well-formed bytecode; empty code, timeout, HTTP errors and malformed answers get 5 minutes$"
+				},
+				{
+					"file": "test/historical-fix-regressions.test.mjs",
+					"test": "^HIST AGENT-SAFE-1 the challenge lifetime is decided by the server alone - client hints never lengthen it$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QSAFE1FAIL",
+				"MUT-CR-VERIFY-003-P1-2QSAFE1CLIENT"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-SAFE-2-CONFLICT",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-SAFE-2"
+			],
+			"commits": [
+				"2edae68"
+			],
+			"origin": "AGENT-SAFE-2 / 2edae68",
+			"files": [
+				"src/dashboard-auth.mjs"
+			],
+			"bug": "a strict cookie and a Safe-App session of different wallets had to be resolved",
+			"invariant": "conflicting strict and Safe-App sessions fail closed (401, cookies cleared, no data)",
+			"tests": [
+				{
+					"file": "test/historical-fix-regressions.test.mjs",
+					"test": "^HIST AGENT-SAFE-2 a strict cookie and a Safe-App cookie for different wallets fail closed \\(401, cookies cleared, no data\\)$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QSAFE2"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-SAFE-2-NO-BEARER",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"2edae68",
+				"9458d95"
+			],
+			"origin": "2edae68 / 9458d95",
+			"files": [
+				"src/dashboard-auth.mjs"
+			],
+			"bug": "the Safe App used a JS-readable bearer token",
+			"invariant": "Authorization: Bearer is never accepted as a dashboard session",
+			"tests": [
+				{
+					"file": "test/session-token-boundaries.test.mjs",
+					"test": "^SESSION-BEARER"
+				},
+				{
+					"file": "test/safe-app-session.test.mjs",
+					"test": "^I a malicious frontend"
+				}
+			],
+			"mutations": [
+				"MUT-CR-SESSION-005-P2-NEW1"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-SAFE-4-PREVIEW-ORIGINS",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-SAFE-4"
+			],
+			"commits": [
+				"8d6a335"
+			],
+			"origin": "AGENT-SAFE-4 / 8d6a335",
+			"files": [
+				"src/http-security.mjs"
+			],
+			"bug": "a preview origin allowlist could widen production origins",
+			"invariant": "ALLOWED_APP_ORIGINS is ignored in production",
+			"tests": [
+				{
+					"file": "test/preview-origin-allowlist.test.mjs",
+					"test": "^Production \\+ gesetzte ALLOWED_APP_ORIGINS -> Preview trotzdem FAIL$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QSAFE4"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-UX-5-ACCOUNT-RECHECK",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AGENT-UX-5"
+			],
+			"commits": [
+				"2baa440"
+			],
+			"origin": "AGENT-UX-5 / 2baa440 (labelled security)",
+			"files": [
+				"web/src/eoa-login.js"
+			],
+			"bug": "after a network switch the old account could be used silently",
+			"invariant": "after the switch the active account is re-read; a changed account stops the login (browser wallet and WalletConnect)",
+			"tests": [
+				{
+					"file": "test/eoa-login-mainnet.test.mjs",
+					"test": "^E: Account nach Switch geaendert -> STOP \\(keine stille Alt-Adresse\\)$"
+				},
+				{
+					"file": "test/eoa-login-mainnet.test.mjs",
+					"test": "^WC-F: Account geaendert nach switch -> fail closed$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QUX5ACCOUNT",
+				"MUT-CR-VERIFY-003-P1-2QUX5APPKIT"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-MAINNET-SIGNING",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"4e52666",
+				"2cc2bac"
+			],
+			"origin": "4e52666 / 2cc2bac",
+			"files": [
+				"web/src/eoa-login.js"
+			],
+			"bug": "EOA sign-in could sign on a non-mainnet chain",
+			"invariant": "no signature is requested unless the wallet reports chain 1 (browser wallet and WalletConnect)",
+			"tests": [
+				{
+					"file": "test/eoa-login-mainnet.test.mjs",
+					"test": "^D: switch resolved, Recheck != 0x1 -> STOP, kein eth_accounts$"
+				},
+				{
+					"file": "test/eoa-login-mainnet.test.mjs",
+					"test": "^WC-D: switch ok, aber getChainId != 1 -> fail closed$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QUX5CHAIN",
+				"MUT-CR-VERIFY-003-P1-2QUX5WCCHAIN"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-AUDIT-F1-LINK-ROWS",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AUDIT-2026-10-12 F1"
+			],
+			"commits": [
+				"27e3607"
+			],
+			"origin": "AUDIT-2026-10-12 F1",
+			"files": [
+				"src/linking.mjs",
+				"api/link.mjs",
+				"api/link/verify.mjs"
+			],
+			"bug": "link endpoints looked up any pending_links code (revocation markers revealed sign-outs)",
+			"invariant": "only the exact link-code format reaches the DB and only private-chat rows count as links",
+			"tests": [
+				{
+					"file": "test/link-row-kind.test.mjs",
+					"test": "^F1 helpers: exact newLinkRequest code format and private-chat rows only$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QAUDITF1"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-AUDIT-F2-OFFCHAIN",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AUDIT-2026-10-12 F2"
+			],
+			"commits": [
+				"27e3607"
+			],
+			"origin": "AUDIT-2026-10-12 F2",
+			"files": [
+				"web/src/safe-app.js"
+			],
+			"bug": "the Safe login could propose an on-chain SignMessageLib transaction",
+			"invariant": "the Safe login stops unless the host confirms offChainSigning === true",
+			"tests": [
+				{
+					"file": "test/safe-app-flow.test.mjs",
+					"test": "^F2 kein Off-chain-Signieren bestaetigt \\(leer\\): keine Signaturanfrage, kein Login$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QAUDITF2"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-AUDIT-F3-CACHE-BOUND",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AUDIT-2026-10-12 F3"
+			],
+			"commits": [
+				"27e3607"
+			],
+			"origin": "AUDIT-2026-10-12 F3",
+			"files": [
+				"src/contract-detect.mjs"
+			],
+			"bug": "the contract-detection cache grew without bound",
+			"invariant": "the cache holds at most 1000 entries (expired first, then oldest)",
+			"tests": [
+				{
+					"file": "test/erc1271.test.mjs",
+					"test": "^F3 contract-detect cache stays bounded: expired first, then oldest$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QAUDITF3"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-E-L2-TARGET",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AUDIT E-L2"
+			],
+			"commits": [
+				"950c3c4"
+			],
+			"origin": "AUDIT E-L2",
+			"files": [
+				"api/link.mjs",
+				"api/link/verify.mjs",
+				"src/linking.mjs"
+			],
+			"bug": "the link signature did not name the Telegram target",
+			"invariant": "the signed text names the target derived from the bound chat id; request values never choose it",
+			"tests": [
+				{
+					"file": "test/extended-audit-low.test.mjs",
+					"test": "^E-L2 B: the browser cannot substitute chat B - query, body and header values are ignored$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QEL2"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-CAD24D4-LINK-ACCOUNT",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"cad24d4"
+			],
+			"origin": "cad24d4",
+			"files": [
+				"api/link.mjs"
+			],
+			"bug": "a foreign link (\"please confirm\") could attach the wallet to someone else's chat unnoticed",
+			"invariant": "the link page receives (and shows) the Telegram account the link belongs to",
+			"tests": [
+				{
+					"file": "test/extended-audit-low.test.mjs",
+					"test": "^E-L2 A: the consent text for a link of chat A names chat A, and the page shows the same detail$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QLINKACCOUNT"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-E-L3-BOUND",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AUDIT E-L3"
+			],
+			"commits": [
+				"950c3c4"
+			],
+			"origin": "AUDIT E-L3 (bound)",
+			"files": [
+				"src/display-text.mjs",
+				"src/cover-chain.mjs"
+			],
+			"bug": "upstream display names were unbounded (messages over 4096 characters failed)",
+			"invariant": "upstream display text is cleaned and bounded; every Telegram text stays within 4096 characters",
+			"tests": [
+				{
+					"file": "test/extended-audit-low.test.mjs",
+					"test": "^E-L3 1/2: a 5000-character upstream product name is bounded and the reminder stays within 4096 characters$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QEL3BOUND"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-E-L3-ISOLATION",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"950c3c4"
+			],
+			"origin": "AUDIT E-L3 (isolation)",
+			"files": [
+				"src/alerts.mjs"
+			],
+			"bug": "one failed send aborted all further due covers, every day",
+			"invariant": "a failed send for one cover does not suppress the next; only sent covers are marked",
+			"tests": [
+				{
+					"file": "test/extended-audit-low.test.mjs",
+					"test": "^E-L3 3/4/5: a failed send for one cover does not suppress the next; only the successful one is marked sent$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QEL3ISO"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-E-L4-LOG",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AUDIT E-L4"
+			],
+			"commits": [
+				"950c3c4"
+			],
+			"origin": "AUDIT E-L4",
+			"files": [
+				"api/csp-report.mjs"
+			],
+			"bug": "csp-report logged attacker-chosen directive text (log forging)",
+			"invariant": "csp-report logs only allow-listed directive forms and origins/keywords",
+			"tests": [
+				{
+					"file": "test/extended-audit-low.test.mjs",
+					"test": "^E-L4: csp-report logs only allow-listed directive values; everything else becomes \"\\?\"$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QEL4"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-SA-L1-FRESH-AUTHORITY",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AUDIT SA-L1"
+			],
+			"commits": [
+				"2edae68"
+			],
+			"origin": "AUDIT SA-L1",
+			"files": [
+				"api/dashboard.mjs"
+			],
+			"bug": "a restored contract session alone authorised destructive actions",
+			"invariant": "destructive contract actions need fresh authority",
+			"tests": [
+				{
+					"file": "test/safe-session-authority.test.mjs",
+					"test": "^SA-L1 6:"
+				},
+				{
+					"file": "test/safe-session-authority.test.mjs",
+					"test": "^SA-L1 9:"
+				},
+				{
+					"file": "test/safe-session-authority.test.mjs",
+					"test": "^SA-L1 8:"
+				}
+			],
+			"mutations": [
+				"MUT-CR-AUTH-007-P1-NEW1"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-SA-L2-REVOCATION-503",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"AUDIT SA-L2"
+			],
+			"commits": [
+				"2edae68"
+			],
+			"origin": "AUDIT SA-L2",
+			"files": [
+				"api/dashboard.mjs"
+			],
+			"bug": "a failing revocation check crashed or served data",
+			"invariant": "an unverifiable revocation check serves no data (503 SESSION_CHECK_UNAVAILABLE)",
+			"tests": [
+				{
+					"file": "test/historical-fix-regressions.test.mjs",
+					"test": "^HIST AUDIT SA-L2 an unverifiable revocation check serves no data \\(503\\), the provider is never asked$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QSAL2"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-M-1-DASHBOARD",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"META-AUDIT M-1"
+			],
+			"commits": [
+				"225c5a7"
+			],
+			"origin": "META-AUDIT M-1 (dashboard)",
+			"files": [
+				"api/dashboard.mjs",
+				"src/db.mjs"
+			],
+			"bug": "current Safe owners could never remove a stale chat of a removed owner",
+			"invariant": "fresh contract authority unlinks the wallet from all chats",
+			"tests": [
+				{
+					"file": "test/telegram-stale-authority.test.mjs",
+					"test": "^M-1 \\(Dashboard\\): current owner B with fresh ERC-1271 authority removes the stale chat A$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QM1DASH"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-M-1-BOT",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"225c5a7"
+			],
+			"origin": "META-AUDIT M-1 (bot)",
+			"files": [
+				"src/bot.mjs"
+			],
+			"bug": "a removed owner's chat could act wallet-wide on the Safe",
+			"invariant": "\"fully disconnect\" acts wallet-wide only with a dual-RPC no-code quorum, else chat-local",
+			"tests": [
+				{
+					"file": "test/telegram-stale-authority.test.mjs",
+					"test": "^M-1 \\(Telegram\\): the removed owner's chat triggers \"fully disconnect\" - no wallet-wide effect on the Safe$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QM1BOT"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-M-2-GLOBAL-BEFORE-1271",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"META-AUDIT M-2"
+			],
+			"commits": [
+				"66adb46"
+			],
+			"origin": "META-AUDIT M-2",
+			"files": [
+				"api/dashboard.mjs"
+			],
+			"bug": "ERC-1271 dual-RPC checks ran before any global budget",
+			"invariant": "every ERC-1271 path (fresh authority, on-chain approval) consumes the global budget first",
+			"tests": [
+				{
+					"file": "test/dashboard-auth-rate-order.test.mjs",
+					"test": "^AUTH-ORDER fresh session-revoke denied at dashboard-action-verify-global$"
+				},
+				{
+					"file": "test/dashboard-auth-rate-order.test.mjs",
+					"test": "^AUTH-ORDER fresh telegram-disconnect denied at dashboard-action-verify-global$"
+				},
+				{
+					"file": "test/dashboard-auth-rate-order.test.mjs",
+					"test": "^AUTH-ORDER login onchain denied at dashboard-onchain-global$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-RESOURCE-001-P1-2MF",
+				"MUT-CR-RESOURCE-001-P1-2MD"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-M-3-ONCHAIN-LOGIN",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"META-AUDIT M-3"
+			],
+			"commits": [
+				"aa78b6c"
+			],
+			"origin": "META-AUDIT M-3 / aa78b6c",
+			"files": [
+				"src/contract-signature.mjs",
+				"api/dashboard.mjs"
+			],
+			"bug": "the on-chain SignMessageLib approval path needed binding, expiry and single use",
+			"invariant": "an on-chain approval login is bound to the wallet, expires server-side and is single use",
+			"tests": [
+				{
+					"file": "test/dashboard-login-db.test.mjs",
+					"test": "^ONCHAIN-DB-BINDING: an attacker Safe"
+				},
+				{
+					"file": "test/dashboard-login-db.test.mjs",
+					"test": "^ONCHAIN-DB-EXPIRY"
+				},
+				{
+					"file": "test/dashboard-login-db.test.mjs",
+					"test": "^ONCHAIN-DB-SINGLE-USE"
+				}
+			],
+			"mutations": [
+				"MUT-CR-AUTH-004-P1-NEW1",
+				"MUT-CR-AUTH-004-P2-NEW1",
+				"MUT-CR-AUTH-004-P2-NEW2"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-M-3-APPKIT-FEATURES",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"7207f7e",
+				"04273f7"
+			],
+			"origin": "7207f7e (kept by 04273f7)",
+			"files": [
+				"web/src/main.js"
+			],
+			"bug": "AppKit offered send, receive, swaps and onramp inside the login dialog",
+			"invariant": "AppKit starts with send, receive, swaps, onramp, email and social login disabled",
+			"tests": [
+				{
+					"file": "test/historical-fix-frontend.test.mjs",
+					"test": "^HIST META-AUDIT M-3 / 0f3a6ef AppKit starts with value-moving features off and with the own font \\(no third-party preloads\\)$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QAPPKIT"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-RM1-LINK-LIMITS",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"Restaudit M1"
+			],
+			"commits": [
+				"95d17ff"
+			],
+			"origin": "Restaudit M1 (link codes)",
+			"files": [
+				"src/linking.mjs"
+			],
+			"bug": "link codes could be created without limit",
+			"invariant": "new link codes are limited per chat and globally before any write",
+			"tests": [
+				{
+					"file": "test/m1-link-limits.test.mjs",
+					"test": "^D: link codes are rate-limited per chat \\(10 / 10 min\\); other chats are unaffected$"
+				},
+				{
+					"file": "test/m1-link-limits.test.mjs",
+					"test": "^E: link codes are rate-limited globally \\(300 / 10 min\\) across many chats$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QRM1LINKCHAT",
+				"MUT-CR-VERIFY-003-P1-2QRM1LINKGLOBAL"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-RM1-WALLET-CAP",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"95d17ff"
+			],
+			"origin": "Restaudit M1 (wallet cap)",
+			"files": [
+				"supabase/migrations/20261015200000_m1_wallet_limit_alert_budget.sql"
+			],
+			"bug": "a chat could link unlimited wallets",
+			"invariant": "the database caps linked wallets per chat",
+			"tests": [
+				{
+					"file": "test/m1-wallet-limit-db.test.mjs",
+					"test": "^C: 40 concurrent link attempts"
+				},
+				{
+					"file": "test/m1-wallet-limit-db.test.mjs",
+					"test": "wallet 11 is rejected"
+				}
+			],
+			"mutations": [
+				"MUT-CR-CONC-002-P1-L2X15"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-RM1-ALERT-RUN",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"95d17ff"
+			],
+			"origin": "Restaudit M1 (reminder run)",
+			"files": [
+				"src/alerts.mjs"
+			],
+			"bug": "the daily run loaded every subscription and did unbounded provider work",
+			"invariant": "the reminder run stops at its lookup budget and keeps the snooze reserve",
+			"tests": [
+				{
+					"file": "test/m1-alert-run-budget.test.mjs",
+					"test": "^J: the run stops at the cover/RPC lookup budget and keeps the snooze reserve for due snoozes$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QRM1ALERT"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-RM2-DASHBOARD-READ",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"Restaudit M2"
+			],
+			"commits": [
+				"23904e2"
+			],
+			"origin": "Restaudit M2",
+			"files": [
+				"api/dashboard.mjs"
+			],
+			"bug": "authenticated dashboard reads triggered provider work without budget",
+			"invariant": "authenticated reads consume per-wallet and global budgets before provider work",
+			"tests": [
+				{
+					"file": "test/m2-dashboard-read-budget.test.mjs",
+					"test": "^C \\+ E \\+ L \\(EOA\\): the per-wallet budget \\(30 / 10 min\\) blocks lookup 31 BEFORE the provider - also with a new IP and a new instance each time$"
+				},
+				{
+					"file": "test/m2-dashboard-read-budget.test.mjs",
+					"test": "^D \\+ F: the global budget \\(300 / 10 min\\) caps lookups across many wallets and IPs, BEFORE the provider$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QRM2WALLET",
+				"MUT-CR-VERIFY-003-P1-2QRM2GLOBAL"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-RH2-SINGLE-USE",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"Restaudit H2"
+			],
+			"commits": [
+				"b36a4cf"
+			],
+			"origin": "Restaudit H2",
+			"files": [
+				"src/db.mjs"
+			],
+			"bug": "single use of challenges and access codes was unproven under concurrency",
+			"invariant": "challenges and access codes are consumed exactly once under real concurrency",
+			"tests": [
+				{
+					"file": "test/h2-challenge-concurrency-db.test.mjs",
+					"test": "exactly one succeeds"
+				},
+				{
+					"file": "test/h2-challenge-concurrency-db.test.mjs",
+					"test": "exactly one session"
+				},
+				{
+					"file": "test/h2-challenge-concurrency-db.test.mjs",
+					"test": "consumeDashboardAccess: one dashboard access code"
+				}
+			],
+			"mutations": [
+				"MUT-CR-CONC-001-P1-H2A",
+				"MUT-CR-CONC-001-P2-H2I"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-RL1-ATTRIBUTION-LIMIT",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"Restaudit L1"
+			],
+			"commits": [
+				"a5eb1e6"
+			],
+			"origin": "Restaudit L1",
+			"files": [
+				"supabase/migrations/20261016150000_l1_attribution_limit.sql"
+			],
+			"bug": "the attribution limit was a racy JS pre-check",
+			"invariant": "the database enforces the per-wallet attribution limit atomically under a lock",
+			"tests": [
+				{
+					"file": "test/l1-attribution-limit-db.test.mjs",
+					"test": "never more than 60"
+				},
+				{
+					"file": "test/l1-attribution-limit-db.test.mjs",
+					"test": "-> exactly 60 stored"
+				},
+				{
+					"file": "test/l1-attribution-limit-db.test.mjs",
+					"test": "-> nothing stored"
+				}
+			],
+			"mutations": [
+				"MUT-CR-CONC-003-P1-L1A",
+				"MUT-CR-CONC-003-P1-L1D"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-RL2-HANDOFF-REMOVED",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"Restaudit L2"
+			],
+			"commits": [
+				"5ef6cff"
+			],
+			"origin": "Restaudit L2",
+			"files": [
+				"src/linking.mjs",
+				"supabase/migrations/20261016120000_l2_drop_telegram_handoff.sql"
+			],
+			"bug": "the dead unsigned Telegram handoff was still callable",
+			"invariant": "no unsigned handoff path exists in code or database",
+			"tests": [
+				{
+					"file": "test/m1-link-limits.test.mjs",
+					"test": "^consumePendingLink calls the limited DB function"
+				}
+			],
+			"mutations": [
+				"MUT-CR-TELEGRAM-002-P2-L2X8"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-RL3-SNOOZE-AUTH",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"Restaudit L3"
+			],
+			"commits": [
+				"bc4b454"
+			],
+			"origin": "Restaudit L3",
+			"files": [
+				"src/bot.mjs",
+				"src/db.mjs"
+			],
+			"bug": "renew_later callbacks were not authorised against the current chat link",
+			"invariant": "a snooze is written only for a cover of a wallet currently linked to this chat, canonical ids only",
+			"tests": [
+				{
+					"file": "test/l3-snooze-authorization.test.mjs",
+					"test": "^L3-A/B/C/D"
+				},
+				{
+					"file": "test/l3-snooze-authorization.test.mjs",
+					"test": "^L3-F"
+				},
+				{
+					"file": "test/l3-snooze-authorization.test.mjs",
+					"test": "^L3-G"
+				},
+				{
+					"file": "test/l3-snooze-authorization.test.mjs",
+					"test": "malformed or tampered callback"
+				},
+				{
+					"file": "test/l3-snooze-authorization.test.mjs",
+					"test": "^L3-E"
+				}
+			],
+			"mutations": [
+				"MUT-CR-TELEGRAM-003-P1-L3Y1",
+				"MUT-CR-TELEGRAM-003-P2-L3Y7",
+				"MUT-CR-INPUT-010-P2-L3Y3"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-RL4-GETCODE-TTL",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"Restaudit L4"
+			],
+			"commits": [
+				"9faf2bb"
+			],
+			"origin": "Restaudit L4",
+			"files": [
+				"src/contract-detect.mjs"
+			],
+			"bug": "malformed getCode answers counted as contract (long TTL)",
+			"invariant": "only well-formed bytecode is a contract; the challenge expiry is not recomputed at verification",
+			"tests": [
+				{
+					"file": "test/l4-contract-detect-ttl.test.mjs",
+					"test": "^L4 TTL"
+				},
+				{
+					"file": "test/l4-contract-detect-ttl.test.mjs",
+					"test": "challenge expiry comes from the signed exp alone"
+				}
+			],
+			"mutations": [
+				"MUT-CR-PROVIDER-001-P2-L4J",
+				"MUT-CR-SESSION-002-P1-L4D"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-RL5-RECONCILE",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"Restaudit L5"
+			],
+			"commits": [
+				"62db69e"
+			],
+			"origin": "Restaudit L5",
+			"files": [
+				"src/db.mjs",
+				"api/position-attributions.mjs"
+			],
+			"bug": "GET reconciliation could delete a freshly re-confirmed attribution",
+			"invariant": "reconciliation deletes only rows proven stale at read time; provider errors delete nothing",
+			"tests": [
+				{
+					"file": "test/l5-attribution-cleanup-db.test.mjs",
+					"test": "^L5-H/I: a re-confirmation"
+				},
+				{
+					"file": "test/l5-attribution-cleanup-db.test.mjs",
+					"test": "never lose a confirmation"
+				},
+				{
+					"file": "test/l5-attribution-cleanup-db.test.mjs",
+					"test": "^L5-C/D/E"
+				},
+				{
+					"file": "test/position-attributions-api.test.mjs",
+					"test": "^25: a failed or partial read"
+				}
+			],
+			"mutations": [
+				"MUT-CR-CONC-004-P1-L5F",
+				"MUT-CR-PROVIDER-001-P4-L5C"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F-2C-1",
+			"classification": "FRAMEWORK_FIX",
+			"tags": [
+				"F-2C-1"
+			],
+			"commits": [
+				"8169108"
+			],
+			"origin": "F-2C-1 (CRSF 2C)",
+			"files": [
+				"scripts/file-case-accounting.mjs"
+			],
+			"bug": "a test file without tests counted as one passing entry",
+			"invariant": "per-file accounting counts only real test cases; a case-less file is reported",
+			"tests": [
+				{
+					"file": "test/guard-behaviour.test.mjs",
+					"test": "^GUARD-EMPTYFILE: a discovered test file"
+				},
+				{
+					"file": "test/guard-behaviour.test.mjs",
+					"test": "^EXEC-EMPTYFILE"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-002-P4-NEW1"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F-2C-2",
+			"classification": "FRAMEWORK_FIX",
+			"tags": [
+				"F-2C-2"
+			],
+			"commits": [
+				"8169108"
+			],
+			"origin": "F-2C-2 (CRSF 2C)",
+			"files": [
+				"security/crsf/lib/engine.mjs"
+			],
+			"bug": "the engine credited a property while one of its cases was NOT_RUN",
+			"invariant": "a NOT_RUN case blocks the known-bad proof of its property",
+			"tests": [
+				{
+					"file": "test/crsf-engine.test.mjs",
+					"test": "^VERIFY-009: one NOT_RUN case invalidates the known-bad proof of the property even if others are KILLED$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QF2C2"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F-2C-3",
+			"classification": "FRAMEWORK_FIX",
+			"tags": [
+				"F-2C-3"
+			],
+			"commits": [
+				"8169108"
+			],
+			"origin": "F-2C-3 (CRSF 2C)",
+			"files": [
+				"security/crsf/lib/engine.mjs"
+			],
+			"bug": "self-declared evidence levels were trusted",
+			"invariant": "evidence levels are capped per evidence type (LEVEL_EXCEEDS_TYPE)",
+			"tests": [
+				{
+					"file": "test/crsf-framework-fixes.test.mjs",
+					"test": "^HIST F-2C-3 the framework still rejects its known-bad fixtures T, X2$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QF2C3"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F-2D-1",
+			"classification": "FRAMEWORK_FIX",
+			"tags": [
+				"F-2D-1"
+			],
+			"commits": [
+				"07aeb21"
+			],
+			"origin": "F-2D-1 (CRSF 2D)",
+			"files": [
+				"security/crsf/lib/engine.mjs"
+			],
+			"bug": "a plain node test relabelled real-system reached E5",
+			"invariant": "reproducible real-system evidence must require a non-node capability",
+			"tests": [
+				{
+					"file": "test/crsf-framework-fixes.test.mjs",
+					"test": "^HIST F-2D-1 the framework still rejects its known-bad fixtures T2$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QF2D1"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F-2D-2",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"F-2D-2"
+			],
+			"commits": [
+				"e7e2e4f"
+			],
+			"origin": "F-2D-2 (CRSF 2D, application Low)",
+			"files": [
+				"src/contract-signature.mjs"
+			],
+			"bug": "a missing getCode result was read as \"no contract code\"",
+			"invariant": "only a well-formed eth_getCode string from both providers is \"no code\"; anything else is unknown",
+			"tests": [
+				{
+					"file": "test/getcode-fail-closed.test.mjs",
+					"test": "^GETCODE C/D/E"
+				},
+				{
+					"file": "test/getcode-fail-closed.test.mjs",
+					"test": "^GETCODE undefined result"
+				},
+				{
+					"file": "test/getcode-fail-closed.test.mjs",
+					"test": "^F-2D-2 (dashboard|Telegram): "
+				}
+			],
+			"mutations": [
+				"MUT-CR-PROVIDER-001-P2-F2D2A",
+				"MUT-CR-PROVIDER-001-P2-F2D2B"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F-2F-1",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"F-2F-1"
+			],
+			"commits": [
+				"38a66ee"
+			],
+			"origin": "F-2F-1 (CRSF 2F, application Low)",
+			"files": [
+				"api/dashboard.mjs"
+			],
+			"bug": "legacy-session fresh-authority getCode ran before per-wallet/global limits",
+			"invariant": "the legacy kind lookup runs only after the per-wallet and global action gates",
+			"tests": [
+				{
+					"file": "test/dashboard-legacy-rate-order.test.mjs",
+					"test": "^LEGACY-ORDER (wallet|global) gate"
+				},
+				{
+					"file": "test/dashboard-legacy-rate-order.test.mjs",
+					"test": "^LEGACY-ORDER global gate"
+				},
+				{
+					"file": "test/dashboard-legacy-rate-order.test.mjs",
+					"test": "^LEGACY-ORDER wallet gate"
+				}
+			],
+			"mutations": [
+				"MUT-CR-RESOURCE-001-P1-F2F1A",
+				"MUT-CR-RESOURCE-001-P1-F2F1B1",
+				"MUT-CR-RESOURCE-001-P1-F2F1B2",
+				"MUT-CR-RESOURCE-001-P1-F2F1C",
+				"MUT-CR-RESOURCE-001-P1-F2F1D"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F-2H-1",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"F-2H-1"
+			],
+			"commits": [
+				"2dde59a"
+			],
+			"origin": "F-2H-1 (CRSF 2H, application Low)",
+			"files": [
+				"api/position-attributions.mjs"
+			],
+			"bug": "attribution cover lookups had no global budget",
+			"invariant": "every attribution cover lookup consumes the global cover budget before the lookup",
+			"tests": [
+				{
+					"file": "test/attribution-cover-budget.test.mjs",
+					"test": "^ATTRIB-COVER-BUDGET POST (denied|allowed) (cold|warm|failure)$"
+				},
+				{
+					"file": "test/attribution-cover-budget.test.mjs",
+					"test": "^ATTRIB-COVER-BUDGET GET (denied|allowed) (cold|warm|failure)$"
+				},
+				{
+					"file": "test/attribution-cover-budget.test.mjs",
+					"test": "^ATTRIB-COVER-BUDGET (POST|GET) denied (warm|failure)$"
+				},
+				{
+					"file": "test/attribution-cover-budget.test.mjs",
+					"test": "^ATTRIB-COVER-BUDGET (POST|GET) denied (cold|warm|failure)$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-RESOURCE-001-P4-F2H1A",
+				"MUT-CR-RESOURCE-001-P4-F2H1B",
+				"MUT-CR-RESOURCE-001-P4-F2H1C",
+				"MUT-CR-RESOURCE-001-P4-F2H1D"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F-2I-1",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"F-2I-1"
+			],
+			"commits": [
+				"238a179"
+			],
+			"origin": "F-2I-1 (CRSF 2I, application Low)",
+			"files": [
+				"src/bot.mjs"
+			],
+			"bug": "Telegram cover lookups had no per-chat or global budget",
+			"invariant": "every Telegram cover lookup consumes per-chat and global budgets before the lookup, per wallet",
+			"tests": [
+				{
+					"file": "test/telegram-cover-budget.test.mjs",
+					"test": "^TG-COVER-BUDGET command (chat|global) denied (1|10)$"
+				},
+				{
+					"file": "test/telegram-cover-budget.test.mjs",
+					"test": "^TG-COVER-BUDGET (command|callback|ai-covers|ai-expiry) global (denied (1|10)|exhausted mid-sequence)$"
+				},
+				{
+					"file": "test/telegram-cover-budget.test.mjs",
+					"test": "^TG-COVER-BUDGET (command|callback|ai-covers|ai-expiry) chat (denied (1|10)|exhausted mid-sequence)$"
+				},
+				{
+					"file": "test/telegram-cover-budget.test.mjs",
+					"test": "^TG-COVER-BUDGET callback (chat|global) denied (1|10)$"
+				},
+				{
+					"file": "test/telegram-cover-budget.test.mjs",
+					"test": "^TG-COVER-BUDGET ai-covers (chat|global) denied (1|10)$"
+				},
+				{
+					"file": "test/telegram-cover-budget.test.mjs",
+					"test": "^TG-COVER-BUDGET ai-expiry (chat|global) denied (1|10)$"
+				},
+				{
+					"file": "test/telegram-cover-budget.test.mjs",
+					"test": "^TG-COVER-BUDGET (command|callback|ai-covers) (chat|global) denied (1|10)$"
+				},
+				{
+					"file": "test/telegram-cover-budget.test.mjs",
+					"test": "^TG-COVER-BUDGET (command|callback|ai-covers|ai-expiry) (allowed 10|(global|chat) exhausted mid-sequence)$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-RESOURCE-007-P1-F2I1A",
+				"MUT-CR-RESOURCE-007-P1-F2I1B",
+				"MUT-CR-RESOURCE-007-P1-F2I1B2",
+				"MUT-CR-RESOURCE-007-P1-F2I1C",
+				"MUT-CR-RESOURCE-007-P1-F2I1D",
+				"MUT-CR-RESOURCE-007-P1-F2I1D2",
+				"MUT-CR-RESOURCE-007-P1-F2I1E",
+				"MUT-CR-RESOURCE-007-P1-F2I1F"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F-2J-1",
+			"classification": "FRAMEWORK_FIX",
+			"tags": [
+				"F-2J-1"
+			],
+			"commits": [
+				"b50797e"
+			],
+			"origin": "F-2J-1 (CRSF 2J)",
+			"files": [
+				"security/crsf/lib/engine.mjs"
+			],
+			"bug": "an open unmapped application finding did not change the release assertion",
+			"invariant": "an open unmapped application finding fails the release",
+			"tests": [
+				{
+					"file": "test/crsf-framework-fixes.test.mjs",
+					"test": "^HIST F-2J-1 the framework still rejects its known-bad fixtures Z1, Z6, Z12$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QF2J1"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F-2K-1",
+			"classification": "SECURITY_FIX",
+			"tags": [
+				"F-2K-1"
+			],
+			"commits": [
+				"7023817"
+			],
+			"origin": "F-2K-1 (CRSF 2K, application Low)",
+			"files": [
+				"api/link.mjs"
+			],
+			"bug": "GET /api/link called Telegram getChat without per-code or global limits",
+			"invariant": "getChat runs only after the per-IP, per-code and global limits",
+			"tests": [
+				{
+					"file": "test/link-read-budget.test.mjs",
+					"test": "^LINK-READ-BUDGET B per-code denied"
+				},
+				{
+					"file": "test/link-read-budget.test.mjs",
+					"test": "^LINK-READ-BUDGET rotating IPs, one code"
+				},
+				{
+					"file": "test/link-read-budget.test.mjs",
+					"test": "^LINK-READ-BUDGET C global denied"
+				},
+				{
+					"file": "test/link-read-budget.test.mjs",
+					"test": "^LINK-READ-BUDGET rotating IPs, many codes"
+				}
+			],
+			"mutations": [
+				"MUT-CR-RESOURCE-001-P5-F2K1A",
+				"MUT-CR-RESOURCE-001-P5-F2K1B",
+				"MUT-CR-RESOURCE-001-P5-F2K1C",
+				"MUT-CR-RESOURCE-001-P5-F2K1D",
+				"MUT-CR-RESOURCE-001-P5-F2K1E"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-062201C-LINK-STATE",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"062201c"
+			],
+			"origin": "062201c",
+			"files": [
+				"src/db.mjs"
+			],
+			"bug": "a wallet linked to several chats exposed one arbitrary chat's label and settings",
+			"invariant": "the wallet link state carries chat metadata only when exactly one chat is linked",
+			"tests": [
+				{
+					"file": "test/historical-fix-regressions.test.mjs",
+					"test": "^HIST 062201c a wallet linked to several chats exposes no chat-specific metadata$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QISOMETA"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-062201C-UNLINK-ONE",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"062201c"
+			],
+			"origin": "062201c",
+			"files": [
+				"src/db.mjs"
+			],
+			"bug": "a wallet-authorized unlink could pick one of several chats",
+			"invariant": "a wallet-authorized unlink acts only when exactly one chat is linked and removes only that wallet",
+			"tests": [
+				{
+					"file": "test/telegram-stale-authority.test.mjs",
+					"test": "^T14: EOA behaviour \\(documented\\) - dashboard \"Telegram trennen\" still only for exactly one chat, no new signature; bot revokes EOA sessions$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QISOUNLINK"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-062201C-LIKE-DELIMITER",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"062201c"
+			],
+			"origin": "062201c",
+			"files": [
+				"src/db.mjs"
+			],
+			"bug": "the remembered-wallet LIKE pattern matched other chats with the same prefix",
+			"invariant": "the per-chat pattern keeps its delimiter (unlinked:<chat>:%)",
+			"tests": [
+				{
+					"file": "test/input-db-adversarial-db.test.mjs",
+					"test": "^INPUT-DB-PG P1 per-chat LIKE patterns are anchored"
+				}
+			],
+			"mutations": [
+				"MUT-CR-INPUT-004-P1-2NB"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-3664868-CHAT-ID-DOMAIN",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"3664868"
+			],
+			"origin": "3664868 (defence in depth)",
+			"files": [
+				"src/db.mjs"
+			],
+			"bug": "remembered-wallet helpers relied on callers for integer chat ids",
+			"invariant": "remembered-wallet helpers accept only canonical chat ids; anything else sends no request",
+			"tests": [
+				{
+					"file": "test/input-db-adversarial-db.test.mjs",
+					"test": "^INPUT-DB-PG P1 remembered-wallet boundary"
+				}
+			],
+			"mutations": [
+				"MUT-CR-INPUT-004-P1-2OE"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-B44F37A-PRIVATE-SENDER",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"b44f37a"
+			],
+			"origin": "b44f37a",
+			"files": [
+				"src/telegram-audit.mjs"
+			],
+			"bug": "a private-chat message was trusted without matching sender and chat",
+			"invariant": "a private message is authentic only if chat.id equals from.id",
+			"tests": [
+				{
+					"file": "test/telegram-audit.test.mjs",
+					"test": "^private Telegram messages require the sender to match the private chat$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QPRIVMSG"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-DA4D901-PRIVATE-ONLY",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"da4d901"
+			],
+			"origin": "da4d901",
+			"files": [
+				"api/telegram.mjs"
+			],
+			"bug": "the bot processed group chats",
+			"invariant": "non-private updates are acknowledged without DB, AI or reply",
+			"tests": [
+				{
+					"file": "test/telegram-private-only.test.mjs",
+					"test": "^webhook ignores "
+				}
+			],
+			"mutations": [
+				"MUT-CR-TELEGRAM-001-P2-NEW1"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-E987990-ANSWER-FILTER",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"e987990",
+				"7db17e8"
+			],
+			"origin": "e987990 / 7db17e8",
+			"files": [
+				"src/answer-filter.mjs"
+			],
+			"bug": "AI answers could contain foreign links or wallet addresses (phishing)",
+			"invariant": "AI answers keep only allow-listed hosts and the bot's own handle; wallet addresses are removed",
+			"tests": [
+				{
+					"file": "test/answer-filter.test.mjs",
+					"test": "^fremde Links werden ersetzt, in jeder Schreibweise$"
+				},
+				{
+					"file": "test/answer-filter.test.mjs",
+					"test": "^Wallet-Adressen werden immer entfernt$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QFILTERHOST",
+				"MUT-CR-VERIFY-003-P1-2QFILTERADDR"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-CAD24D4-AI-BUDGET",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"cad24d4"
+			],
+			"origin": "cad24d4",
+			"files": [
+				"src/ai-budget.mjs"
+			],
+			"bug": "AI answers had no cost cap across chats",
+			"invariant": "AI requests consume a global budget across all chats",
+			"tests": [
+				{
+					"file": "test/ai-budget.test.mjs",
+					"test": "^der Kostendeckel ueber alle Chats greift auch, wenn jeder Chat neu ist$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QAIGLOBAL"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-7DB17E8-AI-FAIL-CLOSED",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"7db17e8"
+			],
+			"origin": "7db17e8",
+			"files": [
+				"src/ai-budget.mjs"
+			],
+			"bug": "a failing budget count allowed private AI requests",
+			"invariant": "a failing AI budget count blocks private and group requests",
+			"tests": [
+				{
+					"file": "test/ai-budget.test.mjs",
+					"test": "^faellt die Zaehlung aus, bleiben privat und Gruppe zu$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QAIFAIL"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-D18C95B-CSP-CONNECT",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"d18c95b"
+			],
+			"origin": "d18c95b",
+			"files": [
+				"vercel.json"
+			],
+			"bug": "connect-src allowed any https:/wss: origin",
+			"invariant": "connect-src names the WalletConnect endpoints individually; other https origins are blocked",
+			"tests": [
+				{
+					"file": "test/csp-browser-enforced.test.mjs",
+					"test": "^CSP-BROWSER headless Chrome enforces the vercel\\.json policy: no eval, no inline or injected script, no object/base$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QCSPCONNECT"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-D18C95B-CSP-REPORT-LOG",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"d18c95b"
+			],
+			"origin": "d18c95b",
+			"files": [
+				"api/csp-report.mjs"
+			],
+			"bug": "CSP reports carry document-uri/referrer with link and access codes",
+			"invariant": "csp-report stores nothing and logs only directive and blocked origin, never the page address",
+			"tests": [
+				{
+					"file": "test/historical-fix-regressions.test.mjs",
+					"test": "^HIST d18c95b csp-report logs only directive and blocked origin - never the page address or referrer with link codes$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QCSPLOG"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-D18C95B-FRONTEND-GUARD",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"d18c95b"
+			],
+			"origin": "d18c95b",
+			"files": [
+				"scripts/check-frontend.mjs"
+			],
+			"bug": "nothing stopped a reintroduced HTML sink",
+			"invariant": "the frontend guard fails the build on a reintroduced innerHTML",
+			"tests": [
+				{
+					"file": "test/frontend-markup.test.mjs",
+					"test": "^3 ein wiedereingefuehrtes innerHTML laesst den Build fallen$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QGUARDHTML"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-20F9549-FONT-SHA256",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"20f9549"
+			],
+			"origin": "20f9549",
+			"files": [
+				"scripts/fetch-fonts.mjs"
+			],
+			"bug": "downloaded fonts were shipped unverified",
+			"invariant": "fonts whose SHA-256 does not match are never written and the build fails",
+			"tests": [
+				{
+					"file": "test/font-integrity.test.mjs",
+					"test": "^HIST 20f9549 fonts whose SHA-256 does not match are never written and the build fails$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QFONTSHA"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-B706956-IGNORE-SCRIPTS",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"b706956",
+				"51c0cd4"
+			],
+			"origin": "b706956 / 51c0cd4",
+			"files": [
+				".npmrc",
+				"vercel.json"
+			],
+			"bug": "dependency install scripts ran during install (also in Vercel's second install run)",
+			"invariant": "the project .npmrc stops npm from running install lifecycle scripts",
+			"tests": [
+				{
+					"file": "test/npm-install-scripts.test.mjs",
+					"test": "^HIST b706956 the project \\.npmrc stops npm from running install lifecycle scripts$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QNPMRC"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-0F3A6EF-OWN-FONT",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"0f3a6ef"
+			],
+			"origin": "0f3a6ef (privacy)",
+			"files": [
+				"web/src/main.js",
+				"vercel.json"
+			],
+			"bug": "AppKit preloaded fonts from fonts.reown.com (visitor IP to a third party)",
+			"invariant": "AppKit is started with the own font, so it adds no third-party font preloads",
+			"tests": [
+				{
+					"file": "test/historical-fix-frontend.test.mjs",
+					"test": "^HIST META-AUDIT M-3 / 0f3a6ef AppKit starts with value-moving features off and with the own font \\(no third-party preloads\\)$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QAPPKITFONT"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-AA77699-RETENTION",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"aa77699"
+			],
+			"origin": "aa77699 (privacy)",
+			"files": [
+				"src/db.mjs"
+			],
+			"bug": "logs and login codes were kept indefinitely",
+			"invariant": "logs are purged after 90 days, login challenges after expiry",
+			"tests": [
+				{
+					"file": "test/purge.test.mjs",
+					"test": "^Protokolle nach 90 Tagen, Login-Codes nach Ablauf$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QRETENTION"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-BC42B0A-ANALYTICS-REDACT",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"bc42b0a"
+			],
+			"origin": "bc42b0a (privacy)",
+			"files": [
+				"web/src/analytics.js"
+			],
+			"bug": "page-view URLs carry one-time secrets (?access=, ?code=)",
+			"invariant": "analytics URLs carry only origin and path; query and fragment are dropped",
+			"tests": [
+				{
+					"file": "test/analytics.test.mjs",
+					"test": "^every query string and fragment is removed before sending - access codes, link codes, Safe parameters$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2QANALYTICS"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-39196D0-NO-JS-TOKEN",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"39196d0"
+			],
+			"origin": "39196d0",
+			"files": [
+				"api/dashboard.mjs"
+			],
+			"bug": "the login answer handed an EOA a JS-readable session token",
+			"invariant": "the login response body never carries the session token",
+			"tests": [
+				{
+					"file": "test/eoa-session-transport.test.mjs",
+					"test": "^M1 "
+				},
+				{
+					"file": "test/safe-app-session.test.mjs",
+					"test": "^A Safe App login"
+				},
+				{
+					"file": "test/safe-app-session.test.mjs",
+					"test": "^I a malicious frontend"
+				},
+				{
+					"file": "test/safe-session-authority.test.mjs",
+					"test": "^SA-L1 3:"
+				}
+			],
+			"mutations": [
+				"MUT-CR-SESSION-005-P1-NEW1"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-4F55789-DUAL-RPC",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"4f55789"
+			],
+			"origin": "4f55789",
+			"files": [
+				"src/contract-signature.mjs"
+			],
+			"bug": "one RPC provider decided ERC-1271 validity",
+			"invariant": "ERC-1271 needs agreement of two independent providers",
+			"tests": [
+				{
+					"file": "test/dual-rpc-erc1271.test.mjs",
+					"test": "consensus table"
+				},
+				{
+					"file": "test/dual-rpc-erc1271.test.mjs",
+					"test": "^DUAL 2/20"
+				},
+				{
+					"file": "test/dual-rpc-erc1271.test.mjs",
+					"test": "^DUAL 3/20"
+				},
+				{
+					"file": "test/onchain-safe-login.test.mjs",
+					"test": "only ONE provider"
+				}
+			],
+			"mutations": [
+				"MUT-CR-AUTH-003-P2-NEW1"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-E69AFD3-QUERY-PARAMS",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"e69afd3"
+			],
+			"origin": "e69afd3",
+			"files": [
+				"src/request-query.mjs"
+			],
+			"bug": "handlers read request.query loosely (query could override secrets or body values)",
+			"invariant": "handlers read only defined single query values; query never replaces secrets or body fields",
+			"tests": [
+				{
+					"file": "test/query-authority.test.mjs",
+					"test": "^QUERY-NOT-AUTHORITY alerts"
+				},
+				{
+					"file": "test/query-authority.test.mjs",
+					"test": "^QUERY-NOT-AUTHORITY telegram"
+				},
+				{
+					"file": "test/query-authority.test.mjs",
+					"test": "^QUERY-IGNORED link/verify"
+				},
+				{
+					"file": "test/query-authority.test.mjs",
+					"test": "^QUERY-IGNORED config"
+				}
+			],
+			"mutations": [
+				"MUT-CR-API-004-P1-NEW1",
+				"MUT-CR-API-004-P1-NEW2",
+				"MUT-CR-API-004-P1-NEW3",
+				"MUT-CR-API-004-P1-NEW4"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-536BC02-CANCELLED-TESTS",
+			"classification": "FRAMEWORK_FIX",
+			"tags": [],
+			"commits": [
+				"536bc02"
+			],
+			"origin": "536bc02",
+			"files": [
+				"scripts/run-tests-guarded.mjs"
+			],
+			"bug": "cancelled security tests (cancelledByParent) let the run exit 0",
+			"invariant": "the guarded test runner fails on cancelled tests",
+			"tests": [
+				{
+					"file": "test/guard-behaviour.test.mjs",
+					"test": "^GUARD-CANCEL"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-001-P1-NEW1"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-B706956-REGISTRY-SIGNATURES",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"b706956"
+			],
+			"origin": "b706956",
+			"files": [
+				"package.json"
+			],
+			"bug": "registry signatures were not verified",
+			"invariant": "check:ci runs npm audit signatures and fails on invalid registry signatures",
+			"tests": [],
+			"mutations": [],
+			"evidence_level": "E2",
+			"status": "MISSING_EVIDENCE",
+			"missing_reason": "needs the npm registry over the network; offline the invariant is only visible as the configured script (static, package.json). No reproducible offline known-bad test."
+		},
+		{
+			"id": "FIX-B647281-NPM-CI",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"b647281"
+			],
+			"origin": "b647281",
+			"files": [
+				"vercel.json"
+			],
+			"bug": "npm install could deviate from the lockfile hashes in the deployment build",
+			"invariant": "the Vercel installCommand installs exactly the lockfile (npm ci)",
+			"tests": [],
+			"mutations": [],
+			"evidence_level": "E2",
+			"status": "MISSING_EVIDENCE",
+			"missing_reason": "the installCommand is executed only by Vercel; locally it is a configuration value (static). No reproducible offline known-bad test of the platform behaviour."
+		},
+		{
+			"id": "FIX-CAD24D4-VERCELIGNORE",
+			"classification": "SECURITY_FIX",
+			"tags": [],
+			"commits": [
+				"cad24d4"
+			],
+			"origin": "cad24d4",
+			"files": [
+				".vercelignore"
+			],
+			"bug": "`vercel --prod` uploaded the local .env (bot token, Supabase key) as source",
+			"invariant": "deployment uploads exclude .env and .env.* (except .env.example)",
+			"tests": [],
+			"mutations": [],
+			"evidence_level": "E2",
+			"status": "MISSING_EVIDENCE",
+			"missing_reason": "the upload filter is applied only by the Vercel CLI (not installed, not run offline); locally it is a pattern file (static). No reproducible known-bad test of the platform behaviour."
+		}
+	],
+	"tag_classifications": [
+		{
+			"tag": "AGENT-SEC-A2b",
+			"classification": "TEST_LABEL",
+			"refers_to": "FIX-A2-ACCESS-NO-SESSION",
+			"reason": "test label (test/dashboard-*.test.mjs) for a sub-case of AGENT-SEC-A2"
+		},
+		{
+			"tag": "AGENT-SEC-A3b",
+			"classification": "TEST_LABEL",
+			"refers_to": "FIX-A3-DOMAIN-BOUND-SIWE",
+			"reason": "test label for a sub-case of AGENT-SEC-A3"
+		},
+		{
+			"tag": "AGENT-UX-2",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "web/src/main.js comment: the WalletConnect dialog view (QR vs wallet list); usability, no security decision"
+		},
+		{
+			"tag": "AGENT-UX-3",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "web/src/main.js comment: pairing failure shows a message and retries once; usability, no security decision"
+		},
+		{
+			"tag": "AGENT-UX-4",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "web/src/main.js comment: user-facing wallet flow text; usability, no security decision"
+		},
+		{
+			"tag": "AGENT-IR-004",
+			"classification": "OPEN_NOTE",
+			"reason": "docs runbook note (\"open finding: no operator single revocation without user\"); not a fix. The capability exists since 75417e9 (FIX-HARD-002-OPERATOR); the note is outdated documentation, left unchanged in an evidence-only phase"
+		},
+		{
+			"tag": "AUDIT-2026-10-12",
+			"classification": "REGRESSION_TEST_ONLY",
+			"reason": "unnumbered label of regression tests added in 27e3607 without a code change (login verdict check, exact ERC-1271 magic value); their invariants are proven by MUT-CR-AUTH-002-P1-NEW1 and MUT-CR-AUTH-003-P1-NEW1 (CR-AUTH-002/003)"
+		}
+	],
+	"loose_markers": [
+		{
+			"file": "test/dashboard-auth-boundaries.test.mjs",
+			"contains": "DELETE und (AUDIT",
+			"classification": "TEST_LABEL",
+			"refers_to": "FIX-SA-L1-FRESH-AUTHORITY",
+			"reason": "comment continued on the next line as \"SA-L1\" (AUDIT SA-L1)"
+		},
+		{
+			"file": "test/erc1271.test.mjs",
+			"contains": "test('AUDIT 1271 result must be exactly the magic value'",
+			"classification": "REGRESSION_TEST_ONLY",
+			"reason": "27e3607 test without code change; invariant proven by MUT-CR-AUTH-003-P1-NEW1 (FIX-AUTH-001-ERC1271)"
+		},
+		{
+			"file": "test/positions.test.mjs",
+			"contains": "test('AUDIT revoked A, valid B",
+			"classification": "REGRESSION_TEST_ONLY",
+			"reason": "27e3607 cross-wallet regression test without code change; revocation of the positions path is proven by MUT-CR-SESSION-007-P2-NEW1 (CR-SESSION-007)"
+		},
+		{
+			"file": "test/positions.test.mjs",
+			"contains": "test('AUDIT stale in-flight A while B logs in",
+			"classification": "REGRESSION_TEST_ONLY",
+			"reason": "27e3607 cross-wallet regression test without code change (positions cache keyed per wallet)"
+		},
+		{
+			"file": "test/positions.test.mjs",
+			"contains": "test('AUDIT XSS: hostile chain/catalog strings",
+			"classification": "REGRESSION_TEST_ONLY",
+			"reason": "27e3607 regression test without code change; text-only rendering is proven by MUT-CR-BROWSER-004-P1-2PA (CR-BROWSER-004)"
+		}
+	],
+	"commits": [
+		{
+			"commit": "dfd8517",
+			"classification": "FRAMEWORK_EVIDENCE",
+			"reason": "CRSF evidence closure (CR-BROWSER-004); tests and evidence only"
+		},
+		{
+			"commit": "3664868",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-3664868-CHAT-ID-DOMAIN"
+			]
+		},
+		{
+			"commit": "1412cd9",
+			"classification": "FRAMEWORK_EVIDENCE",
+			"reason": "CRSF evidence closure (CR-INPUT-004)"
+		},
+		{
+			"commit": "fdcce94",
+			"classification": "FRAMEWORK_EVIDENCE",
+			"reason": "CRSF evidence closure (CR-RESOURCE-001)"
+		},
+		{
+			"commit": "7023817",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-F-2K-1"
+			]
+		},
+		{
+			"commit": "c3b9dfd",
+			"classification": "FRAMEWORK_EVIDENCE",
+			"reason": "records finding F-2K-1 (fix in 7023817)"
+		},
+		{
+			"commit": "238a179",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-F-2I-1"
+			]
+		},
+		{
+			"commit": "2dde59a",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-F-2H-1"
+			]
+		},
+		{
+			"commit": "cbf765e",
+			"classification": "FRAMEWORK_EVIDENCE",
+			"reason": "records finding F-2H-1 (fix in 2dde59a)"
+		},
+		{
+			"commit": "38a66ee",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-F-2F-1"
+			]
+		},
+		{
+			"commit": "c68dff9",
+			"classification": "FRAMEWORK_EVIDENCE",
+			"reason": "records finding F-2F-1 (fix in 38a66ee)"
+		},
+		{
+			"commit": "e7e2e4f",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-F-2D-2"
+			]
+		},
+		{
+			"commit": "b50797e",
+			"classification": "FRAMEWORK_FIX",
+			"fixes": [
+				"FIX-F-2J-1"
+			]
+		},
+		{
+			"commit": "07aeb21",
+			"classification": "FRAMEWORK_FIX",
+			"fixes": [
+				"FIX-F-2D-1"
+			]
+		},
+		{
+			"commit": "8169108",
+			"classification": "FRAMEWORK_FIX",
+			"fixes": [
+				"FIX-F-2C-1",
+				"FIX-F-2C-2",
+				"FIX-F-2C-3"
+			]
+		},
+		{
+			"commit": "96b20e2",
+			"classification": "FRAMEWORK_EVIDENCE",
+			"reason": "introduces the CRSF verification framework (no earlier behaviour corrected)"
+		},
+		{
+			"commit": "9faf2bb",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-RL4-GETCODE-TTL"
+			]
+		},
+		{
+			"commit": "a5eb1e6",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-RL1-ATTRIBUTION-LIMIT"
+			]
+		},
+		{
+			"commit": "b36a4cf",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-RH2-SINGLE-USE"
+			]
+		},
+		{
+			"commit": "5ef6cff",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-RL2-HANDOFF-REMOVED"
+			]
+		},
+		{
+			"commit": "536bc02",
+			"classification": "FRAMEWORK_FIX",
+			"fixes": [
+				"FIX-536BC02-CANCELLED-TESTS"
+			]
+		},
+		{
+			"commit": "23904e2",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-RM2-DASHBOARD-READ"
+			]
+		},
+		{
+			"commit": "95d17ff",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-RM1-LINK-LIMITS",
+				"FIX-RM1-WALLET-CAP",
+				"FIX-RM1-ALERT-RUN"
+			]
+		},
+		{
+			"commit": "bc42b0a",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-BC42B0A-ANALYTICS-REDACT"
+			]
+		},
+		{
+			"commit": "a532091",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "Safe App manifest and icon; makes one static SVG cross-origin loadable (narrow CORP exception, covered by test/safe-app-metadata.test.mjs); corrects no security bug"
+		},
+		{
+			"commit": "9458d95",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-SAFE-2-NO-BEARER"
+			]
+		},
+		{
+			"commit": "9ba7ee6",
+			"classification": "NOT_A_FIX",
+			"reason": "reverts the partitioned-cookie experiment f63ab55 and 4a17d0a"
+		},
+		{
+			"commit": "4a17d0a",
+			"classification": "SUPERSEDED",
+			"reason": "Safe-App session restore (usability); reverted by 9ba7ee6"
+		},
+		{
+			"commit": "39196d0",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-39196D0-NO-JS-TOKEN"
+			]
+		},
+		{
+			"commit": "aa78b6c",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-M-3-ONCHAIN-LOGIN"
+			]
+		},
+		{
+			"commit": "04273f7",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-M-3-APPKIT-FEATURES"
+			]
+		},
+		{
+			"commit": "7207f7e",
+			"classification": "SUPERSEDED",
+			"fixes": [
+				"FIX-M-3-APPKIT-FEATURES"
+			],
+			"reason": "blanket contract-wallet signing ban reverted by 04273f7 (product decision); the AppKit feature lockdown was kept (FIX-M-3-APPKIT-FEATURES)"
+		},
+		{
+			"commit": "66adb46",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-M-2-GLOBAL-BEFORE-1271"
+			]
+		},
+		{
+			"commit": "225c5a7",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-M-1-DASHBOARD",
+				"FIX-M-1-BOT"
+			]
+		},
+		{
+			"commit": "4f55789",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-4F55789-DUAL-RPC"
+			]
+		},
+		{
+			"commit": "2edae68",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-SA-L1-FRESH-AUTHORITY",
+				"FIX-SA-L2-REVOCATION-503",
+				"FIX-SAFE-2-CONFLICT",
+				"FIX-SAFE-2-NO-BEARER"
+			]
+		},
+		{
+			"commit": "950c3c4",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-E-L2-TARGET",
+				"FIX-E-L3-BOUND",
+				"FIX-E-L3-ISOLATION",
+				"FIX-E-L4-LOG"
+			]
+		},
+		{
+			"commit": "43e9f15",
+			"classification": "REGRESSION_TEST_ONLY",
+			"reason": "test-only (delta-audit L1): revoked attribution sessions; proven by MUT-CR-SESSION-007-P2-NEW2 (CR-SESSION-007)"
+		},
+		{
+			"commit": "e69afd3",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-E69AFD3-QUERY-PARAMS"
+			]
+		},
+		{
+			"commit": "f95dbd8",
+			"classification": "NOT_A_FIX",
+			"reason": "feature (attribution API); its security properties are controls CR-API-001/CR-CONC-003/CR-SESSION-007"
+		},
+		{
+			"commit": "27e3607",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-AUDIT-F1-LINK-ROWS",
+				"FIX-AUDIT-F2-OFFCHAIN",
+				"FIX-AUDIT-F3-CACHE-BOUND"
+			]
+		},
+		{
+			"commit": "9c1adc2",
+			"classification": "NOT_A_FIX",
+			"reason": "feature (read-only Aave positions); its security properties are controls CR-API-001/CR-SESSION-007/CR-RESOURCE-001"
+		},
+		{
+			"commit": "da4d901",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-DA4D901-PRIVATE-ONLY"
+			]
+		},
+		{
+			"commit": "7db17e8",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-7DB17E8-AI-FAIL-CLOSED",
+				"FIX-E987990-ANSWER-FILTER"
+			]
+		},
+		{
+			"commit": "2baa440",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-UX-5-ACCOUNT-RECHECK"
+			]
+		},
+		{
+			"commit": "04e8ca2",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-HARD-004-SIGNED-LINK",
+				"FIX-HARD-004-REVOKED-LOGOUT"
+			]
+		},
+		{
+			"commit": "676ca30",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-HARD-003-GLOBAL"
+			]
+		},
+		{
+			"commit": "75417e9",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-HARD-002-ATOMIC-REVOKE",
+				"FIX-HARD-002-OPERATOR"
+			]
+		},
+		{
+			"commit": "04b2f04",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-HARD-001-WALLET-LIMITS",
+				"FIX-HARD-001-CODE-CACHE"
+			]
+		},
+		{
+			"commit": "4e52666",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-MAINNET-SIGNING"
+			]
+		},
+		{
+			"commit": "2cc2bac",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-MAINNET-SIGNING"
+			]
+		},
+		{
+			"commit": "02cbdfc",
+			"classification": "NOT_A_FIX",
+			"reason": "release toggle (ANMELDUNG_PAUSIERT=false); no behaviour corrected"
+		},
+		{
+			"commit": "8d6a335",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-SAFE-4-PREVIEW-ORIGINS"
+			]
+		},
+		{
+			"commit": "5b7197d",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-SAFE-1-SERVER-TTL"
+			]
+		},
+		{
+			"commit": "14b0bc9",
+			"classification": "PROCESS",
+			"reason": "CLAUDE.md agent rule (external content is data); process, not application code"
+		},
+		{
+			"commit": "086df82",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-AUTH-001-ERC1271"
+			]
+		},
+		{
+			"commit": "d52de31",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-A1-SESSION-SECRET",
+				"FIX-A1-LOGOUT-REVOKE",
+				"FIX-A1-LINKVERIFY-NO-SESSION",
+				"FIX-A1-LEGACY-COOKIE",
+				"FIX-A1-RATE-SECRET",
+				"FIX-A2-ACCESS-NO-SESSION",
+				"FIX-A2-URL-CLEARED",
+				"FIX-A3-LEGACY-CHALLENGE",
+				"FIX-A4-FIELDS-BEFORE-SIGNATURE",
+				"FIX-A7-CSP-ENFORCED",
+				"FIX-API-001-BODY-SIZE",
+				"FIX-API-002-CSP-RATE",
+				"FIX-API-003-NO-DB-ERRORS",
+				"FIX-AUTH-002-GET-READONLY",
+				"FIX-IR-001-CRON-ALERT",
+				"FIX-IR-002-SECURITY-EVENTS",
+				"FIX-LLM-001-DATA-CHANNEL"
+			]
+		},
+		{
+			"commit": "94500f5",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "disclaimer overlay before connecting (legal/usability text)"
+		},
+		{
+			"commit": "0fbe3e2",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "disclaimer with checkbox before connecting (legal text)"
+		},
+		{
+			"commit": "cad24d4",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-CAD24D4-AI-BUDGET",
+				"FIX-CAD24D4-LINK-ACCOUNT",
+				"FIX-CAD24D4-VERCELIGNORE"
+			]
+		},
+		{
+			"commit": "e987990",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-E987990-ANSWER-FILTER"
+			]
+		},
+		{
+			"commit": "d3b1106",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "intent routing of price/availability questions; no security decision"
+		},
+		{
+			"commit": "1c43b7c",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "product facts from Nexus instead of ratings (liability); no security decision"
+		},
+		{
+			"commit": "1d6d352",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "own imprint page"
+		},
+		{
+			"commit": "698336c",
+			"classification": "NOT_A_FIX",
+			"reason": "adds explanatory copy on recognising a genuine signature request (web/index.html, main.js translations); no code path or security decision changed"
+		},
+		{
+			"commit": "08a9e22",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-W3-REVOKE"
+			]
+		},
+		{
+			"commit": "aec089d",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-W2-ORIGIN",
+				"FIX-W2-DISCONNECT"
+			]
+		},
+		{
+			"commit": "d714a3e",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-W1-METHODS"
+			]
+		},
+		{
+			"commit": "638f10a",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-A7-DEFAULT-PRIVILEGES"
+			]
+		},
+		{
+			"commit": "d18c95b",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-A5-PER-CODE-LIMIT",
+				"FIX-A6-CONFIG-BOTNAME",
+				"FIX-F1-FINISH",
+				"FIX-F1-APPLYLANGUAGE",
+				"FIX-F1-GUIDE-ICON",
+				"FIX-F2-BACKLINK",
+				"FIX-D18C95B-CSP-CONNECT",
+				"FIX-D18C95B-CSP-REPORT-LOG",
+				"FIX-D18C95B-FRONTEND-GUARD"
+			]
+		},
+		{
+			"commit": "51c0cd4",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-B706956-IGNORE-SCRIPTS"
+			]
+		},
+		{
+			"commit": "b706956",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-B706956-IGNORE-SCRIPTS",
+				"FIX-B706956-REGISTRY-SIGNATURES"
+			]
+		},
+		{
+			"commit": "0f3a6ef",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-0F3A6EF-OWN-FONT"
+			]
+		},
+		{
+			"commit": "20f9549",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-20F9549-FONT-SHA256"
+			]
+		},
+		{
+			"commit": "062201c",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-062201C-LINK-STATE",
+				"FIX-062201C-UNLINK-ONE",
+				"FIX-062201C-LIKE-DELIMITER"
+			]
+		},
+		{
+			"commit": "7f69011",
+			"classification": "NOT_A_FIX",
+			"reason": "widens the CSP for AppKit image blobs and fonts (feature); not a correction"
+		},
+		{
+			"commit": "663a953",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-A3-DOMAIN-BOUND-SIWE"
+			]
+		},
+		{
+			"commit": "b44f37a",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-B44F37A-PRIVATE-SENDER"
+			]
+		},
+		{
+			"commit": "62db69e",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-RL5-RECONCILE"
+			]
+		},
+		{
+			"commit": "bc4b454",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-RL3-SNOOZE-AUTH"
+			]
+		},
+		{
+			"commit": "aa77699",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-AA77699-RETENTION"
+			]
+		},
+		{
+			"commit": "b647281",
+			"classification": "SECURITY_FIX",
+			"fixes": [
+				"FIX-B647281-NPM-CI"
+			]
+		},
+		{
+			"commit": "a97d95e",
+			"classification": "REMOVED",
+			"reason": "knowledge API: reject non-public entries; src/coverraccoon-knowledge.mjs (and its test) were deleted later - the code no longer exists, nothing to regress"
+		},
+		{
+			"commit": "0afa171",
+			"classification": "REMOVED",
+			"reason": "knowledge API without credentials; module deleted later (see a97d95e)"
+		}
+	],
+	"commit_rules": [
+		{
+			"subject": "^security: complete CR-[A-Z]+-[0-9]+ ",
+			"classification": "FRAMEWORK_EVIDENCE",
+			"reason": "CRSF evidence-closure commits (one per phase; application fixes are forbidden in these phases and would carry a tag discovered above)"
+		}
+	]
+}

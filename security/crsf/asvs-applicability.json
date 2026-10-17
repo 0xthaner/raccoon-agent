@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2p",
+	"crsf_version": "1.0-draft-phase2q",
 	"asvs": "5.0.0",
 	"input": "security/crsf/vendor/asvs-5.0.0.flat.json",
 	"input_sha256": "8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311",

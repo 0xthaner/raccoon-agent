@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2p
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2q
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -241,7 +241,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-PRIV-009 | Anti-caching headers on sensitive responses | SECURITY_DEBT | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-PROD-HEADERS) |
 | CR-VERIFY-001 | Unexpected cancelled tests fail CI | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E4 |
 | CR-VERIFY-002 | Unexpected skipped/todo tests fail CI; only exact allowlisted DB skips without DB | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E4 |
-| CR-VERIFY-003 | Security fixes carry reproducible known-bad/mutation proof | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-CRSF-SELFTEST) |
+| CR-VERIFY-003 | Security fixes carry reproducible known-bad/mutation proof | RELEASE_BLOCKING | E4 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-CRSF-SELFTEST,EV-FIX-REGISTER,EV-KB-VERIFY-003) |
 | CR-VERIFY-004 | Concurrency claims proven with real concurrent execution | RELEASE_BLOCKING | E5 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (below E5/not acceptable: EV-CRSF-SELFTEST(E3: type not acceptable for minimum level)) |
 | CR-VERIFY-005 | Security tests fail for the intended reason | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E4 |
 | CR-VERIFY-006 | Production-code vs test-only changes distinguished per release | MANUAL_ASSURANCE | E1 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
@@ -372,10 +372,12 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-CSP-BROWSER | behavioral | E3 | node-test | PARTIAL | yes | the Content-Security-Policy is taken from vercel.json and served per path exactly as its source patterns select (/ and /(.+), including /link, /guide, /datenschutz, /index.html; one enforcing policy each, no report-only, no meta policy in the HTML; outputDirectory dist-web); a local headless Chrome runs a same-origin probe script: eval and new Function throw EvalError, setTimeout(string), injected inline <script>, on* attribute, javascript: link and a foreign-origin script do not execute; <object> raises an object-src violation and <base> a base-uri violation. Control run with the same probe and no policy executes every one of them (the probe is not deaf). Thus no script of the page - first- or third-party bundle - can turn strings into code. |
 | EV-BROWSER-STRUCT | static | E1 | node-test | PARTIAL | yes | syntax-tree scan (vite parseAst) of every web/src module: no eval (also as member or computed), no Function constructor, no string timer, no computed import(); no HTML-parsing sink, no on*/srcdoc/style or computed setAttribute, no computed property write; the four URL writes equal the reviewed inventory (fixed Nexus table, two https://t.me/ templates, literal /). Self-check covers each forbidden form. |
 | EV-KB-BROWSER-004 | known-bad | E4 | mutation | FULL | yes | writing rendered text via innerHTML (text helper, status line, Telegram account), dropping the fixed https://t.me/ prefix of the Telegram button, calling eval or a string timer in the dashboard path, adding unsafe-eval to either CSP rule, or removing object-src 'none' is each detected by the intended behavioural test and message |
+| EV-FIX-REGISTER | behavioral | E3 | node-test | PARTIAL | yes | security/crsf/fix-register.json is the canonical inventory of historical security fixes (102: every AGENT-*, AUDIT-*, AUDIT X-Yn, META-AUDIT, Restaudit, HARD-n and CRSF F-xx-n item and every security-keyword commit; one invariant each). The guard (security/crsf/lib/fix-register.mjs) discovers every tag of the known families and, by a catch-all, markers of new families in code, tests, migrations, configuration and docs, and every security-keyword commit (full git history); unclassified, vanished or inconsistent entries fail closed. Each PROVEN fix names behavioural KILLED mutation cases of the catalogue and the regression tests that are their expected failures. New behavioural regression tests cover fixes that had none (historical-fix-regressions/-frontend, font integrity with the real fetch-fonts script, real npm install with the project .npmrc, framework fixture fixes). |
+| EV-KB-VERIFY-003 | known-bad | E4 | mutation | PARTIAL | yes | 82 new known-bad cases: each historical vulnerability without a prior mutation is reintroduced exactly at its fix (secret fallback, legacy cookie, session from access/link codes, URL-borne access code, old-schema challenges, CSP report-only and connect-src, default privileges, innerHTML sinks, WalletConnect methods/disconnect/revoke, Host-header origin, body size, csp-report limits and logging, raw DB errors, GET state change, RPC-error caching, operator revocation, revoked-session logout, missing alerts/security events, prompt channel, contract TTL hints, session conflicts, preview origins, network/account re-checks, link-row kinds, Safe off-chain signing, cache bound, link target/account, display bounds, send isolation, M-1/M1/M2 limits, AppKit features and font, framework fixes, multi-chat isolation, private sender, answer filter, AI budget, font SHA-256, install scripts, retention, analytics redaction) and is detected by the intended behavioural test and message; 8 further cases weaken the register guard itself and are detected by its fixtures. The remaining PROVEN fixes reference existing KILLED cases (CR-AUTH, CR-SESSION, CR-RESOURCE, CR-CONC, CR-TELEGRAM, CR-PROVIDER, CR-INPUT, CR-API, CR-VERIFY). |
 
 ## 6. Mutation cases
 
-206 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+288 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -585,6 +587,88 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-BROWSER-004-P3-2PG | CR-BROWSER-004.P3 | behavioral | KILLED |
 | MUT-CR-BROWSER-004-P3-2PH | CR-BROWSER-004.P3 | behavioral | KILLED |
 | MUT-CR-BROWSER-004-P3-2PI | CR-BROWSER-004.P3 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QA1SECRET | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QA1LEGACY | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QA1RATE | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QA1VERIFY | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QA2COOKIE | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QA2URL | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QA3LEGACY | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QA4ORDER | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QA6 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QA7ENFORCE | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QA7DEFPRIV | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QF1FINISH | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QF1LANG | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QF1GUIDE | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QF2 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QW1 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QW2ORIGIN | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QW2DISCONNECT | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QW3 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QAPI001 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QAPI002 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QAPI003 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QAUTH002 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QHARD001CACHE | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QHARD002OPERATOR | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QHARD004 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QIR001 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QIR002 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QIR002RAW | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QLLM001 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QSAFE1FAIL | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QSAFE1CLIENT | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QSAFE2 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QSAFE4 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QUX5ACCOUNT | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QUX5APPKIT | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QUX5CHAIN | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QUX5WCCHAIN | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QAUDITF1 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QAUDITF2 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QAUDITF3 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QEL2 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QLINKACCOUNT | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QEL3BOUND | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QEL3ISO | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QEL4 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QSAL2 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QM1DASH | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QM1BOT | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QRM1LINKCHAT | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QRM1LINKGLOBAL | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QRM1ALERT | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QRM2WALLET | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QRM2GLOBAL | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QAPPKIT | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QAPPKITFONT | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QF2C2 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QF2C3 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QF2D1 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QF2J1 | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QISOMETA | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QISOUNLINK | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QPRIVMSG | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QFILTERHOST | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QFILTERADDR | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QAIGLOBAL | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QAIFAIL | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QCSPCONNECT | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QCSPLOG | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QGUARDHTML | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QFONTSHA | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QNPMRC | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QRETENTION | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QANALYTICS | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QGTAG | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QGCATCHALL | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QGBEHAVIOURAL | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QGCOMMIT | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QGCOMPLETE | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QGFINDING | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QGSTALE | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2QGTESTMATCH | CR-VERIFY-003.P1 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -835,4 +919,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2n** — Phase 2N: CR-INPUT-004 behavioural evidence (request structure of every database helper, adversarial values and SQL functions on real Postgres, function catalog) with known-bad mutations; no application change, no finding.
 - **1.0-draft-phase2o** — Phase 2O: defense-in-depth hardening of the remembered-wallet LIKE boundary (CR-INPUT-004 P1 precondition recorded in Phase 2N); application change in src/db.mjs only; no finding.
 - **1.0-draft-phase2p** — Phase 2P: CR-BROWSER-004 behavioural evidence (real frontend rendering with hostile API data, CSP enforced in headless Chrome, syntax-tree structure) with known-bad mutations; no application change, no finding.
+- **1.0-draft-phase2q** — Phase 2Q: CR-VERIFY-003 historical security-fix register (102 fixes, 99 PROVEN at E4, 3 MISSING_EVIDENCE) with a fail-closed inventory guard and 82 new known-bad mutations; no application change, no finding.
 

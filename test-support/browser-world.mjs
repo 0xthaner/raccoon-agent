@@ -23,11 +23,12 @@ const source = (file) => readFileSync(new URL(`../web/src/${file}`, import.meta.
 const TEMPLATE = { 'main.js': 'index.html', 'guide.js': 'guide.html' };
 
 /** Antwort fuer fetch: { status, body } je "METHOD /pfad". */
-function makeFetch(routes, calls) {
+function makeFetch(routes, calls, events) {
 	return async (input, init = {}) => {
 		const url = new URL(String(input), 'https://coverraccoon.com');
 		const key = `${(init.method ?? 'GET').toUpperCase()} ${url.pathname}`;
 		calls.push({ key, url: url.href, body: init.body ?? null });
+		events.push(`fetch ${key}`);
 		const route = routes[key] ?? routes[url.pathname];
 		const answer = typeof route === 'function' ? route(url, init) : route;
 		if (!answer) return Response.json({ ok: false }, { status: 404 });
@@ -39,15 +40,20 @@ function makeFetch(routes, calls) {
  * Laedt `file` (main.js oder guide.js) mit `search` (z. B. '?code=...') und den
  * fetch-Antworten `routes`. Ergebnis: Mini-DOM, Protokolle, und `settle()`, das
  * wartet, bis alle angestossenen Abfragen und Darstellungen gelaufen sind.
+ *
+ * Phase 2Q (CR-VERIFY-003): optional `ethereum` (Browser-Wallet als window.ethereum)
+ * und `imports` (Modulname -> Modul fuer dynamisches import(), z. B. ein AppKit-
+ * Stummel). `events` haelt fetch-Aufrufe und history.replaceState in Reihenfolge.
  */
-export async function loadPage(file, { search = '', routes = {}, storage = {} } = {}) {
+export async function loadPage(file, { search = '', routes = {}, storage = {}, ethereum = undefined, imports = {} } = {}) {
 	const dom = createRecordingDom();
 	const calls = [];
+	const events = [];
 	const code = { eval: [], Function: [], timers: [], imports: [] };
 	const store = (initial) => { const m = new Map(Object.entries(initial)); return { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), clear: () => m.clear(), key: (i) => [...m.keys()][i] ?? null, get length() { return m.size; } }; };
 	const location = { search, origin: 'https://coverraccoon.com', protocol: 'https:', host: 'coverraccoon.com', pathname: '/', href: `https://coverraccoon.com/${search}`, reloaded: 0, reload() { this.reloaded++; } };
 	const window = {
-		dashboardData: undefined, ethereum: undefined, devicePixelRatio: 1, listeners: {},
+		dashboardData: undefined, ethereum, devicePixelRatio: 1, listeners: {},
 		addEventListener(type, fn) { (this.listeners[type] ??= []).push(fn); }, removeEventListener() {},
 		matchMedia: () => ({ matches: true, addEventListener() {} }), location
 	};
@@ -58,19 +64,19 @@ export async function loadPage(file, { search = '', routes = {}, storage = {} } 
 	};
 	const globals = {
 		document: dom.document, window, location, DOMParser: dom.DOMParser,
-		history: { replaceState: () => {} },
+		history: { replaceState: (_state, _title, url) => { events.push(`history.replaceState ${url}`); } },
 		localStorage: store({ raccoon_hinweise: 'hinweise-2026-10-01', raccoon_language: 'en', ...storage }),
 		sessionStorage: store({}),
 		navigator: { language: 'en-GB', userAgent: 'recording-dom' },
 		indexedDB: { databases: async () => [], deleteDatabase: () => ({}) },
-		fetch: makeFetch(routes, calls),
+		fetch: makeFetch(routes, calls, events),
 		confirm: () => true, alert: () => {},
 		setTimeout: timer('setTimeout', setTimeout), setInterval: timer('setInterval', setInterval), clearTimeout, clearInterval,
 		requestAnimationFrame: () => 0,
 		eval: (value) => { code.eval.push(String(value)); throw new Error('eval called'); },
 		Function: function (...args) { code.Function.push(args.map(String)); throw new Error('Function constructor called'); },
 		__env: { DEV: false, PROD: true },
-		__import: async (specifier) => { code.imports.push(String(specifier)); throw new Error(`dynamic import ${specifier} not available in the recording DOM`); },
+		__import: async (specifier) => { code.imports.push(String(specifier)); if (Object.hasOwn(imports, specifier)) return imports[specifier]; throw new Error(`dynamic import ${specifier} not available in the recording DOM`); },
 		...walletMethods, ...eoaLogin, ...onchainLogin,
 		startAnalytics: () => {}, mountEye: () => {}
 	};
@@ -84,5 +90,5 @@ export async function loadPage(file, { search = '', routes = {}, storage = {} } 
 		for (let i = 0; i < 30; i++) await new Promise((r) => setImmediate(r));
 	};
 	await settle();
-	return { dom, calls, code, window, settle };
+	return { dom, calls, code, window, settle, events };
 }

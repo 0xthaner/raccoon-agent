@@ -10,7 +10,9 @@
  *   - eingefuegtes Inline-Skript, on*-Attribut, javascript:-Adresse -> blockiert
  *     (die CSP faengt auch einen kuenftigen HTML-Senken-Fehler ab);
  *   - <object> -> blockiert (object-src 'none'); <base href> -> blockiert
- *     (base-uri 'none'); fremdes Skript -> blockiert (script-src 'self').
+ *     (base-uri 'none'); fremdes Skript -> blockiert (script-src 'self');
+ *   - fetch zu einer fremden https-Herkunft -> blockiert (connect-src nennt die
+ *     WalletConnect-Gegenstellen einzeln, kein pauschales https:; d18c95b, CRSF 2Q).
  * Gegenprobe ohne CSP: dieselbe Probe darf dort alles ausfuehren - sonst waere
  * die Probe selbst taub, und ein Bestehen bewiese nichts.
  *
@@ -49,6 +51,7 @@ const img = document.createElement('img'); img.setAttribute('onerror', "window._
 const a = document.createElement('a'); a.href = "javascript:window.__hit('javascriptUrl')"; document.body.append(a); a.click();
 const ext = document.createElement('script'); ext.src = 'http://localhost:' + location.port + '/foreign.js'; document.body.append(ext);
 const o = document.createElement('object'); o.data = '/plugin.html'; o.type = 'text/html'; document.body.append(o);
+fetch('https://127.0.0.1:1/connect-probe').catch(() => {});
 const b = document.createElement('base'); b.href = 'http://localhost:' + location.port + '/'; document.head.append(b);
 setTimeout(() => { window.__done = true; }, 800);
 `;
@@ -104,7 +107,7 @@ test('CSP-BROWSER headless Chrome enforces the vercel.json policy: no eval, no i
 		assert.equal(r.eval, 'EvalError', `${p}: eval was not blocked (unsafe-eval?)`);
 		assert.equal(r.function, 'EvalError', `${p}: new Function was not blocked`);
 		for (const name of BLOCKED) assert.notEqual(r[name], 'executed', `${p}: ${name} executed under the CSP`);
-		for (const directive of ['script-src', 'object-src', 'base-uri']) {
+		for (const directive of ['script-src', 'object-src', 'base-uri', 'connect-src']) {
 			assert.ok(r.violations.some((v) => v === directive || v.startsWith(`${directive}-`)), `${p}: no ${directive} violation reported (${r.violations.join(', ')})`);
 		}
 		assert.ok(r.violations.includes('object-src'), `${p}: <object> was not blocked by object-src`);

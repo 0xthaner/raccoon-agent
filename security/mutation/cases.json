@@ -7684,6 +7684,2819 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QA1SECRET",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-A1 reintroduced: the session secret falls back to TELEGRAM_WEBHOOK_SECRET",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "function secret() {\n\tconst value = process.env.DASHBOARD_SESSION_SECRET?.trim();",
+					"replace": "function secret() {\n\tconst value = (process.env.DASHBOARD_SESSION_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET)?.trim();"
+				}
+			],
+			"tests": [
+				"test/dashboard-auth-boundaries.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^C19 und C20 ein fehlendes Dashboard-Secret faellt zu, auch mit gesetztem Telegram-Secret$",
+					"message": "Missing expected exception\\."
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QA1LEGACY",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-A1 reintroduced: the legacy cookie without __Host- authenticates again",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "\treturn cookieOf(request, SESSION_COOKIE);\n}",
+					"replace": "\treturn cookieOf(request, SESSION_COOKIE) ?? cookieOf(request, LEGACY_SESSION_COOKIE);\n}"
+				}
+			],
+			"tests": [
+				"test/dashboard-auth-boundaries.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^D27 und D29 das Legacy-Cookie authentifiziert nicht mehr$",
+					"message": "Expected values to be strictly equal:  'abc' !== null"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QA1RATE",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-A1 reintroduced: the rate-limit HMAC key falls back to TELEGRAM_WEBHOOK_SECRET",
+			"edits": [
+				{
+					"file": "src/http-security.mjs",
+					"find": "return dashboardSecretConfigured() ? process.env.DASHBOARD_SESSION_SECRET.trim() : '';",
+					"replace": "return dashboardSecretConfigured() ? process.env.DASHBOARD_SESSION_SECRET.trim() : (process.env.TELEGRAM_WEBHOOK_SECRET?.trim() ?? '');"
+				}
+			],
+			"tests": [
+				"test/historical-fix-regressions.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-SEC-A1 the rate-limit identity never falls back to the Telegram webhook secret$",
+					"message": "without the dashboard secret the limiter must fail closed  t"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QA1VERIFY",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-A1 reintroduced: a link-verify signature sets a dashboard session cookie",
+			"edits": [
+				{
+					"file": "api/link/verify.mjs",
+					"find": "\t// ueber den eigenen Anmeldeweg beziehungsweise den Telegram-Zugangslink.\n\treturn response.status(200).json({ ok: true });",
+					"replace": "\t// ueber den eigenen Anmeldeweg beziehungsweise den Telegram-Zugangslink.\n\tresponse.setHeader('set-cookie', `__Host-raccoon_dashboard=${wallet}; Path=/; HttpOnly; Secure; SameSite=Strict`);\n\treturn response.status(200).json({ ok: true });"
+				}
+			],
+			"tests": [
+				"test/m1-link-limits.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^verify endpoint maps the DB outcome \"linked\" - limit: 409 WALLET_LIMIT \\+ bot notice, no \"linked\" message$",
+					"message": "Expected values to be strictly equal: \\+ actual - expected"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QA2COOKIE",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-A2 reintroduced: redeeming the Telegram access code issues a session cookie",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\treturn response.status(200).json({ ok: false, code: 'WALLET_SIGNATURE_REQUIRED', wallet: wallet.toLowerCase() });",
+					"replace": "\t\tresponse.setHeader('set-cookie', sessionCookieHeader(wallet.toLowerCase()));\n\t\treturn response.status(200).json({ ok: false, code: 'WALLET_SIGNATURE_REQUIRED', wallet: wallet.toLowerCase() });"
+				}
+			],
+			"tests": [
+				"test/historical-fix-regressions.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-SEC-A2 redeeming a Telegram access code yields no session: no cookie, only the expected wallet$",
+					"message": "the access code issued a session cookie \\+ actual - expected"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QA2URL",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-A2 (frontend) reintroduced: the access code stays in the URL during the redeem request",
+			"edits": [
+				{
+					"file": "web/src/main.js",
+					"find": "\t\t\thistory.replaceState({}, '', '/');\n\t\t\tconst response = await fetch('/api/dashboard', {",
+					"replace": "\t\t\tconst response = await fetch('/api/dashboard', {"
+				}
+			],
+			"tests": [
+				"test/historical-fix-frontend.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-SEC-A2 the access code leaves the visible URL before the network call and is redeemed only by POST$",
+					"message": "the code stayed in the URL during the network call \\(fetch GE"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QA3LEGACY",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-A3 reintroduced: old-schema challenges without iat are accepted",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "\t\t\tif (data.type === 'challenge' && !Number.isFinite(data.iat)) return null;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/historical-fix-regressions.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-SEC-A3 challenges and sessions without the server-side iat \\(old message schema\\) are rejected$",
+					"message": "legacy challenge without iat accepted \\+ actual - expected"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QA4ORDER",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-A4 reintroduced: a valid signature overrides a failed SIWE field check",
+			"edits": [
+				{
+					"file": "src/siwe-auth.mjs",
+					"find": "\tconst field = checkSiweMessage(message, expected, now);\n\tif (field !== 'VALID') return field;\n\tif (typeof signature",
+					"replace": "\tconst field = checkSiweMessage(message, expected, now);\n\tif (field !== 'VALID' && typeof signature !== 'string') return field;\n\tif (typeof signature"
+				}
+			],
+			"tests": [
+				"test/siwe-signature.test.mjs",
+				"test/erc1271.test.mjs",
+				"test/dashboard-login-behavior.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^8 bis 14 eine gueltig signierte, aber veraenderte Nachricht wird abgelehnt$",
+					"message": "DOMAIN_MISMATCH \\+ actual - expected"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QA6",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-A6 reintroduced: /api/config delivers TELEGRAM_BOT_USERNAME unvalidated",
+			"edits": [
+				{
+					"file": "api/config.mjs",
+					"find": "telegramUsername: TELEGRAM_NAME.test(username) ? username : '',",
+					"replace": "telegramUsername: username,"
+				}
+			],
+			"tests": [
+				"test/historical-fix-regressions.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-SEC-A6 /api/config delivers a Telegram bot name only in Telegram format$",
+					"message": "\"evil\\.example/x\" delivered as Telegram bot name \\+ actual - e"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QA7ENFORCE",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-A7 reintroduced: the /(.+) CSP is report-only again",
+			"edits": [
+				{
+					"file": "vercel.json",
+					"find": "        { \"key\": \"X-Frame-Options\", \"value\": \"DENY\" },\n        { \"key\": \"Content-Security-Policy\",",
+					"replace": "        { \"key\": \"X-Frame-Options\", \"value\": \"DENY\" },\n        { \"key\": \"Content-Security-Policy-Report-Only\","
+				}
+			],
+			"tests": [
+				"test/csp-browser-enforced.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^CSP-BROWSER headless Chrome enforces the vercel\\.json policy: no eval, no inline or injected script, no object/base$",
+					"message": "/link: eval was not blocked \\(unsafe-eval\\?\\) \\+ actual - expect"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QA7DEFPRIV",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-A7 / 638f10a reintroduced: default table privileges for anon/authenticated are not revoked",
+			"edits": [
+				{
+					"file": "supabase/migrations/20260924170000_revoke_public_default_privileges.sql",
+					"find": "      execute format('alter default privileges for role %I in schema public revoke all on tables from anon, authenticated', r);\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/db-privileges-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^DBPRIV: default privileges are closed - a table created after all migrations grants anon/authenticated nothing$",
+					"message": "a new table inherits API-role privileges from the default pr"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QF1FINISH",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-F1 reintroduced (finish): the link success message is written via innerHTML",
+			"edits": [
+				{
+					"file": "web/src/main.js",
+					"find": "\tstatus.append(erfolg, erfolgCopy);",
+					"replace": "\tstatus.innerHTML = `<strong>${t.success}</strong><p>${t.successCopy}</p>`;"
+				}
+			],
+			"tests": [
+				"test/historical-fix-frontend.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-SEC-F1 the link success message is built from elements - no markup sink in finish\\(\\)$",
+					"message": "finish\\(\\) used an HTML parsing sink \\+ actual - expected"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QF1LANG",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-F1 reintroduced (applyLanguage): translated text parts are written via innerHTML",
+			"edits": [
+				{
+					"file": "web/src/main.js",
+					"find": "\t\t\tif (ziel) ziel.textContent = value;",
+					"replace": "\t\t\tif (ziel) ziel.innerHTML = value;"
+				}
+			],
+			"tests": [
+				"test/browser-render-sinks.test.mjs",
+				"test/historical-fix-frontend.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^BROWSER-RENDER dashboard link \\(\\?access=\\) and session errors with hostile values #0 render text only$",
+					"message": "HTML parsing sink used: innerHTML"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QF1GUIDE",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-F1 reintroduced (guide.js): the Instagram icon is replaced via innerHTML",
+			"edits": [
+				{
+					"file": "web/src/guide.js",
+					"find": "const de = Object.fromEntries(",
+					"replace": "const instagramIcon = [...document.querySelectorAll('.social-links a')].find((a) => a.href.includes('instagram.com'))?.querySelector('svg');\nif (instagramIcon) instagramIcon.innerHTML = '<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"4\"/><circle cx=\"17.5\" cy=\"6.5\" r=\"1\" fill=\"currentColor\" stroke=\"none\"/>';\nconst de = Object.fromEntries("
+				}
+			],
+			"tests": [
+				"test/browser-render-sinks.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^BROWSER-RENDER the user guide \\(guide\\.js\\) writes text only$",
+					"message": "HTML parsing sink used: innerHTML"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QF2",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-F2 reintroduced: the back-to-Telegram link is built from any configured name",
+			"edits": [
+				{
+					"file": "web/src/main.js",
+					"find": "\tif (TELEGRAM_NAME.test(config.telegramUsername ?? '')) {\n\t\tconst back = document.createElement('a');",
+					"replace": "\tif (config.telegramUsername) {\n\t\tconst back = document.createElement('a');"
+				}
+			],
+			"tests": [
+				"test/historical-fix-frontend.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-SEC-F2 the back-to-Telegram link exists only for a Telegram-format bot name$",
+					"message": "\"evil\\.example/phish\" became a link target \\+ actual - expecte"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QW1",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-W1 reintroduced: the WalletConnect method list grants eth_sendTransaction",
+			"edits": [
+				{
+					"file": "web/src/wallet-methods.js",
+					"find": "export const WALLET_METHODEN_ANMELDEN = [...BASIS, 'personal_sign', 'wallet_switchEthereumChain'];",
+					"replace": "export const WALLET_METHODEN_ANMELDEN = [...BASIS, 'personal_sign', 'wallet_switchEthereumChain', 'eth_sendTransaction'];"
+				}
+			],
+			"tests": [
+				"test/wallet-methods.test.mjs",
+				"test/eoa-login-mainnet.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^W1 keine Liste enthaelt eine wertbewegende Methode$",
+					"message": "eth_sendTransaction  true !== false"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QW2ORIGIN",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-W2 reintroduced (server): the expected origin falls back to the Host header",
+			"edits": [
+				{
+					"file": "src/http-security.mjs",
+					"find": "\t\texpected = siweOrigin().uri;",
+					"replace": "\t\texpected = request.headers.host ? `https://${request.headers.host}` : siweOrigin().uri;"
+				}
+			],
+			"tests": [
+				"test/same-origin-boundary.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^W2 der Host-Header bestimmt die Erwartung nicht mehr$",
+					"message": "Expected values to be strictly equal:  true !== false"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QW2DISCONNECT",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-W2 reintroduced (frontend): the WalletConnect session stays open after the signature",
+			"edits": [
+				{
+					"file": "web/src/main.js",
+					"find": "\tdebugWallet('Trenne WalletConnect nach der Signatur');\n\ttry { await withTimeout(modal.disconnect(), 5000, 'disconnect timeout'); } catch {}",
+					"replace": "\tdebugWallet('Trenne WalletConnect nach der Signatur');"
+				}
+			],
+			"tests": [
+				"test/historical-fix-frontend.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-SEC-W2 after the signature the WalletConnect session is disconnected \\(success and failure\\)$",
+					"message": "verifyOk=true: WalletConnect session left open after the sig"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QW3",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SEC-W3 reintroduced: the browser wallet keeps its permission after the signature",
+			"edits": [
+				{
+					"file": "web/src/main.js",
+					"find": "\t\tif (verbunden) await trenneBrowserWallet();\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/historical-fix-frontend.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-SEC-W3 after the signature the page revokes the browser wallet permission \\(success and failure\\)$",
+					"message": "verifyOk=true: permission not revoked after the signature \\(e"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QAPI001",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-API-001 reintroduced: body size is no longer checked independently of Content-Length",
+			"edits": [
+				{
+					"file": "src/http-security.mjs",
+					"find": "\treturn serializedBodySize(request?.body) > maxBytes; // header-unabhaengig",
+					"replace": "\treturn false; // header-unabhaengig"
+				}
+			],
+			"tests": [
+				"test/api-hardening.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AGENT-API-001 uebergrosser Body OHNE Content-Length wird ebenfalls abgelehnt$",
+					"message": "Expected values to be strictly equal:  false !== true"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QAPI002",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-API-002 reintroduced: csp-report has no rate limit",
+			"edits": [
+				{
+					"file": "api/csp-report.mjs",
+					"find": "\tif (!await enforceRateLimit(request, response, 'csp-report', 60, 600)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/historical-fix-regressions.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-API-002 csp-report is rate limited before anything is parsed or logged$",
+					"message": "csp-report has no rate limit  204 !== 429"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QAPI003",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-API-003 reintroduced: the cron answer carries raw database error text",
+			"edits": [
+				{
+					"file": "api/alerts.mjs",
+					"find": "\t\t\t\tbereinigt[tabelle] = 'fehler';",
+					"replace": "\t\t\t\tbereinigt[tabelle] = wert;"
+				}
+			],
+			"tests": [
+				"test/historical-fix-regressions.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-API-003 the cron answer carries no internal database error text$",
+					"message": "Expected values to be strictly deep-equal: \\+ actual - expect"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QAUTH002",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-AUTH-002 reintroduced: GET ?access= consumes the one-time code",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\t\treturn response.status(405).json({ ok: false, code: 'ACCESS_REDEEM_VIA_POST', error: 'Diesen Dashboard-Link bitte über die Seite öffnen.' });",
+					"replace": "\t\t\tconst consumed = await consumeDashboardAccess(access);\n\t\t\treturn response.status(200).json({ ok: false, code: 'WALLET_SIGNATURE_REQUIRED', wallet: consumed });"
+				}
+			],
+			"tests": [
+				"test/historical-fix-regressions.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-AUTH-002 GET \\?access= never consumes the one-time code and points to POST$",
+					"message": "Expected values to be strictly equal:  200 !== 405"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QHARD001CACHE",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-HARD-001 reintroduced: a getCode RPC error is cached as \"no contract\"",
+			"edits": [
+				{
+					"file": "src/contract-detect.mjs",
+					"find": "\tconst code = await codeOf(address);",
+					"replace": "\tconst code = await codeOf(address).catch(() => '0x');"
+				}
+			],
+			"tests": [
+				"test/l4-contract-detect-ttl.test.mjs",
+				"test/safe-app-backend.test.mjs",
+				"test/erc1271.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^RPC-Fehler wird NICHT gecacht \\(Klassifikation bleibt offen\\)$",
+					"message": "Missing expected rejection\\."
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QHARD002OPERATOR",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "HARD-002 (75417e9) reintroduced: the operator CLI reports success without revoking",
+			"edits": [
+				{
+					"file": "scripts/revoke-dashboard-wallet.mjs",
+					"find": "\t\teffectiveCutoff = await db.revokeDashboardSessions(wallet.toLowerCase());",
+					"replace": "\t\teffectiveCutoff = Date.now();"
+				}
+			],
+			"tests": [
+				"test/dashboard-atomic-revoke.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^operator revokes normalized wallet then records a bounded incident and fixed operator source$",
+					"message": "Expected values to be strictly equal: \\+ actual - expected"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QHARD004",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "HARD-004 reintroduced: an already-revoked session can sign out the newer sessions of its wallet",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\t\t\tif (await isDashboardSessionRevoked(saved.wallet, sessionIssuedAt(saved))) {\n\t\t\t\t\tresponse.setHeader('set-cookie', CLEAR_SESSION_COOKIES);\n\t\t\t\t\treturn response.status(200).json({ ok: true });",
+					"replace": "\t\t\t\tif (false) {\n\t\t\t\t\tresponse.setHeader('set-cookie', CLEAR_SESSION_COOKIES);\n\t\t\t\t\treturn response.status(200).json({ ok: true });"
+				}
+			],
+			"tests": [
+				"test/historical-fix-regressions.test.mjs",
+				"test/dashboard-atomic-revoke.test.mjs",
+				"test/extended-audit-low.test.mjs",
+				"test/safe-session-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST HARD-004 an already-revoked session cannot sign out \\(revoke\\) the newer sessions of its wallet$",
+					"message": "a revoked session moved the wallet cutoff and signed out new"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QIR001",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-IR-001 reintroduced: a failed reminder run does not alert the operator",
+			"edits": [
+				{
+					"file": "api/alerts.mjs",
+					"find": "\t\tawait alertOperatorCronFailure('expiry-alert-run');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/historical-fix-regressions.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-IR-001 a failed reminder run alerts the operator once with a generic id and answers a generic 500$",
+					"message": "the operator was not alerted about the failed run \\+ actual -"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QIR002",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-IR-002 reintroduced: a forged webhook call is not recorded",
+			"edits": [
+				{
+					"file": "api/telegram.mjs",
+					"find": "\t\tawait recordSecurityEvent(SECURITY_EVENT.WEBHOOK_AUTH_FAILED, { source: 'telegram', fingerprint: securityFingerprint(ip) });\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/historical-fix-regressions.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-IR-002 a forged webhook call is recorded as a security event with a fingerprint, never the raw IP or token$",
+					"message": "webhook authentication failure was not recorded  0 !== 1"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QIR002RAW",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-IR-002 reintroduced: the webhook security event stores the raw IP instead of a fingerprint",
+			"edits": [
+				{
+					"file": "api/telegram.mjs",
+					"find": "{ source: 'telegram', fingerprint: securityFingerprint(ip) }",
+					"replace": "{ source: 'telegram', fingerprint: ip }"
+				}
+			],
+			"tests": [
+				"test/historical-fix-regressions.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-IR-002 a forged webhook call is recorded as a security event with a fingerprint, never the raw IP or token$",
+					"message": "raw IP stored  true !== false"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QLLM001",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-LLM-001 reintroduced: external product facts are placed into the instructions channel",
+			"edits": [
+				{
+					"file": "src/agent-knowledge.mjs",
+					"find": "instructions: `You explain Raccoon Agent",
+					"replace": "instructions: `${JSON.stringify(productFacts)}\\nYou explain Raccoon Agent"
+				}
+			],
+			"tests": [
+				"test/llm-trust-boundary.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AGENT-LLM-001 C: ein manipulierter externer Fakt bleibt reine Daten \\(nur im input\\)$",
+					"message": "Injektion NICHT in den instructions  true !== false"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QSAFE1FAIL",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SAFE-1 reintroduced: a failed contract detection grants the long contract TTL",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\t\t} catch { /* fail closed: kurze EOA-TTL */ }",
+					"replace": "\t\t\t} catch { ttlMs = DASHBOARD_CHALLENGE_TTL_CONTRACT_MS; }"
+				}
+			],
+			"tests": [
+				"test/l4-contract-detect-ttl.test.mjs",
+				"test/safe-app-backend.test.mjs",
+				"test/dashboard-login-behavior.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^L4 TTL: 30 minutes only for well-formed bytecode; empty code, timeout, HTTP errors and malformed answers get 5 minutes$",
+					"message": "timeout \\+ actual - expected"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QSAFE1CLIENT",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SAFE-1 reintroduced: a client hint lengthens the challenge TTL",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\t\t\tif (await isDeployedContract(wallet)) ttlMs = DASHBOARD_CHALLENGE_TTL_CONTRACT_MS;",
+					"replace": "\t\t\t\tif (singleQueryValue(query, 'multisig') === '1' || await isDeployedContract(wallet)) ttlMs = DASHBOARD_CHALLENGE_TTL_CONTRACT_MS;"
+				}
+			],
+			"tests": [
+				"test/l4-contract-detect-ttl.test.mjs",
+				"test/safe-app-backend.test.mjs",
+				"test/dashboard-login-behavior.test.mjs",
+				"test/historical-fix-regressions.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-SAFE-1 the challenge lifetime is decided by the server alone - client hints never lengthen it$",
+					"message": "an EOA got a 1800000 ms challenge from client hints"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QSAFE2",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SAFE-2 reintroduced: conflicting strict and Safe-App sessions resolve to the strict cookie",
+			"edits": [
+				{
+					"file": "src/dashboard-auth.mjs",
+					"find": "\t\tif (cookie.wallet !== safeApp.wallet) return { conflict: true, session: null };\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/safe-app-session.test.mjs",
+				"test/eoa-session-transport.test.mjs",
+				"test/session-token-boundaries.test.mjs",
+				"test/historical-fix-regressions.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AGENT-SAFE-2 a strict cookie and a Safe-App cookie for different wallets fail closed \\(401, cookies cleared, no data\\)$",
+					"message": "conflicting sessions served data as \\{\"ok\":true,\"wallet\":\"0xa"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QSAFE4",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-SAFE-4 reintroduced: ALLOWED_APP_ORIGINS is honoured in production",
+			"edits": [
+				{
+					"file": "src/http-security.mjs",
+					"find": "\tif (process.env.VERCEL_ENV === 'production') return [];\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/preview-origin-allowlist.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^Production \\+ gesetzte ALLOWED_APP_ORIGINS -> Preview trotzdem FAIL$",
+					"message": "Expected values to be strictly equal:  true !== false"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QUX5ACCOUNT",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-UX-5 reintroduced (browser wallet): the account is not rechecked after the network switch",
+			"edits": [
+				{
+					"file": "web/src/eoa-login.js",
+					"find": "\tif (expected && current !== expected) throw new Error(texts.accountChanged);\n\tif (isAborted())",
+					"replace": "\tif (isAborted())"
+				}
+			],
+			"tests": [
+				"test/eoa-login-mainnet.test.mjs",
+				"test/walletconnect-link-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^E: Account nach Switch geaendert -> STOP \\(keine stille Alt-Adresse\\)$",
+					"message": "Missing expected rejection\\."
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QUX5APPKIT",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AGENT-UX-5 reintroduced (WalletConnect): the account is not rechecked after the network switch",
+			"edits": [
+				{
+					"file": "web/src/eoa-login.js",
+					"find": "\tif (expected && current !== expected) throw new Error(texts.accountChanged);\n\treturn current;",
+					"replace": "\treturn current;"
+				}
+			],
+			"tests": [
+				"test/eoa-login-mainnet.test.mjs",
+				"test/walletconnect-link-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^WC-F: Account geaendert nach switch -> fail closed$",
+					"message": "Missing expected rejection\\."
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QUX5CHAIN",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "4e52666 reintroduced: the browser wallet signs although the chain is not mainnet",
+			"edits": [
+				{
+					"file": "web/src/eoa-login.js",
+					"find": "\t\tif (chainId !== MAINNET_HEX) throw new Error(texts.notMainnet);\n\t}",
+					"replace": "\t}"
+				}
+			],
+			"tests": [
+				"test/eoa-login-mainnet.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^D: switch resolved, Recheck != 0x1 -> STOP, kein eth_accounts$",
+					"message": "Missing expected rejection\\."
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QUX5WCCHAIN",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "2cc2bac reintroduced: WalletConnect signs although the chain is not mainnet",
+			"edits": [
+				{
+					"file": "web/src/eoa-login.js",
+					"find": "\tif (Number(modal.getChainId()) !== 1) throw new Error(texts.notMainnet);\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/eoa-login-mainnet.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^WC-D: switch ok, aber getChainId != 1 -> fail closed$",
+					"message": "Missing expected rejection\\."
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QAUDITF1",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AUDIT-2026-10-12 F1 reintroduced: any pending_links row (revocation marker, access code) counts as a link",
+			"edits": [
+				{
+					"file": "src/linking.mjs",
+					"find": "\treturn typeof row?.chat_id === 'string' && PRIVATE_CHAT_ID.test(row.chat_id);",
+					"replace": "\treturn typeof row?.chat_id === 'string';"
+				}
+			],
+			"tests": [
+				"test/link-row-kind.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^F1 helpers: exact newLinkRequest code format and private-chat rows only$",
+					"message": "revoked:0x1111111111111111111111111111111111111111  true !=="
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QAUDITF2",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AUDIT-2026-10-12 F2 reintroduced: the Safe login continues without confirmed off-chain signing",
+			"edits": [
+				{
+					"file": "web/src/safe-app.js",
+					"find": "\tif (settings?.offChainSigning !== true) {",
+					"replace": "\tif (settings?.offChainSigning === false) {"
+				}
+			],
+			"tests": [
+				"test/safe-app-flow.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^F2 kein Off-chain-Signieren bestaetigt \\(leer\\): keine Signaturanfrage, kein Login$",
+					"message": "Missing expected rejection\\."
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QAUDITF3",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AUDIT-2026-10-12 F3 reintroduced: the contract-detection cache is unbounded",
+			"edits": [
+				{
+					"file": "src/contract-detect.mjs",
+					"find": "\tif (cache.size <= CODE_CACHE_MAX_ENTRIES) return;",
+					"replace": "\treturn;"
+				}
+			],
+			"tests": [
+				"test/erc1271.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^F3 contract-detect cache stays bounded: expired first, then oldest$",
+					"message": "Expected values to be strictly equal:  1250 !== 1000"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QEL2",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AUDIT E-L2 reintroduced: the link target comes from the request instead of the bound chat",
+			"edits": [
+				{
+					"file": "api/link/verify.mjs",
+					"find": "\tconst target = await telegramTarget(pending.chat_id);",
+					"replace": "\tconst target = await telegramTarget(request.body?.chatId ?? pending.chat_id);"
+				}
+			],
+			"tests": [
+				"test/extended-audit-low.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^E-L2 B: the browser cannot substitute chat B - query, body and header values are ignored$",
+					"message": "Expected values to be strictly equal:  200 !== 401"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QLINKACCOUNT",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "cad24d4 reintroduced: the link page no longer learns which Telegram account it links to",
+			"edits": [
+				{
+					"file": "api/link.mjs",
+					"find": "\t\treturn response.status(200).json({ ok: true, telegram: target });",
+					"replace": "\t\treturn response.status(200).json({ ok: true });"
+				}
+			],
+			"tests": [
+				"test/extended-audit-low.test.mjs",
+				"test/link-row-kind.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^E-L2 A: the consent text for a link of chat A names chat A, and the page shows the same detail$",
+					"message": "Cannot read properties of undefined \\(reading 'target'\\)"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QEL3BOUND",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AUDIT E-L3 reintroduced: upstream display text is unbounded",
+			"edits": [
+				{
+					"file": "src/display-text.mjs",
+					"find": "\treturn chars.length <= max ? clean : `${chars.slice(0, max - 1).join('').trimEnd()}…`;",
+					"replace": "\treturn clean;"
+				}
+			],
+			"tests": [
+				"test/extended-audit-low.test.mjs",
+				"test/position-attributions-api.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^E-L3 1/2: a 5000-character upstream product name is bounded and the reminder stays within 4096 characters$",
+					"message": "name 5001"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QEL3ISO",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AUDIT E-L3 reintroduced: one failed reminder send aborts the remaining covers",
+			"edits": [
+				{
+					"file": "src/alerts.mjs",
+					"find": "\t\t\tfailed++;\n\t\t\tlogger.error(`Ablaufwarnung",
+					"replace": "\t\t\tfailed++;\n\t\t\tthrow error;\n\t\t\tlogger.error(`Ablaufwarnung"
+				}
+			],
+			"tests": [
+				"test/extended-audit-low.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^E-L3 3/4/5: a failed send for one cover does not suppress the next; only the successful one is marked sent$",
+					"message": "Bad Request: message is too long"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QEL4",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AUDIT E-L4 reintroduced: csp-report logs any directive string",
+			"edits": [
+				{
+					"file": "api/csp-report.mjs",
+					"find": "const richtlinie = typeof rawDirective === 'string' && DIRECTIVE.test(rawDirective) ? rawDirective : '?';",
+					"replace": "const richtlinie = typeof rawDirective === 'string' ? rawDirective : '?';"
+				}
+			],
+			"tests": [
+				"test/extended-audit-low.test.mjs",
+				"test/api-hardening.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^E-L4: csp-report logs only allow-listed directive values; everything else becomes \"\\?\"$",
+					"message": "\"SCRIPT-SRC\"  'SCRIPT-SRC' !== '\\?'"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QSAL2",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "AUDIT SA-L2 reintroduced: a failing revocation check serves data",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\t\t// AUDIT SA-L2: Widerruf nicht pruefbar -> keine Daten (fail closed), kein Absturz.\n\t\t\treturn response.status(503).json({ ok: false, code: 'SESSION_CHECK_UNAVAILABLE', error: 'Sitzung konnte gerade nicht geprüft werden.' });",
+					"replace": "\t\t\t// AUDIT SA-L2: Widerruf nicht pruefbar -> keine Daten (fail closed), kein Absturz.\n\t\t\trevoked = false;"
+				}
+			],
+			"tests": [
+				"test/historical-fix-regressions.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST AUDIT SA-L2 an unverifiable revocation check serves no data \\(503\\), the provider is never asked$",
+					"message": "revocation check failure must fail closed  200 !== 503"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QM1DASH",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "META-AUDIT M-1 reintroduced (dashboard): fresh contract authority cannot remove a stale chat",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "const removed = contractAuthority ? await unlinkWalletFromAllChats(saved.wallet) : await unlinkWalletByWallet(saved.wallet);",
+					"replace": "const removed = await unlinkWalletByWallet(saved.wallet);"
+				}
+			],
+			"tests": [
+				"test/telegram-stale-authority.test.mjs",
+				"test/safe-session-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^M-1 \\(Dashboard\\): current owner B with fresh ERC-1271 authority removes the stale chat A$",
+					"message": "T7: alle Telegram-Chats der Safe getrennt, auch der veraltet"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QM1BOT",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "META-AUDIT M-1 reintroduced (bot): \"fully disconnect\" acts wallet-wide without a no-code quorum",
+			"edits": [
+				{
+					"file": "src/bot.mjs",
+					"find": "\ttry { return await noContractCodeByQuorum(wallet); } catch { return false; }",
+					"replace": "\treturn true;"
+				}
+			],
+			"tests": [
+				"test/telegram-stale-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^M-1 \\(Telegram\\): the removed owner's chat triggers \"fully disconnect\" - no wallet-wide effect on the Safe$",
+					"message": "T1: keine Dashboard-Sitzung der Safe widerrufen"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QRM1LINKCHAT",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "Restaudit M1 reintroduced: link codes have no per-chat limit",
+			"edits": [
+				{
+					"file": "src/linking.mjs",
+					"find": "[['link-code-chat', `link-code-chat:${fingerprint}`, LINK_CODE_CHAT_LIMIT], ",
+					"replace": "["
+				}
+			],
+			"tests": [
+				"test/m1-link-limits.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^D: link codes are rate-limited per chat \\(10 / 10 min\\); other chats are unaffected$",
+					"message": "elfter Code abgelehnt \\+ actual - expected"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QRM1LINKGLOBAL",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "Restaudit M1 reintroduced: link codes have no global limit",
+			"edits": [
+				{
+					"file": "src/linking.mjs",
+					"find": ", ['link-code-global', 'link-code-global:all', LINK_CODE_GLOBAL_LIMIT]]",
+					"replace": "]"
+				}
+			],
+			"tests": [
+				"test/m1-link-limits.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^E: link codes are rate-limited globally \\(300 / 10 min\\) across many chats$",
+					"message": "globale Grenze \\+ actual - expected"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QRM1ALERT",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "Restaudit M1 reintroduced: the reminder run has no lookup budget",
+			"edits": [
+				{
+					"file": "src/alerts.mjs",
+					"find": "\tconst lookupAllowed = () => used.lookups < limits.maxCoverLookups - lookupReserve;",
+					"replace": "\tconst lookupAllowed = () => true;"
+				}
+			],
+			"tests": [
+				"test/m1-alert-run-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^J: the run stops at the cover/RPC lookup budget and keeps the snooze reserve for due snoozes$",
+					"message": "Abos: 30 - 5 Reserve  80 !== 25"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QRM2WALLET",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "Restaudit M2 reintroduced: authenticated dashboard reads have no per-wallet budget",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\t\tconst admitted = await enforceRateLimitFor(response, 'dashboard-read-wallet', sessionWallet, DASHBOARD_READ_WALLET_LIMIT.max, DASHBOARD_READ_WALLET_LIMIT.windowSeconds)\n\t\t\t\t&& await enforceRateLimitFor",
+					"replace": "\t\t\tconst admitted = await enforceRateLimitFor"
+				}
+			],
+			"tests": [
+				"test/m2-dashboard-read-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^C \\+ E \\+ L \\(EOA\\): the per-wallet budget \\(30 / 10 min\\) blocks lookup 31 BEFORE the provider - also with a new IP and a new instance each time$",
+					"message": "Expected values to be strictly equal:  200 !== 429"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QRM2GLOBAL",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "Restaudit M2 reintroduced: authenticated dashboard reads have no global budget",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\n\t\t\t\t&& await enforceRateLimitFor(response, 'dashboard-read-global', 'all', DASHBOARD_READ_GLOBAL_LIMIT.max, DASHBOARD_READ_GLOBAL_LIMIT.windowSeconds);",
+					"replace": ";"
+				}
+			],
+			"tests": [
+				"test/m2-dashboard-read-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^D \\+ F: the global budget \\(300 / 10 min\\) caps lookups across many wallets and IPs, BEFORE the provider$",
+					"message": "Expected values to be strictly equal:  200 !== 429"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QAPPKIT",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "META-AUDIT M-3 / 7207f7e (kept part) reintroduced: AppKit starts with send and swaps enabled",
+			"edits": [
+				{
+					"file": "web/src/main.js",
+					"find": "features: { analytics: false, email: false, socials: [], send: false, receive: false, swaps: false, onramp: false }",
+					"replace": "features: { analytics: false, email: false, socials: [], send: true, receive: false, swaps: true, onramp: false }"
+				}
+			],
+			"tests": [
+				"test/historical-fix-frontend.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST META-AUDIT M-3 / 0f3a6ef AppKit starts with value-moving features off and with the own font \\(no third-party preloads\\)$",
+					"message": "Expected values to be strictly deep-equal: \\+ actual - expect"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QAPPKITFONT",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "0f3a6ef reintroduced: AppKit starts without the own font (eight third-party font preloads)",
+			"edits": [
+				{
+					"file": "web/src/main.js",
+					"find": "themeVariables: { '--apkt-font-family': \"'Satoshi', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif\" }, ",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/historical-fix-frontend.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST META-AUDIT M-3 / 0f3a6ef AppKit starts with value-moving features off and with the own font \\(no third-party preloads\\)$",
+					"message": "no own font: AppKit preloads fonts\\.reown\\.com"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QF2C2",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "F-2C-2 reintroduced: a NOT_RUN mutation case no longer blocks the known-bad proof",
+			"edits": [
+				{
+					"file": "security/crsf/lib/engine.mjs",
+					"find": "\tif (notRun.length) return { ok: false, why: `mutation not run: ${notRun.map(({ m }) => m.id).join(', ')}` };\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/crsf-engine.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^VERIFY-009: one NOT_RUN case invalidates the known-bad proof of the property even if others are KILLED$",
+					"message": "Expected values to be strictly equal:  true !== false"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QF2C3",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "F-2C-3 reintroduced: self-declared evidence levels are no longer capped per type",
+			"edits": [
+				{
+					"file": "security/crsf/lib/engine.mjs",
+					"find": "\t\tif (cap[e.type] && ctx.levels.indexOf(e.level) > ctx.levels.indexOf(cap[e.type])) err('LEVEL_EXCEEDS_TYPE'",
+					"replace": "\t\tif (false) err('LEVEL_EXCEEDS_TYPE'"
+				}
+			],
+			"tests": [
+				"test/crsf-framework-fixes.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST F-2C-3 the framework still rejects its known-bad fixtures T, X2$",
+					"message": "F-2C-3: fixture T accepted - FAIL T    sequential behavioura"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QF2D1",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "F-2D-1 reintroduced: real-system evidence no longer needs real infrastructure",
+			"edits": [
+				{
+					"file": "security/crsf/lib/engine.mjs",
+					"find": "\t\tif (e.type === 'real-system' && e.reproducible && !(e.execution?.environment ?? []).some((x) => x !== 'node')) err(",
+					"replace": "\t\tif (false) err("
+				}
+			],
+			"tests": [
+				"test/crsf-framework-fixes.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST F-2D-1 the framework still rejects its known-bad fixtures T2$",
+					"message": "F-2D-1: fixture T2 accepted - FAIL T2   sequential node test"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QF2J1",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "F-2J-1 reintroduced: an open unmapped application finding no longer fails the release",
+			"edits": [
+				{
+					"file": "security/crsf/lib/engine.mjs",
+					"find": "\tif (openUnmapped.length || releaseBlockingStatuses.includes('FAIL')",
+					"replace": "\tif (releaseBlockingStatuses.includes('FAIL')"
+				}
+			],
+			"tests": [
+				"test/crsf-framework-fixes.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST F-2J-1 the framework still rejects its known-bad fixtures Z1, Z6, Z12$",
+					"message": "F-2J-1: fixture Z1 accepted - FAIL Z1   open application fin"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QISOMETA",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "062201c reintroduced: a wallet linked to several chats exposes one arbitrary chat's settings",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "return { linked: rows.length > 0, link: rows.length === 1 ? rows[0] : null };",
+					"replace": "return { linked: rows.length > 0, link: rows[0] ?? null };"
+				}
+			],
+			"tests": [
+				"test/historical-fix-regressions.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST 062201c a wallet linked to several chats exposes no chat-specific metadata$",
+					"message": "several chats: an arbitrary chat label/settings leaked \\+ act"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QISOUNLINK",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "062201c reintroduced: a wallet-authorized unlink picks one of several chats",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\tif (matches.length !== 1) return [];\n\tconst [{ chat_id: chatId, is_primary: wasPrimary }] = matches;\n\treturn [await removeWalletFromChat(chatId, normalized, wasPrimary, { remember: true, client })];",
+					"replace": "\tif (!matches.length) return [];\n\tconst [{ chat_id: chatId, is_primary: wasPrimary }] = matches;\n\treturn [await removeWalletFromChat(chatId, normalized, wasPrimary, { remember: true, client })];"
+				}
+			],
+			"tests": [
+				"test/telegram-wallet-isolation.test.mjs",
+				"test/telegram-stale-authority.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^T14: EOA behaviour \\(documented\\) - dashboard \"Telegram trennen\" still only for exactly one chat, no new signature; bot revokes EOA sessions$",
+					"message": "Expected values to be strictly equal:  true !== false"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QPRIVMSG",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "b44f37a reintroduced: a private message need not come from the chat owner",
+			"edits": [
+				{
+					"file": "src/telegram-audit.mjs",
+					"find": "\t\t&& Number.isSafeInteger(message?.from?.id)\n\t\t&& message.chat.id === message.from.id;",
+					"replace": "\t\t&& Number.isSafeInteger(message?.from?.id);"
+				}
+			],
+			"tests": [
+				"test/telegram-audit.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^private Telegram messages require the sender to match the private chat$",
+					"message": "Expected values to be strictly equal:  true !== false"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QFILTERHOST",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "e987990 reintroduced: links to any host pass the answer filter",
+			"edits": [
+				{
+					"file": "src/answer-filter.mjs",
+					"find": "\t\t\t} else if (ERLAUBTE_HOSTS.has(host)) {",
+					"replace": "\t\t\t} else if (host) {"
+				}
+			],
+			"tests": [
+				"test/answer-filter.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^fremde Links werden ersetzt, in jeder Schreibweise$",
+					"message": "Das Formular liegt unter https://cover-raccoon-claim\\.com/for"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QFILTERADDR",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "e987990 reintroduced: wallet addresses pass the answer filter",
+			"edits": [
+				{
+					"file": "src/answer-filter.mjs",
+					"find": "\t\t.replace(ADRESSE, () => {\n\t\t\tentfernt++;\n\t\t\treturn '[Adresse entfernt]';\n\t\t});",
+					"replace": "\t\t;"
+				}
+			],
+			"tests": [
+				"test/answer-filter.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^Wallet-Adressen werden immer entfernt$",
+					"message": "Expected values to be strictly equal: \\+ actual - expected"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QAIGLOBAL",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "cad24d4 reintroduced: the AI budget has no global cap",
+			"edits": [
+				{
+					"file": "src/ai-budget.mjs",
+					"find": "\t\tpruefungen.push(['ai-gesamt', 'alle', AI_LIMITS.gesamt]);\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/ai-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^der Kostendeckel ueber alle Chats greift auch, wenn jeder Chat neu ist$",
+					"message": "Expected values to be strictly equal:  700 !== 600"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QAIFAIL",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "7db17e8 reintroduced: a failing AI budget count allows private requests",
+			"edits": [
+				{
+					"file": "src/ai-budget.mjs",
+					"find": "\t} catch {\n\t\treturn false;\n\t}\n}",
+					"replace": "\t} catch {\n\t\treturn !isGroup;\n\t}\n}"
+				}
+			],
+			"tests": [
+				"test/ai-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^faellt die Zaehlung aus, bleiben privat und Gruppe zu$",
+					"message": "Expected values to be strictly equal:  true !== false"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QCSPCONNECT",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "d18c95b reintroduced: connect-src allows any https:/wss: origin again",
+			"edits": [
+				{
+					"file": "vercel.json",
+					"find": "\"X-Frame-Options\", \"value\": \"DENY\" },\n        { \"key\": \"Content-Security-Policy\", \"value\": \"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://api.web3modal.org; font-src 'self' data:; connect-src 'self' https://api.web3modal.org https://rpc.walletconnect.org https://pulse.walletconnect.org https://verify.walletconnect.org wss://relay.walletconnect.org",
+					"replace": "\"X-Frame-Options\", \"value\": \"DENY\" },\n        { \"key\": \"Content-Security-Policy\", \"value\": \"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://api.web3modal.org; font-src 'self' data:; connect-src 'self' https: wss:"
+				}
+			],
+			"tests": [
+				"test/csp-browser-enforced.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^CSP-BROWSER headless Chrome enforces the vercel\\.json policy: no eval, no inline or injected script, no object/base$",
+					"message": "/link: no connect-src violation reported \\(script-src, script"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QCSPLOG",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "d18c95b reintroduced: csp-report logs the page address (link and access codes)",
+			"edits": [
+				{
+					"file": "api/csp-report.mjs",
+					"find": "\t\t\tconsole.log(`csp-report richtlinie=${richtlinie} blockiert=${blockiert}`);",
+					"replace": "\t\t\tconsole.log(`csp-report richtlinie=${richtlinie} blockiert=${blockiert} seite=${meldung['document-uri']}`);"
+				}
+			],
+			"tests": [
+				"test/historical-fix-regressions.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST d18c95b csp-report logs only directive and blocked origin - never the page address or referrer with link codes$",
+					"message": "Expected values to be strictly deep-equal: \\+ actual - expect"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QGUARDHTML",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "d18c95b reintroduced: the frontend guard no longer rejects innerHTML",
+			"edits": [
+				{
+					"file": "scripts/check-frontend.mjs",
+					"find": "\t['innerHTML', 'schreibt eine Zeichenkette als Markup in den Baum'],\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/frontend-markup.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^3 ein wiedereingefuehrtes innerHTML laesst den Build fallen$",
+					"message": "Expected values to be strictly equal:  true !== false"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QFONTSHA",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "20f9549 reintroduced: downloaded fonts are written without the SHA-256 check",
+			"edits": [
+				{
+					"file": "scripts/fetch-fonts.mjs",
+					"find": "\tif (ist !== sha256) {",
+					"replace": "\tif (false) {"
+				}
+			],
+			"tests": [
+				"test/font-integrity.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST 20f9549 fonts whose SHA-256 does not match are never written and the build fails$",
+					"message": "script exit 0: Lade Satoshi von Fontshare \\(Versuch 1/3\\) \\.\\.\\."
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QNPMRC",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "b706956/51c0cd4 reintroduced: the project .npmrc allows install scripts",
+			"edits": [
+				{
+					"file": ".npmrc",
+					"find": "ignore-scripts=true",
+					"replace": "ignore-scripts=false"
+				}
+			],
+			"tests": [
+				"test/npm-install-scripts.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^HIST b706956 the project \\.npmrc stops npm from running install lifecycle scripts$",
+					"message": "install scripts ran despite the project \\.npmrc \\+ actual - ex"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QRETENTION",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "aa77699 reintroduced: logs are kept far beyond 90 days",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\tconst cutoff = new Date(now - RETENTION_DAYS * 86_400_000).toISOString();",
+					"replace": "\tconst cutoff = new Date(now - 10 * RETENTION_DAYS * 86_400_000).toISOString();"
+				}
+			],
+			"tests": [
+				"test/purge.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^Protokolle nach 90 Tagen, Login-Codes nach Ablauf$",
+					"message": "Expected values to be strictly deep-equal: \\+ actual - expect"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QANALYTICS",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "bc42b0a reintroduced: analytics URLs keep the query (access and link codes)",
+			"edits": [
+				{
+					"file": "web/src/analytics.js",
+					"find": "\t\treturn `${parsed.origin}${parsed.pathname}`;",
+					"replace": "\t\treturn `${parsed.origin}${parsed.pathname}${parsed.search}`;"
+				}
+			],
+			"tests": [
+				"test/analytics.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^every query string and fragment is removed before sending - access codes, link codes, Safe parameters$",
+					"message": "https://coverraccoon\\.com/\\?access=SECRETaccessCODE123 \\+ actua"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QGTAG",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "register guard weakened: an unclassified tag of a known family passes",
+			"edits": [
+				{
+					"file": "security/crsf/lib/fix-register.mjs",
+					"find": "\t\tif (!registeredTags.has(tag)) err('UNCLASSIFIED_SECURITY_TAG',",
+					"replace": "\t\tif (false) err('UNCLASSIFIED_SECURITY_TAG',"
+				}
+			],
+			"tests": [
+				"test/fix-register.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^FIXREG fixture: a new tag of a known family fails closed$",
+					"message": "The expression evaluated to a falsy value:    assert\\.ok\\(code"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QGCATCHALL",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "register guard weakened: the catch-all no longer finds markers of new families",
+			"edits": [
+				{
+					"file": "security/crsf/lib/fix-register.mjs",
+					"find": "export const CATCH_ALL = /\\bAUDIT\\b|",
+					"replace": "export const CATCH_ALL = /(?!)\\bAUDIT\\b|"
+				}
+			],
+			"tests": [
+				"test/fix-register.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^FIXREG fixture: a marker of a NEW family \\(catch-all\\) fails closed$",
+					"message": "The expression evaluated to a falsy value:    assert\\.ok\\(code"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QGBEHAVIOURAL",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "register guard weakened: a static-only mutation proves a fix",
+			"edits": [
+				{
+					"file": "security/crsf/lib/fix-register.mjs",
+					"find": "\t\t\tif (m.detection !== 'behavioral') err(",
+					"replace": "\t\t\tif (false) err("
+				}
+			],
+			"tests": [
+				"test/fix-register.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^FIXREG fixture: a PROVEN fix without mutation, with a static mutation, or with an unknown mutation fails$",
+					"message": "The expression evaluated to a falsy value:    assert\\.ok\\(code"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QGCOMMIT",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "register guard weakened: unclassified security commits pass",
+			"edits": [
+				{
+					"file": "security/crsf/lib/fix-register.mjs",
+					"find": "\t\t\tif (rules.some((r) => r.re.test(c.subject))) continue;",
+					"replace": "\t\t\tcontinue;"
+				}
+			],
+			"tests": [
+				"test/fix-register.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^FIXREG fixture: with full history an unclassified security commit fails; the evidence-phase rule and other commits pass$",
+					"message": "Expected values to be strictly deep-equal: \\+ actual - expect"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QGCOMPLETE",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "register guard weakened: MISSING_EVIDENCE fixes count as complete",
+			"edits": [
+				{
+					"file": "security/crsf/lib/fix-register.mjs",
+					"find": "complete: errors.length === 0 && missing.length === 0,",
+					"replace": "complete: errors.length === 0,"
+				}
+			],
+			"tests": [
+				"test/fix-register.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^FIXREG fixture: MISSING_EVIDENCE needs a reason and keeps the register incomplete$",
+					"message": "Expected values to be strictly equal:  true !== false"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QGFINDING",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "register guard weakened: a FINDING_FIXED id need not be a registered fix",
+			"edits": [
+				{
+					"file": "security/crsf/lib/fix-register.mjs",
+					"find": "\t\tif (!fixes.some((f) => FIX_CLASSES.includes(f.classification) && (f.tags ?? []).includes(id))) err(",
+					"replace": "\t\tif (false) err("
+				}
+			],
+			"tests": [
+				"test/fix-register.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^FIXREG fixture: a fixed CRSF finding that is not registered as a fix fails$",
+					"message": "The expression evaluated to a falsy value:    assert\\.ok\\(code"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QGSTALE",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "register guard weakened: a vanished tag stays registered",
+			"edits": [
+				{
+					"file": "security/crsf/lib/fix-register.mjs",
+					"find": "\t\tif (!discovered.tags.has(tag) && entry.present !== false) err(",
+					"replace": "\t\tif (false) err("
+				}
+			],
+			"tests": [
+				"test/fix-register.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^FIXREG fixture: a registered tag that vanished from the code fails \\(stale\\)$",
+					"message": "The expression evaluated to a falsy value:    assert\\.ok\\(code"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2QGTESTMATCH",
+			"origin": "CRSF Phase 2Q (CR-VERIFY-003 historical fix register)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "register guard weakened: a fix may name a test that is not an expected failure of its mutations",
+			"edits": [
+				{
+					"file": "security/crsf/lib/fix-register.mjs",
+					"find": "\t\t\tif (!expected.has(`${t.file}\\u0000${t.test}`)) err(",
+					"replace": "\t\t\tif (false) err("
+				}
+			],
+			"tests": [
+				"test/fix-register.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^FIXREG fixture: missing invariant, foreign test or a mutation claimed twice fails$",
+					"message": "The expression evaluated to a falsy value:    assert\\.ok\\(code"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

@@ -113,6 +113,24 @@ test('DBPRIV-DB', { skip, timeout: 300_000 }, async (t) => {
 		}
 	});
 
+	// CRSF 2Q, historische Korrektur AGENT-SEC-A7 / 638f10a: die Standardrechte sind
+	// geschlossen - eine KUENFTIGE Tabelle (oder Sequenz) des Owners erbt keine Rechte
+	// fuer anon/authenticated, auch wenn ihre Migration das Revoke vergisst.
+	await t.test('DBPRIV: default privileges are closed - a table created after all migrations grants anon/authenticated nothing', async () => {
+		await c.query('begin');
+		try {
+			await c.query('create table public.crsf_future_table (id bigserial primary key, x int)');
+			const leaks = [];
+			for (const role of API_ROLES) {
+				for (const p of TABLE_PRIVILEGES) if ((await c.query(`select has_table_privilege($1, 'public.crsf_future_table', $2) as x`, [role, p])).rows[0].x) leaks.push(`${role} ${p} table`);
+				for (const p of ['USAGE', 'SELECT', 'UPDATE']) if ((await c.query(`select has_sequence_privilege($1, 'public.crsf_future_table_id_seq', $2) as x`, [role, p])).rows[0].x) leaks.push(`${role} ${p} sequence`);
+			}
+			assert.deepEqual(leaks, [], 'a new table inherits API-role privileges from the default privileges');
+		} finally {
+			await c.query('rollback');
+		}
+	});
+
 	await t.test('DBPRIV: function execute rights match the allowlist exactly', async () => {
 		const fns = await functions();
 		const names = fns.map((f) => f.proname).sort();

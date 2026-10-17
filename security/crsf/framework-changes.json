@@ -1506,6 +1506,30 @@
 					"reason": "edits[].file may now also be exactly vercel.json (the deployment headers incl. the Content-Security-Policy), so CR-BROWSER-004 P3 can be checked by known-bad mutations of the served policy; no other path added, no threshold or class changed"
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2q",
+			"summary": "Phase 2Q: CR-VERIFY-003 historical security-fix register (102 fixes, 99 PROVEN at E4, 3 MISSING_EVIDENCE) with a fail-closed inventory guard and 82 new known-bad mutations; no application change, no finding.",
+			"changes": [
+				{
+					"id": "CR-VERIFY-003",
+					"kind": "REVIEWED_NOT_CLOSED",
+					"evidence_added": [
+						"security/crsf/fix-register.json + security/crsf/lib/fix-register.mjs + test/fix-register.test.mjs (EV-FIX-REGISTER)",
+						"test/historical-fix-regressions.test.mjs, test/historical-fix-frontend.test.mjs, test/font-integrity.test.mjs, test/npm-install-scripts.test.mjs, test/crsf-framework-fixes.test.mjs (EV-FIX-REGISTER)",
+						"test/csp-browser-enforced.test.mjs (connect-src probe) and test/db-privileges-db.test.mjs (default privileges sub-test)",
+						"security/mutation/cases.json (EV-KB-VERIFY-003, 82 KILLED)"
+					],
+					"why_sufficient": "not sufficient: the control requires a known-bad proof for EACH security fix; the register names the fixes that still lack one",
+					"remains_unproven": "3 fix(es) without reproducible known-bad proof stay MISSING_EVIDENCE in the register: FIX-B706956-REGISTRY-SIGNATURES (needs the npm registry over the network; offline the invariant is only visible as the configured script (static, package.json). No reproducible offline known-bad test.); FIX-B647281-NPM-CI (the installCommand is executed only by Vercel; locally it is a configuration value (static). No reproducible offline known-bad test of the platform behaviour.); FIX-CAD24D4-VERCELIGNORE (the upload filter is applied only by the Vercel CLI (not installed, not run offline); locally it is a pattern file (static). No reproducible known-bad test of the platform behaviour.)",
+					"reason": "evidence (Phase 2Q); status recomputed by the engine - stays MISSING_EVIDENCE because P1 is only PARTIAL"
+				},
+				{
+					"id": "mutations.schema.json",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "edits[].file may now also be exactly .npmrc (project npm configuration; ignore-scripts), so the historical fix b706956/51c0cd4 can be checked by a known-bad mutation; no other path added, no threshold or class changed"
+				}
+			]
 		}
 	]
 }
