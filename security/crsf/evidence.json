@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2u",
+	"crsf_version": "1.0-draft-phase2v",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -7533,6 +7533,206 @@
 				"expected_result": "PASS",
 				"known_bad_required": false
 			}
+		},
+		{
+			"id": "EV-RL-DB",
+			"control_ids": [
+				"CR-RESOURCE-002"
+			],
+			"type": "real-system",
+			"level": "E5",
+			"source": "repository",
+			"artifact": "test/rate-limit-atomic-db.test.mjs",
+			"test_or_proof": "test/rate-limit-atomic-db.test.mjs",
+			"property_proven": "public.check_agent_rate_limit against real Postgres, every caller on its own connection. Deterministic gate: a caller holds the counter row lock in an open transaction until Postgres reports all N other callers waiting (pg_stat_activity, Lock); after release exactly min(max, N+1) are admitted and every request is counted (no lost increment), for N up to 29 and max 1..25. Simultaneous first requests for a fresh key (10 rounds, 29 connections) admit exactly max; two keys are independent. Runner-observed: server-confirmed use and overlapping execution (pg-observer).",
+			"property_not_proven": "fixed-window semantics at the window boundary; callers of the function in application code (separate controls); the hosted Supabase/PostgREST deployment.",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-RESOURCE-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"disposable Postgres"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/rate-limit-atomic-db.test.mjs"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-LOCKS-DB",
+			"control_ids": [
+				"CR-CONC-006"
+			],
+			"type": "real-system",
+			"level": "E5",
+			"source": "repository",
+			"artifact": "test/advisory-locks-db.test.mjs",
+			"test_or_proof": "test/advisory-locks-db.test.mjs",
+			"property_proven": "Inventory from pg_proc of the migrated database: every public function that takes an advisory lock, directly or through another function (lock_chat_wallets, upsert_position_attribution_limited, revoke_dashboard_sessions_atomic, consume_wallet_link_v2, consume_wallet_link), is exercised; a new locking function fails the test. Per operation with separate connections: inside an open transaction the caller holds exactly one advisory lock (P2); a second caller with the same key waits with wait_event Lock/advisory and exactly one ungranted advisory request - no retry, no sleep (P3); on commit the lock is gone, the second caller completes and no session keeps an advisory lock (P1); 11 simultaneous callers per operation finish without deadlock (40P01) or error and leave no lock. Runner-observed: server-confirmed use and overlapping execution.",
+			"property_not_proven": "row-level locks (FOR UPDATE) and lock ordering across different lock kinds; retry loops in application code outside SQL (none known); functions outside schema public.",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-CONC-006",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"disposable Postgres"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/advisory-locks-db.test.mjs"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-RL-DB",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 1 case(s)",
+			"property_proven": "Reintroducing the lost-update race (read the counter, then write read+1) in check_agent_rate_limit is detected by the gated real-Postgres test (more than max admitted).",
+			"property_not_proven": "other conceivable non-atomic counting variants",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-RESOURCE-002-P1-2VLOSTUPDATE"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node",
+				"postgres"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-RESOURCE-002-P1-2VLOSTUPDATE"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-RESOURCE-002"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
+			"id": "EV-KB-LOCKS-DB",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 3 case(s)",
+			"property_proven": "A session-level advisory lock (P1), a second advisory lock in one operation (P2) and an unbounded try-lock/sleep retry loop (P3) are each detected by the real-Postgres lock test.",
+			"property_not_proven": "other conceivable lock misuse beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-CONC-006",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-CONC-006-P1-2VSESSIONLOCK, MUT-CR-CONC-006-P2-2VTWOLOCKS, MUT-CR-CONC-006-P3-2VRETRYLOOP"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node",
+				"postgres"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-CONC-006-P1-2VSESSIONLOCK",
+					"MUT-CR-CONC-006-P2-2VTWOLOCKS",
+					"MUT-CR-CONC-006-P3-2VRETRYLOOP"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-CONC-006"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
 		}
 	]
 }

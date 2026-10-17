@@ -1658,6 +1658,50 @@
 					"reason": "Not closed in Phase 2U. The framework can now distinguish observed real-system use and real concurrency from declarations, but P1 (\"each concurrency control has a real-Postgres test\") is not satisfied: CR-RESOURCE-002 and CR-CONC-006 have no real-Postgres concurrency test, and the control still has no E5 real-system evidence of its own. Minimum level, evidence type, property text and applicability unchanged."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2v",
+			"summary": "Phase 2V: real-Postgres concurrency evidence with runner-observed use and overlap for CR-RESOURCE-002 (rate limiter counting) and CR-CONC-006 (advisory locks); four KILLED mutations. No application change, no finding. CR-VERIFY-004 re-evaluated and left MISSING_EVIDENCE (see record).",
+			"changes": [
+				{
+					"id": "CR-RESOURCE-002",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E5",
+					"evidence_added": [
+						"test/rate-limit-atomic-db.test.mjs (EV-RL-DB, real-system E5, runner-observed use and overlap)",
+						"security/mutation/cases.json (EV-KB-RL-DB: MUT-CR-RESOURCE-002-P1-2VLOSTUPDATE)"
+					],
+					"why_sufficient": "P1 is shown on the real function with separate connections: a deterministic row-lock gate forces all N callers to start before any increment is visible - the interleaving in which a read-then-write counter loses increments - and the admitted count equals min(max, N+1) with every request counted; the lost-update mutation is KILLED by exactly that test.",
+					"remains_unproven": "window boundary behaviour; the hosted deployment",
+					"reason": "evidence closure (Phase 2V); status recomputed by the engine"
+				},
+				{
+					"id": "CR-CONC-006",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E3",
+					"evidence_added": [
+						"test/advisory-locks-db.test.mjs (EV-LOCKS-DB, real-system E5 >= E3, runner-observed use and overlap)",
+						"security/mutation/cases.json (EV-KB-LOCKS-DB: MUT-CR-CONC-006-P1-2VSESSIONLOCK, MUT-CR-CONC-006-P2-2VTWOLOCKS, MUT-CR-CONC-006-P3-2VRETRYLOOP)"
+					],
+					"why_sufficient": "Every advisory-locking function of the migrated schema (inventory from pg_proc, transitive) is exercised with two sessions: exactly one transaction-scoped advisory lock per operation, a blocked second caller that waits on the lock (no retry loop) and completes after release, no lock left, and no deadlock under 11 simultaneous callers; session lock, second lock and retry loop mutations are KILLED.",
+					"remains_unproven": "row-level lock ordering; application-level retries (none known)",
+					"reason": "evidence closure (Phase 2V); status recomputed by the engine. Note: the control minimum is E3 behavioural (not E5); the real-Postgres evidence exceeds it and, as a concurrency claim, carries observed overlap."
+				},
+				{
+					"id": "CR-VERIFY-004",
+					"kind": "REVIEWED_NOT_CLOSED",
+					"reason": "Re-evaluated after Phase 2V. The substantive condition of P1 now holds in the full environment: every concurrency control (CR-CONC-001..006, CR-RESOURCE-002) has real-Postgres evidence whose Postgres use and overlapping execution the runner observed (pg-observer receipts). The control still has no evidence of its required type: no real-system item covers CR-VERIFY-004 P1, and none is added, because the only candidates would relabel the application tests as proof of a framework meta-property (strategy B of Phase 2T) or need a new engine rule that derives the meta-property from other controls' observed coverage. That is a decision for a versioned framework change, not an evidence step. Minimum level, type, property text and applicability unchanged."
+				},
+				{
+					"id": "scripts/skip-policy.mjs",
+					"kind": "TEST_INFRA",
+					"reason": "two exact-name allowed skips (RL-DB, LOCKS-DB), only while M1_DB_TEST_PG_URL is unset; with Postgres configured a skip is an error."
+				}
+			]
 		}
 	]
 }

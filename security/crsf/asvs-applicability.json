@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2u",
+	"crsf_version": "1.0-draft-phase2v",
 	"asvs": "5.0.0",
 	"input": "security/crsf/vendor/asvs-5.0.0.flat.json",
 	"input_sha256": "8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311",
@@ -436,7 +436,7 @@
 				"CR-RESOURCE-002",
 				"CR-RESOURCE-007"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -3138,7 +3138,7 @@
 				"CR-CONC-005",
 				"CR-RESOURCE-002"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -3149,7 +3149,7 @@
 			"controls": [
 				"CR-CONC-006"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "SECURITY_DEBT"
 		},
 		{

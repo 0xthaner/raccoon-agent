@@ -11007,6 +11007,146 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-002-P1-2VLOSTUPDATE",
+			"origin": "CRSF Phase 2V",
+			"evidence_id": "EV-KB-RL-DB",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-002",
+					"property": "P1"
+				}
+			],
+			"description": "check_agent_rate_limit counts read-then-write (select, then upsert of the read value + 1): concurrent callers lose increments and more than max are admitted",
+			"edits": [
+				{
+					"file": "supabase/migrations/20260813194500_security_hardening.sql",
+					"find": "  insert into public.api_rate_limits (key_hash, bucket_start, requests)\n  values (rate_key, bucket, 1)\n  on conflict (key_hash, bucket_start) do update\n    set requests = public.api_rate_limits.requests + 1\n  returning requests into current_requests;\n",
+					"replace": "  select r.requests into current_requests from public.api_rate_limits r where r.key_hash = rate_key and r.bucket_start = bucket;\n  current_requests := coalesce(current_requests, 0) + 1;\n  insert into public.api_rate_limits (key_hash, bucket_start, requests)\n  values (rate_key, bucket, current_requests)\n  on conflict (key_hash, bucket_start) do update\n    set requests = excluded.requests;\n"
+				}
+			],
+			"tests": [
+				"test/rate-limit-atomic-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^RL-DB gate: with the counter row locked, N callers on separate connections all wait; on release at most max are admitted and no increment is lost$",
+					"message": "admitted requests"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-CONC-006-P1-2VSESSIONLOCK",
+			"origin": "CRSF Phase 2V",
+			"evidence_id": "EV-KB-LOCKS-DB",
+			"targets": [
+				{
+					"control": "CR-CONC-006",
+					"property": "P1"
+				}
+			],
+			"description": "revoke_dashboard_sessions_atomic takes a session-level advisory lock (pg_advisory_lock) instead of a transaction-scoped one: the lock outlives the transaction and starves the next caller",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261006120000_atomic_dashboard_revocation.sql",
+					"find": "  perform pg_advisory_xact_lock(hashtextextended('dashboard-revoke:' || normalized, 0));\n",
+					"replace": "  perform pg_advisory_lock(hashtextextended('dashboard-revoke:' || normalized, 0));\n"
+				}
+			],
+			"tests": [
+				"test/advisory-locks-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^LOCKS-DB revoke_dashboard_sessions_atomic: one transaction-scoped advisory lock; a second caller waits on it without retrying and runs once it is released$",
+					"message": "the lock ends with the transaction"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-CONC-006-P2-2VTWOLOCKS",
+			"origin": "CRSF Phase 2V",
+			"evidence_id": "EV-KB-LOCKS-DB",
+			"targets": [
+				{
+					"control": "CR-CONC-006",
+					"property": "P2"
+				}
+			],
+			"description": "upsert_position_attribution_limited takes a second (global) advisory lock besides the per-wallet one: two locks per operation, the precondition for lock-order deadlocks",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261016150000_l1_attribution_limit.sql",
+					"find": "  perform pg_advisory_xact_lock(hashtextextended('position_cover_attributions:' || normalized, 0));\n",
+					"replace": "  perform pg_advisory_xact_lock(hashtextextended('position_cover_attributions:' || normalized, 0));\n  perform pg_advisory_xact_lock(hashtextextended('position_cover_attributions:all', 0));\n"
+				}
+			],
+			"tests": [
+				"test/advisory-locks-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^LOCKS-DB upsert_position_attribution_limited: one transaction-scoped advisory lock; a second caller waits on it without retrying and runs once it is released$",
+					"message": "holds exactly one advisory lock"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-CONC-006-P3-2VRETRYLOOP",
+			"origin": "CRSF Phase 2V",
+			"evidence_id": "EV-KB-LOCKS-DB",
+			"targets": [
+				{
+					"control": "CR-CONC-006",
+					"property": "P3"
+				}
+			],
+			"description": "revoke_dashboard_sessions_atomic retries pg_try_advisory_xact_lock in an unbounded sleep loop instead of waiting on the lock",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261006120000_atomic_dashboard_revocation.sql",
+					"find": "  perform pg_advisory_xact_lock(hashtextextended('dashboard-revoke:' || normalized, 0));\n",
+					"replace": "  loop\n    exit when pg_try_advisory_xact_lock(hashtextextended('dashboard-revoke:' || normalized, 0));\n    perform pg_sleep(0.01);\n  end loop;\n"
+				}
+			],
+			"tests": [
+				"test/advisory-locks-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^LOCKS-DB revoke_dashboard_sessions_atomic: one transaction-scoped advisory lock; a second caller waits on it without retrying and runs once it is released$",
+					"message": "the second caller blocks on the advisory lock"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

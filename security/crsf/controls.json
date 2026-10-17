@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2u",
+	"crsf_version": "1.0-draft-phase2v",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -3708,28 +3708,40 @@
 			"required_evidence_types": [
 				"behavioral"
 			],
-			"current_evidence_ids": [],
+			"current_evidence_ids": [
+				"EV-KB-LOCKS-DB",
+				"EV-LOCKS-DB"
+			],
 			"property_coverage": {
 				"P1": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-LOCKS-DB",
+						"EV-KB-LOCKS-DB"
+					],
 					"partial_only": [],
 					"insufficient": []
 				},
 				"P2": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-LOCKS-DB",
+						"EV-KB-LOCKS-DB"
+					],
 					"partial_only": [],
 					"insufficient": []
 				},
 				"P3": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-LOCKS-DB",
+						"EV-KB-LOCKS-DB"
+					],
 					"partial_only": [],
 					"insufficient": []
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied; P2 unsatisfied; P3 unsatisfied",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied; P2 unsatisfied; P3 unsatisfied",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 3 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 3 sub-properties satisfied at >= E3",
 			"deviation_ids": [],
 			"independence": null
 		},
@@ -3938,18 +3950,25 @@
 			"required_evidence_types": [
 				"real-system"
 			],
-			"current_evidence_ids": [],
+			"current_evidence_ids": [
+				"EV-KB-RL-DB",
+				"EV-RL-DB"
+			],
 			"property_coverage": {
 				"P1": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-RL-DB"
+					],
 					"partial_only": [],
-					"insufficient": []
+					"insufficient": [
+						"EV-KB-RL-DB(E4: type not acceptable for minimum level)"
+					]
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 1 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 1 sub-properties satisfied at >= E5",
 			"deviation_ids": [],
 			"independence": null
 		},

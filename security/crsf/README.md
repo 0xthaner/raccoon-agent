@@ -142,7 +142,13 @@ Exit codes:
 - **FAIL:** a release-blocking FAIL or an evidence failure.
 - **INCOMPLETE_EVIDENCE:** everything else.
 
-At CRSF 1.0-draft-phase2u the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE`. There are 54 release-blocking controls, and one is `MISSING_EVIDENCE`: CR-VERIFY-004. CR-VERIFY-003 is `PASS_AUTOMATED` only in the full environment: disposable Postgres, the Vercel CLI and `CRSF_NETWORK_EVIDENCE=1`. Framework findings F-2T-1 (fake E5 via declared metadata) and F-2T-2 (self-test fixture N needed an open control) are fixed in 1.0-draft-phase2u; CR-VERIFY-004 stays `MISSING_EVIDENCE` (CR-RESOURCE-002 and CR-CONC-006 have no real-Postgres concurrency test). Findings F-2D-2, F-2F-1, F-2H-1, F-2I-1 and F-2K-1 are fixed; their probes are now regression proofs. F-2K-1 (GET /api/link) is covered by CR-RESOURCE-001 P5, added in 1.0-draft-phase2l.
+At CRSF 1.0-draft-phase2v the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE`. There are 54 release-blocking controls, and one is `MISSING_EVIDENCE`: CR-VERIFY-004. CR-VERIFY-003 is `PASS_AUTOMATED` only in the full environment: disposable Postgres, the Vercel CLI and `CRSF_NETWORK_EVIDENCE=1`. Framework findings F-2T-1 (fake E5 via declared metadata) and F-2T-2 (self-test fixture N needed an open control) are fixed in 1.0-draft-phase2u; Since 1.0-draft-phase2v every concurrency control has real-Postgres evidence with runner-observed use and overlap:
+
+- CR-CONC-001 to 006;
+- CR-RESOURCE-002, via `test/rate-limit-atomic-db.test.mjs`, which uses a row-lock gate that forces the lost-update interleaving;
+- CR-CONC-006, via `test/advisory-locks-db.test.mjs`, which takes its inventory from `pg_proc` and checks one transaction-scoped lock per operation and a waiting rather than retrying second caller.
+
+CR-VERIFY-004 still stays `MISSING_EVIDENCE`. No real-system item covers its meta-property, and closing it needs a versioned framework decision (see `framework-changes.json`, 1.0-draft-phase2v). Findings F-2D-2, F-2F-1, F-2H-1, F-2I-1 and F-2K-1 are fixed; their probes are now regression proofs. F-2K-1 (GET /api/link) is covered by CR-RESOURCE-001 P5, added in 1.0-draft-phase2l.
 
 Findings are a ledger, replayed from the `NEW_FINDING` / `FINDING_MAPPED` / `FINDING_FIXED` / `FINDING_WITHDRAWN` records in `framework-changes.json` (since 1.0-draft-phase2j, F-2J-1). Every application finding is mapped to a control property or explicitly declared unmapped. An open unmapped application finding makes `RELEASE_SECURITY_ASSERTION: FAIL` whatever the control statuses say. An open mapped one must be recorded as a `VIOLATION` on that property. The version lock records every finding, so none can be deleted or retyped.
 

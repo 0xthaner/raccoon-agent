@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2u
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2v
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -10,8 +10,8 @@
 
 - FAIL: 19
 - INFORMATIONAL: 2
-- MISSING_EVIDENCE: 47
-- PASS_AUTOMATED: 55
+- MISSING_EVIDENCE: 45
+- PASS_AUTOMATED: 57
 - PASS_MANUAL: 24
 
 ### Release classes
@@ -30,9 +30,9 @@
 
 - ACCEPTED_PLATFORM_DEVIATION: 1
 - ACCEPTED_PROTOCOL_DEVIATION: 2
-- CONFORMANT: 79
+- CONFORMANT: 82
 - NON_CONFORMANT: 21
-- NOT_DEMONSTRATED: 59
+- NOT_DEMONSTRATED: 56
 
 ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Profile: ASVS L2 (all applicable L1 + L2 requirements are in scope); selected L3: V6.7.2, V15.4.2, V15.4.3, V7.5.3, V3.5.8, V14.2.6, V14.2.7, V8.3.2, V2.3.5.
 
@@ -149,9 +149,9 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-CONC-003 | Attribution limit (60/wallet) atomic | RELEASE_BLOCKING | E5 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E5 |
 | CR-CONC-004 | Stale cleanup is compare-and-delete | RELEASE_BLOCKING | E5 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E5 |
 | CR-CONC-005 | Session revocation atomic per wallet | RELEASE_BLOCKING | E5 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E5 |
-| CR-CONC-006 | Locks consistent, deadlock-free and local | SECURITY_DEBT | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied; P2 unsatisfied; P3 unsatisfied |
+| CR-CONC-006 | Locks consistent, deadlock-free and local | SECURITY_DEBT | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
 | CR-RESOURCE-001 | Rate limits before expensive work (IP, wallet, global) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 5 sub-properties satisfied at >= E3 |
-| CR-RESOURCE-002 | Rate limiter counting atomic | SECURITY_DEBT | E5 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
+| CR-RESOURCE-002 | Rate limiter counting atomic | SECURITY_DEBT | E5 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E5 |
 | CR-RESOURCE-003 | Cron run budgets, pagination and failure isolation | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E3 |
 | CR-RESOURCE-004 | Dashboard provider amplification bounded | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
 | CR-RESOURCE-005 | Business-logic limits documented | SECURITY_DEBT | E1 | **FAIL** | NON_CONFORMANT | P1: limits only in code [EV-DOC-INVENTORY] |
@@ -378,10 +378,14 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-VERCEL-CLI-LOCAL | behavioral | E3 | node-test | PARTIAL | yes | with the real installed Vercel CLI, locally and without deployment or network (all API calls to a local fake API that refuses every deployment; every other request through a local refusing proxy, recorded and asserted empty; telemetry and update check off; fake token, isolated global config): (1) `vercel deploy` computes the upload set of a seeded project with the repository .vercelignore and excludes .env, .env.production, .env.preview, .env.development, .env.local and api/.env while keeping .env.example; the control without the file would upload .env and .env.production; (2) `vercel build` runs the installCommand of the repository vercel.json, which aborts on a lockfile that does not match package.json and leaves it unchanged; the control with a matching lockfile builds. |
 | EV-NPM-SIGNATURES | behavioral | E3 | node-test | PARTIAL | yes | real npm 11.17.0 `npm run check:ci` (network evidence, capability npm_network = CRSF_NETWORK_EVIDENCE=1): npm refreshes the Sigstore TUF metadata online from tuf-repo-cdn.sigstore.dev and takes the registry keys from the TUF target registry.npmjs.org/keys.json; pacote verifies every dist.signatures entry against "<name>@<version>:<dist.integrity>". Positive: fresh disposable cache against the real registry passes. Known-bad: in a disposable copy of that cache only dist.integrity of one direct dependency (@vercel/analytics) is changed (real signature kept), read with prefer-offline while TUF still refreshes online: check:ci fails with "1 package has an invalid registry signature" for exactly that package. Network boundary (preload in every node process): only tuf-repo-cdn.sigstore.dev and registry.npmjs.org, asserted; no credentials (empty user and global npmrc), nothing published or written to the registry. Not proven: a compromise of the registry signing key itself; attestation (provenance) verification is reported but not part of the invariant; without CRSF_NETWORK_EVIDENCE=1 the evidence is NOT_RUN. |
 | EV-E5-OBSERVATION | behavioral | E3 | node-test | PARTIAL | yes | The runner-side observer credits only server-confirmed use (silent server: none), distinguishes sequential from overlapping statements and open transactions, the engine refuses credit for a node-only item declared [node, postgres] (T3), for a missing observation, for a fake-upstream receipt and for concurrency claims without observed overlap; only a receipt with the run key and nonce is accepted, also when a test forges a line via /proc; without the postgres capability a real-system item is NOT_RUN. Fixture N holds in the current and in a synthetic all-satisfied state. |
+| EV-RL-DB | real-system | E5 | node-test | FULL | yes | public.check_agent_rate_limit against real Postgres, every caller on its own connection. Deterministic gate: a caller holds the counter row lock in an open transaction until Postgres reports all N other callers waiting (pg_stat_activity, Lock); after release exactly min(max, N+1) are admitted and every request is counted (no lost increment), for N up to 29 and max 1..25. Simultaneous first requests for a fresh key (10 rounds, 29 connections) admit exactly max; two keys are independent. Runner-observed: server-confirmed use and overlapping execution (pg-observer). |
+| EV-LOCKS-DB | real-system | E5 | node-test | FULL | yes | Inventory from pg_proc of the migrated database: every public function that takes an advisory lock, directly or through another function (lock_chat_wallets, upsert_position_attribution_limited, revoke_dashboard_sessions_atomic, consume_wallet_link_v2, consume_wallet_link), is exercised; a new locking function fails the test. Per operation with separate connections: inside an open transaction the caller holds exactly one advisory lock (P2); a second caller with the same key waits with wait_event Lock/advisory and exactly one ungranted advisory request - no retry, no sleep (P3); on commit the lock is gone, the second caller completes and no session keeps an advisory lock (P1); 11 simultaneous callers per operation finish without deadlock (40P01) or error and leave no lock. Runner-observed: server-confirmed use and overlapping execution. |
+| EV-KB-RL-DB | known-bad | E4 | mutation | FULL | yes | Reintroducing the lost-update race (read the counter, then write read+1) in check_agent_rate_limit is detected by the gated real-Postgres test (more than max admitted). |
+| EV-KB-LOCKS-DB | known-bad | E4 | mutation | FULL | yes | A session-level advisory lock (P1), a second advisory lock in one operation (P2) and an unbounded try-lock/sleep retry loop (P3) are each detected by the real-Postgres lock test. |
 
 ## 6. Mutation cases
 
-303 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+307 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -688,6 +692,10 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-VERIFY-003-P1-2UOBSCONC | CR-VERIFY-003.P1 | behavioral | KILLED |
 | MUT-CR-VERIFY-003-P1-2UOBSMAC | CR-VERIFY-003.P1 | behavioral | KILLED |
 | MUT-CR-VERIFY-003-P1-2UNOPEN | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-RESOURCE-002-P1-2VLOSTUPDATE | CR-RESOURCE-002.P1 | behavioral | KILLED |
+| MUT-CR-CONC-006-P1-2VSESSIONLOCK | CR-CONC-006.P1 | behavioral | KILLED |
+| MUT-CR-CONC-006-P2-2VTWOLOCKS | CR-CONC-006.P2 | behavioral | KILLED |
+| MUT-CR-CONC-006-P3-2VRETRYLOOP | CR-CONC-006.P3 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -718,7 +726,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V2.3.3 | L2 | CR-CONC-001, CR-CONC-004 | CONFORMANT |
 | V2.3.4 | L2 | CR-CONC-002, CR-CONC-003 | CONFORMANT |
 | V2.3.5 | L3 | CR-API-010 | CONFORMANT |
-| V2.4.1 | L2 | CR-RESOURCE-001, CR-RESOURCE-002, CR-RESOURCE-007 | NOT_DEMONSTRATED |
+| V2.4.1 | L2 | CR-RESOURCE-001, CR-RESOURCE-002, CR-RESOURCE-007 | CONFORMANT |
 | V3.2.1 | L1 | CR-BROWSER-006 | CONFORMANT |
 | V3.2.2 | L1 | CR-BROWSER-004 | CONFORMANT |
 | V3.3.1 | L1 | CR-SESSION-004 | CONFORMANT |
@@ -837,8 +845,8 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V15.3.5 | L2 | CR-INPUT-011 | NOT_DEMONSTRATED |
 | V15.3.6 | L2 | CR-INPUT-012 | NOT_DEMONSTRATED |
 | V15.3.7 | L2 | CR-API-004 | CONFORMANT |
-| V15.4.2 | L3 | CR-CONC-001, CR-CONC-002, CR-CONC-003, CR-CONC-004, CR-CONC-005, CR-RESOURCE-002 | NOT_DEMONSTRATED |
-| V15.4.3 | L3 | CR-CONC-006 | NOT_DEMONSTRATED |
+| V15.4.2 | L3 | CR-CONC-001, CR-CONC-002, CR-CONC-003, CR-CONC-004, CR-CONC-005, CR-RESOURCE-002 | CONFORMANT |
+| V15.4.3 | L3 | CR-CONC-006 | CONFORMANT |
 | V16.1.1 | L2 | CR-LOG-001 | NOT_DEMONSTRATED |
 | V16.2.1 | L2 | CR-LOG-002 | NOT_DEMONSTRATED |
 | V16.2.2 | L2 | CR-LOG-003 | NOT_DEMONSTRATED |
@@ -943,4 +951,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2s** — Phase 2S: FIX-B706956-REGISTRY-SIGNATURES proven at E4 with the real npm verifier (real Sigstore TUF, real registry keys, tampered package metadata in a disposable cache); 102/102 historical fixes PROVEN. No application change, no finding.
 - **1.0-draft-phase2ua** — Phase 2U (part a): framework findings F-2T-1 and F-2T-2 from the Phase 2T analysis persisted as OPEN before any fix. No status, threshold or control text changed.
 - **1.0-draft-phase2u** — Phase 2U: framework findings F-2T-1 (fake E5 via declared metadata) and F-2T-2 (fixture N needs an open control) fixed. Real-system evidence is credited only from a runner-signed observation receipt (server-confirmed Postgres use; observed overlap for concurrency claims). All 8 existing real-system items revalidated with observed use, the 6 covering concurrency claims with observed overlap; no control lost PASS. CR-VERIFY-004 unchanged and still MISSING_EVIDENCE. No application change.
+- **1.0-draft-phase2v** — Phase 2V: real-Postgres concurrency evidence with runner-observed use and overlap for CR-RESOURCE-002 (rate limiter counting) and CR-CONC-006 (advisory locks); four KILLED mutations. No application change, no finding. CR-VERIFY-004 re-evaluated and left MISSING_EVIDENCE (see record).
 
