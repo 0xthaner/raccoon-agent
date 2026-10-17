@@ -7110,12 +7110,12 @@
 					"property": "P1"
 				}
 			],
-			"description": "forgetRememberedWallet: the per-chat LIKE pattern loses its delimiter (unlinked:<chat>% instead of unlinked:<chat>:%)",
+			"description": "forgetRememberedWallet: the per-chat LIKE pattern loses its delimiter (unlinked:<chat>% instead of unlinked:<chat>:%) (anchor re-targeted in Phase 2O to the boundary-checked helper; same weakening)",
 			"edits": [
 				{
 					"file": "src/db.mjs",
-					"find": "\tvalue(await client.from('pending_links').delete().like('chat_id', `unlinked:${chatId}:%`));\n}\n\nexport async function unlinkWalletByWallet",
-					"replace": "\tvalue(await client.from('pending_links').delete().like('chat_id', `unlinked:${chatId}%`));\n}\n\nexport async function unlinkWalletByWallet"
+					"find": "\tvalue(await client.from('pending_links').delete().like('chat_id', rememberedPattern(chat)));\n}\n\nexport async function unlinkWalletByWallet",
+					"replace": "\tvalue(await client.from('pending_links').delete().like('chat_id', `unlinked:${chat}%`));\n}\n\nexport async function unlinkWalletByWallet"
 				}
 			],
 			"tests": [
@@ -7199,6 +7199,180 @@
 				{
 					"test": "^INPUT-DB-PG P2 every callable SQL function treats adversarial text arguments as values",
 					"message": "SQL syntax/structure error"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-INPUT-004-P1-2OA",
+			"origin": "new (Phase 2O)",
+			"evidence_id": "EV-KB-INPUT-004",
+			"targets": [
+				{
+					"control": "CR-INPUT-004",
+					"property": "P1"
+				}
+			],
+			"description": "remembered wallets: DB-layer chat-id validation removed (any value is stringified into the pattern)",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\tif (typeof chatId === 'number') return Number.isSafeInteger(chatId) && chatId > 0 ? String(chatId) : null;\n\treturn typeof chatId === 'string' && PRIVATE_CHAT_ID.test(chatId) ? chatId : null;\n",
+					"replace": "\treturn String(chatId);\n"
+				}
+			],
+			"tests": [
+				"test/input-db-request-structure.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^INPUT-DB remembered wallets: ids outside the chat-id domain send no request",
+					"message": "^remembered-wallet LIKE query sent for invalid chat id"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-INPUT-004-P1-2OB",
+			"origin": "new (Phase 2O)",
+			"evidence_id": "EV-KB-INPUT-004",
+			"targets": [
+				{
+					"control": "CR-INPUT-004",
+					"property": "P1"
+				}
+			],
+			"description": "remembered wallets: the chat-id domain admits '%'",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "const PRIVATE_CHAT_ID = /^[1-9][0-9]{0,19}$/;",
+					"replace": "const PRIVATE_CHAT_ID = /^[1-9%][0-9%]{0,19}$/;"
+				}
+			],
+			"tests": [
+				"test/input-db-adversarial-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^INPUT-DB-PG P1 remembered-wallet boundary",
+					"message": "^invalid chat id \"%\" read remembered wallets"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-INPUT-004-P1-2OC",
+			"origin": "new (Phase 2O)",
+			"evidence_id": "EV-KB-INPUT-004",
+			"targets": [
+				{
+					"control": "CR-INPUT-004",
+					"property": "P1"
+				}
+			],
+			"description": "remembered wallets: the chat-id domain admits '_'",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "const PRIVATE_CHAT_ID = /^[1-9][0-9]{0,19}$/;",
+					"replace": "const PRIVATE_CHAT_ID = /^[1-9_][0-9_]{0,19}$/;"
+				}
+			],
+			"tests": [
+				"test/input-db-adversarial-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^INPUT-DB-PG P1 remembered-wallet boundary",
+					"message": "^invalid chat id \"_\" read remembered wallets"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-INPUT-004-P1-2OD",
+			"origin": "new (Phase 2O)",
+			"evidence_id": "EV-KB-INPUT-004",
+			"targets": [
+				{
+					"control": "CR-INPUT-004",
+					"property": "P1"
+				}
+			],
+			"description": "forgetRememberedWallet: the LIKE delete runs before the chat-id validation",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\tconst chat = rememberedChatId(chatId);\n\tif (!chat) return;\n\tvalue(await client.from('pending_links').delete().like('chat_id', rememberedPattern(chat)));\n}",
+					"replace": "\tvalue(await client.from('pending_links').delete().like('chat_id', rememberedPattern(chatId)));\n\tconst chat = rememberedChatId(chatId);\n\tif (!chat) return;\n}"
+				}
+			],
+			"tests": [
+				"test/input-db-adversarial-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^INPUT-DB-PG P1 remembered-wallet boundary",
+					"message": "^invalid chat id \"%\" deleted remembered wallets"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-INPUT-004-P1-2OE",
+			"origin": "new (Phase 2O)",
+			"evidence_id": "EV-KB-INPUT-004",
+			"targets": [
+				{
+					"control": "CR-INPUT-004",
+					"property": "P1"
+				}
+			],
+			"description": "consumePendingLink: remembered-wallet cleanup uses the link chat id without the boundary check",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\t\tif (chat) value(await client.from('pending_links').delete().like('chat_id', rememberedPattern(chat)));\n",
+					"replace": "\t\tvalue(await client.from('pending_links').delete().like('chat_id', rememberedPattern(chatId)));\n"
+				}
+			],
+			"tests": [
+				"test/input-db-adversarial-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^INPUT-DB-PG P1 remembered-wallet boundary",
+					"message": "^link cleanup for chat \"%\" deleted remembered wallets"
 				}
 			],
 			"expected_result": "KILLED",

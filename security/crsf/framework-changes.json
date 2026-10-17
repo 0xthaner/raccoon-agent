@@ -1449,6 +1449,36 @@
 					"reason": "evidence closure (Phase 2N); status recomputed by the engine"
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2o",
+			"summary": "Phase 2O: defense-in-depth hardening of the remembered-wallet LIKE boundary (CR-INPUT-004 P1 precondition recorded in Phase 2N); application change in src/db.mjs only; no finding.",
+			"changes": [
+				{
+					"id": "CR-INPUT-004",
+					"kind": "DEFENSE_IN_DEPTH_HARDENING",
+					"old_status": "PASS_AUTOMATED",
+					"new_status": "PASS_AUTOMATED",
+					"evidence_added": [
+						"test/input-db-request-structure.test.mjs: remembered-wallet boundary tests (valid ids unchanged, 38 invalid ids send nothing, link cleanup)",
+						"test/input-db-adversarial-db.test.mjs: remembered-wallet boundary on real Postgres (neighbouring chats 1/10/12/100, invalid ids, wildcard link rows)",
+						"security/mutation/cases.json: 5 new cases (EV-KB-INPUT-004 now 9 KILLED)"
+					],
+					"why_sufficient": "Phase 2N recorded that the LIKE pattern unlinked:<chat>:% relied on callers passing integer Telegram chat ids (no reachable violation; not a finding). src/db.mjs now enforces that domain itself before building any remembered-wallet pattern and returns the neutral result otherwise; storage format and every legitimate caller (bot: Telegram chat.id number; link verify: pending_links.chat_id string) are unchanged.",
+					"remains_unproven": "Real PostgREST end-to-end (modelled by the adapter; optional additional evidence, not claimed). rememberUnlinkedWallet writes unlinked:<chat>:<wallet> with eq (no pattern) and is unchanged.",
+					"reason": "defense-in-depth hardening after PASS (Phase 2O); Phase 2N history unchanged; status recomputed by the engine"
+				},
+				{
+					"id": "MUT-CR-INPUT-004-P1-2NB",
+					"kind": "MUTATION_ANCHOR_UPDATED",
+					"reason": "the forgetRememberedWallet line it edits now reads rememberedPattern(chat); the case was re-targeted to the same weakening (delimiter dropped) and is still KILLED by the same test and message"
+				},
+				{
+					"id": "test/telegram-wallet-isolation.test.mjs",
+					"kind": "TEST_INFRA",
+					"reason": "static source check behind EV-TG-ISO-SRC (CR-API-007 P1) counted the literal pattern `unlinked:${chatId}:%` four times; the pattern now lives once in rememberedPattern behind the chat-id check. The check now asserts: no undelimited `unlinked:${x}%`, exactly one delimited pattern, and all four remembered-wallet LIKE calls go through rememberedPattern(chat). Same property; it passes on both the old and the new code."
+				}
+			]
 		}
 	]
 }

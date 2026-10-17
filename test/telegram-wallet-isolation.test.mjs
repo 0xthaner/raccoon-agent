@@ -6,9 +6,13 @@ const dbSource = await readFile(new URL('../src/db.mjs', import.meta.url), 'utf8
 const dashboardSource = await readFile(new URL('../api/dashboard.mjs', import.meta.url), 'utf8');
 
 test('remembered-wallet lookups delimit the complete Telegram chat id', () => {
-	assert.equal(dbSource.includes('`unlinked:${chatId}%`'), false);
+	assert.equal(/`unlinked:\$\{\w+\}%`/.test(dbSource), false);
 	// Restaudit L2: eine der fuenf Stellen lag im entfernten consumeTelegramHandoff.
-	assert.equal((dbSource.match(/`unlinked:\$\{chatId\}:%`/g) ?? []).length, 4);
+	// CRSF Phase 2O: das Muster steht nur noch in rememberedPattern (nach der Chat-ID-Pruefung);
+	// alle vier LIKE-Stellen gehen darueber.
+	assert.equal((dbSource.match(/`unlinked:\$\{\w+\}:%`/g) ?? []).length, 1);
+	assert.ok(dbSource.includes('const rememberedPattern = (chat) => `unlinked:${chat}:%`;'));
+	assert.equal((dbSource.match(/\.like\('chat_id', rememberedPattern\(chat\)\)/g) ?? []).length, 4);
 });
 
 test('wallet lookup never selects an arbitrary Telegram chat', () => {

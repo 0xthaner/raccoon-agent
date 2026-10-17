@@ -27,7 +27,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { postgrestOverPg } from '../test-support/pg-postgrest.mjs';
 import { dropTestDatabase } from '../test-support/drop-test-db.mjs';
-import { ADVERSARIAL } from '../test-support/adversarial-values.mjs';
+import { ADVERSARIAL, INVALID_CHAT_IDS } from '../test-support/adversarial-values.mjs';
 
 const URL_ = process.env.M1_DB_TEST_PG_URL;
 const MODULE = process.env.M1_DB_TEST_PG_MODULE;
@@ -200,6 +200,48 @@ test('INPUT-DB-PG', { skip, timeout: 300_000 }, async (t) => {
 			await sql.query("insert into public.pending_links (code, chat_id, nonce, expires_at) values ('Chat1LinkCode0123456789x', '1', 'n', $1), ('unl-1b', 'unlinked:1:0xold', '0xold', $1)", [FUTURE]);
 			assert.deepEqual(await db.consumePendingLink('Chat1LinkCode0123456789x', '0x' + 'c1'.repeat(20)), { status: 'linked', chatId: '1' });
 			assert.deepEqual(await remembered(), left, 'linking chat 1 removed another chat\'s remembered wallet');
+		});
+
+		await t.test('INPUT-DB-PG P1 remembered-wallet boundary: each valid chat id targets only itself; invalid ids target nothing; link cleanup stays in its chat', async () => {
+			const NEIGHBOURS = ['1', '10', '12', '100'];
+			const seedRemembered = async () => {
+				await sql.query("delete from public.pending_links where chat_id like 'unlinked:%'");
+				for (const chat of [...NEIGHBOURS, VICTIM_CHAT]) {
+					await sql.query('insert into public.pending_links (code, chat_id, nonce, expires_at) values ($1, $2, $3, $4)', [`unl-${chat}`, `unlinked:${chat}:0x${chat}`, `0x${chat}`, FUTURE]);
+				}
+			};
+			const remembered = async () => (await sql.query("select chat_id from public.pending_links where chat_id like 'unlinked:%'")).rows.map((r) => r.chat_id).sort();
+			await seedRemembered();
+			const all = await remembered();
+			for (const chat of NEIGHBOURS) {
+				for (const id of [chat, Number(chat)]) {
+					assert.deepEqual(await db.getRememberedWallets(id), [`0x${chat}`], `chat ${JSON.stringify(id)} reads only its own remembered wallet`);
+					assert.equal(await db.getRememberedWallet(id), `0x${chat}`);
+				}
+			}
+			for (const chat of NEIGHBOURS) {
+				await seedRemembered();
+				await db.forgetRememberedWallet(Number(chat));
+				assert.deepEqual(await remembered(), all.filter((c) => c !== `unlinked:${chat}:0x${chat}`), `forget for chat ${chat} touched another chat's remembered wallet`);
+			}
+			await seedRemembered();
+			for (const id of INVALID_CHAT_IDS) {
+				const label = JSON.stringify(id) ?? String(id);
+				assert.deepEqual(await db.getRememberedWallets(id), [], `invalid chat id ${label} read remembered wallets`);
+				assert.equal(await db.getRememberedWallet(id), null, `invalid chat id ${label} read a remembered wallet`);
+				await db.forgetRememberedWallet(id);
+				assert.deepEqual(await remembered(), all, `invalid chat id ${label} deleted remembered wallets`);
+			}
+			// Link cleanup: eine fremd geschriebene Link-Zeile mit Platzhalter-Chat raeumt nichts; Chat 1 raeumt nur Chat 1.
+			for (const [i, chat] of ['%', '_', '1%', '1_'].entries()) {
+				const code = `WildLinkCode${String(i).padStart(12, '0')}`;
+				await sql.query("insert into public.pending_links (code, chat_id, nonce, expires_at) values ($1, $2, 'n', $3)", [code, chat, FUTURE]);
+				assert.deepEqual(await db.consumePendingLink(code, '0x' + 'e1'.repeat(20)), { status: 'linked', chatId: chat });
+				assert.deepEqual(await remembered(), all, `link cleanup for chat ${JSON.stringify(chat)} deleted remembered wallets`);
+			}
+			await sql.query("insert into public.pending_links (code, chat_id, nonce, expires_at) values ('Chat10LinkCode012345678', '10', 'n', $1)", [FUTURE]);
+			assert.deepEqual(await db.consumePendingLink('Chat10LinkCode012345678', '0x' + 'e2'.repeat(20)), { status: 'linked', chatId: '10' });
+			assert.deepEqual(await remembered(), all.filter((c) => c !== 'unlinked:10:0x10'), 'link cleanup for chat 10 touched another chat');
 		});
 
 		await t.test('INPUT-DB-PG P2 every callable SQL function treats adversarial text arguments as values', async () => {

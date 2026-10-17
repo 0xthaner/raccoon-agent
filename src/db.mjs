@@ -45,11 +45,27 @@ export async function getPendingLink(code) {
 */
 export const MAX_WALLETS_PER_CHAT = 10;
 
+/*
+	CRSF Phase 2O: gemerkte Wallets liegen als `unlinked:<chat>:<wallet>` und werden
+	per LIKE `unlinked:<chat>:%` gelesen und geloescht. Der Chat-Teil darf deshalb nie
+	`%` oder `_` enthalten - das prueft jetzt dieser Helfer selbst, nicht nur der
+	Aufrufer: nur private Telegram-Chat-IDs (positive ganze Zahl oder ihre kanonische
+	Dezimalschreibweise, wie isTelegramLinkRow), sonst null. Nichts wird umgedeutet.
+*/
+const PRIVATE_CHAT_ID = /^[1-9][0-9]{0,19}$/;
+function rememberedChatId(chatId) {
+	if (typeof chatId === 'number') return Number.isSafeInteger(chatId) && chatId > 0 ? String(chatId) : null;
+	return typeof chatId === 'string' && PRIVATE_CHAT_ID.test(chatId) ? chatId : null;
+}
+const rememberedPattern = (chat) => `unlinked:${chat}:%`;
+
 export async function consumePendingLink(code, wallet, { client = db } = {}) {
 	const outcome = value(await client.rpc('consume_wallet_link_v2', { link_code: code, linked_wallet: wallet.toLowerCase() })) ?? {};
 	const chatId = outcome.status === 'linked' ? outcome.chat_id : null;
 	if (chatId) {
-		value(await client.from('pending_links').delete().like('chat_id', `unlinked:${chatId}:%`));
+		// Ungueltige Chat-ID (nur bei fremd beschriebener Zeile denkbar): Verknuepfung bleibt, Aufraeumen entfaellt.
+		const chat = rememberedChatId(chatId);
+		if (chat) value(await client.from('pending_links').delete().like('chat_id', rememberedPattern(chat)));
 		return { status: 'linked', chatId };
 	}
 	if (outcome.status === 'wallet_limit' && outcome.chat_id) return { status: 'wallet_limit', chatId: outcome.chat_id };
@@ -194,17 +210,23 @@ export async function rememberUnlinkedWallet(chatId, wallet, { client = db } = {
 }
 
 export async function getRememberedWallet(chatId) {
-	const rows = value(await db.from('pending_links').select('nonce').like('chat_id', `unlinked:${chatId}:%`).limit(1));
+	const chat = rememberedChatId(chatId);
+	if (!chat) return null;
+	const rows = value(await db.from('pending_links').select('nonce').like('chat_id', rememberedPattern(chat)).limit(1));
 	return rows[0]?.nonce ?? null;
 }
 
 export async function getRememberedWallets(chatId, { client = db } = {}) {
-	const rows = value(await client.from('pending_links').select('nonce').like('chat_id', `unlinked:${chatId}:%`));
+	const chat = rememberedChatId(chatId);
+	if (!chat) return [];
+	const rows = value(await client.from('pending_links').select('nonce').like('chat_id', rememberedPattern(chat)));
 	return [...new Set(rows.map((row) => row.nonce))];
 }
 
 export async function forgetRememberedWallet(chatId, { client = db } = {}) {
-	value(await client.from('pending_links').delete().like('chat_id', `unlinked:${chatId}:%`));
+	const chat = rememberedChatId(chatId);
+	if (!chat) return;
+	value(await client.from('pending_links').delete().like('chat_id', rememberedPattern(chat)));
 }
 
 export async function unlinkWalletByWallet(wallet, { client = db } = {}) {

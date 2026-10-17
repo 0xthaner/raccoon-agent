@@ -24,7 +24,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { ADVERSARIAL } from '../test-support/adversarial-values.mjs';
+import { ADVERSARIAL, INVALID_CHAT_IDS } from '../test-support/adversarial-values.mjs';
 
 const HOST = 'input-db-structure.invalid';
 Object.assign(process.env, { SUPABASE_URL: `https://${HOST}`, SUPABASE_SECRET_KEY: 'input-db-structure-not-a-key' });
@@ -71,9 +71,6 @@ const CALLS = {
 	setWalletAlertSettings: (v) => db.setWalletAlertSettings(v, v, { thresholds: [1, 7], weeklySummary: true }),
 	unlinkWallet: (v) => db.unlinkWallet(v),
 	rememberUnlinkedWallet: (v) => db.rememberUnlinkedWallet(v, v),
-	getRememberedWallet: (v) => db.getRememberedWallet(v),
-	getRememberedWallets: (v) => db.getRememberedWallets(v),
-	forgetRememberedWallet: (v) => db.forgetRememberedWallet(v),
 	unlinkWalletByWallet: (v) => db.unlinkWalletByWallet(v),
 	unlinkWalletFromAllChats: (v) => db.unlinkWalletFromAllChats(v),
 	revokeDashboardSessions: (v) => db.revokeDashboardSessions(v, 1_700_000_000_000),
@@ -106,6 +103,12 @@ const CALLS = {
 };
 /** Ohne Eingabe aus einer Anfrage: feste Abfragen (Zeit/Grenzen sind Zahlen aus dem Code). */
 const NO_INPUT = ['claimTelegramUpdate', 'getAlertRunCursor', 'listDueSnoozesPage', 'purgeOldRecords'];
+/** Gemerkte Wallets (LIKE `unlinked:<chat>:%`): eigener Grenztest unten (CRSF Phase 2O). */
+const REMEMBERED = {
+	getRememberedWallet: (v) => db.getRememberedWallet(v),
+	getRememberedWallets: (v) => db.getRememberedWallets(v),
+	forgetRememberedWallet: (v) => db.forgetRememberedWallet(v)
+};
 const FILTER_OPERATORS = new Set(['eq', 'gt', 'lt', 'lte', 'like', 'is']);
 const STRUCTURAL = new Set(['select', 'order', 'limit', 'on_conflict', 'columns']);
 const TIME = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/;
@@ -177,7 +180,7 @@ function grammar(reqs, label) {
 
 test('INPUT-DB every exported src/db.mjs helper is covered (with input) or listed as input-free', () => {
 	const exported = Object.entries(db).filter(([, f]) => typeof f === 'function').map(([n]) => n).sort();
-	assert.deepEqual(exported, [...Object.keys(CALLS), ...NO_INPUT].sort());
+	assert.deepEqual(exported, [...Object.keys(CALLS), ...Object.keys(REMEMBERED), ...NO_INPUT].sort());
 });
 
 for (const name of Object.keys(CALLS)) {
@@ -245,4 +248,45 @@ test('INPUT-DB static: only src/db.mjs creates a database client; no expression 
 	for (const [, method, arg] of text.matchAll(/\.(from|rpc|order|eq|lt|lte|gt|like|is)\(([^,)]*)/g)) {
 		assert.ok(/^'[a-z_0-9]+'$/.test(arg.trim()) || (method === 'from' && arg === 'table') || (method === 'lt' && arg === 'column'), `.${method}(${arg}) is not a literal identifier`);
 	}
+});
+
+test('INPUT-DB remembered wallets: valid chat ids keep their exact anchored request (number and canonical string)', async () => {
+	for (const id of [1, '1', 12, '12', 777001, '777001', Number.MAX_SAFE_INTEGER, '12345678901234567890']) {
+		for (const [name, call] of Object.entries(REMEMBERED)) {
+			requests = [];
+			await call(id);
+			assert.equal(requests.length, 1, `${name}(${JSON.stringify(id)}): one request`);
+			const like = requests[0].params.filter(([k]) => k === 'chat_id');
+			assert.deepEqual(like, [['chat_id', `like.unlinked:${id}:%`]], `${name}(${JSON.stringify(id)}): anchored pattern`);
+			grammar(requests, name);
+		}
+	}
+});
+
+test('INPUT-DB remembered wallets: ids outside the chat-id domain send no request and return the neutral result', async () => {
+	for (const id of INVALID_CHAT_IDS) {
+		requests = [];
+		const label = JSON.stringify(id) ?? String(id);
+		assert.equal(await db.getRememberedWallet(id), null, `getRememberedWallet(${label})`);
+		assert.deepEqual(await db.getRememberedWallets(id), [], `getRememberedWallets(${label})`);
+		assert.equal(await db.forgetRememberedWallet(id), undefined, `forgetRememberedWallet(${label})`);
+		assert.deepEqual(requests, [], `remembered-wallet LIKE query sent for invalid chat id ${label}`);
+	}
+});
+
+test('INPUT-DB consumePendingLink: remembered-wallet cleanup only for a valid chat id from the link function', async () => {
+	const original = globalThis.fetch;
+	try {
+		for (const [chat, cleanup] of [['12', true], ['%', false], ['1_', false], ['_', false], ['01', false], ['dashboard:x', false]]) {
+			globalThis.fetch = async (input, init = {}) => {
+				const url = new URL(typeof input === 'string' ? input : input.url);
+				if (url.pathname.endsWith('/rpc/consume_wallet_link_v2')) return Response.json({ status: 'linked', chat_id: chat });
+				return original(input, init);
+			};
+			requests = [];
+			assert.deepEqual(await db.consumePendingLink('LinkCode0123456789abcdef', '0x' + 'ab'.repeat(20)), { status: 'linked', chatId: chat });
+			const deletes = requests.filter((r) => r.method === 'DELETE');
+			assert.deepEqual(deletes.map((r) => r.params), cleanup ? [[['chat_id', `like.unlinked:${chat}:%`]]] : [], `remembered-wallet LIKE delete for link chat ${JSON.stringify(chat)}`);
+		}
+	} finally { globalThis.fetch = original; }
 });
