@@ -131,7 +131,7 @@ Exit codes:
 - **FAIL:** a release-blocking FAIL or an evidence failure.
 - **INCOMPLETE_EVIDENCE:** everything else.
 
-At CRSF 1.0-draft-phase2j the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE` (54 release-blocking controls; five are `MISSING_EVIDENCE`). Findings F-2D-2, F-2F-1, F-2H-1 and F-2I-1 are fixed; their probes are now regression proofs.
+At CRSF 1.0-draft-phase2k the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: FAIL`: application finding F-2K-1 (GET /api/link calls Telegram getChat behind only a per-IP limit) is open and not yet mapped to a control property, so the run exits 1 until it is mapped and fixed. 54 release-blocking controls; five are `MISSING_EVIDENCE`. Findings F-2D-2, F-2F-1, F-2H-1 and F-2I-1 are fixed; their probes are now regression proofs. The F-2K-1 reproduction is security/crsf/probes/link-read-getchat-probe.mjs.
 
 Findings are a ledger, replayed from the `NEW_FINDING` / `FINDING_MAPPED` / `FINDING_FIXED` / `FINDING_WITHDRAWN` records in `framework-changes.json` (since 1.0-draft-phase2j, F-2J-1). Every application finding is mapped to a control property or explicitly declared unmapped. An open unmapped application finding makes `RELEASE_SECURITY_ASSERTION: FAIL` whatever the control statuses say. An open mapped one must be recorded as a `VIOLATION` on that property. The version lock records every finding, so none can be deleted or retyped.
 

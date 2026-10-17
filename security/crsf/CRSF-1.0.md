@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2j
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2k
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -769,4 +769,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2h** — Phase 2H: application finding F-2H-1 recorded as a VIOLATION of CR-RESOURCE-001 P4 (stop condition B, not fixed); remaining work not attempted.
 - **1.0-draft-phase2i** — Phase 2I: F-2H-1 fixed in api/position-attributions.mjs (global cover budget before every cover lookup), proven behaviourally and by four KILLED mutations; the VIOLATION probe is inverted to a regression proof. Same-root-cause search found a separate application finding F-2I-1 (Telegram cover lookups without any limit), recorded and not fixed (stop).
 - **1.0-draft-phase2j** — Phase 2J: findings ledger (F-2J-1) - every open application finding must map to a control property or fail the release; F-2I-1 mapped to the new control CR-RESOURCE-007 and fixed.
+- **1.0-draft-phase2k** — Phase 2K: application finding F-2K-1 recorded (UNMAPPED, release FAIL) during the CR-RESOURCE-001 path inventory - stop condition B; no evidence closure attempted.
 

@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2j",
+	"crsf_version": "1.0-draft-phase2k",
 	"profile_rules_digest": "501cd4020037fd18d98d762b31003adf33faa4fdde4d50e8ec0d721be2748d5b",
 	"controls": {
 		"CR-API-001": {
@@ -1563,6 +1563,10 @@
 		"F-2I-1": {
 			"finding_class": "APPLICATION",
 			"opened_in": "1.0-draft-phase2i"
+		},
+		"F-2K-1": {
+			"finding_class": "APPLICATION",
+			"opened_in": "1.0-draft-phase2k"
 		}
 	}
 }

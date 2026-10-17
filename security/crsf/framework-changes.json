@@ -1229,6 +1229,27 @@
 					"reason": "F-2I-1 fixed (Phase 2J)"
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2k",
+			"summary": "Phase 2K: application finding F-2K-1 recorded (UNMAPPED, release FAIL) during the CR-RESOURCE-001 path inventory - stop condition B; no evidence closure attempted.",
+			"changes": [
+				{
+					"id": "F-2K-1",
+					"kind": "NEW_FINDING",
+					"finding_class": "APPLICATION",
+					"mapping": {
+						"unmapped": true,
+						"reason": "CR-RESOURCE-001 requires per-IP, per-key and global limits before provider work on every endpoint (coverraccoon_requirement, applies_to api/*), but its properties P1-P4 name only dashboard login/action, link VERIFY, challenge issuance and positions/attribution. GET /api/link is none of them; extending P2 or adding a property is a framework decision left to the remediation phase."
+					},
+					"reason": "Application, Low. api/link.mjs (GET /api/link?code=...): after only the per-IP limit wallet-link-read (30/600 s) every request with a valid unused link code reads the pending link (Supabase) and calls telegramTarget -> Telegram Bot API getChat with the bot token. There is no per-key (link code) and no global limit, unlike the sibling POST /api/link/verify (IP -> wallet-link-code 5/600 s -> wallet-link-verify-global 200/600 s, all before getChat). Reproduction: security/crsf/probes/link-read-getchat-probe.mjs (real handler, real guards, offline wire): with every non-IP limiter scope denied, 20 requests from 20 IPs with one valid code made 20 getChat calls and only wallet-link-read ran; control: IP denied -> 0 getChat. Impact: with one valid code (any Telegram user can create codes for their own chat, bounded by link-code-chat/link-code-global) and rotating IPs, unbounded Bot API getChat traffic on the bot token; Telegram throttles a bot as a whole, so this can delay or drop bot replies, link confirmations and expiry alerts. Fix direction: apply the canonical link gates of /api/link/verify before getPendingLink/telegramTarget - wallet-link-code (per code) and a global budget (e.g. wallet-link-verify-global or a dedicated wallet-link-read-global) - and decide the control mapping (recommended: PROPERTY_ADDED CR-RESOURCE-001 P5 \"link read limits before provider calls\" via a documented requirement change). Not fixed in Phase 2K."
+				},
+				{
+					"id": "STOP-2K",
+					"kind": "STOP_CONDITION",
+					"reason": "Stop condition B (real application finding F-2K-1) reached while inventorying CR-RESOURCE-001 paths, before any new evidence was written. Not attempted: CR-RESOURCE-001 P1-P4 behavioural evidence, CR-INPUT-004, CR-BROWSER-004, CR-VERIFY-003, CR-VERIFY-004."
+				}
+			]
 		}
 	]
 }
