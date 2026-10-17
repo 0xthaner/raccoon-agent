@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2l",
+	"crsf_version": "1.0-draft-phase2m",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -3805,6 +3805,10 @@
 				"EV-KB-ATTRIB-COVER-BUDGET",
 				"EV-KB-LEGACY-ORDER",
 				"EV-KB-LINK-READ-BUDGET",
+				"EV-KB-RESOURCE-P1",
+				"EV-KB-RESOURCE-P2",
+				"EV-KB-RESOURCE-P3",
+				"EV-KB-RESOURCE-P4",
 				"EV-LEGACY-ORDER",
 				"EV-LINK-READ-BUDGET",
 				"EV-M1",
@@ -3812,22 +3816,32 @@
 				"EV-PROBE-ATTRIB-COVERS",
 				"EV-PROBE-LEGACY-RPC",
 				"EV-PROBE-LINK-READ",
+				"EV-RESOURCE-P1",
+				"EV-RESOURCE-P2",
+				"EV-RESOURCE-P3",
+				"EV-RESOURCE-P4",
 				"EV-RL"
 			],
 			"property_coverage": {
 				"P1": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-RESOURCE-P1"
+					],
 					"partial_only": [
 						"EV-ERC1271",
 						"EV-RL",
 						"EV-PROBE-LEGACY-RPC",
 						"EV-LEGACY-ORDER",
-						"EV-KB-LEGACY-ORDER"
+						"EV-KB-LEGACY-ORDER",
+						"EV-KB-RESOURCE-P1"
 					],
 					"insufficient": []
 				},
 				"P2": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-RESOURCE-P2",
+						"EV-KB-RESOURCE-P2"
+					],
 					"partial_only": [
 						"EV-M1",
 						"EV-RL"
@@ -3835,19 +3849,25 @@
 					"insufficient": []
 				},
 				"P3": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-RESOURCE-P3"
+					],
 					"partial_only": [
-						"EV-RL"
+						"EV-RL",
+						"EV-KB-RESOURCE-P3"
 					],
 					"insufficient": []
 				},
 				"P4": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-RESOURCE-P4"
+					],
 					"partial_only": [
 						"EV-M2",
 						"EV-PROBE-ATTRIB-COVERS",
 						"EV-ATTRIB-COVER-BUDGET",
-						"EV-KB-ATTRIB-COVER-BUDGET"
+						"EV-KB-ATTRIB-COVER-BUDGET",
+						"EV-KB-RESOURCE-P4"
 					],
 					"insufficient": []
 				},
@@ -3862,10 +3882,10 @@
 					]
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied (partial only: EV-ERC1271,EV-RL,EV-PROBE-LEGACY-RPC,EV-LEGACY-ORDER,EV-KB-LEGACY-ORDER); P2 unsatisfied (partial only: EV-M1,EV-RL); P3 unsatisfied (partial only: EV-RL); P4 unsatisfied (partial only: EV-M2,EV-PROBE-ATTRIB-COVERS,EV-ATTRIB-COVER-BUDGET,EV-KB-ATTRIB-COVER-BUDGET)",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied (partial only: EV-ERC1271,EV-RL,EV-PROBE-LEGACY-RPC,EV-LEGACY-ORDER,EV-KB-LEGACY-ORDER); P2 unsatisfied (partial only: EV-M1,EV-RL); P3 unsatisfied (partial only: EV-RL); P4 unsatisfied (partial only: EV-M2,EV-PROBE-ATTRIB-COVERS,EV-ATTRIB-COVER-BUDGET,EV-KB-ATTRIB-COVER-BUDGET)",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 5 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 5 sub-properties satisfied at >= E3",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [

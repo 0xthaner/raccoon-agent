@@ -131,11 +131,30 @@ Exit codes:
 - **FAIL:** a release-blocking FAIL or an evidence failure.
 - **INCOMPLETE_EVIDENCE:** everything else.
 
-At CRSF 1.0-draft-phase2l the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE` (54 release-blocking controls; five are `MISSING_EVIDENCE`). Findings F-2D-2, F-2F-1, F-2H-1, F-2I-1 and F-2K-1 are fixed; their probes are now regression proofs. F-2K-1 (GET /api/link) is covered by CR-RESOURCE-001 P5, added in 1.0-draft-phase2l.
+At CRSF 1.0-draft-phase2m the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE` (54 release-blocking controls; four are `MISSING_EVIDENCE`: CR-INPUT-004, CR-BROWSER-004, CR-VERIFY-003, CR-VERIFY-004). Findings F-2D-2, F-2F-1, F-2H-1, F-2I-1 and F-2K-1 are fixed; their probes are now regression proofs. F-2K-1 (GET /api/link) is covered by CR-RESOURCE-001 P5, added in 1.0-draft-phase2l.
 
 Findings are a ledger, replayed from the `NEW_FINDING` / `FINDING_MAPPED` / `FINDING_FIXED` / `FINDING_WITHDRAWN` records in `framework-changes.json` (since 1.0-draft-phase2j, F-2J-1). Every application finding is mapped to a control property or explicitly declared unmapped. An open unmapped application finding makes `RELEASE_SECURITY_ASSERTION: FAIL` whatever the control statuses say. An open mapped one must be recorded as a `VIOLATION` on that property. The version lock records every finding, so none can be deleted or retyped.
 
 A change record may carry a typed `finding` block. Marking a finding `FIXED` is checked rather than trusted (`FINDING_FIX_NOT_PROVEN`): the cited mutation cases must exist, be behavioural `KILLED` and target the violated property, and no `VIOLATION` of that property may remain.
+
+## CR-RESOURCE-001 path matrix (1.0-draft-phase2m)
+
+Every path named by P1-P5, with its expensive work and gates (all windows 600 s). "Behavioural" is the test item that satisfies the property; "Mutations" the known-bad cases that kill it.
+
+| Property | Endpoint / path | Expensive work | IP gate | Per-key gate | Global gate | Behavioural | Mutations | Status |
+|---|---|---|---|---|---|---|---|---|
+| P1 | POST /api/dashboard login (signature) | SIWE verification, ERC-1271 at Alchemy+Infura, nonce consume, session | dashboard-login 10 | dashboard-login-wallet 10 | dashboard-login-global 200 | EV-RESOURCE-P1 | P1-2MA/B/C | covered |
+| P1 | POST /api/dashboard login (on-chain approval) | challenge-state read, ERC-1271 at both providers, consume, session | dashboard-onchain 60 | dashboard-onchain-nonce 45, -wallet 90 | dashboard-onchain-global 600 | EV-RESOURCE-P1 | P1-2MD/E | covered |
+| P1 | DELETE /api/dashboard fresh authority (sign-out everywhere, ?telegram=1; contract sessions) | verification, ERC-1271, consume, revoke/unlink | dashboard-delete 10 | dashboard-action-verify 10 | dashboard-action-verify-global 100 | EV-RESOURCE-P1 | P1-2MF/G | covered |
+| P1 | POST {action}, DELETE sign-out, DELETE ?telegram=1 (legacy sessions without kind) | dual eth_getCode | dashboard-action 20 / dashboard-delete 10 | dashboard-action-wallet 10 | dashboard-action-verify-global 100 | EV-RESOURCE-P1 (EV-LEGACY-ORDER tests) | P1-F2F1A/B1/B2/C/D | covered |
+| P2 | POST /api/link/verify | Telegram getChat, verification, ERC-1271, consume, notification | wallet-link-verify 10 | wallet-link-code 5 | wallet-link-verify-global 200 | EV-RESOURCE-P2 | P2-2MA/B/C | covered |
+| P3 | GET /api/dashboard?wallet= (login challenge) | Alchemy eth_getCode, challenge insert | dashboard-read 120, dashboard-challenge 20 | dashboard-challenge-wallet 10 | dashboard-challenge-global 600 | EV-RESOURCE-P3 | P3-2MA/B/C | covered |
+| P3 | POST {action} action challenge (legacy sessions) | dual eth_getCode, challenge insert | dashboard-action 20 | dashboard-action-wallet 10 | dashboard-action-verify-global 100 | EV-RESOURCE-P3 (EV-LEGACY-ORDER tests) | P1-F2F1A/C/D | covered |
+| P4 | GET /api/positions | Aave RPC (multicall), Nexus catalog | positions-read 60 | positions-wallet 30 | positions-global 1200; positions-lookup-global 200 before each chain lookup | EV-RESOURCE-P4 | P4-2MA/B/C/D | covered (cold, warm, failure cache; merging) |
+| P4 | GET/POST /api/position-attributions | positions lookup; cover lookup (Alchemy NFT, Nexus, getCovers) | attributions-read 60 / attributions-write 30 | attributions-wallet 60 / attributions-write-wallet 30 | positions-lookup-global 200; dashboard-read-global 300 | EV-RESOURCE-P4 | P4-2ME/F; P4-F2H1A-D | covered (cold, warm, failure cache) |
+| P5 | GET /api/link | Telegram getChat | wallet-link-read 30 | wallet-link-read-code 10 | wallet-link-read-global 600 | EV-LINK-READ-BUDGET | P5-F2K1A-E | covered (Phase 2L) |
+
+Paths with no verification or provider work, so no P1-P5 obligation: POST {access} redemption (IP limit before a single-use DB consume), POST {action} for sessions with kind (IP and wallet limits before a DB insert), DELETE sign-out of EOA sessions, DELETE /api/position-attributions. Dashboard cover reads are CR-RESOURCE-004. src/web.mjs repeats link read/verify without limits but is the local polling-mode server (only without VERCEL, bound to 127.0.0.1).
 
 ## Framework versions
 

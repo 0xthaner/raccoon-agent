@@ -6337,6 +6337,734 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P1-2MA",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P1",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P1"
+				}
+			],
+			"description": "login: per-wallet limit removed",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\tif (!await enforceRateLimitFor(response, 'dashboard-login-wallet', wallet.toLowerCase(), 10, 600)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/dashboard-auth-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AUTH-ORDER login signature denied at dashboard-login-wallet$",
+					"message": "^login signature: expensive work after a denied dashboard-login-wallet"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P1-2MB",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P1",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P1"
+				}
+			],
+			"description": "login: global limit removed",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\tif (!await enforceRateLimitFor(response, 'dashboard-login-global', 'all', 200, 600)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/dashboard-auth-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AUTH-ORDER login signature denied at dashboard-login-global$",
+					"message": "^login signature: expensive work after a denied dashboard-login-global"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P1-2MC",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P1",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P1"
+				}
+			],
+			"description": "login: signature verification before the per-wallet and global limits",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\tif (!await enforceRateLimitFor(response, 'dashboard-login-wallet', wallet.toLowerCase(), 10, 600)) return;\n",
+					"replace": ""
+				},
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\tif (!await enforceRateLimitFor(response, 'dashboard-login-global', 'all', 200, 600)) return;\n",
+					"replace": ""
+				},
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\n\tif (!await consumeDashboardChallenge(challenge.nonce, wallet)) {\n\t\tawait recordSecurityEvent(SECURITY_EVENT.SIWE_REPLAY_BLOCKED, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });\n\t\treturn response.status(409).json({ ok: false, error: 'Diese Login-Anfrage",
+					"replace": "\n\tif (!await enforceRateLimitFor(response, 'dashboard-login-wallet', wallet.toLowerCase(), 10, 600)) return;\n\tif (!await enforceRateLimitFor(response, 'dashboard-login-global', 'all', 200, 600)) return;\n\tif (!await consumeDashboardChallenge(challenge.nonce, wallet)) {\n\t\tawait recordSecurityEvent(SECURITY_EVENT.SIWE_REPLAY_BLOCKED, { source: 'dashboard', fingerprint: securityFingerprint(wallet) });\n\t\treturn response.status(409).json({ ok: false, error: 'Diese Login-Anfrage"
+				}
+			],
+			"tests": [
+				"test/dashboard-auth-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AUTH-ORDER login signature denied at dashboard-login-wallet$",
+					"message": "^login signature: expensive work after a denied dashboard-login-wallet"
+				},
+				{
+					"test": "^AUTH-ORDER login signature denied at dashboard-login-global$",
+					"message": "^login signature: expensive work after a denied dashboard-login-global"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P1-2MD",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P1",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P1"
+				}
+			],
+			"description": "on-chain approval: global limit removed",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\tif (!await enforceRateLimitFor(response, 'dashboard-onchain-global', 'all', 600, 600)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/dashboard-auth-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AUTH-ORDER login onchain denied at dashboard-onchain-global$",
+					"message": "^login onchain: expensive work after a denied dashboard-onchain-global"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P1-2ME",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P1",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P1"
+				}
+			],
+			"description": "on-chain approval: challenge read and provider check before the per-challenge, per-wallet and global limits",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\tif (!await enforceRateLimitFor(response, 'dashboard-onchain-nonce', challenge.nonce, 45, 600)) return;\n\t\tif (!await enforceRateLimitFor(response, 'dashboard-onchain-wallet', wallet.toLowerCase(), 90, 600)) return;\n\t\tif (!await enforceRateLimitFor(response, 'dashboard-onchain-global', 'all', 600, 600)) return;\n",
+					"replace": ""
+				},
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\tconst approval = await verifyOnchainDashboardLoginApproval({ challenge, wallet });\n",
+					"replace": "\t\tconst approval = await verifyOnchainDashboardLoginApproval({ challenge, wallet });\n\t\tif (!await enforceRateLimitFor(response, 'dashboard-onchain-nonce', challenge.nonce, 45, 600)) return;\n\t\tif (!await enforceRateLimitFor(response, 'dashboard-onchain-wallet', wallet.toLowerCase(), 90, 600)) return;\n\t\tif (!await enforceRateLimitFor(response, 'dashboard-onchain-global', 'all', 600, 600)) return;\n"
+				}
+			],
+			"tests": [
+				"test/dashboard-auth-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AUTH-ORDER login onchain denied at dashboard-onchain-nonce$",
+					"message": "^login onchain: expensive work after a denied dashboard-onchain-nonce"
+				},
+				{
+					"test": "^AUTH-ORDER login onchain denied at dashboard-onchain-wallet$",
+					"message": "^login onchain: expensive work after a denied dashboard-onchain-wallet"
+				},
+				{
+					"test": "^AUTH-ORDER login onchain denied at dashboard-onchain-global$",
+					"message": "^login onchain: expensive work after a denied dashboard-onchain-global"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P1-2MF",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P1",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P1"
+				}
+			],
+			"description": "fresh authority: global limit removed",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\tif (!await enforceRateLimitFor(response, 'dashboard-action-verify-global', 'all', 100, 600)) return false;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/dashboard-auth-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AUTH-ORDER fresh session-revoke denied at dashboard-action-verify-global$",
+					"message": "^fresh session-revoke: expensive work after a denied dashboard-action-verify-global"
+				},
+				{
+					"test": "^AUTH-ORDER fresh telegram-disconnect denied at dashboard-action-verify-global$",
+					"message": "^fresh telegram-disconnect: expensive work after a denied dashboard-action-verify-global"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P1-2MG",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P1",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P1"
+				}
+			],
+			"description": "fresh authority: verification before the per-wallet and global limits",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\tif (!await enforceRateLimitFor(response, 'dashboard-action-verify', wallet.toLowerCase(), 10, 600)) return false;\n",
+					"replace": ""
+				},
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\tif (!await enforceRateLimitFor(response, 'dashboard-action-verify-global', 'all', 100, 600)) return false;\n",
+					"replace": ""
+				},
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\tconst verified = await verifyWalletSiweAuthority({ message: actionMessage(challenge), signature: body.signature, expected: actionSiweExpectation(challenge) });\n",
+					"replace": "\tconst verified = await verifyWalletSiweAuthority({ message: actionMessage(challenge), signature: body.signature, expected: actionSiweExpectation(challenge) });\n\tif (!await enforceRateLimitFor(response, 'dashboard-action-verify', wallet.toLowerCase(), 10, 600)) return false;\n\tif (!await enforceRateLimitFor(response, 'dashboard-action-verify-global', 'all', 100, 600)) return false;\n"
+				}
+			],
+			"tests": [
+				"test/dashboard-auth-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AUTH-ORDER fresh session-revoke denied at dashboard-action-verify$",
+					"message": "^fresh session-revoke: expensive work after a denied dashboard-action-verify"
+				},
+				{
+					"test": "^AUTH-ORDER fresh telegram-disconnect denied at dashboard-action-verify$",
+					"message": "^fresh telegram-disconnect: expensive work after a denied dashboard-action-verify"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P2-2MA",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P2",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P2"
+				}
+			],
+			"description": "link verify: per-code limit removed",
+			"edits": [
+				{
+					"file": "api/link/verify.mjs",
+					"find": "\tif (!await enforceRateLimitFor(response, 'wallet-link-code', code, 5, 600)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/link-verify-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^LINK-VERIFY-ORDER denied at wallet-link-code$",
+					"message": "^link verify: expensive work after a denied wallet-link-code"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P2-2MB",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P2",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P2"
+				}
+			],
+			"description": "link verify: global limit removed",
+			"edits": [
+				{
+					"file": "api/link/verify.mjs",
+					"find": "\tif (!await enforceRateLimitFor(response, 'wallet-link-verify-global', 'all', 200, 600)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/link-verify-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^LINK-VERIFY-ORDER denied at wallet-link-verify-global$",
+					"message": "^link verify: expensive work after a denied wallet-link-verify-global"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P2-2MC",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P2",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P2"
+				}
+			],
+			"description": "link verify: getChat and signature verification before the per-code and global limits",
+			"edits": [
+				{
+					"file": "api/link/verify.mjs",
+					"find": "\tif (!await enforceRateLimitFor(response, 'wallet-link-code', code, 5, 600)) return;\n",
+					"replace": ""
+				},
+				{
+					"file": "api/link/verify.mjs",
+					"find": "\tif (!await enforceRateLimitFor(response, 'wallet-link-verify-global', 'all', 200, 600)) return;\n",
+					"replace": ""
+				},
+				{
+					"file": "api/link/verify.mjs",
+					"find": "\tconst verified = await verifyWalletSiweSignature({ message, signature, expected });\n",
+					"replace": "\tconst verified = await verifyWalletSiweSignature({ message, signature, expected });\n\tif (!await enforceRateLimitFor(response, 'wallet-link-code', code, 5, 600)) return;\n\tif (!await enforceRateLimitFor(response, 'wallet-link-verify-global', 'all', 200, 600)) return;\n"
+				}
+			],
+			"tests": [
+				"test/link-verify-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^LINK-VERIFY-ORDER denied at wallet-link-code$",
+					"message": "^link verify: expensive work after a denied wallet-link-code"
+				},
+				{
+					"test": "^LINK-VERIFY-ORDER denied at wallet-link-verify-global$",
+					"message": "^link verify: expensive work after a denied wallet-link-verify-global"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P3-2MA",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P3",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P3"
+				}
+			],
+			"description": "challenge issuance: per-wallet limit removed",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\t\tif (!await enforceRateLimitFor(response, 'dashboard-challenge-wallet', wallet.toLowerCase(), 10, 600)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/challenge-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^CHALLENGE-ORDER denied at dashboard-challenge-wallet$",
+					"message": "^challenge: provider/store work after a denied dashboard-challenge-wallet"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P3-2MB",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P3",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P3"
+				}
+			],
+			"description": "challenge issuance: global limit removed",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\t\tif (!await enforceRateLimitFor(response, 'dashboard-challenge-global', 'all', 600, 600)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/challenge-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^CHALLENGE-ORDER denied at dashboard-challenge-global$",
+					"message": "^challenge: provider/store work after a denied dashboard-challenge-global"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P3-2MC",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P3",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P3"
+				}
+			],
+			"description": "challenge issuance: getCode before the per-IP challenge, per-wallet and global limits",
+			"edits": [
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\t\tif (!await enforceRateLimit(request, response, 'dashboard-challenge', 20, 600)) return;\n",
+					"replace": ""
+				},
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\t\tif (!await enforceRateLimitFor(response, 'dashboard-challenge-wallet', wallet.toLowerCase(), 10, 600)) return;\n",
+					"replace": ""
+				},
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\t\tif (!await enforceRateLimitFor(response, 'dashboard-challenge-global', 'all', 600, 600)) return;\n",
+					"replace": ""
+				},
+				{
+					"file": "api/dashboard.mjs",
+					"find": "\t\t\t} catch { /* fail closed: kurze EOA-TTL */ }\n",
+					"replace": "\t\t\t} catch { /* fail closed: kurze EOA-TTL */ }\n\t\t\tif (!await enforceRateLimit(request, response, 'dashboard-challenge', 20, 600)) return;\n\t\t\tif (!await enforceRateLimitFor(response, 'dashboard-challenge-wallet', wallet.toLowerCase(), 10, 600)) return;\n\t\t\tif (!await enforceRateLimitFor(response, 'dashboard-challenge-global', 'all', 600, 600)) return;\n"
+				}
+			],
+			"tests": [
+				"test/challenge-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^CHALLENGE-ORDER denied at dashboard-challenge$",
+					"message": "^challenge: provider/store work after a denied dashboard-challenge"
+				},
+				{
+					"test": "^CHALLENGE-ORDER denied at dashboard-challenge-wallet$",
+					"message": "^challenge: provider/store work after a denied dashboard-challenge-wallet"
+				},
+				{
+					"test": "^CHALLENGE-ORDER denied at dashboard-challenge-global$",
+					"message": "^challenge: provider/store work after a denied dashboard-challenge-global"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P4-2MA",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P4",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P4"
+				}
+			],
+			"description": "GET /api/positions: per-wallet limit removed",
+			"edits": [
+				{
+					"file": "api/positions.mjs",
+					"find": "\t\tif (!await rateLimitFor(response, 'positions-wallet', wallet, 30, 600)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/positions-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^POSITIONS-ORDER (cold|warm|failure-cached) cache denied at positions-wallet$",
+					"message": "^positions (cold|warm|failure-cached): (provider calls [1-9]|status)"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P4-2MB",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P4",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P4"
+				}
+			],
+			"description": "GET /api/positions: global request limit removed",
+			"edits": [
+				{
+					"file": "api/positions.mjs",
+					"find": "\t\tif (!await rateLimitFor(response, 'positions-global', 'all', 1_200, 600)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/positions-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^POSITIONS-ORDER (cold|warm|failure-cached) cache denied at positions-global$",
+					"message": "^positions (cold|warm|failure-cached): (provider calls [1-9]|status)"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P4-2MC",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P4",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P4"
+				}
+			],
+			"description": "GET /api/positions: provider budget bypassed (admit always true)",
+			"edits": [
+				{
+					"file": "api/positions.mjs",
+					"find": "\t\tconst admit = () => rateLimitFor(response, 'positions-lookup-global', 'all', 200, 600);",
+					"replace": "\t\tconst admit = async () => true;"
+				}
+			],
+			"tests": [
+				"test/positions-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^POSITIONS-ORDER (cold cache, provider budget denied|merging with the provider budget denied)",
+					"message": "^positions (cold|merged): provider calls [1-9]"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P4-2MD",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P4",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P4"
+				}
+			],
+			"description": "positions lookup: provider budget asked only after the chain lookup",
+			"edits": [
+				{
+					"file": "src/positions/index.mjs",
+					"find": "\t\t.then(() => admit())\n\t\t.then((admitted) => {\n\t\t\tif (!admitted) throw new LookupNotAdmittedError('not admitted');\n\t\t\treturn lookup(key, { client, catalogLoader, now });\n\t\t})\n",
+					"replace": "\t\t.then(() => lookup(key, { client, catalogLoader, now }))\n\t\t.then(async (value) => {\n\t\t\tif (!await admit()) throw new LookupNotAdmittedError('not admitted');\n\t\t\treturn value;\n\t\t})\n"
+				}
+			],
+			"tests": [
+				"test/positions-rate-order.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^POSITIONS-ORDER (cold cache, provider budget denied|merging with the provider budget denied)",
+					"message": "^positions (cold|merged): provider calls [1-9]"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P4-2ME",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P4",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P4"
+				}
+			],
+			"description": "GET /api/position-attributions: per-wallet limit removed",
+			"edits": [
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\t\t\tif (!await rateLimitFor(response, 'attributions-wallet', wallet, 60, 600)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/attribution-cover-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^ATTRIB-ORDER GET (cold|warm|failure) denied at attributions-wallet$",
+					"message": "^GET (cold|warm|failure): provider calls [1-9]"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P4-2MF",
+			"origin": "new (Phase 2M)",
+			"evidence_id": "EV-KB-RESOURCE-P4",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P4"
+				}
+			],
+			"description": "POST /api/position-attributions: per-wallet write limit removed",
+			"edits": [
+				{
+					"file": "api/position-attributions.mjs",
+					"find": "\t\tif (!await rateLimitFor(response, 'attributions-write-wallet', wallet, 30, 600)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/attribution-cover-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^ATTRIB-ORDER POST (cold|warm|failure) denied at attributions-write-wallet$",
+					"message": "^POST (cold|warm|failure): provider calls [1-9]"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

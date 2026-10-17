@@ -166,3 +166,21 @@ test('ATTRIB-COVER-BUDGET same budget as the dashboard read path', () => {
 	assert.match(dashboard, /const DASHBOARD_READ_GLOBAL_LIMIT = Object\.freeze\(\{ max: 300, windowSeconds: 600 \}\);/);
 	assert.match(dashboard, /enforceRateLimitFor\(response, 'dashboard-read-global', 'all', DASHBOARD_READ_GLOBAL_LIMIT\.max, DASHBOARD_READ_GLOBAL_LIMIT\.windowSeconds\)/);
 });
+
+/*
+	CRSF Phase 2M (CR-RESOURCE-001 P4): auch die IP- und Wallet-Schranke des
+	Attributionspfads stoppen jede Anfrage vor jeder Provider-Arbeit (Positionen
+	UND Covers), in jedem Cache-Zustand.
+*/
+for (const method of ['POST', 'GET']) {
+	for (const cache of CACHES) for (const [i, gate] of PREFIX[method].entries()) test(`ATTRIB-ORDER ${method} ${cache} denied at ${gate}`, async () => {
+		await primePositions(cache);
+		const w = world({ deny: gate, rows: rowsFor(method) });
+		const r = await call(method, w);
+		const label = `${method} ${cache}:`;
+		assert.equal(w.aave.calls + zero(w.wire), 0, `${label} provider calls ${w.aave.calls + zero(w.wire)} after a denied ${gate}`);
+		assert.equal(r.statusCode, 429, `${label} status`);
+		assert.deepEqual(w.writes, [], `${label} attribution mutated`);
+		assert.deepEqual(w.limits, PREFIX[method].slice(0, i + 1), `${label} gates after ${gate}`);
+	});
+}

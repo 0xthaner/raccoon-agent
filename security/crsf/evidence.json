@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2l",
+	"crsf_version": "1.0-draft-phase2m",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -6434,6 +6434,396 @@
 			],
 			"coverage": "PARTIAL",
 			"reason_for_partial": "CR-RESOURCE-001[P5]: mutation cases: MUT-CR-RESOURCE-001-P5-F2K1A, MUT-CR-RESOURCE-001-P5-F2K1B, MUT-CR-RESOURCE-001-P5-F2K1C, MUT-CR-RESOURCE-001-P5-F2K1D, MUT-CR-RESOURCE-001-P5-F2K1E"
+		},
+		{
+			"id": "EV-RESOURCE-P1",
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/dashboard-auth-rate-order.test.mjs",
+			"test_or_proof": "test/dashboard-auth-rate-order.test.mjs, test/dashboard-legacy-rate-order.test.mjs",
+			"property_proven": "real api/dashboard.mjs + real src/http-security.mjs guards + real dashboard-auth, with verifyWalletSiweAuthority / verifyOnchainDashboardLoginApproval / noContractCodeByQuorum on two offline wire providers (request counters) and DB spies. Login: dashboard-login (IP 10) -> dashboard-login-wallet (10) -> dashboard-login-global (200); on-chain approval: dashboard-onchain (IP 60) -> -nonce (45) -> -wallet (90) -> -global (600); fresh authority: dashboard-delete (IP 10) -> dashboard-action-verify (wallet 10) -> dashboard-action-verify-global (100); legacy action paths: IP -> dashboard-action-wallet -> dashboard-action-verify-global (F-2F-1). Denied at any gate -> 429 with 0 verifications, 0 Alchemy and 0 Infura requests, no challenge read, no nonce consumption, no session, no revoke/unlink, and no later gate asked; admitted -> all gates before the first verification or state read; owner key -> verified offline, consumed once, session issued / action run; foreign key -> ERC-1271 at both providers, fails closed, nothing consumed; documented sizes (all per 600 s).",
+			"property_not_proven": "real provider and Telegram behaviour and cost; limiter store atomicity (CR-RESOURCE-002); fixed-window edges (up to 2 x max across a bucket boundary)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P1]: every P1 path: login (signature), login (on-chain approval), fresh-authority verification (DELETE sign-out everywhere, DELETE ?telegram=1), legacy-session action paths (POST {action}, DELETE sign-out, DELETE ?telegram=1)",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "every P1 path: login (signature), login (on-chain approval), fresh-authority verification (DELETE sign-out everywhere, DELETE ?telegram=1), legacy-session action paths (POST {action}, DELETE sign-out, DELETE ?telegram=1)"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/dashboard-auth-rate-order.test.mjs",
+					"test/dashboard-legacy-rate-order.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-RESOURCE-P2",
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/link-verify-rate-order.test.mjs",
+			"test_or_proof": "test/link-verify-rate-order.test.mjs",
+			"property_proven": "real api/link/verify.mjs + real guards + real telegramTarget (recording fetch), signingMessage, linkSiweExpectation and verifyWalletSiweSignature on two offline wire providers: wallet-link-verify (IP 10) -> code format -> wallet-link-code (5) -> link read/structure -> wallet-link-verify-global (200). Denied at any gate -> 429 with getChat 0, verification 0, RPC 0, no consume, no dashboard access code, no Telegram message; IP or code denied -> link not even read; invalid code format, expired/used/unknown link or malformed wallet/signature -> no global charge, no getChat, no verification; admitted -> all three gates before getChat and the verification; owner key -> one getChat, verified offline, consumed once, chat notified; foreign key -> ERC-1271 at both providers, fails closed; documented sizes.",
+			"property_not_proven": "real provider and Telegram behaviour and cost; limiter store atomicity (CR-RESOURCE-002); fixed-window edges (up to 2 x max across a bucket boundary)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P2]: POST /api/link/verify (the only deployed link verification; src/web.mjs is the local polling server bound to 127.0.0.1)",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "POST /api/link/verify (the only deployed link verification; src/web.mjs is the local polling server bound to 127.0.0.1)"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/link-verify-rate-order.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-RESOURCE-P3",
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/challenge-rate-order.test.mjs",
+			"test_or_proof": "test/challenge-rate-order.test.mjs, test/dashboard-legacy-rate-order.test.mjs",
+			"property_proven": "real api/dashboard.mjs + real guards + real isDeployedContract (fresh cache) on an offline wire provider: dashboard-read (IP 120) -> address check -> dashboard-challenge (IP 20) -> dashboard-challenge-wallet (10) -> dashboard-challenge-global (600) -> one eth_getCode -> one stored challenge. Denied at any gate -> 429, getCode 0, nothing stored, no later gate; invalid address -> 400 after the read gate only; admitted -> classification unchanged (EOA 5 min, contract 30 min, provider error fails closed to 5 min). Legacy action challenge: see EV-LEGACY-ORDER (IP -> wallet -> global before the dual getCode).",
+			"property_not_proven": "real provider and Telegram behaviour and cost; limiter store atomicity (CR-RESOURCE-002); fixed-window edges (up to 2 x max across a bucket boundary)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P3]: every challenge issuance with getCode: login challenge (GET ?wallet=, Alchemy getCode) and the action challenge of a legacy session (POST {action}, eth_getCode at Alchemy and Infura)",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "every challenge issuance with getCode: login challenge (GET ?wallet=, Alchemy getCode) and the action challenge of a legacy session (POST {action}, eth_getCode at Alchemy and Infura)"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/challenge-rate-order.test.mjs",
+					"test/dashboard-legacy-rate-order.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-RESOURCE-P4",
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/positions-rate-order.test.mjs",
+			"test_or_proof": "test/positions-rate-order.test.mjs, test/attribution-cover-budget.test.mjs",
+			"property_proven": "GET /api/positions: real createPositionsHandler + real guards + real session resolution + real getWalletPositions cache/merging on an offline Aave client: positions-read (IP 60) -> session -> positions-wallet (30) -> positions-global (1200) -> cache -> positions-lookup-global (200, only before a chain lookup) -> RPC. Denied at an IP/wallet/global gate -> 429 with 0 chain calls in cold, warm and failure-cached states (a cached value never bypasses a gate); provider budget denied on a cold cache -> 429, 0 chain calls, no catalog, nothing cached; warm and failure-cached -> served without provider budget or chain call; two concurrent cold requests -> one budget charge, one lookup; merged and denied -> 0 chain calls, joined request 503. Attributions: attributions-read/-wallet (GET) or attributions-write/-write-wallet (POST) denied -> 0 position and 0 cover provider calls, no write, in all cache states; positions-lookup-global before positions RPC on a cold cache; dashboard-read-global before every cover lookup (F-2H-1).",
+			"property_not_proven": "real provider and Telegram behaviour and cost; limiter store atomicity (CR-RESOURCE-002); fixed-window edges (up to 2 x max across a bucket boundary)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P4]: every P4 path: GET /api/positions and GET/POST /api/position-attributions (positions and cover lookups); DELETE /api/position-attributions does no lookup",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "every P4 path: GET /api/positions and GET/POST /api/position-attributions (positions and cover lookups); DELETE /api/position-attributions does no lookup"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/positions-rate-order.test.mjs",
+					"test/attribution-cover-budget.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-RESOURCE-P1",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 7 case(s)",
+			"property_proven": "removing the login per-wallet or global limit, verifying the login signature before them, removing the on-chain global limit, reading the challenge and asking the providers before the on-chain limits, removing the fresh-authority global limit or verifying before the fresh-authority limits is each detected by the intended test and message",
+			"property_not_proven": "real provider and Telegram behaviour and cost; limiter store atomicity (CR-RESOURCE-002); fixed-window edges (up to 2 x max across a bucket boundary)",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-RESOURCE-001-P1-2MA, MUT-CR-RESOURCE-001-P1-2MB, MUT-CR-RESOURCE-001-P1-2MC, MUT-CR-RESOURCE-001-P1-2MD, MUT-CR-RESOURCE-001-P1-2ME, MUT-CR-RESOURCE-001-P1-2MF, MUT-CR-RESOURCE-001-P1-2MG; login, on-chain approval and fresh-authority paths; the legacy action paths are mutation-proven by EV-KB-LEGACY-ORDER"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-RESOURCE-001-P1-2MA",
+					"MUT-CR-RESOURCE-001-P1-2MB",
+					"MUT-CR-RESOURCE-001-P1-2MC",
+					"MUT-CR-RESOURCE-001-P1-2MD",
+					"MUT-CR-RESOURCE-001-P1-2ME",
+					"MUT-CR-RESOURCE-001-P1-2MF",
+					"MUT-CR-RESOURCE-001-P1-2MG"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P1]: mutation cases: MUT-CR-RESOURCE-001-P1-2MA, MUT-CR-RESOURCE-001-P1-2MB, MUT-CR-RESOURCE-001-P1-2MC, MUT-CR-RESOURCE-001-P1-2MD, MUT-CR-RESOURCE-001-P1-2ME, MUT-CR-RESOURCE-001-P1-2MF, MUT-CR-RESOURCE-001-P1-2MG; login, on-chain approval and fresh-authority paths; the legacy action paths are mutation-proven by EV-KB-LEGACY-ORDER"
+		},
+		{
+			"id": "EV-KB-RESOURCE-P2",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 3 case(s)",
+			"property_proven": "removing the per-code or the global link-verify limit, or running getChat and the signature verification before both, is each detected by the intended test and message",
+			"property_not_proven": "real provider and Telegram behaviour and cost; limiter store atomicity (CR-RESOURCE-002); fixed-window edges (up to 2 x max across a bucket boundary)",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-RESOURCE-001-P2-2MA, MUT-CR-RESOURCE-001-P2-2MB, MUT-CR-RESOURCE-001-P2-2MC"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-RESOURCE-001-P2-2MA",
+					"MUT-CR-RESOURCE-001-P2-2MB",
+					"MUT-CR-RESOURCE-001-P2-2MC"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P2]: mutation cases: MUT-CR-RESOURCE-001-P2-2MA, MUT-CR-RESOURCE-001-P2-2MB, MUT-CR-RESOURCE-001-P2-2MC"
+		},
+		{
+			"id": "EV-KB-RESOURCE-P3",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 3 case(s)",
+			"property_proven": "removing the per-wallet or global challenge limit, or asking getCode before the per-IP challenge, per-wallet and global limits, is each detected by the intended test and message",
+			"property_not_proven": "real provider and Telegram behaviour and cost; limiter store atomicity (CR-RESOURCE-002); fixed-window edges (up to 2 x max across a bucket boundary)",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P3"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-RESOURCE-001-P3-2MA, MUT-CR-RESOURCE-001-P3-2MB, MUT-CR-RESOURCE-001-P3-2MC; login challenge issuance; the legacy action challenge is mutation-proven by EV-KB-LEGACY-ORDER"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-RESOURCE-001-P3-2MA",
+					"MUT-CR-RESOURCE-001-P3-2MB",
+					"MUT-CR-RESOURCE-001-P3-2MC"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P3]: mutation cases: MUT-CR-RESOURCE-001-P3-2MA, MUT-CR-RESOURCE-001-P3-2MB, MUT-CR-RESOURCE-001-P3-2MC; login challenge issuance; the legacy action challenge is mutation-proven by EV-KB-LEGACY-ORDER"
+		},
+		{
+			"id": "EV-KB-RESOURCE-P4",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 6 case(s)",
+			"property_proven": "removing the positions per-wallet or global limit, bypassing the provider budget, asking it only after the chain lookup, or removing the attribution per-wallet read or write limit is each detected by the intended test and message",
+			"property_not_proven": "real provider and Telegram behaviour and cost; limiter store atomicity (CR-RESOURCE-002); fixed-window edges (up to 2 x max across a bucket boundary)",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P4"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-RESOURCE-001-P4-2MA, MUT-CR-RESOURCE-001-P4-2MB, MUT-CR-RESOURCE-001-P4-2MC, MUT-CR-RESOURCE-001-P4-2MD, MUT-CR-RESOURCE-001-P4-2ME, MUT-CR-RESOURCE-001-P4-2MF; GET /api/positions and the attribution IP/wallet gates; the attribution cover budget is mutation-proven by EV-KB-ATTRIB-COVER-BUDGET"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-RESOURCE-001-P4-2MA",
+					"MUT-CR-RESOURCE-001-P4-2MB",
+					"MUT-CR-RESOURCE-001-P4-2MC",
+					"MUT-CR-RESOURCE-001-P4-2MD",
+					"MUT-CR-RESOURCE-001-P4-2ME",
+					"MUT-CR-RESOURCE-001-P4-2MF"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P4]: mutation cases: MUT-CR-RESOURCE-001-P4-2MA, MUT-CR-RESOURCE-001-P4-2MB, MUT-CR-RESOURCE-001-P4-2MC, MUT-CR-RESOURCE-001-P4-2MD, MUT-CR-RESOURCE-001-P4-2ME, MUT-CR-RESOURCE-001-P4-2MF; GET /api/positions and the attribution IP/wallet gates; the attribution cover budget is mutation-proven by EV-KB-ATTRIB-COVER-BUDGET"
 		}
 	]
 }

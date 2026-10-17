@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2l
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2m
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -10,8 +10,8 @@
 
 - FAIL: 19
 - INFORMATIONAL: 2
-- MISSING_EVIDENCE: 51
-- PASS_AUTOMATED: 51
+- MISSING_EVIDENCE: 50
+- PASS_AUTOMATED: 52
 - PASS_MANUAL: 24
 
 ### Release classes
@@ -23,16 +23,16 @@
 
 ### Release-blocking controls by security status
 
-- MISSING_EVIDENCE: 5
-- PASS_AUTOMATED: 49
+- MISSING_EVIDENCE: 4
+- PASS_AUTOMATED: 50
 
 ### Standard conformance (ASVS 5.0.0, applicable requirements)
 
 - ACCEPTED_PLATFORM_DEVIATION: 1
 - ACCEPTED_PROTOCOL_DEVIATION: 2
-- CONFORMANT: 73
+- CONFORMANT: 75
 - NON_CONFORMANT: 21
-- NOT_DEMONSTRATED: 65
+- NOT_DEMONSTRATED: 63
 
 ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Profile: ASVS L2 (all applicable L1 + L2 requirements are in scope); selected L3: V6.7.2, V15.4.2, V15.4.3, V7.5.3, V3.5.8, V14.2.6, V14.2.7, V8.3.2, V2.3.5.
 
@@ -149,7 +149,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-CONC-004 | Stale cleanup is compare-and-delete | RELEASE_BLOCKING | E5 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E5 |
 | CR-CONC-005 | Session revocation atomic per wallet | RELEASE_BLOCKING | E5 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E5 |
 | CR-CONC-006 | Locks consistent, deadlock-free and local | SECURITY_DEBT | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied; P2 unsatisfied; P3 unsatisfied |
-| CR-RESOURCE-001 | Rate limits before expensive work (IP, wallet, global) | RELEASE_BLOCKING | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-ERC1271,EV-RL,EV-PROBE-LEGACY-RPC,EV-LEGACY-ORDER,EV-KB-LEGACY-ORDER); P2 unsatisfied (partial only: EV-M1,EV-RL); P3 unsatisfied (partial only: EV-RL); P4 unsatisfied (partial only: EV-M2,EV-PROBE-ATTRIB-COVERS,EV-ATTRIB-COVER-BUDGET,EV-KB-ATTRIB-COVER-BUDGET) |
+| CR-RESOURCE-001 | Rate limits before expensive work (IP, wallet, global) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 5 sub-properties satisfied at >= E3 |
 | CR-RESOURCE-002 | Rate limiter counting atomic | SECURITY_DEBT | E5 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
 | CR-RESOURCE-003 | Cron run budgets, pagination and failure isolation | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E3 |
 | CR-RESOURCE-004 | Dashboard provider amplification bounded | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
@@ -357,10 +357,18 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-PROBE-LINK-READ | behavioral | E2 | probe | PARTIAL | yes | regression proof (finding F-2K-1, fixed in Phase 2L): real api/link.mjs with an offline recording fetch; IP, per-code and global denial each yield 0 getChat; 20 requests from 20 IPs with one valid code make at most 10 getChat calls (10 refused); an admitted request answers 200 with the Telegram target after exactly one getChat, behind all three limits. History: in Phase 2K it reproduced the defect - 20 IPs x one code -> 20 getChat with only the per-IP limit before them. |
 | EV-LINK-READ-BUDGET | behavioral | E3 | node-test | PARTIAL | yes | real api/link.mjs + src/http-security.mjs + src/db.mjs + src/linking.mjs up to an offline wire, limiter counting per key in a fixed window: IP denied -> no pending-link read, no getChat; per-code denied -> no pending-link read, no getChat; global denied -> no getChat (with and without wallet); admitted -> unchanged 200 responses (target; signing message with wallet) after exactly one getChat, order wallet-link-read -> wallet-link-read-code -> pending link -> wallet-link-read-global -> getChat; invalid code -> no limiter beyond IP, no DB, no getChat; expired / used / non-private / unknown link and invalid wallet -> no getChat, global not charged; 20 IPs x one code -> 10 getChat (per-code bound); 70 codes x 12 IPs -> 600 getChat (global bound); limiter failure -> no getChat; keys: HMAC(code) and constant "all", not shared with /api/link/verify |
 | EV-KB-LINK-READ-BUDGET | known-bad | E4 | mutation | PARTIAL | yes | removing the per-code or the global limit, moving getChat before both limits, keying the per-code limit by IP, or applying the global limit only after getChat is each detected by the intended test and message |
+| EV-RESOURCE-P1 | behavioral | E3 | node-test | PARTIAL | yes | real api/dashboard.mjs + real src/http-security.mjs guards + real dashboard-auth, with verifyWalletSiweAuthority / verifyOnchainDashboardLoginApproval / noContractCodeByQuorum on two offline wire providers (request counters) and DB spies. Login: dashboard-login (IP 10) -> dashboard-login-wallet (10) -> dashboard-login-global (200); on-chain approval: dashboard-onchain (IP 60) -> -nonce (45) -> -wallet (90) -> -global (600); fresh authority: dashboard-delete (IP 10) -> dashboard-action-verify (wallet 10) -> dashboard-action-verify-global (100); legacy action paths: IP -> dashboard-action-wallet -> dashboard-action-verify-global (F-2F-1). Denied at any gate -> 429 with 0 verifications, 0 Alchemy and 0 Infura requests, no challenge read, no nonce consumption, no session, no revoke/unlink, and no later gate asked; admitted -> all gates before the first verification or state read; owner key -> verified offline, consumed once, session issued / action run; foreign key -> ERC-1271 at both providers, fails closed, nothing consumed; documented sizes (all per 600 s). |
+| EV-RESOURCE-P2 | behavioral | E3 | node-test | PARTIAL | yes | real api/link/verify.mjs + real guards + real telegramTarget (recording fetch), signingMessage, linkSiweExpectation and verifyWalletSiweSignature on two offline wire providers: wallet-link-verify (IP 10) -> code format -> wallet-link-code (5) -> link read/structure -> wallet-link-verify-global (200). Denied at any gate -> 429 with getChat 0, verification 0, RPC 0, no consume, no dashboard access code, no Telegram message; IP or code denied -> link not even read; invalid code format, expired/used/unknown link or malformed wallet/signature -> no global charge, no getChat, no verification; admitted -> all three gates before getChat and the verification; owner key -> one getChat, verified offline, consumed once, chat notified; foreign key -> ERC-1271 at both providers, fails closed; documented sizes. |
+| EV-RESOURCE-P3 | behavioral | E3 | node-test | PARTIAL | yes | real api/dashboard.mjs + real guards + real isDeployedContract (fresh cache) on an offline wire provider: dashboard-read (IP 120) -> address check -> dashboard-challenge (IP 20) -> dashboard-challenge-wallet (10) -> dashboard-challenge-global (600) -> one eth_getCode -> one stored challenge. Denied at any gate -> 429, getCode 0, nothing stored, no later gate; invalid address -> 400 after the read gate only; admitted -> classification unchanged (EOA 5 min, contract 30 min, provider error fails closed to 5 min). Legacy action challenge: see EV-LEGACY-ORDER (IP -> wallet -> global before the dual getCode). |
+| EV-RESOURCE-P4 | behavioral | E3 | node-test | PARTIAL | yes | GET /api/positions: real createPositionsHandler + real guards + real session resolution + real getWalletPositions cache/merging on an offline Aave client: positions-read (IP 60) -> session -> positions-wallet (30) -> positions-global (1200) -> cache -> positions-lookup-global (200, only before a chain lookup) -> RPC. Denied at an IP/wallet/global gate -> 429 with 0 chain calls in cold, warm and failure-cached states (a cached value never bypasses a gate); provider budget denied on a cold cache -> 429, 0 chain calls, no catalog, nothing cached; warm and failure-cached -> served without provider budget or chain call; two concurrent cold requests -> one budget charge, one lookup; merged and denied -> 0 chain calls, joined request 503. Attributions: attributions-read/-wallet (GET) or attributions-write/-write-wallet (POST) denied -> 0 position and 0 cover provider calls, no write, in all cache states; positions-lookup-global before positions RPC on a cold cache; dashboard-read-global before every cover lookup (F-2H-1). |
+| EV-KB-RESOURCE-P1 | known-bad | E4 | mutation | PARTIAL | yes | removing the login per-wallet or global limit, verifying the login signature before them, removing the on-chain global limit, reading the challenge and asking the providers before the on-chain limits, removing the fresh-authority global limit or verifying before the fresh-authority limits is each detected by the intended test and message |
+| EV-KB-RESOURCE-P2 | known-bad | E4 | mutation | PARTIAL | yes | removing the per-code or the global link-verify limit, or running getChat and the signature verification before both, is each detected by the intended test and message |
+| EV-KB-RESOURCE-P3 | known-bad | E4 | mutation | PARTIAL | yes | removing the per-wallet or global challenge limit, or asking getCode before the per-IP challenge, per-wallet and global limits, is each detected by the intended test and message |
+| EV-KB-RESOURCE-P4 | known-bad | E4 | mutation | PARTIAL | yes | removing the positions per-wallet or global limit, bypassing the provider budget, asking it only after the chain lookup, or removing the attribution per-wallet read or write limit is each detected by the intended test and message |
 
 ## 6. Mutation cases
 
-169 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+188 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -533,6 +541,25 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-RESOURCE-001-P5-F2K1C | CR-RESOURCE-001.P5 | behavioral | KILLED |
 | MUT-CR-RESOURCE-001-P5-F2K1D | CR-RESOURCE-001.P5 | behavioral | KILLED |
 | MUT-CR-RESOURCE-001-P5-F2K1E | CR-RESOURCE-001.P5 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P1-2MA | CR-RESOURCE-001.P1 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P1-2MB | CR-RESOURCE-001.P1 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P1-2MC | CR-RESOURCE-001.P1 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P1-2MD | CR-RESOURCE-001.P1 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P1-2ME | CR-RESOURCE-001.P1 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P1-2MF | CR-RESOURCE-001.P1 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P1-2MG | CR-RESOURCE-001.P1 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P2-2MA | CR-RESOURCE-001.P2 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P2-2MB | CR-RESOURCE-001.P2 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P2-2MC | CR-RESOURCE-001.P2 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P3-2MA | CR-RESOURCE-001.P3 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P3-2MB | CR-RESOURCE-001.P3 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P3-2MC | CR-RESOURCE-001.P3 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P4-2MA | CR-RESOURCE-001.P4 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P4-2MB | CR-RESOURCE-001.P4 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P4-2MC | CR-RESOURCE-001.P4 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P4-2MD | CR-RESOURCE-001.P4 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P4-2ME | CR-RESOURCE-001.P4 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P4-2MF | CR-RESOURCE-001.P4 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -593,7 +620,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V5.2.3 | L2 | CR-DOC-001 | CONFORMANT |
 | V6.1.1 | L1 | CR-AUTH-011 | NON_CONFORMANT |
 | V6.1.3 | L2 | CR-AUTH-009 | NON_CONFORMANT |
-| V6.3.1 | L1 | CR-RESOURCE-001 | NOT_DEMONSTRATED |
+| V6.3.1 | L1 | CR-RESOURCE-001 | CONFORMANT |
 | V6.3.2 | L1 | CR-AUTH-012 | CONFORMANT |
 | V6.3.3 | L2 | CR-AUTH-010 | NON_CONFORMANT |
 | V6.3.4 | L2 | CR-AUTH-002 | CONFORMANT |
@@ -673,7 +700,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V15.1.2 | L2 | CR-SUPPLY-006 | NOT_DEMONSTRATED |
 | V15.1.3 | L2 | CR-RESOURCE-006 | NON_CONFORMANT |
 | V15.2.1 | L1 | CR-SUPPLY-005 | NON_CONFORMANT |
-| V15.2.2 | L2 | CR-RESOURCE-001, CR-RESOURCE-003, CR-RESOURCE-004, CR-RESOURCE-007, CR-DOC-003 | NOT_DEMONSTRATED |
+| V15.2.2 | L2 | CR-RESOURCE-001, CR-RESOURCE-003, CR-RESOURCE-004, CR-RESOURCE-007, CR-DOC-003 | CONFORMANT |
 | V15.2.3 | L2 | CR-CONFIG-008 | CONFORMANT |
 | V15.3.1 | L1 | CR-API-007 | NOT_DEMONSTRATED |
 | V15.3.2 | L2 | CR-PROVIDER-003 | CONFORMANT |
@@ -779,4 +806,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2j** — Phase 2J: findings ledger (F-2J-1) - every open application finding must map to a control property or fail the release; F-2I-1 mapped to the new control CR-RESOURCE-007 and fixed.
 - **1.0-draft-phase2k** — Phase 2K: application finding F-2K-1 recorded (UNMAPPED, release FAIL) during the CR-RESOURCE-001 path inventory - stop condition B; no evidence closure attempted.
 - **1.0-draft-phase2l** — Phase 2L: F-2K-1 mapped to CR-RESOURCE-001 P5 (PROPERTY_ADDED: link read limits before the Telegram getChat call) and fixed in api/link.mjs.
+- **1.0-draft-phase2m** — Phase 2M: CR-RESOURCE-001 P1-P4 behavioural evidence for every named path, with known-bad mutations; no application change, no finding.
 

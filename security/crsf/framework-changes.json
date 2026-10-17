@@ -1405,6 +1405,29 @@
 					"reason": "F-2K-1 fixed (Phase 2L)"
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2m",
+			"summary": "Phase 2M: CR-RESOURCE-001 P1-P4 behavioural evidence for every named path, with known-bad mutations; no application change, no finding.",
+			"changes": [
+				{
+					"id": "CR-RESOURCE-001",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E3",
+					"evidence_added": [
+						"test/dashboard-auth-rate-order.test.mjs + test/dashboard-legacy-rate-order.test.mjs (EV-RESOURCE-P1, FULL)",
+						"test/link-verify-rate-order.test.mjs (EV-RESOURCE-P2, FULL)",
+						"test/challenge-rate-order.test.mjs + test/dashboard-legacy-rate-order.test.mjs (EV-RESOURCE-P3, FULL)",
+						"test/positions-rate-order.test.mjs + test/attribution-cover-budget.test.mjs (EV-RESOURCE-P4, FULL)",
+						"security/mutation/cases.json (EV-KB-RESOURCE-P1..P4, 19 KILLED)"
+					],
+					"why_sufficient": "Every path named by P1-P5 is covered by one behavioural item on the real handler and real guards (path matrix: security/crsf/README.md, section \"CR-RESOURCE-001 path matrix\"): each gate denied yields zero expensive work and stops the chain; each admitted path asks all gates before its first expensive step and keeps its result; known-bad mutations of every gate are KILLED for the intended reason. P5 unchanged (Phase 2L).",
+					"remains_unproven": "Real provider/Telegram cost and limits; limiter atomicity under concurrency (CR-RESOURCE-002, SECURITY_DEBT); fixed-window edges. Paths without verification or provider work are not P1-P4 obligations: POST {access} redemption (IP limit before a single-use DB consume), POST {action} for sessions with kind (IP and wallet limits before a DB insert, no provider), DELETE sign-out of EOA sessions, DELETE /api/position-attributions. Dashboard cover reads are CR-RESOURCE-004.",
+					"reason": "evidence closure (Phase 2M); status recomputed by the engine"
+				}
+			]
 		}
 	]
 }
