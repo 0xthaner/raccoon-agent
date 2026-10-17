@@ -14,7 +14,7 @@
 	Alles andere wirft - ein unbekanntes Muster faellt im Test auf, statt still falsch
 	uebersetzt zu werden.
 */
-const COLUMN = /^[a-z_]+$/;
+const COLUMN = /^[a-z_][a-z_0-9]*$/;
 const column = (name) => { if (!COLUMN.test(name)) throw new Error(`Spalte ${name}`); return name; };
 
 export function statementFor(method, path, params, body, prefer = '') {
@@ -32,7 +32,7 @@ export function statementFor(method, path, params, body, prefer = '') {
 	let limit = '';
 	let onConflict = null;
 	for (const [key, raw] of params) {
-		if (key === 'select') { select = raw.split(',').map(column).join(', '); continue; }
+		if (key === 'select') { select = raw === '*' ? '*' : raw.split(',').map(column).join(', '); continue; }
 		if (key === 'columns') continue;
 		if (key === 'on_conflict') { onConflict = raw.split(',').map(column); continue; }
 		if (key === 'order') { order = ` order by ${raw.split(',').map((part) => { const [c, dir] = part.split('.'); return `${column(c)}${dir === 'desc' ? ' desc' : ''}`; }).join(', ')}`; continue; }

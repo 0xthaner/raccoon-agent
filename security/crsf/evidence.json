@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2m",
+	"crsf_version": "1.0-draft-phase2n",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -6824,6 +6824,155 @@
 			],
 			"coverage": "PARTIAL",
 			"reason_for_partial": "CR-RESOURCE-001[P4]: mutation cases: MUT-CR-RESOURCE-001-P4-2MA, MUT-CR-RESOURCE-001-P4-2MB, MUT-CR-RESOURCE-001-P4-2MC, MUT-CR-RESOURCE-001-P4-2MD, MUT-CR-RESOURCE-001-P4-2ME, MUT-CR-RESOURCE-001-P4-2MF; GET /api/positions and the attribution IP/wallet gates; the attribution cover budget is mutation-proven by EV-KB-ATTRIB-COVER-BUDGET"
+		},
+		{
+			"id": "EV-INPUT-DB-STRUCTURE",
+			"control_ids": [
+				"CR-INPUT-004"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/input-db-request-structure.test.mjs",
+			"test_or_proof": "test/input-db-request-structure.test.mjs",
+			"property_proven": "real src/db.mjs with the real supabase-js; fetch records each PostgREST request. For every exported helper that takes input (coverage of the export list is asserted), harmless and adversarial values (SQL quotes/comments/statements, PostgREST operators and separators, LIKE wildcards, percent encoding, query-string characters, JSON, Unicode, 10 000 chars) produce the same request: same method, table or function, filter columns, operators (only eq/gt/lt/lte/like/is, never or/and/not/in), select/order/limit/on_conflict and body keys; the value after the operator and every body value is exactly the input (or its fixed frame such as unlinked:<chat>:%, lowercased where the helper normalizes wallets); RPC arguments travel as named JSON values, never in the URL. Input-free helpers send fixed requests. LIKE patterns only receive Telegram chat ids that the private-update and link-row checks accept (positive integers; wildcard characters rejected). Static supplement: no other src/ or api/ file talks to the database; no expression builder with a string argument; every table, function, column and order name in src/db.mjs is a literal.",
+			"property_not_proven": "the PostgREST server itself is not run (its parsing of <op>.<value> as one bound value is its documented contract; the real-Postgres item models it); operator scripts (scripts/) call the same helpers",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-INPUT-004[P1]: every exported src/db.mjs helper (the only runtime database client; checked) with 27 adversarial values",
+			"covers": [
+				{
+					"control": "CR-INPUT-004",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "every exported src/db.mjs helper (the only runtime database client; checked) with 27 adversarial values"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/input-db-request-structure.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-INPUT-DB-PG",
+			"control_ids": [
+				"CR-INPUT-004"
+			],
+			"type": "real-system",
+			"level": "E5",
+			"source": "repository",
+			"artifact": "test/input-db-adversarial-db.test.mjs",
+			"test_or_proof": "test/input-db-adversarial-db.test.mjs",
+			"property_proven": "disposable Postgres with every migration; real src/db.mjs and supabase-js, each PostgREST request translated into one statement with bound parameters (test-support/pg-postgrest.mjs). P1: adversarial lookups, updates and deletes match nothing, change no row outside their own keys (content hash of every table) and either succeed or fail with a data error (22P02/22007/23514), never a syntax or object error; adversarial values are stored and read back literally (events, labels, rate keys, link rows, challenges); per-chat LIKE patterns are anchored on the delimiter (chat 1 never touches 10, 12 or 100, on forget and on link). P2: every callable function (alert_subscriptions_page, check_agent_rate_limit, consume_wallet_link, consume_wallet_link_v2, link_wallet_to_chat_limited, lock_chat_wallets, revoke_dashboard_sessions_atomic, upsert_position_attribution_limited) called with adversarial text: no syntax error, no foreign row, values stored literally in the code's chat only, malformed wallets/deployment keys rejected by checks; catalog: exactly these functions, plpgsql/sql only, no EXECUTE, format() or quote_* in any body, SECURITY DEFINER functions with a fixed search_path, no triggers or event triggers.",
+			"property_not_proven": "real PostgREST (modelled); the migration-time DO blocks of 20260924170000 build GRANT/REVOKE statements with format(%I / regprocedure) from catalog names only (no application input; not callable); search_path hardening with pg_temp last is CR-DB-003 (SECURITY_DEBT, unchanged)",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-INPUT-004",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "all table helpers reachable with input, every callable SQL function after all migrations, and the function catalog"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"disposable Postgres"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "pg-postgrest-adapter",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/input-db-adversarial-db.test.mjs"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-INPUT-004",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 4 case(s)",
+			"property_proven": "splicing the link code into a PostgREST or-expression, dropping the delimiter of the per-chat LIKE pattern, turning an eq value into a LIKE pattern, or building check_agent_rate_limit's statement by EXECUTE with the concatenated key is each detected by the intended behavioural test and message",
+			"property_not_proven": "other conceivable weakenings beyond these four",
+			"covers": [
+				{
+					"control": "CR-INPUT-004",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-INPUT-004-P1-2NA, MUT-CR-INPUT-004-P1-2NB, MUT-CR-INPUT-004-P1-2NC, MUT-CR-INPUT-004-P2-2NA"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node",
+				"postgres"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-INPUT-004-P1-2NA",
+					"MUT-CR-INPUT-004-P1-2NB",
+					"MUT-CR-INPUT-004-P1-2NC",
+					"MUT-CR-INPUT-004-P2-2NA"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-INPUT-004"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
 		}
 	]
 }

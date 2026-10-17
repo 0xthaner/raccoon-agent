@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2m
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2n
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -10,8 +10,8 @@
 
 - FAIL: 19
 - INFORMATIONAL: 2
-- MISSING_EVIDENCE: 50
-- PASS_AUTOMATED: 52
+- MISSING_EVIDENCE: 49
+- PASS_AUTOMATED: 53
 - PASS_MANUAL: 24
 
 ### Release classes
@@ -23,16 +23,16 @@
 
 ### Release-blocking controls by security status
 
-- MISSING_EVIDENCE: 4
-- PASS_AUTOMATED: 50
+- MISSING_EVIDENCE: 3
+- PASS_AUTOMATED: 51
 
 ### Standard conformance (ASVS 5.0.0, applicable requirements)
 
 - ACCEPTED_PLATFORM_DEVIATION: 1
 - ACCEPTED_PROTOCOL_DEVIATION: 2
-- CONFORMANT: 75
+- CONFORMANT: 76
 - NON_CONFORMANT: 21
-- NOT_DEMONSTRATED: 63
+- NOT_DEMONSTRATED: 62
 
 ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Profile: ASVS L2 (all applicable L1 + L2 requirements are in scope); selected L3: V6.7.2, V15.4.2, V15.4.3, V7.5.3, V3.5.8, V14.2.6, V14.2.7, V8.3.2, V2.3.5.
 
@@ -202,7 +202,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-INPUT-001 | Input decoded to canonical form once | SECURITY_DEBT | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
 | CR-INPUT-002 | Output encoded at the interpreter boundary (incl. JSON) | SECURITY_DEBT | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
 | CR-INPUT-003 | URLs built with context encoding and safe schemes | SECURITY_DEBT | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied; P2 unsatisfied |
-| CR-INPUT-004 | Database access parameterized | RELEASE_BLOCKING | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied; P2 unsatisfied |
+| CR-INPUT-004 | Database access parameterized | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
 | CR-INPUT-005 | No OS command execution | SECURITY_DEBT | E1 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
 | CR-INPUT-006 | Regex metacharacters escaped for untrusted input | SECURITY_DEBT | E1 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
 | CR-INPUT-007 | Data sanitized before dangerous contexts | SECURITY_DEBT | E3 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
@@ -365,10 +365,13 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-KB-RESOURCE-P2 | known-bad | E4 | mutation | PARTIAL | yes | removing the per-code or the global link-verify limit, or running getChat and the signature verification before both, is each detected by the intended test and message |
 | EV-KB-RESOURCE-P3 | known-bad | E4 | mutation | PARTIAL | yes | removing the per-wallet or global challenge limit, or asking getCode before the per-IP challenge, per-wallet and global limits, is each detected by the intended test and message |
 | EV-KB-RESOURCE-P4 | known-bad | E4 | mutation | PARTIAL | yes | removing the positions per-wallet or global limit, bypassing the provider budget, asking it only after the chain lookup, or removing the attribution per-wallet read or write limit is each detected by the intended test and message |
+| EV-INPUT-DB-STRUCTURE | behavioral | E3 | node-test | PARTIAL | yes | real src/db.mjs with the real supabase-js; fetch records each PostgREST request. For every exported helper that takes input (coverage of the export list is asserted), harmless and adversarial values (SQL quotes/comments/statements, PostgREST operators and separators, LIKE wildcards, percent encoding, query-string characters, JSON, Unicode, 10 000 chars) produce the same request: same method, table or function, filter columns, operators (only eq/gt/lt/lte/like/is, never or/and/not/in), select/order/limit/on_conflict and body keys; the value after the operator and every body value is exactly the input (or its fixed frame such as unlinked:<chat>:%, lowercased where the helper normalizes wallets); RPC arguments travel as named JSON values, never in the URL. Input-free helpers send fixed requests. LIKE patterns only receive Telegram chat ids that the private-update and link-row checks accept (positive integers; wildcard characters rejected). Static supplement: no other src/ or api/ file talks to the database; no expression builder with a string argument; every table, function, column and order name in src/db.mjs is a literal. |
+| EV-INPUT-DB-PG | real-system | E5 | node-test | FULL | yes | disposable Postgres with every migration; real src/db.mjs and supabase-js, each PostgREST request translated into one statement with bound parameters (test-support/pg-postgrest.mjs). P1: adversarial lookups, updates and deletes match nothing, change no row outside their own keys (content hash of every table) and either succeed or fail with a data error (22P02/22007/23514), never a syntax or object error; adversarial values are stored and read back literally (events, labels, rate keys, link rows, challenges); per-chat LIKE patterns are anchored on the delimiter (chat 1 never touches 10, 12 or 100, on forget and on link). P2: every callable function (alert_subscriptions_page, check_agent_rate_limit, consume_wallet_link, consume_wallet_link_v2, link_wallet_to_chat_limited, lock_chat_wallets, revoke_dashboard_sessions_atomic, upsert_position_attribution_limited) called with adversarial text: no syntax error, no foreign row, values stored literally in the code's chat only, malformed wallets/deployment keys rejected by checks; catalog: exactly these functions, plpgsql/sql only, no EXECUTE, format() or quote_* in any body, SECURITY DEFINER functions with a fixed search_path, no triggers or event triggers. |
+| EV-KB-INPUT-004 | known-bad | E4 | mutation | FULL | yes | splicing the link code into a PostgREST or-expression, dropping the delimiter of the per-chat LIKE pattern, turning an eq value into a LIKE pattern, or building check_agent_rate_limit's statement by EXECUTE with the concatenated key is each detected by the intended behavioural test and message |
 
 ## 6. Mutation cases
 
-188 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+192 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -560,6 +563,10 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-RESOURCE-001-P4-2MD | CR-RESOURCE-001.P4 | behavioral | KILLED |
 | MUT-CR-RESOURCE-001-P4-2ME | CR-RESOURCE-001.P4 | behavioral | KILLED |
 | MUT-CR-RESOURCE-001-P4-2MF | CR-RESOURCE-001.P4 | behavioral | KILLED |
+| MUT-CR-INPUT-004-P1-2NA | CR-INPUT-004.P1 | behavioral | KILLED |
+| MUT-CR-INPUT-004-P1-2NB | CR-INPUT-004.P1 | behavioral | KILLED |
+| MUT-CR-INPUT-004-P1-2NC | CR-INPUT-004.P1 | behavioral | KILLED |
+| MUT-CR-INPUT-004-P2-2NA | CR-INPUT-004.P2 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -570,7 +577,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V1.2.1 | L1 | CR-BROWSER-004 | NOT_DEMONSTRATED |
 | V1.2.2 | L1 | CR-INPUT-003 | NOT_DEMONSTRATED |
 | V1.2.3 | L1 | CR-INPUT-002 | NOT_DEMONSTRATED |
-| V1.2.4 | L1 | CR-INPUT-004 | NOT_DEMONSTRATED |
+| V1.2.4 | L1 | CR-INPUT-004 | CONFORMANT |
 | V1.2.5 | L1 | CR-INPUT-005 | NOT_DEMONSTRATED |
 | V1.2.9 | L2 | CR-INPUT-006 | NOT_DEMONSTRATED |
 | V1.3.2 | L1 | CR-BROWSER-004 | NOT_DEMONSTRATED |
@@ -807,4 +814,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2k** — Phase 2K: application finding F-2K-1 recorded (UNMAPPED, release FAIL) during the CR-RESOURCE-001 path inventory - stop condition B; no evidence closure attempted.
 - **1.0-draft-phase2l** — Phase 2L: F-2K-1 mapped to CR-RESOURCE-001 P5 (PROPERTY_ADDED: link read limits before the Telegram getChat call) and fixed in api/link.mjs.
 - **1.0-draft-phase2m** — Phase 2M: CR-RESOURCE-001 P1-P4 behavioural evidence for every named path, with known-bad mutations; no application change, no finding.
+- **1.0-draft-phase2n** — Phase 2N: CR-INPUT-004 behavioural evidence (request structure of every database helper, adversarial values and SQL functions on real Postgres, function catalog) with known-bad mutations; no application change, no finding.
 

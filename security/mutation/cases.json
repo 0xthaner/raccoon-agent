@@ -7065,6 +7065,145 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-INPUT-004-P1-2NA",
+			"origin": "new (Phase 2N)",
+			"evidence_id": "EV-KB-INPUT-004",
+			"targets": [
+				{
+					"control": "CR-INPUT-004",
+					"property": "P1"
+				}
+			],
+			"description": "getPendingLink: the link code is spliced into a PostgREST or-expression instead of an eq value",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "select('*').eq('code', code).maybeSingle()",
+					"replace": "select('*').or(`code.eq.${code}`).maybeSingle()"
+				}
+			],
+			"tests": [
+				"test/input-db-request-structure.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^INPUT-DB getPendingLink: adversarial values occupy value slots only",
+					"message": "value reached PostgREST expression syntax"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-INPUT-004-P1-2NB",
+			"origin": "new (Phase 2N)",
+			"evidence_id": "EV-KB-INPUT-004",
+			"targets": [
+				{
+					"control": "CR-INPUT-004",
+					"property": "P1"
+				}
+			],
+			"description": "forgetRememberedWallet: the per-chat LIKE pattern loses its delimiter (unlinked:<chat>% instead of unlinked:<chat>:%)",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\tvalue(await client.from('pending_links').delete().like('chat_id', `unlinked:${chatId}:%`));\n}\n\nexport async function unlinkWalletByWallet",
+					"replace": "\tvalue(await client.from('pending_links').delete().like('chat_id', `unlinked:${chatId}%`));\n}\n\nexport async function unlinkWalletByWallet"
+				}
+			],
+			"tests": [
+				"test/input-db-adversarial-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^INPUT-DB-PG P1 per-chat LIKE patterns are anchored",
+					"message": "^forget for chat 1 removed another chat's remembered wallet"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-INPUT-004-P1-2NC",
+			"origin": "new (Phase 2N)",
+			"evidence_id": "EV-KB-INPUT-004",
+			"targets": [
+				{
+					"control": "CR-INPUT-004",
+					"property": "P1"
+				}
+			],
+			"description": "createPendingLink: the chat id becomes a LIKE pattern (eq -> like), so input wildcards widen the delete",
+			"edits": [
+				{
+					"file": "src/db.mjs",
+					"find": "\tvalue(await db.from('pending_links').delete().eq('chat_id', chat));\n\tvalue(await db.from('pending_links').delete().lt('expires_at', new Date().toISOString()));\n\tvalue(await db.from('pending_links').insert({\n\t\tcode,\n\t\tchat_id: chat,",
+					"replace": "\tvalue(await db.from('pending_links').delete().like('chat_id', chat));\n\tvalue(await db.from('pending_links').delete().lt('expires_at', new Date().toISOString()));\n\tvalue(await db.from('pending_links').insert({\n\t\tcode,\n\t\tchat_id: chat,"
+				}
+			],
+			"tests": [
+				"test/input-db-adversarial-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^INPUT-DB-PG P1 adversarial values are stored and read back literally",
+					"message": "victim link survived createPendingLink"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-INPUT-004-P2-2NA",
+			"origin": "new (Phase 2N)",
+			"evidence_id": "EV-KB-INPUT-004",
+			"targets": [
+				{
+					"control": "CR-INPUT-004",
+					"property": "P2"
+				}
+			],
+			"description": "check_agent_rate_limit: the rate key is concatenated into dynamic SQL (EXECUTE) instead of a static statement",
+			"edits": [
+				{
+					"file": "supabase/migrations/20260813194500_security_hardening.sql",
+					"find": "  insert into public.api_rate_limits (key_hash, bucket_start, requests)\n  values (rate_key, bucket, 1)\n  on conflict (key_hash, bucket_start) do update\n    set requests = public.api_rate_limits.requests + 1\n  returning requests into current_requests;\n",
+					"replace": "  execute 'insert into public.api_rate_limits (key_hash, bucket_start, requests) values (''' || rate_key || ''', $1, 1) on conflict (key_hash, bucket_start) do update set requests = public.api_rate_limits.requests + 1 returning requests' into current_requests using bucket;\n"
+				}
+			],
+			"tests": [
+				"test/input-db-adversarial-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^INPUT-DB-PG P2 every callable SQL function treats adversarial text arguments as values",
+					"message": "SQL syntax/structure error"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

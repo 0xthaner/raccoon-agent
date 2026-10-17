@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2m",
+	"crsf_version": "1.0-draft-phase2n",
 	"asvs": "5.0.0",
 	"input": "security/crsf/vendor/asvs-5.0.0.flat.json",
 	"input_sha256": "8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311",
@@ -68,7 +68,7 @@
 			"controls": [
 				"CR-INPUT-004"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{

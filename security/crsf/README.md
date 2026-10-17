@@ -131,7 +131,7 @@ Exit codes:
 - **FAIL:** a release-blocking FAIL or an evidence failure.
 - **INCOMPLETE_EVIDENCE:** everything else.
 
-At CRSF 1.0-draft-phase2m the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE` (54 release-blocking controls; four are `MISSING_EVIDENCE`: CR-INPUT-004, CR-BROWSER-004, CR-VERIFY-003, CR-VERIFY-004). Findings F-2D-2, F-2F-1, F-2H-1, F-2I-1 and F-2K-1 are fixed; their probes are now regression proofs. F-2K-1 (GET /api/link) is covered by CR-RESOURCE-001 P5, added in 1.0-draft-phase2l.
+At CRSF 1.0-draft-phase2n the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE` (54 release-blocking controls; three are `MISSING_EVIDENCE`: CR-BROWSER-004, CR-VERIFY-003, CR-VERIFY-004). Findings F-2D-2, F-2F-1, F-2H-1, F-2I-1 and F-2K-1 are fixed; their probes are now regression proofs. F-2K-1 (GET /api/link) is covered by CR-RESOURCE-001 P5, added in 1.0-draft-phase2l.
 
 Findings are a ledger, replayed from the `NEW_FINDING` / `FINDING_MAPPED` / `FINDING_FIXED` / `FINDING_WITHDRAWN` records in `framework-changes.json` (since 1.0-draft-phase2j, F-2J-1). Every application finding is mapped to a control property or explicitly declared unmapped. An open unmapped application finding makes `RELEASE_SECURITY_ASSERTION: FAIL` whatever the control statuses say. An open mapped one must be recorded as a `VIOLATION` on that property. The version lock records every finding, so none can be deleted or retyped.
 
@@ -155,6 +155,28 @@ Every path named by P1-P5, with its expensive work and gates (all windows 600 s)
 | P5 | GET /api/link | Telegram getChat | wallet-link-read 30 | wallet-link-read-code 10 | wallet-link-read-global 600 | EV-LINK-READ-BUDGET | P5-F2K1A-E | covered (Phase 2L) |
 
 Paths with no verification or provider work, so no P1-P5 obligation: POST {access} redemption (IP limit before a single-use DB consume), POST {action} for sessions with kind (IP and wallet limits before a DB insert), DELETE sign-out of EOA sessions, DELETE /api/position-attributions. Dashboard cover reads are CR-RESOURCE-004. src/web.mjs repeats link read/verify without limits but is the local polling-mode server (only without VERCEL, bound to 127.0.0.1).
+
+## CR-INPUT-004 database input inventory (1.0-draft-phase2n)
+
+P1 "runtime builds no SQL strings from input", P2 "SQL functions use no EXECUTE with untrusted text". Evidence: EV-INPUT-DB-STRUCTURE (request structure, every helper), EV-INPUT-DB-PG (real Postgres, functions, catalog), EV-KB-INPUT-004 (4 mutations).
+
+| Path / function | Input source | DB operation | Query construction | Parameterization model | Dynamic SQL? | Untrusted text reaches SQL syntax? | Status |
+|---|---|---|---|---|---|---|---|
+| src/db.mjs: pending links, dashboard access, challenges (createPendingLink, getPendingLink, createDashboardAccess, consumeDashboardAccess, storeDashboardChallenge, consumeDashboardChallenge, isDashboardChallengeOpen) | link/access codes, nonces, wallets from requests; chat ids from Telegram | PostgREST select/insert/update/delete | supabase-js builder, literal table and columns | `col=eq.<value>` / JSON body; `like` only with the constant `dashboard:%` | no | no | covered |
+| src/db.mjs: wallets, settings, unlink, snoozes, snapshots, alerts, summaries, product context, language (getMonitoredWallets ... saveChatProductContext) | chat ids (validated Telegram updates), wallets (session/validated), labels, cover ids, callback data | PostgREST select/insert/upsert/update/delete | builder; `.match({literal keys})`; literal `on_conflict`, `order`, `select` | values only; thresholds/language allowlisted | no | no | covered |
+| src/db.mjs: remembered wallets (getRememberedWallet(s), forgetRememberedWallet, consumePendingLink cleanup) | Telegram chat id (positive integer; private-update check) or chat_id of a link row checked by isTelegramLinkRow | PostgREST select/delete with `like` | pattern `unlinked:<chat>:%` | bound value; pattern anchored on `:`; no wildcard can reach it (asserted) | no | no (precondition: integer chat id) | covered |
+| src/db.mjs: audit and renewals (recordAgentEvent, begin/finishTelegramDelivery, recordRenewalEvent) | event fields, error texts, metadata objects | PostgREST insert/update/upsert | builder, literal columns | JSON body values; metadata is jsonb data | no | no | covered |
+| src/db.mjs: attributions (list/delete/deleteStale) | session wallet, deployment key, cover id | PostgREST select/delete | builder; `select` from a code constant | values only | no | no | covered |
+| src/db.mjs: purgeOldRecords, listDueSnoozesPage, getAlertRunCursor, claimTelegramUpdate | none from requests (table/column from a code constant; integer update id) | PostgREST delete/select/insert | builder | values only | no | no | covered |
+| RPC check_agent_rate_limit | HMAC rate key | plpgsql function | static statements | plpgsql variables (bind parameters) | no | no | covered |
+| RPC consume_wallet_link_v2 / consume_wallet_link -> link_wallet_to_chat_limited, lock_chat_wallets | link code, wallet | plpgsql/sql functions | static statements; `\|\|` only builds values (advisory-lock key, label) | bind parameters | no | no | covered |
+| RPC revoke_dashboard_sessions_atomic | wallet (regex-checked in SQL), cutoff | plpgsql (invoker) | static; `'revoked:' \|\| wallet` is a value | bind parameters | no | no | covered |
+| RPC alert_subscriptions_page | keyset cursor (DB-derived), page size | sql function | static | bind parameters | no | no | covered |
+| RPC upsert_position_attribution_limited | session wallet, deployment key, ids | plpgsql (invoker) | static | bind parameters; check constraints | no | no | covered |
+| Migration 20260924170000 DO blocks | catalog names (pg_class, pg_proc), fixed role list | GRANT/REVOKE at migration time | `execute format('%I' / regprocedure)` | identifier quoting / regprocedure text | yes (migration-time) | no (no application input; not callable) | class A |
+| Removed: consume_dashboard_challenge, consume_telegram_handoff | - | dropped by later migrations | - | - | - | - | absent (catalog asserted) |
+
+SECURITY DEFINER functions all set `search_path`; none has dynamic SQL; only service_role may execute them (CR-DB-001/002). `search_path` without `pg_temp` last is CR-DB-003 (SECURITY_DEBT). The only database client is src/db.mjs (asserted); operator scripts under scripts/ use the same helpers.
 
 ## Framework versions
 

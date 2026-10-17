@@ -1428,6 +1428,27 @@
 					"reason": "evidence closure (Phase 2M); status recomputed by the engine"
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2n",
+			"summary": "Phase 2N: CR-INPUT-004 behavioural evidence (request structure of every database helper, adversarial values and SQL functions on real Postgres, function catalog) with known-bad mutations; no application change, no finding.",
+			"changes": [
+				{
+					"id": "CR-INPUT-004",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E3",
+					"evidence_added": [
+						"test/input-db-request-structure.test.mjs (EV-INPUT-DB-STRUCTURE, P1 FULL)",
+						"test/input-db-adversarial-db.test.mjs (EV-INPUT-DB-PG, P1+P2 FULL, disposable Postgres)",
+						"security/mutation/cases.json (EV-KB-INPUT-004, 4 KILLED)"
+					],
+					"why_sufficient": "Database input inventory in security/crsf/README.md (\"CR-INPUT-004 database input inventory\"): all runtime access goes through src/db.mjs; every helper is shown to place input only in value slots of fixed requests, and real Postgres shows adversarial values neither widen nor alter statements and are stored literally; no callable SQL function contains dynamic SQL.",
+					"remains_unproven": "Real PostgREST (modelled by the adapter). LIKE helpers rely on their callers passing integer Telegram chat ids (asserted). Migration-time DO blocks use format() with catalog names only. search_path without pg_temp last remains CR-DB-003 (SECURITY_DEBT).",
+					"reason": "evidence closure (Phase 2N); status recomputed by the engine"
+				}
+			]
 		}
 	]
 }

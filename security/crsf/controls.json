@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2m",
+	"crsf_version": "1.0-draft-phase2n",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -7707,27 +7707,42 @@
 			"required_evidence_types": [
 				"behavioral"
 			],
-			"current_evidence_ids": [],
+			"current_evidence_ids": [
+				"EV-INPUT-DB-PG",
+				"EV-INPUT-DB-STRUCTURE",
+				"EV-KB-INPUT-004"
+			],
 			"property_coverage": {
 				"P1": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-INPUT-DB-STRUCTURE",
+						"EV-INPUT-DB-PG",
+						"EV-KB-INPUT-004"
+					],
 					"partial_only": [],
 					"insufficient": []
 				},
 				"P2": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-INPUT-DB-PG",
+						"EV-KB-INPUT-004"
+					],
 					"partial_only": [],
 					"insufficient": []
 				}
 			},
-			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied; P2 unsatisfied",
-			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied; P2 unsatisfied",
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 2 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 2 sub-properties satisfied at >= E3",
 			"deviation_ids": [],
 			"independence": {
-				"evidence_classes": [],
-				"independent_classes": 0,
+				"evidence_classes": [
+					"behavioral",
+					"known-bad",
+					"real-system"
+				],
+				"independent_classes": 3,
 				"shared_fixture_groups": []
 			}
 		},
