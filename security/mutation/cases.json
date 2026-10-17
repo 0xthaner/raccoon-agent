@@ -7378,6 +7378,312 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-BROWSER-004-P1-2PA",
+			"origin": "new (Phase 2P)",
+			"evidence_id": "EV-KB-BROWSER-004",
+			"targets": [
+				{
+					"control": "CR-BROWSER-004",
+					"property": "P1"
+				}
+			],
+			"description": "addTextElement writes via innerHTML instead of textContent (dashboard/positions renderers)",
+			"edits": [
+				{
+					"file": "web/src/main.js",
+					"find": "\tif (className) element.className = className;\n\telement.textContent = String(value ?? '');",
+					"replace": "\tif (className) element.className = className;\n\telement.innerHTML = String(value ?? '');"
+				}
+			],
+			"tests": [
+				"test/browser-render-sinks.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^BROWSER-RENDER dashboard, positions and attributions with hostile value #0 ",
+					"message": "^dashboard #0: HTML parsing sink used"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-BROWSER-004-P1-2PB",
+			"origin": "new (Phase 2P)",
+			"evidence_id": "EV-KB-BROWSER-004",
+			"targets": [
+				{
+					"control": "CR-BROWSER-004",
+					"property": "P1"
+				}
+			],
+			"description": "status line show() writes server error text via innerHTML",
+			"edits": [
+				{
+					"file": "web/src/main.js",
+					"find": "const show = (message) => { status.textContent = message; };",
+					"replace": "const show = (message) => { status.innerHTML = message; };"
+				}
+			],
+			"tests": [
+				"test/browser-render-sinks.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^BROWSER-RENDER dashboard link \\(\\?access=\\) and session errors with hostile values #0 ",
+					"message": "^access expired #0: HTML parsing sink used"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-BROWSER-004-P1-2PC",
+			"origin": "new (Phase 2P)",
+			"evidence_id": "EV-KB-BROWSER-004",
+			"targets": [
+				{
+					"control": "CR-BROWSER-004",
+					"property": "P1"
+				}
+			],
+			"description": "Telegram link page renders the account name via innerHTML",
+			"edits": [
+				{
+					"file": "web/src/main.js",
+					"find": "\tfett.textContent = anzeige;",
+					"replace": "\tfett.innerHTML = anzeige;"
+				}
+			],
+			"tests": [
+				"test/browser-render-sinks.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^BROWSER-RENDER Telegram link page \\(\\?code=\\) with hostile account and error #0 ",
+					"message": "^(link #0: )?HTML parsing sink used"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-BROWSER-004-P1-2PD",
+			"origin": "new (Phase 2P)",
+			"evidence_id": "EV-KB-BROWSER-004",
+			"targets": [
+				{
+					"control": "CR-BROWSER-004",
+					"property": "P1"
+				}
+			],
+			"description": "dashboard Telegram button takes the config value as the whole URL (fixed https://t.me/ prefix dropped)",
+			"edits": [
+				{
+					"file": "web/src/main.js",
+					"find": "\t\t\t? `https://t.me/${config.telegramUsername}`\n\t\t\t: `https://t.me/${config.telegramUsername}?start=connect`;",
+					"replace": "\t\t\t? config.telegramUsername\n\t\t\t: `https://t.me/${config.telegramUsername}?start=connect`;"
+				}
+			],
+			"tests": [
+				"test/browser-render-sinks.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^BROWSER-RENDER dashboard, positions and attributions with hostile value #4 ",
+					"message": "^dashboard #4: href=\"javascript:window.__xss=1\" is not https"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-BROWSER-004-P2-2PE",
+			"origin": "new (Phase 2P)",
+			"evidence_id": "EV-KB-BROWSER-004",
+			"targets": [
+				{
+					"control": "CR-BROWSER-004",
+					"property": "P2"
+				}
+			],
+			"description": "dashboard restore path calls eval",
+			"edits": [
+				{
+					"file": "web/src/main.js",
+					"find": "\t\tconst dashboard = await response.json();\n",
+					"replace": "\t\tconst dashboard = await response.json(); eval('void 0');\n"
+				}
+			],
+			"tests": [
+				"test/browser-render-sinks.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^BROWSER-RENDER dashboard link \\(\\?access=\\) and session errors with hostile values #0 ",
+					"message": "^restore #0: eval called"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-BROWSER-004-P2-2PF",
+			"origin": "new (Phase 2P)",
+			"evidence_id": "EV-KB-BROWSER-004",
+			"targets": [
+				{
+					"control": "CR-BROWSER-004",
+					"property": "P2"
+				}
+			],
+			"description": "dashboard restore path schedules a string timer",
+			"edits": [
+				{
+					"file": "web/src/main.js",
+					"find": "\t\tconst dashboard = await response.json();\n",
+					"replace": "\t\tconst dashboard = await response.json(); setTimeout('void 0', 0);\n"
+				}
+			],
+			"tests": [
+				"test/browser-render-sinks.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^BROWSER-RENDER dashboard link \\(\\?access=\\) and session errors with hostile values #0 ",
+					"message": "^restore #0: string timer"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-BROWSER-004-P3-2PG",
+			"origin": "new (Phase 2P)",
+			"evidence_id": "EV-KB-BROWSER-004",
+			"targets": [
+				{
+					"control": "CR-BROWSER-004",
+					"property": "P3"
+				}
+			],
+			"description": "root CSP (\"/\", Safe App) gains 'unsafe-eval'",
+			"edits": [
+				{
+					"file": "vercel.json",
+					"find": "\"source\": \"/\",\n      \"headers\": [\n        { \"key\": \"Content-Security-Policy\", \"value\": \"default-src 'self'; script-src 'self';",
+					"replace": "\"source\": \"/\",\n      \"headers\": [\n        { \"key\": \"Content-Security-Policy\", \"value\": \"default-src 'self'; script-src 'self' 'unsafe-eval';"
+				}
+			],
+			"tests": [
+				"test/csp-browser-enforced.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^CSP-BROWSER headless Chrome enforces",
+					"message": "^/: eval was not blocked"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-BROWSER-004-P3-2PH",
+			"origin": "new (Phase 2P)",
+			"evidence_id": "EV-KB-BROWSER-004",
+			"targets": [
+				{
+					"control": "CR-BROWSER-004",
+					"property": "P3"
+				}
+			],
+			"description": "non-root CSP (\"/(.+)\") gains 'unsafe-eval'",
+			"edits": [
+				{
+					"file": "vercel.json",
+					"find": "\"source\": \"/(.+)\",\n      \"headers\": [\n        { \"key\": \"X-Frame-Options\", \"value\": \"DENY\" },\n        { \"key\": \"Content-Security-Policy\", \"value\": \"default-src 'self'; script-src 'self';",
+					"replace": "\"source\": \"/(.+)\",\n      \"headers\": [\n        { \"key\": \"X-Frame-Options\", \"value\": \"DENY\" },\n        { \"key\": \"Content-Security-Policy\", \"value\": \"default-src 'self'; script-src 'self' 'unsafe-eval';"
+				}
+			],
+			"tests": [
+				"test/csp-browser-enforced.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^CSP-BROWSER headless Chrome enforces",
+					"message": "^/link: eval was not blocked"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-BROWSER-004-P3-2PI",
+			"origin": "new (Phase 2P)",
+			"evidence_id": "EV-KB-BROWSER-004",
+			"targets": [
+				{
+					"control": "CR-BROWSER-004",
+					"property": "P3"
+				}
+			],
+			"description": "root CSP loses object-src 'none'",
+			"edits": [
+				{
+					"file": "vercel.json",
+					"find": "\"source\": \"/\",\n      \"headers\": [\n        { \"key\": \"Content-Security-Policy\", \"value\": \"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://api.web3modal.org; font-src 'self' data:; connect-src 'self' https://api.web3modal.org https://rpc.walletconnect.org https://pulse.walletconnect.org https://verify.walletconnect.org wss://relay.walletconnect.org; frame-src https://verify.walletconnect.org; worker-src 'self' blob:; object-src 'none'; ",
+					"replace": "\"source\": \"/\",\n      \"headers\": [\n        { \"key\": \"Content-Security-Policy\", \"value\": \"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://api.web3modal.org; font-src 'self' data:; connect-src 'self' https://api.web3modal.org https://rpc.walletconnect.org https://pulse.walletconnect.org https://verify.walletconnect.org wss://relay.walletconnect.org; frame-src https://verify.walletconnect.org; worker-src 'self' blob:; "
+				}
+			],
+			"tests": [
+				"test/csp-browser-enforced.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^CSP-BROWSER headless Chrome enforces",
+					"message": "^/: no object-src violation reported"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

@@ -1479,6 +1479,33 @@
 					"reason": "static source check behind EV-TG-ISO-SRC (CR-API-007 P1) counted the literal pattern `unlinked:${chatId}:%` four times; the pattern now lives once in rememberedPattern behind the chat-id check. The check now asserts: no undelimited `unlinked:${x}%`, exactly one delimited pattern, and all four remembered-wallet LIKE calls go through rememberedPattern(chat). Same property; it passes on both the old and the new code."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2p",
+			"summary": "Phase 2P: CR-BROWSER-004 behavioural evidence (real frontend rendering with hostile API data, CSP enforced in headless Chrome, syntax-tree structure) with known-bad mutations; no application change, no finding.",
+			"changes": [
+				{
+					"id": "CR-BROWSER-004",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E3",
+					"evidence_added": [
+						"test/browser-render-sinks.test.mjs (EV-BROWSER-RENDER, P1 FULL, P2 PARTIAL)",
+						"test/csp-browser-enforced.test.mjs (EV-CSP-BROWSER, P2+P3 FULL, headless Chrome)",
+						"test/browser-dynamic-code.test.mjs (EV-BROWSER-STRUCT, static supplement)",
+						"security/mutation/cases.json (EV-KB-BROWSER-004, 9 KILLED)"
+					],
+					"why_sufficient": "Browser inventory in security/crsf/README.md (\"CR-BROWSER-004 browser-side inventory\"): every place where API data reaches the DOM writes text (textContent/createTextNode); the four URL sinks have fixed scheme and host; the real frontend never reaches an HTML-parsing interface or dynamic code with hostile data, and the served policy makes eval, inline and injected script impossible in Chrome for every page path.",
+					"remains_unproven": "Production header delivery is manual (EV-PROD-HEADERS). Third-party wallet UI is bounded by the CSP, not rendered. Only Chrome/Chromium is driven. The dashboard Telegram button relies on the server-side name check (scheme/host fixed; not exploitable).",
+					"reason": "evidence closure (Phase 2P); status recomputed by the engine"
+				},
+				{
+					"id": "mutations.schema.json",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "edits[].file may now also be exactly vercel.json (the deployment headers incl. the Content-Security-Policy), so CR-BROWSER-004 P3 can be checked by known-bad mutations of the served policy; no other path added, no threshold or class changed"
+				}
+			]
 		}
 	]
 }

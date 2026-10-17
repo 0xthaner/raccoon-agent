@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2o",
+	"crsf_version": "1.0-draft-phase2p",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -6975,6 +6975,215 @@
 			},
 			"control_ids": [
 				"CR-INPUT-004"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
+			"id": "EV-BROWSER-RENDER",
+			"control_ids": [
+				"CR-BROWSER-004"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/browser-render-sinks.test.mjs",
+			"test_or_proof": "test/browser-render-sinks.test.mjs",
+			"property_proven": "the real web/src/main.js (and guide.js) runs in a recording DOM built from the real web/index.html (guide.html); every /api/* answer it reads is hostile (14 payloads: <script>, <img onerror>, \"><svg onload>, iframe srcdoc, javascript: in three spellings, data:text/html, vbscript:, //host, HTML-entity and percent-encoded markup, <a href=javascript:>, closing tags): dashboard covers and settings, Telegram button, DeFi positions, cover attributions, Telegram link page (?code=, account and error), dashboard link (?access=, expiry error and wallet handoff), session restore, paused sign-in, and wrongly typed fields. No HTML-parsing interface (innerHTML, outerHTML, insertAdjacentHTML, srcdoc, document.write/writeln, createContextualFragment, DOMParser) is ever used; only fixed harmless tags are created; no on* attribute; every href is https on coverraccoon.com, t.me or app.nexusmutual.io; hostile values appear as text. eval, Function and string timers are trapped and never called; dynamic import() only with fixed module names.",
+			"property_not_proven": "the recording DOM is not a browser (parsing of the static index.html is by the browser); the WalletConnect/AppKit modal and the Safe Apps SDK are third-party code and are not rendered here (their dynamic code is bounded by EV-CSP-BROWSER); flows that need a wallet signature are not driven (they only render fixed texts and the same helpers); the dashboard Telegram button builds https://t.me/<name> without re-checking the server-validated name client-side (scheme and host fixed, shown never to leave t.me; not a finding)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-BROWSER-004[P1]: every render path that receives /api/* data, on the real web/src/main.js and guide.js; CR-BROWSER-004[P2]: runtime traps on the exercised paths only; all-script guarantee is EV-CSP-BROWSER",
+			"covers": [
+				{
+					"control": "CR-BROWSER-004",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "every render path that receives /api/* data, on the real web/src/main.js and guide.js"
+				},
+				{
+					"control": "CR-BROWSER-004",
+					"properties": [
+						"P2"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "runtime traps on the exercised paths only; all-script guarantee is EV-CSP-BROWSER"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/browser-render-sinks.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-CSP-BROWSER",
+			"control_ids": [
+				"CR-BROWSER-004"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/csp-browser-enforced.test.mjs",
+			"test_or_proof": "test/csp-browser-enforced.test.mjs",
+			"property_proven": "the Content-Security-Policy is taken from vercel.json and served per path exactly as its source patterns select (/ and /(.+), including /link, /guide, /datenschutz, /index.html; one enforcing policy each, no report-only, no meta policy in the HTML; outputDirectory dist-web); a local headless Chrome runs a same-origin probe script: eval and new Function throw EvalError, setTimeout(string), injected inline <script>, on* attribute, javascript: link and a foreign-origin script do not execute; <object> raises an object-src violation and <base> a base-uri violation. Control run with the same probe and no policy executes every one of them (the probe is not deaf). Thus no script of the page - first- or third-party bundle - can turn strings into code.",
+			"property_not_proven": "that Vercel serves these headers in production (EV-PROD-HEADERS, manual, 2026-10-16); upgrade-insecure-requests and HSTS are removed for the local http run; browsers other than Chrome/Chromium; style-src keeps unsafe-inline (styles, not script; outside this control)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-BROWSER-004[P2,P3]: headless Chrome under the vercel.json policy for / and /(.+)",
+			"covers": [
+				{
+					"control": "CR-BROWSER-004",
+					"properties": [
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "headless Chrome under the vercel.json policy for / and /(.+)"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"google-chrome or chromium on PATH"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/csp-browser-enforced.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-BROWSER-STRUCT",
+			"control_ids": [
+				"CR-BROWSER-004"
+			],
+			"type": "static",
+			"level": "E1",
+			"source": "repository",
+			"artifact": "test/browser-dynamic-code.test.mjs",
+			"test_or_proof": "test/browser-dynamic-code.test.mjs",
+			"property_proven": "syntax-tree scan (vite parseAst) of every web/src module: no eval (also as member or computed), no Function constructor, no string timer, no computed import(); no HTML-parsing sink, no on*/srcdoc/style or computed setAttribute, no computed property write; the four URL writes equal the reviewed inventory (fixed Nexus table, two https://t.me/ templates, literal /). Self-check covers each forbidden form.",
+			"property_not_proven": "static only (supplement to EV-BROWSER-RENDER and EV-CSP-BROWSER); third-party bundles are not scanned here (dist-web had no eval/new Function at review time; CSP blocks them regardless)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-BROWSER-004[P1,P2]: syntax tree of every web/src module",
+			"covers": [
+				{
+					"control": "CR-BROWSER-004",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "syntax tree of every web/src module"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/browser-dynamic-code.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-BROWSER-004",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 9 case(s)",
+			"property_proven": "writing rendered text via innerHTML (text helper, status line, Telegram account), dropping the fixed https://t.me/ prefix of the Telegram button, calling eval or a string timer in the dashboard path, adding unsafe-eval to either CSP rule, or removing object-src 'none' is each detected by the intended behavioural test and message",
+			"property_not_proven": "other conceivable weakenings beyond these nine",
+			"covers": [
+				{
+					"control": "CR-BROWSER-004",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-BROWSER-004-P1-2PA, MUT-CR-BROWSER-004-P1-2PB, MUT-CR-BROWSER-004-P1-2PC, MUT-CR-BROWSER-004-P1-2PD, MUT-CR-BROWSER-004-P2-2PE, MUT-CR-BROWSER-004-P2-2PF, MUT-CR-BROWSER-004-P3-2PG, MUT-CR-BROWSER-004-P3-2PH, MUT-CR-BROWSER-004-P3-2PI"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-BROWSER-004-P1-2PA",
+					"MUT-CR-BROWSER-004-P1-2PB",
+					"MUT-CR-BROWSER-004-P1-2PC",
+					"MUT-CR-BROWSER-004-P1-2PD",
+					"MUT-CR-BROWSER-004-P2-2PE",
+					"MUT-CR-BROWSER-004-P2-2PF",
+					"MUT-CR-BROWSER-004-P3-2PG",
+					"MUT-CR-BROWSER-004-P3-2PH",
+					"MUT-CR-BROWSER-004-P3-2PI"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-BROWSER-004"
 			],
 			"coverage": "FULL",
 			"reason_for_partial": null

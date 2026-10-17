@@ -131,7 +131,7 @@ Exit codes:
 - **FAIL:** a release-blocking FAIL or an evidence failure.
 - **INCOMPLETE_EVIDENCE:** everything else.
 
-At CRSF 1.0-draft-phase2o the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE` (54 release-blocking controls; three are `MISSING_EVIDENCE`: CR-BROWSER-004, CR-VERIFY-003, CR-VERIFY-004). Findings F-2D-2, F-2F-1, F-2H-1, F-2I-1 and F-2K-1 are fixed; their probes are now regression proofs. F-2K-1 (GET /api/link) is covered by CR-RESOURCE-001 P5, added in 1.0-draft-phase2l.
+At CRSF 1.0-draft-phase2p the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE` (54 release-blocking controls; two are `MISSING_EVIDENCE`: CR-VERIFY-003, CR-VERIFY-004). Findings F-2D-2, F-2F-1, F-2H-1, F-2I-1 and F-2K-1 are fixed; their probes are now regression proofs. F-2K-1 (GET /api/link) is covered by CR-RESOURCE-001 P5, added in 1.0-draft-phase2l.
 
 Findings are a ledger, replayed from the `NEW_FINDING` / `FINDING_MAPPED` / `FINDING_FIXED` / `FINDING_WITHDRAWN` records in `framework-changes.json` (since 1.0-draft-phase2j, F-2J-1). Every application finding is mapped to a control property or explicitly declared unmapped. An open unmapped application finding makes `RELEASE_SECURITY_ASSERTION: FAIL` whatever the control statuses say. An open mapped one must be recorded as a `VIOLATION` on that property. The version lock records every finding, so none can be deleted or retyped.
 
@@ -179,6 +179,32 @@ P1 "runtime builds no SQL strings from input", P2 "SQL functions use no EXECUTE 
 PostgREST depth: the request structure is shown on the real supabase-js; database behaviour on real Postgres through the repository adapter, which models PostgREST's binding of every filter value as a parameter. A real PostgREST end-to-end run is optional additional evidence and is not claimed.
 
 SECURITY DEFINER functions all set `search_path`; none has dynamic SQL; only service_role may execute them (CR-DB-001/002). `search_path` without `pg_temp` last is CR-DB-003 (SECURITY_DEBT). The only database client is src/db.mjs (asserted); operator scripts under scripts/ use the same helpers.
+
+## CR-BROWSER-004 browser-side inventory (1.0-draft-phase2p)
+
+P1 "no HTML sinks receive untrusted data", P2 "no eval/dynamic code", P3 "CSP forbids unsafe-eval". Evidence: EV-BROWSER-RENDER (real web/src/main.js and guide.js in a recording DOM built from the real HTML, 14 hostile payloads on every API-fed path), EV-CSP-BROWSER (vercel.json policy served per path, enforced by headless Chrome, with a no-policy control run), EV-BROWSER-STRUCT (syntax tree, static supplement), EV-KB-BROWSER-004 (9 mutations).
+
+Classes: A text only (textContent/createTextNode/append of strings); B URL with fixed scheme and host; C fixed constant; D third-party code bounded by the CSP; E HTML or code sink with untrusted data (none found).
+
+| File / path | Input source | Output / sink | Escaping / encoding model | Executable context? | User-controlled? | Security control | Evidence | Status |
+|---|---|---|---|---|---|---|---|---|
+| web/src/main.js addTextElement, element, renderDashboard, renderPositions, renderCoverChooser, renderCoverAttributions, renderSummary, renderUnavailableCard | /api/dashboard, /api/positions, /api/position-attributions (product names, symbols, amounts, labels, ids, dates, settings) | textContent / createTextNode | DOM text, never parsed (A) | no | indirectly (on-chain and server data) | text-only helpers | EV-BROWSER-RENDER, MUT-2PA | covered |
+| web/src/main.js show() status line | /api/dashboard and /api/link error strings, Error.message | textContent | A | no | indirectly | text only | EV-BROWSER-RENDER, MUT-2PB | covered |
+| web/src/main.js zeigeTelegramKonto (?code=) | /api/link telegram.target/username/name, error | textContent, createTextNode, `<strong>` | A | no | yes (Telegram account name) | text only | EV-BROWSER-RENDER, MUT-2PC | covered |
+| web/src/main.js applyLanguage, guide.js apply | fixed translation tables, text of the static HTML | textContent on `[data-teil]` | A/C | no | no | markup fixed in HTML (AGENT-SEC-F1) | EV-BROWSER-RENDER | covered |
+| web/src/main.js nexusLink href | product id from /api/positions | `a.href` | fixed table NEXUS_PRODUCT_PAGES, regex re-check, id equality (B/C) | navigation | id only | fixed https://app.nexusmutual.io | EV-BROWSER-RENDER, EV-BROWSER-STRUCT | covered |
+| web/src/main.js renderDashboard Telegram button href | /api/config telegramUsername (server-checked `^[A-Za-z0-9_]{5,32}$`) | `a.href` = `https://t.me/<name>[?start=connect]` | fixed scheme and host; value only in the path (B); no client re-check (noted, not exploitable) | navigation | no (operator config) | fixed prefix; server check in api/config.mjs | EV-BROWSER-RENDER (hostile names never leave t.me), MUT-2PD | covered |
+| web/src/main.js finish() back link href | /api/config telegramUsername | `a.href` = `https://t.me/<name>` | B, client re-check TELEGRAM_NAME | navigation | no | fixed prefix and format check | EV-BROWSER-STRUCT | covered |
+| web/src/main.js dashboard link | constant | `a.href = '/'` | C | navigation | no | literal | EV-BROWSER-STRUCT | covered |
+| web/src/main.js className, dataset, hidden, style.cssText, classList | constants and booleans | element properties | C | no | no | fixed values | EV-BROWSER-STRUCT (no computed writes) | covered |
+| web/src/main.js, safe-app.js dynamic import() | literal module names (@reown/appkit*, @safe-global/safe-apps-sdk, ./safe-app.js, DEV fixture) | module loading | C | code (fixed modules) | no | literal specifiers; fixture only under import.meta.env.DEV | EV-BROWSER-STRUCT, EV-BROWSER-RENDER | covered |
+| web/src/* timers | functions only | setTimeout/setInterval | C | no string code | no | - | EV-BROWSER-STRUCT, EV-BROWSER-RENDER (traps) | covered |
+| web/src/eye.js, analytics.js | pointer events; page URL (redacted to origin+path) | canvas drawing; @vercel/analytics with beforeSend | no DOM text from data | no | no | - | EV-BROWSER-STRUCT | covered |
+| WalletConnect/AppKit modal, Safe Apps SDK, @vercel/analytics (bundled third-party) | wallet registry, wallet responses | their own DOM (web components) | third-party (D) | bounded by CSP | partly | script-src 'self', no unsafe-eval, object-src/base-uri 'none' | EV-CSP-BROWSER | bounded, not rendered |
+| web/index.html, guide.html, impressum.html, datenschutz.html | static | markup | no inline script or event attributes (scripts/check-frontend.mjs), no meta CSP | - | no | external module scripts only | EV-FRONTEND-SCAN, EV-CSP-BROWSER | covered |
+| vercel.json Content-Security-Policy ("/" and "/(.+)") | configuration | response header | `script-src 'self'`, no unsafe-inline/unsafe-eval for scripts, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors` per rule; style-src keeps unsafe-inline (styles only) | - | no | enforced in Chrome per path | EV-CSP-BROWSER, MUT-2PG/H/I; production delivery EV-PROD-HEADERS (manual) | covered |
+
+URL schemes tried against every navigation sink: javascript:, JaVaScRiPt:, leading whitespace, data:text/html, vbscript:, //host, percent- and entity-encoded, user@host, backslashes, ../. All URLs stayed https on coverraccoon.com, t.me or app.nexusmutual.io. Server-side HTML: none (api/* answers JSON; src/web.mjs is the local static file server). No finding.
 
 ## Framework versions
 

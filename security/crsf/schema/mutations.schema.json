@@ -87,7 +87,7 @@
 							"properties": {
 								"file": {
 									"type": "string",
-									"pattern": "^(src|api|supabase|web|scripts|security/crsf/lib|security/crsf/selftest/fixtures)/"
+									"pattern": "^((src|api|supabase|web|scripts|security/crsf/lib|security/crsf/selftest/fixtures)/|vercel\\.json$)"
 								},
 								"find": {
 									"type": "string",

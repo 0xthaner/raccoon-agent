@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2o",
+	"crsf_version": "1.0-draft-phase2p",
 	"asvs": "5.0.0",
 	"input": "security/crsf/vendor/asvs-5.0.0.flat.json",
 	"input_sha256": "8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311",
@@ -35,7 +35,7 @@
 			"controls": [
 				"CR-BROWSER-004"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -146,7 +146,7 @@
 			"controls": [
 				"CR-BROWSER-004"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -476,7 +476,7 @@
 			"controls": [
 				"CR-BROWSER-004"
 			],
-			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
