@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2s",
+	"crsf_version": "1.0-draft-phase2u",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -10333,21 +10333,24 @@
 				"real-system"
 			],
 			"current_evidence_ids": [
-				"EV-CRSF-SELFTEST"
+				"EV-CRSF-SELFTEST",
+				"EV-E5-OBSERVATION"
 			],
 			"property_coverage": {
 				"P1": {
 					"satisfied_by": [],
-					"partial_only": [],
+					"partial_only": [
+						"EV-E5-OBSERVATION"
+					],
 					"insufficient": [
 						"EV-CRSF-SELFTEST(E3: type not acceptable for minimum level)"
 					]
 				}
 			},
 			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied (below E5/not acceptable: EV-CRSF-SELFTEST(E3: type not acceptable for minimum level))",
+			"conformance_status_reason": "P1 unsatisfied (partial only: EV-E5-OBSERVATION) (below E5/not acceptable: EV-CRSF-SELFTEST(E3: type not acceptable for minimum level))",
 			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied (below E5/not acceptable: EV-CRSF-SELFTEST(E3: type not acceptable for minimum level))",
+			"security_status_reason": "P1 unsatisfied (partial only: EV-E5-OBSERVATION) (below E5/not acceptable: EV-CRSF-SELFTEST(E3: type not acceptable for minimum level))",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [

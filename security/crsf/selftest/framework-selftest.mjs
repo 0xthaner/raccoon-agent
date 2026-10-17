@@ -16,9 +16,11 @@
 import path from 'node:path';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { loadDefinition, loadSchemas, validateSchemas, checkIntegrity, checkPinnedSources, declaredOutcomes, derivationOf, findingLedger, openUnmappedFindings, releaseAssertion } from '../lib/engine.mjs';
-import { runTests, classifyOutcomes, childEnv, detectCapabilities, createWorkspace, runMutation, mutationClaimMismatches } from '../lib/exec.mjs';
+import { loadDefinition, loadSchemas, validateSchemas, checkIntegrity, checkPinnedSources, declaredOutcomes, derivationOf, findingLedger, openUnmappedFindings, releaseAssertion, evaluate, context, realSystemObserved } from '../lib/engine.mjs';
+import { runTests, classifyOutcomes, childEnv, detectCapabilities, createWorkspace, runMutation, mutationClaimMismatches, runObservedTests, authenticObservation } from '../lib/exec.mjs';
 import { generate } from '../generator/crsf-gen.mjs';
+import { dropMutationsFor, forgedPassTarget, allReleaseControlsSatisfied } from '../lib/selftest-states.mjs';
+export { allReleaseControlsSatisfied };
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CRSF = path.resolve(HERE, '..');
@@ -37,17 +39,6 @@ function bump(d, records = []) {
 }
 /** The change record that declares finding F-2D-2 fixed (Phase 2E). */
 const fixRecord = (d) => d['framework-changes'].versions.flatMap((v) => v.changes).find((c) => c.id === 'F-2D-2' && c.finding);
-/** Removes every mutation case targeting `control` and keeps the known-bad evidence consistent (ids, covers). */
-function dropMutationsFor(d, control) {
-	d.mutations.cases = d.mutations.cases.filter((m) => !m.targets.some((t) => t.control === control));
-	const live = new Set(d.mutations.cases.map((m) => m.id));
-	for (const e of d.evidence.evidence.filter((x) => x.execution?.runner === 'mutation')) {
-		e.execution.mutation_ids = e.execution.mutation_ids.filter((id) => live.has(id));
-		e.covers = e.covers.filter((cv) => cv.control !== control);
-		e.control_ids = [...new Set(e.covers.map((cv) => cv.control))].sort();
-	}
-	d.evidence.evidence = d.evidence.evidence.filter((e) => e.execution?.runner !== 'mutation' || e.execution.mutation_ids.length);
-}
 const fakeStructural = (d, control, property) => ({ ...clone(evi(d, 'EV-STRUCT-MAC-CMP')), id: 'EV-FAKE-STRUCT', covers: [{ control, properties: [property], scope: 'FULL', result: 'SUPPORTS', note: null }], control_ids: [control], coverage: 'PARTIAL', reason_for_partial: `${control}[${property}]: x` });
 
 /** Definition fixtures: [id, description, expected code, optional detail regex, mutate(def)] */
@@ -70,7 +61,8 @@ export const DEFINITION_FIXTURES = [
 	['I2', 'extra hand-written override field', 'SCHEMA', /unknown property "status_override"/, (d) => { ctl(d, 'CR-SESSION-004').status_override = 'PASS_AUTOMATED'; }],
 	['J', 'applicable ASVS requirement unmapped', 'APPLICABLE_UNMAPPED', /V1\.3\.7/, (d) => { ctl(d, 'CR-INPUT-013').external_requirement_ids = []; }],
 	// Picks a release-blocking control that is currently MISSING_EVIDENCE, so the fixture never goes stale when evidence closes a control.
-	['N', 'control status changed without evidence change', 'STATUS_NOT_RECOMPUTABLE', /^CR-[A-Z]+-\d{3}\.security_status: recorded "PASS_AUTOMATED"/, (d) => { const target = d.controls.controls.find((c) => c.release_class === 'RELEASE_BLOCKING' && c.security_status === 'MISSING_EVIDENCE'); if (!target) throw new Error('no MISSING_EVIDENCE control left for fixture N'); target.security_status = 'PASS_AUTOMATED'; }],
+	// Phase 2U (F-2T-2): N no longer depends on a control being open - with none left it builds one honestly (see forgedPassTarget).
+	['N', 'control status changed without evidence change', 'STATUS_NOT_RECOMPUTABLE', /^CR-[A-Z]+-\d{3}\.security_status: recorded "PASS_AUTOMATED"/, (d) => { forgedPassTarget(d).security_status = 'PASS_AUTOMATED'; }],
 	['N2', 'deviation reported as PASS', 'STATUS_NOT_RECOMPUTABLE', /CR-CRYPTO-008\.security_status/, (d) => { ctl(d, 'CR-CRYPTO-008').security_status = 'PASS_MANUAL'; }],
 	['O', 'mutation evidence covering a property no case targets', 'MUTATION_COVERS_MISMATCH', /EV-KB-L3/, (d) => { evi(d, 'EV-KB-L3').covers.push({ control: 'CR-AUTH-001', properties: ['P4'], scope: 'FULL', result: 'SUPPORTS', note: 'x' }); }],
 	['Q', 'EQUIVALENT mutant without a written proof', 'EQUIVALENT_WITHOUT_PROOF', /MUT-CR-AUTH-007-P2-NEW1/, (d) => { delete d.mutations.cases.find((m) => m.id === 'MUT-CR-AUTH-007-P2-NEW1').equivalence; }],
@@ -156,12 +148,12 @@ function runFindingFixtures(base, schemas) {
 	});
 }
 
-function definitionErrors(def, schemas) {
+export function definitionErrors(def, schemas) {
 	const schemaErrors = validateSchemas(def, schemas);
 	return [...schemaErrors, ...checkIntegrity(def, declaredOutcomes(def)).errors, ...checkPinnedSources(def, (file) => readFileSync(path.join(REPO, file)))];
 }
 
-function runDefinitionFixtures(base, schemas) {
+export function runDefinitionFixtures(base, schemas) {
 	return DEFINITION_FIXTURES.map(([id, description, code, detail, mutate]) => {
 		const d = clone(base);
 		mutate(d);
@@ -217,6 +209,67 @@ function runEquivalentClaimFixture() {
 	return { id: 'R', description: 'declared EQUIVALENT mutant that the tests kill', expected: 'MUTATION_CLAIM_MISMATCH', rejected: result.result !== 'SURVIVED' && mismatches.length === 1, codes: [`observed=${result.result}`] };
 }
 
+/*
+	Phase 2U (F-2T-1): real-system authenticity. The fixture tests run behind the
+	runner-side observer against the self-test fake upstream (no database needed).
+	For the engine verdict the fake stands in for the real upstream (upstream_kind
+	set to "postgres"), so each spoof is rejected for its authenticity reason and
+	not merely because the upstream was fake; FAKEUP separately proves that a real
+	receipt from the fake upstream is never credited.
+*/
+const RS = 'security/crsf/selftest/fixtures/';
+const RS_FIXTURES = [
+	['T3', 'node-only test declared real-system E5 [node, postgres]', 'rs-node-only.mjs', 'CR-VERIFY-004', 'runner observed no Postgres use'],
+	['RS2', 'test prints a fake "postgres used" marker and a receipt-shaped line', 'rs-fake-marker.mjs', 'CR-CONC-001', 'runner observed no Postgres use'],
+	['RS3', 'test sets environment variables pretending Postgres use', 'rs-env-claim.mjs', 'CR-CONC-001', 'runner observed no Postgres use'],
+	['RS4', 'test writes a receipt-shaped file', 'rs-file-receipt.mjs', 'CR-CONC-001', 'runner observed no Postgres use'],
+	['RS5', 'test uses only a mocked pg object', 'rs-mock-pg.mjs', 'CR-CONC-001', 'runner observed no Postgres use'],
+	['RS6', 'real connections, strictly sequential statements, concurrency claimed', 'rs-sequential.mjs', 'CR-CONC-001', 'runner observed no concurrent execution'],
+	['RS7', 'test injects a forged receipt line into the executor stdout via /proc', 'rs-proc-forge.mjs', 'CR-CONC-001', 'runner observed no Postgres use'],
+	['RG1', 'genuine: overlapping statements on several connections', 'rs-concurrent.mjs', 'CR-CONC-001', null]
+];
+export function runObservationFixtures(base) {
+	const env = childEnv(detectCapabilities());
+	const run = runObservedTests(RS_FIXTURES.map(([id, , file]) => ({ id, files: [RS + file] })), { cwd: REPO, env, upstream: { fake: { delayMs: 40 } }, timeoutMs: 120_000 });
+	if (!run.ok) return RS_FIXTURES.map(([id, description, , , why]) => ({ id, description, expected: why ?? 'credited', rejected: false, codes: [`executor: ${run.error}`] }));
+	const ctx = context(base);
+	const item = (id) => ({ id: `EV-RS-${id}`, type: 'real-system', execution: { runner: 'node-test', environment: ['node', 'postgres'] } });
+	const verdict = (id, control, observation) => realSystemObserved(ctx, item(id), control, 'P1', { mode: 'OBSERVED', observations: observation ? { [`EV-RS-${id}`]: observation } : {} });
+	const out = RS_FIXTURES.map(([id, description, , control, why]) => {
+		const g = run.groups.find((x) => x.id === id);
+		const passed = g?.results.length > 0 && g.results.every((r) => r.outcome === 'pass');
+		const v = verdict(id, control, { upstream_kind: 'postgres', receipt: g?.receipt });
+		const ok = passed && (why ? !v.ok && v.why === why : v.ok);
+		return { id, description, expected: why ?? 'credited', rejected: ok, codes: [`test=${passed ? 'pass' : 'not pass'}`, v.ok ? 'credited' : v.why] };
+	});
+	// T3 end to end: the fake item covering CR-VERIFY-004 P1 passes its test, yet the control gets no credit from it.
+	const d = clone(base);
+	d.evidence.evidence.push({ ...clone(d.evidence.evidence.find((e) => e.type === 'real-system')), id: 'EV-FAKE-REAL-PG', covers: [{ control: 'CR-VERIFY-004', properties: ['P1'], scope: 'FULL', result: 'SUPPORTS', note: 'T3' }], control_ids: ['CR-VERIFY-004'], execution: { runner: 'node-test', test_files: [RS + 'rs-node-only.mjs'], environment: ['node', 'postgres'], timeout_ms: 60_000, expected_result: 'PASS', known_bad_required: false } });
+	const observed = { mode: 'OBSERVED', evidence: { 'EV-FAKE-REAL-PG': 'PASS' }, mutations: {}, observations: { 'EV-FAKE-REAL-PG': { upstream_kind: 'postgres', receipt: run.groups.find((x) => x.id === 'T3').receipt } } };
+	const c = evaluate(d, observed).controls.find((x) => x.id === 'CR-VERIFY-004');
+	const t3e2e = c.security_status !== 'PASS_AUTOMATED' && c.property_coverage.P1.insufficient.some((x) => x.startsWith('EV-FAKE-REAL-PG') && x.includes('runner observed no Postgres use'));
+	out.push({ id: 'T3E', description: 'T3 end to end: CR-VERIFY-004 gets no credit from the node-only item', expected: 'not credited', rejected: t3e2e, codes: [c.security_status] });
+	const genuine = run.groups.find((x) => x.id === 'RG1').receipt;
+	const fake = verdict('FAKEUP', 'CR-CONC-001', { upstream_kind: run.upstream_kind, receipt: genuine });
+	out.push({ id: 'FAKEUP', description: 'genuine use, but against the self-test fake upstream', expected: 'observation not made against the real postgres', rejected: run.upstream_kind === 'selftest-fake' && !fake.ok && fake.why === 'observation not made against the real postgres', codes: [fake.ok ? 'credited' : fake.why] });
+	const none = verdict('NOOBS', 'CR-CONC-001', null);
+	out.push({ id: 'NOOBS', description: 'real-system item without any runner observation', expected: 'real-system use not observed by the runner', rejected: !none.ok && none.why === 'real-system use not observed by the runner', codes: [none.ok ? 'credited' : none.why] });
+	const forged = `{"observed":{"nonce":"n1","upstream_kind":"postgres","groups":[]},"mac":"${'b'.repeat(64)}"}`;
+	out.push({ id: 'MAC', description: 'receipt line with the right nonce but without the run key', expected: 'ignored', rejected: authenticObservation(forged, 'k'.repeat(64), 'n1') === null, codes: ['authenticObservation'] });
+	return out;
+}
+
+/** Phase 2U (F-2T-2): the definition fixtures (with N) hold in a state where every release-blocking control is satisfied. */
+export function runAllSatisfiedState(base, schemas) {
+	const d = allReleaseControlsSatisfied(base);
+	const rb = d.controls.controls.filter((c) => c.release_class === 'RELEASE_BLOCKING');
+	const allPass = rb.every((c) => c.security_status === 'PASS_AUTOMATED');
+	const baseline = definitionErrors(d, schemas);
+	const fixtures = runDefinitionFixtures(d, schemas);
+	const missed = fixtures.filter((f) => !f.rejected).map((f) => f.id);
+	return { id: 'N-ALL', description: 'every release-blocking control satisfied: baseline valid and every definition fixture (incl. N) still rejected', expected: 'valid + all rejected', rejected: allPass && baseline.length === 0 && missed.length === 0, codes: [`rb_pass=${rb.filter((c) => c.security_status === 'PASS_AUTOMATED').length}/${rb.length}`, `baseline_errors=${baseline.length}`, `missed=${missed.join(',') || 'none'}`] };
+}
+
 function runGeneratorDeterminism(base) {
 	const a = JSON.stringify(generate(clone(base))), b = JSON.stringify(generate(clone(base)));
 	return { id: 'GEN', description: 'generator output is deterministic', expected: 'identical', rejected: a === b, codes: [a === b ? 'identical' : 'different'] };
@@ -226,7 +279,7 @@ export function runSelfTests() {
 	const base = loadDefinition(CRSF, path.resolve(CRSF, '../mutation/cases.json'));
 	const schemas = loadSchemas(path.join(CRSF, 'schema'));
 	const baseline = definitionErrors(base, schemas);
-	const fixtures = [...runDefinitionFixtures(base, schemas), ...runFindingFixtures(base, schemas), ...runExecutionFixtures(), runMutationFixture(), runEquivalentClaimFixture(), runGeneratorDeterminism(base)];
+	const fixtures = [...runDefinitionFixtures(base, schemas), ...runFindingFixtures(base, schemas), ...runExecutionFixtures(), runMutationFixture(), runEquivalentClaimFixture(), runGeneratorDeterminism(base), ...runObservationFixtures(base), runAllSatisfiedState(base, schemas)];
 	const passed = baseline.length === 0 && fixtures.every((f) => f.rejected);
 	return { passed, baseline_errors: baseline, fixtures, total: fixtures.length, rejected: fixtures.filter((f) => f.rejected).length };
 }

@@ -80,6 +80,17 @@ Executable evidence only counts if it ran in this run and passed. Evidence that 
 
 An evidence item may not declare a level above the cap of its type (`evidence_level_cap_by_type`). Reproducible `real-system` evidence must also require a real-system capability such as Postgres; a plain Node test cannot call itself real-system (`REAL_SYSTEM_WITHOUT_INFRASTRUCTURE`).
 
+**Observed real-system use (1.0-draft-phase2u, F-2T-1).** A declaration earns nothing. `security:verify` runs each real-system item in its own child executor (`lib/observed-test-exec.mjs`), behind a runner-side relay to the disposable Postgres (`lib/pg-observer.mjs`). The tests receive only the relay address. The relay credits only what the server confirms: an authenticated connection (AuthenticationOk) and a completed statement (CommandComplete).
+
+For properties marked as concurrency claims (`profile.real_system_observation.concurrency.properties`; every CR-CONC property and every property text naming concurrency, enforced by `CONCURRENCY_CLAIM_UNMARKED`), it must additionally observe overlap: at least 2 server-authenticated connections busy at the same time, and at least 2 overlap events, where an open transaction counts as busy.
+
+The receipt is signed with an HMAC key and nonce that reach the executor only on stdin. The runner accepts only that line; a test that writes a forged line into the executor's stdout via `/proc` changes nothing.
+
+- Without Postgres the item is `NOT_RUN`.
+- Without a receipt, with a receipt from the self-test fake upstream, or without confirmed use, it gets no credit.
+
+Not observable: whether the overlapping statements are the ones relevant to the claimed race. That stays with the mutation cases.
+
 ### Structural properties (one owner-approved exception)
 
 `profile.structural_property_rule` lets exactly the listed properties — currently CR-SESSION-001 P2 (constant-time MAC compare) and P3 (fixed algorithm and key) — be met by **structural** evidence at E1. Such evidence must:
@@ -131,7 +142,7 @@ Exit codes:
 - **FAIL:** a release-blocking FAIL or an evidence failure.
 - **INCOMPLETE_EVIDENCE:** everything else.
 
-At CRSF 1.0-draft-phase2s the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE`. There are 54 release-blocking controls, and one is `MISSING_EVIDENCE`: CR-VERIFY-004. CR-VERIFY-003 is `PASS_AUTOMATED` only in the full environment: disposable Postgres, the Vercel CLI and `CRSF_NETWORK_EVIDENCE=1`. Findings F-2D-2, F-2F-1, F-2H-1, F-2I-1 and F-2K-1 are fixed; their probes are now regression proofs. F-2K-1 (GET /api/link) is covered by CR-RESOURCE-001 P5, added in 1.0-draft-phase2l.
+At CRSF 1.0-draft-phase2u the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE`. There are 54 release-blocking controls, and one is `MISSING_EVIDENCE`: CR-VERIFY-004. CR-VERIFY-003 is `PASS_AUTOMATED` only in the full environment: disposable Postgres, the Vercel CLI and `CRSF_NETWORK_EVIDENCE=1`. Framework findings F-2T-1 (fake E5 via declared metadata) and F-2T-2 (self-test fixture N needed an open control) are fixed in 1.0-draft-phase2u; CR-VERIFY-004 stays `MISSING_EVIDENCE` (CR-RESOURCE-002 and CR-CONC-006 have no real-Postgres concurrency test). Findings F-2D-2, F-2F-1, F-2H-1, F-2I-1 and F-2K-1 are fixed; their probes are now regression proofs. F-2K-1 (GET /api/link) is covered by CR-RESOURCE-001 P5, added in 1.0-draft-phase2l.
 
 Findings are a ledger, replayed from the `NEW_FINDING` / `FINDING_MAPPED` / `FINDING_FIXED` / `FINDING_WITHDRAWN` records in `framework-changes.json` (since 1.0-draft-phase2j, F-2J-1). Every application finding is mapped to a control property or explicitly declared unmapped. An open unmapped application finding makes `RELEASE_SECURITY_ASSERTION: FAIL` whatever the control statuses say. An open mapped one must be recorded as a `VIOLATION` on that property. The version lock records every finding, so none can be deleted or retyped.
 
@@ -206,7 +217,7 @@ Classes: A text only (textContent/createTextNode/append of strings); B URL with 
 
 URL schemes tried against every navigation sink: javascript:, JaVaScRiPt:, leading whitespace, data:text/html, vbscript:, //host, percent- and entity-encoded, user@host, backslashes, ../. All URLs stayed https on coverraccoon.com, t.me or app.nexusmutual.io. Server-side HTML: none (api/* answers JSON; src/web.mjs is the local static file server). No finding.
 
-## CR-VERIFY-003 historical security-fix register (1.0-draft-phase2q, 2r, 2s)
+## CR-VERIFY-003 historical security-fix register (1.0-draft-phase2q, 2r, 2s, 2u)
 
 `fix-register.json` is the canonical inventory of every historical security fix: AGENT-*, AUDIT-2026-10-12, AUDIT E-/SA-, META-AUDIT, Restaudit, HARD-n and the CRSF findings F-xx-n. It also classifies every historical commit by hash (113 commits in total, not only keyword matches). Each fix has exactly one invariant. A PROVEN fix is at E4: it has a behavioural regression test, and a known-bad mutation that reintroduces the original bug and is expected KILLED by that test. `security:verify` executes every one of these mutations.
 
@@ -356,6 +367,8 @@ The register does not hold everything as a fix:
 | FIX-B706956-REGISTRY-SIGNATURES | b706956 | package.json | registry signatures were not verified | check:ci runs npm audit signatures and fails on invalid registry signatures | npm-registry-signatures.test.mjs | VERIFY-003-P1-2SSIGNONE, VERIFY-003-P1-2SSIGNEUTER | E4 | PROVEN |
 | FIX-B647281-NPM-CI | b647281 | vercel.json | npm install could deviate from the lockfile hashes in the deployment build | the Vercel installCommand installs exactly the lockfile (npm ci) | vercel-cli-local.test.mjs | VERIFY-003-P1-2RNCNONE, VERIFY-003-P1-2RNCINSTALL | E4 | PROVEN |
 | FIX-CAD24D4-VERCELIGNORE | cad24d4 | .vercelignore | `vercel --prod` uploaded the local .env (bot token, Supabase key) as source | deployment uploads exclude .env and .env.* (except .env.example) | vercel-cli-local.test.mjs | VERIFY-003-P1-2RVIALL, VERIFY-003-P1-2RVISTAR | E4 | PROVEN |
+| FIX-F-2T-1 | F-2T-1 (CRSF 2T, fixed 2U) | security/crsf/lib/pg-observer.mjs, security/crsf/lib/observed-test-exec.mjs, security/crsf/lib/exec.mjs, security/crsf/lib/engine.mjs | real-system E5 evidence was credited on declared type and environment alone; a node-only test declared [node, postgres] satisfied CR-VERIFY-004 | real-system evidence is credited only with a runner-signed receipt of server-confirmed Postgres use, and concurrency claims only with observed overlapping execution | crsf-real-system-observation.test.mjs | VERIFY-003-P1-2UOBSUSE, VERIFY-003-P1-2UOBSCLIENT, VERIFY-003-P1-2UOBSSEQ, VERIFY-003-P1-2UOBSCONC, VERIFY-003-P1-2UOBSMAC | E4 | PROVEN |
+| FIX-F-2T-2 | F-2T-2 (CRSF 2T, fixed 2U) | security/crsf/lib/selftest-states.mjs, security/crsf/selftest/framework-selftest.mjs | self-test fixture N threw when no release-blocking control was MISSING_EVIDENCE, making an honest all-closed state framework-invalid | fixture N catches a forged PASS without evidence both while a control is open and when every release-blocking control is satisfied | crsf-real-system-observation.test.mjs | VERIFY-003-P1-2UNOPEN | E4 | PROVEN |
 
 ## Framework versions
 
@@ -421,6 +434,12 @@ Drift only prioritises review. Verification always evaluates every control, so n
 - tampered vendored sources or an incomplete ASVS list
 - an E4 control without mutation proof, and behavioural evidence relabelled E4, E5 or real-system
 - misuse of the structural rule (another property, widened allowlist, misplaced or incomplete structural evidence)
+- real-system authenticity (1.0-draft-phase2u). These fixtures run behind the observer against a self-test fake upstream:
+  - T3/T3E: a node-only test declared real-system [node, postgres];
+  - RS2–RS7: a printed usage marker, environment variables, a receipt-shaped file, a mocked pg, sequential statements claimed as concurrency, a forged receipt line via `/proc`;
+  - RG1: genuine overlap is credited;
+  - FAKEUP, NOOBS, MAC;
+- N-ALL: every definition fixture, including N, is still rejected in a synthetic state where all release-blocking controls are satisfied
 
 It also checks that the executor flags unexpected skipped, cancelled and todo tests, and that a mutation declared KILLED whose test still passes is reported as a claim mismatch. Finally, it checks that generation is deterministic.
 

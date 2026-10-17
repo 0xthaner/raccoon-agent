@@ -67,7 +67,7 @@ log(`framework: ${framework.length ? `INVALID (${framework.length} error(s))` : 
 const caps = detectCapabilities();
 const env = childEnv(caps);
 const items = def.evidence?.evidence ?? [];
-const observed = { mode: 'OBSERVED', evidence: {}, mutations: {} };
+const observed = { mode: 'OBSERVED', evidence: {}, mutations: {}, observations: {} };
 const evidenceResults = [];
 let guard = { tests: 0, pass: 0, failed: [], cancelled: [], todo: [], unexpected_skips: [], allowed_skips: [] };
 let mutationRun = { results: {}, baseline: { ok: true, reason: 'not run' } };
@@ -76,6 +76,7 @@ if (!framework.length) {
 	log('executing node-test evidence ...');
 	const nt = executeNodeTestEvidence(items.filter((e) => e.execution.runner === 'node-test'), { cwd: REPO, env, caps });
 	guard = nt.guard;
+	observed.observations = nt.observations; // Phase 2U: runner receipts, the only source of real-system credit
 	for (const [id, o] of Object.entries(nt.outcomes)) { observed.evidence[id] = o; evidenceResults.push({ id, runner: 'node-test', outcome: o, ...nt.detail[id] }); }
 	for (const e of items.filter((x) => x.execution.runner === 'probe')) { const r = executeProbe(e, { cwd: REPO, env }); observed.evidence[e.id] = r.outcome; evidenceResults.push({ id: e.id, runner: 'probe', outcome: r.outcome, observation: r.observation }); }
 	log('running framework self-tests ...');

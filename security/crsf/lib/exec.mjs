@@ -7,6 +7,7 @@
 	deleted in `finally` and on process exit.
 */
 import { spawnSync, execFileSync } from 'node:child_process';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -14,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { isAllowedSkip } from '../../../scripts/skip-policy.mjs';
 
 const EXECUTOR = fileURLToPath(new URL('./node-test-exec.mjs', import.meta.url));
+const OBSERVED_EXECUTOR = fileURLToPath(new URL('./observed-test-exec.mjs', import.meta.url));
 
 /* ------------------------------------------------------------ capabilities */
 export function detectCapabilities(env = process.env) {
@@ -62,6 +64,37 @@ export function runTests(files, { cwd, env, timeoutMs = 300_000 }) {
 	const line = (p.stdout ?? '').trim().split('\n').filter((l) => l.startsWith('{"results"')).at(-1);
 	if (p.error || !line) return { ok: false, error: p.error ? String(p.error.code ?? p.error.message) : `executor produced no result (exit ${p.status})`, results: [] };
 	return { ok: true, results: JSON.parse(line).results };
+}
+
+/**
+ * CRSF Phase 2U (F-2T-1): runs groups of test files through the runner-side
+ * Postgres observer (observed-test-exec.mjs). Key and nonce are fresh per run and
+ * travel only on the executor's stdin; only a line with a valid MAC and this
+ * run's nonce is accepted. `upstream`: { url, module } of the disposable Postgres,
+ * or { fake: {...} } for the framework self-test.
+ */
+export function runObservedTests(groups, { cwd, env, upstream, timeoutMs = 300_000 }) {
+	const key = randomBytes(32).toString('hex'), nonce = randomBytes(16).toString('hex');
+	const childEnvNoPg = Object.fromEntries(Object.entries(env).filter(([k]) => !k.startsWith('M1_DB_TEST_PG_')));
+	const p = spawnSync(process.execPath, [OBSERVED_EXECUTOR], { cwd, env: childEnvNoPg, input: JSON.stringify({ key, nonce, upstream, groups, timeoutMs }), encoding: 'utf8', timeout: timeoutMs + 60_000, maxBuffer: 64 * 1024 * 1024 });
+	const observed = authenticObservation(p.stdout ?? '', key, nonce);
+	if (p.error || !observed) return { ok: false, error: p.error ? String(p.error.code ?? p.error.message) : `no authentic observation receipt (exit ${p.status})`, groups: [] };
+	return { ok: true, upstream_kind: observed.upstream_kind, groups: observed.groups };
+}
+
+/** The single executor line whose MAC verifies under `key` and that carries `nonce`; anything else is ignored. */
+export function authenticObservation(stdout, key, nonce) {
+	for (const line of stdout.split('\n')) {
+		const m = /^\{"observed":(.*),"mac":"([0-9a-f]{64})"\}$/.exec(line.trim());
+		if (!m) continue;
+		const expected = createHmac('sha256', key).update(m[1]).digest();
+		const given = Buffer.from(m[2], 'hex');
+		if (given.length !== expected.length || !timingSafeEqual(given, expected)) continue;
+		let observed;
+		try { observed = JSON.parse(m[1]); } catch { continue; }
+		if (observed?.nonce === nonce) return observed;
+	}
+	return null;
 }
 
 /** Classifies raw outcomes with the shared skip policy. Pure; used by self-tests. */
@@ -178,9 +211,20 @@ export function executeNodeTestEvidence(items, { cwd, env, caps }) {
 	const outcomes = {}; const detail = {};
 	const runnable = items.filter((e) => !missingCapabilities(e.execution.environment, caps).length);
 	for (const e of items.filter((x) => !runnable.includes(x))) { outcomes[e.id] = 'NOT_RUN'; detail[e.id] = { reason: `missing capability: ${missingCapabilities(e.execution.environment, caps).join(', ')}` }; }
-	const files = [...new Set(runnable.flatMap((e) => e.execution.test_files))].sort();
+	// Phase 2U (F-2T-1): real-system items run behind the runner-side observer, one observer per item.
+	const observedItems = runnable.filter((e) => e.type === 'real-system' && (e.execution.environment ?? []).includes('postgres'));
+	const observedFiles = new Set(observedItems.flatMap((e) => e.execution.test_files));
+	const files = [...new Set(runnable.flatMap((e) => e.execution.test_files))].filter((f) => !observedFiles.has(f)).sort();
 	const timeout = Math.max(60_000, ...runnable.map((e) => e.execution.timeout_ms ?? 0));
-	const run = files.length ? runTests(files, { cwd, env, timeoutMs: timeout }) : { ok: true, results: [] };
+	const plainRun = files.length ? runTests(files, { cwd, env, timeoutMs: timeout }) : { ok: true, results: [] };
+	const obsRun = observedItems.length
+		? runObservedTests(observedItems.map((e) => ({ id: e.id, files: e.execution.test_files })), { cwd, env, upstream: { url: env.M1_DB_TEST_PG_URL, module: env.M1_DB_TEST_PG_MODULE }, timeoutMs: timeout })
+		: { ok: true, groups: [] };
+	const observations = {};
+	const seen = new Set();
+	const results = [...plainRun.results, ...obsRun.groups.flatMap((g) => g.results)].filter((r) => { const k = `${r.file}\0${r.name}`; if (seen.has(k)) return false; seen.add(k); return true; });
+	const run = { ok: plainRun.ok && obsRun.ok && obsRun.groups.every((g) => g.ok), error: plainRun.error ?? obsRun.error ?? obsRun.groups.find((g) => !g.ok)?.error, results };
+	for (const g of obsRun.groups) observations[g.id] = { upstream_kind: obsRun.upstream_kind, receipt: g.receipt };
 	if (!run.ok) for (const e of runnable) { outcomes[e.id] = 'FAIL'; detail[e.id] = { reason: `executor error: ${run.error}` }; }
 	const guard = classifyOutcomes(run.results, env);
 	if (run.ok) for (const e of runnable) {
@@ -192,7 +236,8 @@ export function executeNodeTestEvidence(items, { cwd, env, caps }) {
 		else if (c.allowed_skips.length) { outcomes[e.id] = 'NOT_RUN'; detail[e.id] = { reason: 'infrastructure tests skipped under the shared skip policy', tests: c.allowed_skips }; }
 		else { outcomes[e.id] = 'PASS'; detail[e.id] = { tests: c.tests }; }
 	}
-	return { outcomes, detail, guard: { tests: guard.tests, pass: guard.pass, failed: guard.fail, cancelled: guard.cancelled, todo: guard.todo, unexpected_skips: guard.unexpected_skips, allowed_skips: guard.allowed_skips } };
+	for (const e of runnable) if (observations[e.id]) detail[e.id] = { ...detail[e.id], observation: observations[e.id] };
+	return { outcomes, detail, observations, guard: { tests: guard.tests, pass: guard.pass, failed: guard.fail, cancelled: guard.cancelled, todo: guard.todo, unexpected_skips: guard.unexpected_skips, allowed_skips: guard.allowed_skips } };
 }
 
 /** Runs a probe script (characterisation evidence). PASS = exit 0; its JSON line is recorded. */

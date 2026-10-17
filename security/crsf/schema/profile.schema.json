@@ -472,6 +472,74 @@
 					"minItems": 1
 				}
 			}
+		},
+		"real_system_observation": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"capabilities",
+				"description",
+				"concurrency"
+			],
+			"properties": {
+				"capabilities": {
+					"type": "object",
+					"additionalProperties": {
+						"enum": [
+							"pg-observer"
+						]
+					}
+				},
+				"description": {
+					"type": "string",
+					"minLength": 80
+				},
+				"concurrency": {
+					"type": "object",
+					"additionalProperties": false,
+					"required": [
+						"min_concurrent_connections",
+						"min_overlap_events",
+						"definition",
+						"properties"
+					],
+					"properties": {
+						"min_concurrent_connections": {
+							"type": "integer",
+							"minimum": 2
+						},
+						"min_overlap_events": {
+							"type": "integer",
+							"minimum": 1
+						},
+						"definition": {
+							"type": "string",
+							"minLength": 80
+						},
+						"properties": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"additionalProperties": false,
+								"required": [
+									"control",
+									"property"
+								],
+								"properties": {
+									"control": {
+										"type": "string",
+										"pattern": "^CR-[A-Z]+-[0-9]{3}$"
+									},
+									"property": {
+										"type": "string",
+										"pattern": "^P[0-9]+$"
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 }

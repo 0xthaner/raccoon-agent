@@ -1599,6 +1599,65 @@
 					"reason": "new execution capability npm_network, available only with the explicit opt-in CRSF_NETWORK_EVIDENCE=1 (passed into the mutation sandbox only then); read-only access to tuf-repo-cdn.sigstore.dev and registry.npmjs.org, enforced by test-support/npm-network-boundary.mjs. Without the opt-in the test is skipped only under its exact-name entry in scripts/skip-policy.mjs and its evidence and mutation cases are NOT_RUN - never PASS."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2ua",
+			"summary": "Phase 2U (part a): framework findings F-2T-1 and F-2T-2 from the Phase 2T analysis persisted as OPEN before any fix. No status, threshold or control text changed.",
+			"changes": [
+				{
+					"id": "F-2T-1",
+					"kind": "NEW_FINDING",
+					"finding_class": "FRAMEWORK",
+					"reason": "Framework evidence integrity (Medium: allows unearned E5 credit for release-blocking controls; needs a change to the repository definition, no runtime exposure). Subject: CRSF evidence acceptance / real-system E5 semantics. Demonstrated in Phase 2T (disposable copy): a test that does only ordinary Node work (test/l3-snooze-authorization.test.mjs; no DB connection, no Postgres query, no concurrent operation) declared as type real-system, level E5, environment [node, postgres] passes schema and integrity checks, crsf-gen recomputes CR-VERIFY-004 to PASS_AUTOMATED, and security:verify with disposable Postgres executes it with outcome PASS. The F-2D-1 check (a non-node capability must be declared) is satisfied by the declaration alone; the framework never observes that the item touched Postgres or ran operations concurrently."
+				},
+				{
+					"id": "F-2T-2",
+					"kind": "NEW_FINDING",
+					"finding_class": "FRAMEWORK",
+					"reason": "Framework self-test robustness (Low: fails closed, but blocks an honest closure). Self-test fixture N (\"control status changed without evidence change\") picks a release-blocking control that is currently MISSING_EVIDENCE and throws \"no MISSING_EVIDENCE control left for fixture N\" when none exists; security:verify then reports SELFTEST_ERROR and FRAMEWORK_VALID: NO. Demonstrated in Phase 2T: once every release-blocking control is satisfied the framework becomes invalid for a reason unrelated to the invariant fixture N tests."
+				}
+			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2u",
+			"summary": "Phase 2U: framework findings F-2T-1 (fake E5 via declared metadata) and F-2T-2 (fixture N needs an open control) fixed. Real-system evidence is credited only from a runner-signed observation receipt (server-confirmed Postgres use; observed overlap for concurrency claims). All 8 existing real-system items revalidated with observed use, the 6 covering concurrency claims with observed overlap; no control lost PASS. CR-VERIFY-004 unchanged and still MISSING_EVIDENCE. No application change.",
+			"changes": [
+				{
+					"id": "PROFILE",
+					"kind": "PROFILE_EXTENDED",
+					"reason": "new rule: real-system evidence needs a runner-side observer per capability (postgres: pg-observer) and server-confirmed use; concurrency claims (every CR-CONC property and every property text naming concurrency, enforced by CONCURRENCY_CLAIM_UNMARKED) additionally need observed overlap (>= 2 simultaneously busy connections, >= 2 overlap events). Stricter only: no threshold, class, property text or derivation changed."
+				},
+				{
+					"id": "security/crsf/lib/pg-observer.mjs+observed-test-exec.mjs",
+					"kind": "TEST_INFRA",
+					"reason": "runner-side Postgres relay and observed executor; the HMAC key, nonce and real Postgres address reach the executor only on stdin; tests see only the relay address. Self-test fake upstream (pg-fake-upstream.mjs) receipts are marked selftest-fake and never credited. New integrity check REAL_SYSTEM_NOT_OBSERVABLE (real-system items must be node-test items over whole files)."
+				},
+				{
+					"id": "F-2T-1",
+					"kind": "FRAMEWORK_FIX",
+					"reason": "F-2D-1 only required a declared non-node capability. Now the engine credits real-system evidence only from the observed run with a receipt: fixture T3 (node-only test declared real-system E5 [node, postgres]) and spoofs RS2-RS7 are rejected for their authenticity reason, RG1 (genuine overlap) is credited, FAKEUP/NOOBS/MAC hold; five KILLED mutations (2UOBSUSE, 2UOBSCLIENT, 2UOBSSEQ, 2UOBSCONC, 2UOBSMAC)."
+				},
+				{
+					"id": "F-2T-1",
+					"kind": "FINDING_FIXED",
+					"reason": "Framework finding F-2T-1 fixed (Medium). Proof: test/crsf-real-system-observation.test.mjs, self-test fixtures T3, T3E, RS2-RS7, RG1, FAKEUP, NOOBS, MAC, five KILLED mutations; existing real-system items revalidated against the disposable Postgres with observed use (8/8) and observed overlap for every concurrency claim (6/6)."
+				},
+				{
+					"id": "F-2T-2",
+					"kind": "FRAMEWORK_FIX",
+					"reason": "Fixture N now takes an open release-blocking control if one exists, otherwise it removes all evidence of the first release-blocking control, regenerates, and only then forges PASS. Self-test N-ALL runs every definition fixture against a synthetic state with all 54 release-blocking controls satisfied; mutation 2UNOPEN (the old throw) KILLED."
+				},
+				{
+					"id": "F-2T-2",
+					"kind": "FINDING_FIXED",
+					"reason": "Framework finding F-2T-2 fixed (Low). Proof: self-test N-ALL and test CRSF-SELFTEST-STATES (fixture N rejects the forged PASS in the current and in the all-satisfied state), mutation MUT-CR-VERIFY-003-P1-2UNOPEN KILLED."
+				},
+				{
+					"id": "CR-VERIFY-004",
+					"kind": "REVIEWED_NOT_CLOSED",
+					"reason": "Not closed in Phase 2U. The framework can now distinguish observed real-system use and real concurrency from declarations, but P1 (\"each concurrency control has a real-Postgres test\") is not satisfied: CR-RESOURCE-002 and CR-CONC-006 have no real-Postgres concurrency test, and the control still has no E5 real-system evidence of its own. Minimum level, evidence type, property text and applicability unchanged."
+				}
+			]
 		}
 	]
 }

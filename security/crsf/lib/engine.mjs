@@ -17,6 +17,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { validate } from './schema.mjs';
+import { summarizeReceipt } from './pg-observer.mjs';
 
 export const FILES = ['sources', 'profile', 'controls', 'evidence', 'deviations', 'asvs-applicability', 'drift-model', 'framework-lock', 'framework-changes'];
 export const sha256 = (x) => createHash('sha256').update(typeof x === 'string' || Buffer.isBuffer(x) ? x : canonical(x)).digest('hex');
@@ -58,7 +59,8 @@ export function declaredOutcomes(def) {
 	const evidence = {}, mutations = {};
 	for (const e of def.evidence.evidence) evidence[e.id] = isExecutable(e) ? 'PASS' : 'STATIC';
 	for (const m of def.mutations.cases) mutations[m.id] = { result: m.expected_result };
-	return { mode: 'DECLARED', evidence, mutations };
+	// Phase 2U: DECLARED mode takes real-system claims as recorded; only the observed run (runner receipts) can confirm them.
+	return { mode: 'DECLARED', evidence, mutations, observations: {} };
 }
 
 /** Builds the evaluation context once per definition. */
@@ -68,7 +70,33 @@ export function context(def) {
 	const evById = new Map(def.evidence.evidence.map((e) => [e.id, e]));
 	const casesByEvidence = new Map();
 	for (const m of def.mutations.cases) { if (!casesByEvidence.has(m.evidence_id)) casesByEvidence.set(m.evidence_id, []); casesByEvidence.get(m.evidence_id).push(m); }
-	return { p, levels: p.evidence_levels.map((l) => l.id), ctlById, evById, casesByEvidence, evidenceClass: p.evidence_type_classes, structural: structuralProperties(def) };
+	const concurrencyProps = new Set((p.real_system_observation?.concurrency?.properties ?? []).map((x) => `${x.control}.${x.property}`));
+	return { p, levels: p.evidence_levels.map((l) => l.id), ctlById, evById, casesByEvidence, evidenceClass: p.evidence_type_classes, structural: structuralProperties(def), concurrencyProps };
+}
+
+/*
+	Phase 2U (F-2T-1): real-system evidence earns credit only for what the runner
+	OBSERVED, never for what the item declares. Every non-node capability of the
+	item needs a runner-side observer (profile.real_system_observation), the
+	receipt must come from the real upstream (not the self-test fake), the server
+	must have confirmed use (authenticated connection + completed statement), and a
+	property marked as a concurrency claim additionally needs observed overlapping
+	execution. In DECLARED mode (generator, recorded statuses) the claim is taken as
+	recorded; security:verify recomputes from the observed run.
+*/
+export function realSystemObserved(ctx, e, controlId, propertyId, outcomes) {
+	if (outcomes.mode === 'DECLARED') return { ok: true };
+	const rule = ctx.p.real_system_observation;
+	const o = outcomes.observations?.[e.id];
+	if (!rule || !o) return { ok: false, why: 'real-system use not observed by the runner' };
+	for (const cap of (e.execution?.environment ?? []).filter((x) => x !== 'node')) {
+		if (rule.capabilities?.[cap] !== 'pg-observer') return { ok: false, why: `no runner-side observer for capability ${cap}` };
+		if (o.upstream_kind !== 'postgres') return { ok: false, why: `observation not made against the real ${cap}` };
+	}
+	const use = summarizeReceipt(o.receipt, rule.concurrency);
+	if (!use.postgres_use) return { ok: false, why: 'runner observed no Postgres use' };
+	if (ctx.concurrencyProps.has(`${controlId}.${propertyId}`) && !use.concurrency) return { ok: false, why: 'runner observed no concurrent execution' };
+	return { ok: true };
 }
 
 /*
@@ -134,6 +162,7 @@ function acceptable(ctx, e, c, propertyId, outcomes) {
 			const kb = knownBadEffective(ctx, e, c.id, propertyId, outcomes);
 			if (!kb.ok) return kb;
 		} else if (o !== 'PASS') return { ok: false, why: `execution ${o ?? 'NOT_RUN'}` };
+		if (e.type === 'real-system') { const rs = realSystemObserved(ctx, e, c.id, propertyId, outcomes); if (!rs.ok) return rs; }
 	}
 	if (e.reproducible) {
 		const ok = required.includes(cls) || (rank(ctx, e.level) >= rank(ctx, c.minimum_evidence_level) && cls !== 'manual');
@@ -313,12 +342,18 @@ export function checkIntegrity(def, declared) {
 		for (const p of c.properties) if (p.evidence_basis === 'STRUCTURAL' && !ctx.structural.has(`${c.id}.${p.id}`)) err('STRUCTURAL_BASIS_NOT_ALLOWED', `${c.id}.${p.id}: not in profile.structural_property_rule.allowed`);
 	}
 	for (const a of def.profile.structural_property_rule?.allowed ?? []) if (!ctx.structural.has(`${a.control}.${a.property}`)) err('STRUCTURAL_ALLOWLIST_UNMARKED', `${a.control}.${a.property}: allowlisted but the property is unknown or not marked evidence_basis STRUCTURAL`);
+	// Phase 2U: every concurrency claim (domain CR-CONC, or a property text naming concurrency) is marked in the profile; marked entries must exist.
+	const marked = new Set((def.profile.real_system_observation?.concurrency?.properties ?? []).map((x) => `${x.control}.${x.property}`));
+	for (const c of def.controls.controls) for (const p of c.properties) if ((c.domain === 'CR-CONC' || /concurren/i.test(p.text)) && !marked.has(`${c.id}.${p.id}`)) err('CONCURRENCY_CLAIM_UNMARKED', `${c.id}.${p.id}: not in profile.real_system_observation.concurrency.properties`);
+	for (const k of marked) { const [cid, pid] = k.split('.'); if (!ctx.ctlById.get(cid)?.properties.some((p) => p.id === pid)) err('CONCURRENCY_CLAIM_UNKNOWN', k); }
 	const cap = def.profile.evidence_level_cap_by_type ?? {};
 	for (const e of def.evidence.evidence) {
 		// Phase 2C (F-2C-3): a self-declared level may not exceed what the evidence type can show.
 		if (cap[e.type] && ctx.levels.indexOf(e.level) > ctx.levels.indexOf(cap[e.type])) err('LEVEL_EXCEEDS_TYPE', `${e.id}: ${e.type} capped at ${cap[e.type]}, declared ${e.level}`);
 		// Phase 2D (F-2D-1): "real-system" must actually need real infrastructure; a plain node test cannot call itself real-system.
 		if (e.type === 'real-system' && e.reproducible && !(e.execution?.environment ?? []).some((x) => x !== 'node')) err('REAL_SYSTEM_WITHOUT_INFRASTRUCTURE', `${e.id}: real-system evidence must require a real-system capability (e.g. postgres)`);
+		// Phase 2U (F-2T-1): only the runner can observe real-system use, so such evidence must be executable and unfiltered (an observation covers whole files).
+		if (e.type === 'real-system' && e.reproducible && (!isExecutable(e) || e.execution.runner !== 'node-test' || e.execution.test_names?.length)) err('REAL_SYSTEM_NOT_OBSERVABLE', `${e.id}: real-system evidence must be a node-test item over whole files`);
 		for (const cv of e.covers) {
 			const c = ctx.ctlById.get(cv.control);
 			if (!c) { err('UNKNOWN_CONTROL_REFERENCE', `${e.id} -> ${cv.control}`); continue; }

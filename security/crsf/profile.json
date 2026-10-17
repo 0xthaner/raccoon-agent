@@ -1,6 +1,6 @@
 {
 	"id": "CRSF-1.0/COVER-RACCOON-PROFILE",
-	"crsf_version": "1.0-draft-phase2s",
+	"crsf_version": "1.0-draft-phase2u",
 	"asvs_target": {
 		"baseline": "ASVS L2 (all applicable L1 + L2 requirements are in scope)",
 		"selected_l3": [
@@ -102,7 +102,8 @@
 		"Mutation (known-bad) evidence counts for a property only if at least one case targeting it was KILLED by its expected failing test with behavioural detection, and no case targeting it SURVIVED, was killed for another reason, was invalid, or did not run in this run. EQUIVALENT cases are neutral.",
 		"A declared mutation result that differs from the observed result invalidates the framework run.",
 		"An evidence item may not declare a level above the cap of its type (evidence_level_cap_by_type); E5 therefore requires real-system evidence.",
-		"STRUCTURAL evidence satisfies only the properties listed in structural_property_rule.allowed (each also marked evidence_basis STRUCTURAL in its control), only as executable static evidence naming a standard-library primitive at an exact call site with client_selectable false; it is reported as structurally verified, not mutation-proven, and never applies to any other property."
+		"STRUCTURAL evidence satisfies only the properties listed in structural_property_rule.allowed (each also marked evidence_basis STRUCTURAL in its control), only as executable static evidence naming a standard-library primitive at an exact call site with client_selectable false; it is reported as structurally verified, not mutation-proven, and never applies to any other property.",
+		"Real-system evidence (Phase 2U) counts only with a runner-side observation receipt: server-confirmed use of every real-system capability against the real upstream, and for properties marked as concurrency claims, observed overlapping execution. Declared type, environment or test output never count."
 	],
 	"status_axes": {
 		"conformance_status": "Does the implementation meet the literal external (or CRSF-internal) requirement? CONFORMANT | NON_CONFORMANT | NOT_DEMONSTRATED | ACCEPTED_PROTOCOL_DEVIATION | ACCEPTED_PLATFORM_DEVIATION | NOT_APPLICABLE | DEFERRED. NOT_DEMONSTRATED is a Phase-1C extension: without evidence neither CONFORMANT nor NON_CONFORMANT can be asserted.",
@@ -254,5 +255,82 @@
 			"standard_library",
 			"client_selectable"
 		]
+	},
+	"real_system_observation": {
+		"capabilities": {
+			"postgres": "pg-observer"
+		},
+		"description": "Real-system evidence earns credit only for runner-observed use. security:verify runs each real-system item in its own child executor (security/crsf/lib/observed-test-exec.mjs) behind a runner-side relay (security/crsf/lib/pg-observer.mjs) to the disposable Postgres; the tests see only the relay address. The relay credits only what the SERVER confirms: an authenticated connection (AuthenticationOk) and a completed statement (CommandComplete). The executor signs the receipt with an HMAC key and nonce it received on stdin from the runner; the runner accepts only that line. Missing capability -> NOT_RUN; no receipt, a receipt from the self-test fake upstream, or no confirmed use -> no credit.",
+		"concurrency": {
+			"min_concurrent_connections": 2,
+			"min_overlap_events": 2,
+			"definition": "A connection is busy from its first query message until the server reports ReadyForQuery idle (an open transaction keeps it busy). Real concurrency is observed when, in one database, at least min_concurrent_connections server-authenticated connections are busy at the same time and a connection becomes busy while another is busy at least min_overlap_events times. Relevance of the overlapping statements to the claimed race is not observable by the relay; that stays with the mutation cases.",
+			"properties": [
+				{
+					"control": "CR-CONC-001",
+					"property": "P1"
+				},
+				{
+					"control": "CR-CONC-001",
+					"property": "P2"
+				},
+				{
+					"control": "CR-CONC-001",
+					"property": "P3"
+				},
+				{
+					"control": "CR-CONC-002",
+					"property": "P1"
+				},
+				{
+					"control": "CR-CONC-002",
+					"property": "P2"
+				},
+				{
+					"control": "CR-CONC-003",
+					"property": "P1"
+				},
+				{
+					"control": "CR-CONC-003",
+					"property": "P2"
+				},
+				{
+					"control": "CR-CONC-003",
+					"property": "P3"
+				},
+				{
+					"control": "CR-CONC-004",
+					"property": "P1"
+				},
+				{
+					"control": "CR-CONC-004",
+					"property": "P2"
+				},
+				{
+					"control": "CR-CONC-005",
+					"property": "P1"
+				},
+				{
+					"control": "CR-CONC-006",
+					"property": "P1"
+				},
+				{
+					"control": "CR-CONC-006",
+					"property": "P2"
+				},
+				{
+					"control": "CR-CONC-006",
+					"property": "P3"
+				},
+				{
+					"control": "CR-RESOURCE-002",
+					"property": "P1"
+				},
+				{
+					"control": "CR-VERIFY-004",
+					"property": "P1"
+				}
+			]
+		}
 	}
 }

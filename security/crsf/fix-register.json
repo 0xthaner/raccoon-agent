@@ -1,6 +1,6 @@
 {
 	"$comment": "CRSF Phase 2Q (CR-VERIFY-003): canonical register of historical security fixes. Checked by security/crsf/lib/fix-register.mjs (test/fix-register.test.mjs). One invariant per fix; PROVEN = E4 (behavioural regression test + known-bad mutation expected KILLED and executed by security:verify).",
-	"version": "1.0-draft-phase2s",
+	"version": "1.0-draft-phase2u",
 	"discovery": {
 		"families": [
 			{
@@ -3034,6 +3034,78 @@
 			"evidence_level": "E4",
 			"status": "PROVEN",
 			"evidence_note": "real Vercel CLI (installed version, capability vercel_cli) computes the upload set of `vercel deploy` for a seeded project with the repository .vercelignore and reports it to a local fake API that refuses the deployment; no network, no upload, no deployment. Control without the file: the same CLI would upload .env and .env.production (its defaults only ignore .env.local / .env.*.local). Not proven: Vercel Git-integration uploads (none: Git deployments are disabled, e3270c1)."
+		},
+		{
+			"id": "FIX-F-2T-1",
+			"classification": "FRAMEWORK_FIX",
+			"tags": [
+				"F-2T-1"
+			],
+			"origin": "F-2T-1 (CRSF 2T, fixed 2U)",
+			"files": [
+				"security/crsf/lib/pg-observer.mjs",
+				"security/crsf/lib/observed-test-exec.mjs",
+				"security/crsf/lib/exec.mjs",
+				"security/crsf/lib/engine.mjs"
+			],
+			"bug": "real-system E5 evidence was credited on declared type and environment alone; a node-only test declared [node, postgres] satisfied CR-VERIFY-004",
+			"invariant": "real-system evidence is credited only with a runner-signed receipt of server-confirmed Postgres use, and concurrency claims only with observed overlapping execution",
+			"tests": [
+				{
+					"file": "test/crsf-real-system-observation.test.mjs",
+					"test": "^E5-OBS engine: a node-only test declared real-system \\[node, postgres\\] gets no credit \\(T3\\)$"
+				},
+				{
+					"file": "test/crsf-real-system-observation.test.mjs",
+					"test": "^E5-OBS observer: only server-confirmed use counts - client bytes to a silent server are no use$"
+				},
+				{
+					"file": "test/crsf-real-system-observation.test.mjs",
+					"test": "^E5-OBS observer: strictly sequential statements on several connections are not concurrency, overlapping ones are$"
+				},
+				{
+					"file": "test/crsf-real-system-observation.test.mjs",
+					"test": "^E5-OBS engine: a concurrency claim needs observed concurrent execution, Postgres use alone is not enough$"
+				},
+				{
+					"file": "test/crsf-real-system-observation.test.mjs",
+					"test": "^E5-OBS runner: only a receipt signed with the run key and carrying the run nonce is accepted$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2UOBSUSE",
+				"MUT-CR-VERIFY-003-P1-2UOBSCLIENT",
+				"MUT-CR-VERIFY-003-P1-2UOBSSEQ",
+				"MUT-CR-VERIFY-003-P1-2UOBSCONC",
+				"MUT-CR-VERIFY-003-P1-2UOBSMAC"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F-2T-2",
+			"classification": "FRAMEWORK_FIX",
+			"tags": [
+				"F-2T-2"
+			],
+			"origin": "F-2T-2 (CRSF 2T, fixed 2U)",
+			"files": [
+				"security/crsf/lib/selftest-states.mjs",
+				"security/crsf/selftest/framework-selftest.mjs"
+			],
+			"bug": "self-test fixture N threw when no release-blocking control was MISSING_EVIDENCE, making an honest all-closed state framework-invalid",
+			"invariant": "fixture N catches a forged PASS without evidence both while a control is open and when every release-blocking control is satisfied",
+			"tests": [
+				{
+					"file": "test/crsf-real-system-observation.test.mjs",
+					"test": "^CRSF-SELFTEST-STATES fixture N holds in the current state and once every release-blocking control is satisfied$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2UNOPEN"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
 		}
 	],
 	"tag_classifications": [
