@@ -131,7 +131,7 @@ Exit codes:
 - **FAIL:** a release-blocking FAIL or an evidence failure.
 - **INCOMPLETE_EVIDENCE:** everything else.
 
-At CRSF 1.0-draft-phase2r the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE`. There are 54 release-blocking controls, and two are `MISSING_EVIDENCE`. CR-VERIFY-003 has a complete fix register, but one fix (npm registry signatures) needs external network evidence (see below). CR-VERIFY-004 is the other. Findings F-2D-2, F-2F-1, F-2H-1, F-2I-1 and F-2K-1 are fixed; their probes are now regression proofs. F-2K-1 (GET /api/link) is covered by CR-RESOURCE-001 P5, added in 1.0-draft-phase2l.
+At CRSF 1.0-draft-phase2s the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE`. There are 54 release-blocking controls, and one is `MISSING_EVIDENCE`: CR-VERIFY-004. CR-VERIFY-003 is `PASS_AUTOMATED` only in the full environment: disposable Postgres, the Vercel CLI and `CRSF_NETWORK_EVIDENCE=1`. Findings F-2D-2, F-2F-1, F-2H-1, F-2I-1 and F-2K-1 are fixed; their probes are now regression proofs. F-2K-1 (GET /api/link) is covered by CR-RESOURCE-001 P5, added in 1.0-draft-phase2l.
 
 Findings are a ledger, replayed from the `NEW_FINDING` / `FINDING_MAPPED` / `FINDING_FIXED` / `FINDING_WITHDRAWN` records in `framework-changes.json` (since 1.0-draft-phase2j, F-2J-1). Every application finding is mapped to a control property or explicitly declared unmapped. An open unmapped application finding makes `RELEASE_SECURITY_ASSERTION: FAIL` whatever the control statuses say. An open mapped one must be recorded as a `VIOLATION` on that property. The version lock records every finding, so none can be deleted or retyped.
 
@@ -206,7 +206,7 @@ Classes: A text only (textContent/createTextNode/append of strings); B URL with 
 
 URL schemes tried against every navigation sink: javascript:, JaVaScRiPt:, leading whitespace, data:text/html, vbscript:, //host, percent- and entity-encoded, user@host, backslashes, ../. All URLs stayed https on coverraccoon.com, t.me or app.nexusmutual.io. Server-side HTML: none (api/* answers JSON; src/web.mjs is the local static file server). No finding.
 
-## CR-VERIFY-003 historical security-fix register (1.0-draft-phase2q, 2r)
+## CR-VERIFY-003 historical security-fix register (1.0-draft-phase2q, 2r, 2s)
 
 `fix-register.json` is the canonical inventory of every historical security fix: AGENT-*, AUDIT-2026-10-12, AUDIT E-/SA-, META-AUDIT, Restaudit, HARD-n and the CRSF findings F-xx-n. It also classifies every historical commit by hash (113 commits in total, not only keyword matches). Each fix has exactly one invariant. A PROVEN fix is at E4: it has a behavioural regression test, and a known-bad mutation that reintroduces the original bug and is expected KILLED by that test. `security:verify` executes every one of these mutations.
 
@@ -237,15 +237,14 @@ A commit without such a trailer fails the guard. This holds with full history an
 - `vercel build` runs the `installCommand` from `vercel.json`. `npm ci` aborts on a lockfile that does not match `package.json`. Without the `installCommand`, Vercel's default `npm install` rewrites the lockfile and builds; this is b647281.
 - Without the CLI, the two tests are an allowed skip and their evidence is NOT_RUN.
 
-Status: 102 fixes, of which 101 are PROVEN (E4) and 1 is MISSING_EVIDENCE. CR-VERIFY-003 P1 is therefore PARTIAL, and the control stays MISSING_EVIDENCE.
+**Registry signatures with the real npm (b706956, 1.0-draft-phase2s).** `test/npm-registry-signatures.test.mjs` runs the real `npm run check:ci` and needs the explicit opt-in `CRSF_NETWORK_EVIDENCE=1` (capability `npm_network`). npm refreshes the Sigstore TUF metadata online from `tuf-repo-cdn.sigstore.dev` and takes the registry keys from the TUF target `registry.npmjs.org/keys.json`; pacote then verifies every signature.
 
-**FIX-B706956-REGISTRY-SIGNATURES: EXTERNAL_EVIDENCE_REQUIRED.** `npm audit signatures` refreshes the Sigstore TUF metadata from `tuf-repo-cdn.sigstore.dev` before it reads any registry key. With a local registry fixture and loopback-only networking, npm aborts before its first registry request. Proving this offline would mean patching npm's trust bootstrap, which is not allowed. The external check needed is:
+- **Positive control:** a fresh disposable cache against the real registry passes.
+- **Known-bad case:** in a copy of that cache, only `dist.integrity` of one direct dependency is changed, and the real signature is kept. npm reads it with `prefer-offline` while TUF still refreshes online. `check:ci` then fails for exactly that package.
+- **Network:** a preload in every node process allows only the two read-only hosts and logs every connection; the test asserts the log. No credentials are used and nothing is published.
+- **Without the opt-in:** the test is an allowed skip and the evidence is NOT_RUN.
 
-- **Command:** npm run check:signaturen (= npm audit signatures) in a clean `npm ci --ignore-scripts` checkout, plus a known-bad run of the same check against a registry fixture with a tampered signature (needs the TUF refresh to succeed).
-- **Contacts:** tuf-repo-cdn.sigstore.dev (Sigstore TUF metadata, read-only) and registry.npmjs.org (keys and packuments, read-only).
-- **Creates a deployment:** no.
-- **Can affect production:** no.
-- **Would establish:** that the check chain verifies npm registry signatures against the real trust root and fails on an invalid signature (already run in CI: check:ci on GitHub Actions has network).
+Status: all 102 fixes are PROVEN (E4), so CR-VERIFY-003 is PASS_AUTOMATED. Each capability-dependent case (Postgres, Vercel CLI, network) is NOT_RUN where its capability is missing, and then the control does not reach PASS in that environment.
 
 The register does not hold everything as a fix:
 
@@ -354,7 +353,7 @@ The register does not hold everything as a fix:
 | FIX-4F55789-DUAL-RPC | 4f55789 | src/contract-signature.mjs | one RPC provider decided ERC-1271 validity | ERC-1271 needs agreement of two independent providers | dual-rpc-erc1271.test.mjs, onchain-safe-login.test.mjs | AUTH-003-P2-NEW1 | E4 | PROVEN |
 | FIX-E69AFD3-QUERY-PARAMS | e69afd3 | src/request-query.mjs | handlers read request.query loosely (query could override secrets or body values) | handlers read only defined single query values; query never replaces secrets or body fields | query-authority.test.mjs | API-004-P1-NEW1, API-004-P1-NEW2, API-004-P1-NEW3, API-004-P1-NEW4 | E4 | PROVEN |
 | FIX-536BC02-CANCELLED-TESTS | 536bc02 | scripts/run-tests-guarded.mjs | cancelled security tests (cancelledByParent) let the run exit 0 | the guarded test runner fails on cancelled tests | guard-behaviour.test.mjs | VERIFY-001-P1-NEW1 | E4 | PROVEN |
-| FIX-B706956-REGISTRY-SIGNATURES | b706956 | package.json | registry signatures were not verified | check:ci runs npm audit signatures and fails on invalid registry signatures | - | - | E2 | MISSING_EVIDENCE |
+| FIX-B706956-REGISTRY-SIGNATURES | b706956 | package.json | registry signatures were not verified | check:ci runs npm audit signatures and fails on invalid registry signatures | npm-registry-signatures.test.mjs | VERIFY-003-P1-2SSIGNONE, VERIFY-003-P1-2SSIGNEUTER | E4 | PROVEN |
 | FIX-B647281-NPM-CI | b647281 | vercel.json | npm install could deviate from the lockfile hashes in the deployment build | the Vercel installCommand installs exactly the lockfile (npm ci) | vercel-cli-local.test.mjs | VERIFY-003-P1-2RNCNONE, VERIFY-003-P1-2RNCINSTALL | E4 | PROVEN |
 | FIX-CAD24D4-VERCELIGNORE | cad24d4 | .vercelignore | `vercel --prod` uploaded the local .env (bot token, Supabase key) as source | deployment uploads exclude .env and .env.* (except .env.example) | vercel-cli-local.test.mjs | VERIFY-003-P1-2RVIALL, VERIFY-003-P1-2RVISTAR | E4 | PROVEN |
 

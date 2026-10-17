@@ -10739,6 +10739,76 @@
 					"message": "Security-Fix: none"
 				}
 			]
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2SSIGNONE",
+			"origin": "CRSF Phase 2S (CR-VERIFY-003 registry signatures)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"tests": [
+				"test/npm-registry-signatures.test.mjs"
+			],
+			"environment": [
+				"node",
+				"npm_network"
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 900000,
+			"description": "b706956 reintroduced: check:ci no longer runs npm audit signatures (pre-fix check chain)",
+			"edits": [
+				{
+					"file": "package.json",
+					"find": "node scripts/check-frontend.mjs && npm run check:signaturen\",\n",
+					"replace": "node scripts/check-frontend.mjs\",\n"
+				}
+			],
+			"expected_failures": [
+				{
+					"test": "^NPM-SIGNATURES b706956 check:ci verifies registry signatures with the real npm and fails on a tampered package$",
+					"message": "check:ci verified no registry signature"
+				}
+			]
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2SSIGNEUTER",
+			"origin": "CRSF Phase 2S (CR-VERIFY-003 registry signatures)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"tests": [
+				"test/npm-registry-signatures.test.mjs"
+			],
+			"environment": [
+				"node",
+				"npm_network"
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 900000,
+			"description": "b706956 weakened: npm audit signatures runs but its failure is ignored (|| true)",
+			"edits": [
+				{
+					"file": "package.json",
+					"find": "\"check:signaturen\": \"npm audit signatures\"",
+					"replace": "\"check:signaturen\": \"npm audit signatures || true\""
+				}
+			],
+			"expected_failures": [
+				{
+					"test": "^NPM-SIGNATURES b706956 check:ci verifies registry signatures with the real npm and fails on a tampered package$",
+					"message": "check:ci accepted a package whose registry signature no longer matches"
+				}
+			]
 		}
 	]
 }

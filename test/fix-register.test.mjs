@@ -54,9 +54,9 @@ test('FIXREG the real register is complete and consistent with the repository', 
 	const result = checkRepository(process.cwd());
 	assert.deepEqual(result.errors, [], 'register errors');
 	assert.ok(result.summary.fixes >= 90, `expected the historical fixes, got ${result.summary.fixes}`);
-	// Ehrlich offen: npm audit signatures braucht den Sigstore-TUF-Abgleich im Netz (Phase 2R, EXTERNAL_EVIDENCE_REQUIRED).
-	assert.deepEqual(result.summary.missing, ['FIX-B706956-REGISTRY-SIGNATURES']);
-	assert.equal(result.summary.complete, false, 'complete requires no MISSING_EVIDENCE');
+	// Seit Phase 2S ist jede Korrektur PROVEN (b706956 mit Netz-Evidenz gegen Sigstore-TUF und die echte Registry).
+	assert.deepEqual(result.summary.missing, []);
+	assert.equal(result.summary.complete, true, 'every registered fix is PROVEN');
 	assert.equal(result.summary.proven, result.summary.fixes - result.summary.missing.length);
 });
 

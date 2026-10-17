@@ -11,6 +11,9 @@
 	CRSF Phase 2R: die beiden Tests mit der echten Vercel-CLI, exakt mit Datei und
 	Name, nur solange `vercel --version` nicht laeuft. Ist die CLI installiert und
 	ein Test wird trotzdem uebersprungen, ist das ein Fehler.
+
+	CRSF Phase 2S: der Registry-Signatur-Test (Netz, nur lesend) nur solange
+	CRSF_NETWORK_EVIDENCE nicht auf 1 steht; mit Freigabe ist ein Skip ein Fehler.
 */
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
@@ -40,7 +43,9 @@ export const ALLOWED_SKIPS = new Map([
 	['test/input-db-adversarial-db.test.mjs :: INPUT-DB-PG', (env) => !env.M1_DB_TEST_PG_URL],
 	// CRSF Phase 2R: historische Korrekturen cad24d4 und b647281 mit der echten Vercel-CLI.
 	['test/vercel-cli-local.test.mjs :: VERCEL-CLI cad24d4 the real CLI upload set excludes .env and .env.* (except .env.example)', vercelCliMissing],
-	['test/vercel-cli-local.test.mjs :: VERCEL-CLI b647281 vercel build runs the installCommand of vercel.json and it refuses a lockfile that does not match', vercelCliMissing]
+	['test/vercel-cli-local.test.mjs :: VERCEL-CLI b647281 vercel build runs the installCommand of vercel.json and it refuses a lockfile that does not match', vercelCliMissing],
+	// CRSF Phase 2S: historische Korrektur b706956 gegen die echte Registry und Sigstore-TUF - nur mit ausdruecklicher Netz-Freigabe.
+	['test/npm-registry-signatures.test.mjs :: NPM-SIGNATURES b706956 check:ci verifies registry signatures with the real npm and fails on a tampered package', (env) => env.CRSF_NETWORK_EVIDENCE !== '1']
 ]);
 
 /** Ist der Skip `id` ("<datei> :: <name>") unter der Umgebung `env` erlaubt? */

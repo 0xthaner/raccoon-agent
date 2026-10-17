@@ -87,7 +87,7 @@
 							"properties": {
 								"file": {
 									"type": "string",
-									"pattern": "^((src|api|supabase|web|scripts|security/crsf/lib|security/crsf/selftest/fixtures)/|vercel\\.json$|\\.npmrc$|\\.vercelignore$)"
+									"pattern": "^((src|api|supabase|web|scripts|security/crsf/lib|security/crsf/selftest/fixtures)/|vercel\\.json$|\\.npmrc$|\\.vercelignore$|package\\.json$)"
 								},
 								"find": {
 									"type": "string",
@@ -114,7 +114,8 @@
 							"enum": [
 								"node",
 								"postgres",
-								"vercel_cli"
+								"vercel_cli",
+								"npm_network"
 							]
 						},
 						"minItems": 1

@@ -26,6 +26,8 @@ export function detectCapabilities(env = process.env) {
 		git: { available: hasGit() },
 		// CRSF 2R: die echte Vercel-CLI (lokal, ohne Deployment; test/vercel-cli-local.test.mjs)
 		vercel_cli: (() => { const version = vercelCliVersion(env); return { available: Boolean(version), version }; })(),
+		// CRSF 2S: Netz-Evidenz (nur lesend: tuf-repo-cdn.sigstore.dev, registry.npmjs.org) nur auf ausdrueckliche Freigabe
+		npm_network: { available: env.CRSF_NETWORK_EVIDENCE === '1', via: 'CRSF_NETWORK_EVIDENCE=1 (read-only: tuf-repo-cdn.sigstore.dev, registry.npmjs.org)' },
 		production_access: { available: false, reason: 'never used by security:verify; production evidence is recorded manually' }
 	};
 }
@@ -50,6 +52,7 @@ export function childEnv(caps, env = process.env) {
 		SUPABASE_URL: 'https://example.invalid', SUPABASE_SECRET_KEY: 'crsf-dummy-not-a-real-key'
 	};
 	if (caps.postgres.available) { out.M1_DB_TEST_PG_URL = env.M1_DB_TEST_PG_URL; out.M1_DB_TEST_PG_MODULE = env.M1_DB_TEST_PG_MODULE; }
+	if (caps.npm_network?.available) out.CRSF_NETWORK_EVIDENCE = '1';
 	return out;
 }
 

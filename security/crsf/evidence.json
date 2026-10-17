@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2r",
+	"crsf_version": "1.0-draft-phase2s",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -7199,18 +7199,18 @@
 			"artifact": "test/fix-register.test.mjs",
 			"test_or_proof": "test/fix-register.test.mjs, test/historical-fix-regressions.test.mjs, test/historical-fix-frontend.test.mjs, test/font-integrity.test.mjs, test/npm-install-scripts.test.mjs, test/crsf-framework-fixes.test.mjs",
 			"property_proven": "security/crsf/fix-register.json is the canonical inventory of historical security fixes (102: every AGENT-*, AUDIT-*, AUDIT X-Yn, META-AUDIT, Restaudit, HARD-n and CRSF F-xx-n item and every historical commit (not only keyword matches); one invariant each). The guard (security/crsf/lib/fix-register.mjs) discovers every tag of the known families and, by a catch-all, markers of new families in code, tests, migrations, configuration and docs, and every commit (all historical commits by hash; later commits by a mandatory \"Security-Fix:\" trailer, full history or shallow clone); unclassified, vanished or inconsistent entries fail closed. Each PROVEN fix names behavioural KILLED mutation cases of the catalogue and the regression tests that are their expected failures. New behavioural regression tests cover fixes that had none (historical-fix-regressions/-frontend, font integrity with the real fetch-fonts script, real npm install with the project .npmrc, framework fixture fixes).",
-			"property_not_proven": "FIX-B706956-REGISTRY-SIGNATURES: EXTERNAL_EVIDENCE_REQUIRED. npm audit signatures (npm 11.17.0, lib/utils/verify-signatures.js) first initialises the Sigstore TUF client with the fixed mirror https://tuf-repo-cdn.sigstore.dev (forceCache false, embedded root seed) and refreshes its root metadata online before reading any registry key; only then does it fall back to the registry keys API. Reproduced in Phase 2R with a local registry fixture and a loopback-only network guard: npm aborts with ECONNREFUSED on https://tuf-repo-cdn.sigstore.dev/15.root.json before the first registry request. An offline proof would require patching npm's trust bootstrap (forceCache/mirror), i.e. mocking the property under test. The invariant stays MISSING_EVIDENCE.. Commit classification is not asserted without git (mutation sandbox). A future security fix is discovered only through its tag, a catch-all marker or its commit's Security-Fix: trailer; a trailer that falsely says \"none\" is a review matter, not machine-detectable. Fixes whose code was later removed are recorded as REMOVED, not proven.",
-			"coverage": "PARTIAL",
-			"reason_for_partial": "CR-VERIFY-003[P1]: register of 102 historical fixes: 101 PROVEN (E4), 1 MISSING_EVIDENCE; all 113 historical commits classified by hash",
+			"property_not_proven": "Commit classification is not asserted without git (mutation sandbox). A future security fix is discovered only through its tag, a catch-all marker or its commit's Security-Fix: trailer; a trailer that falsely says \"none\" is a review matter, not machine-detectable. Fixes whose code was later removed are recorded as REMOVED, not proven. Platform/network fixes are proven only where their capabilities run (vercel_cli, npm_network); elsewhere their evidence is NOT_RUN.",
+			"coverage": "FULL",
+			"reason_for_partial": null,
 			"covers": [
 				{
 					"control": "CR-VERIFY-003",
 					"properties": [
 						"P1"
 					],
-					"scope": "PARTIAL",
+					"scope": "FULL",
 					"result": "SUPPORTS",
-					"note": "register of 102 historical fixes: 101 PROVEN (E4), 1 MISSING_EVIDENCE; all 113 historical commits classified by hash"
+					"note": "register of 102 historical fixes: 102 PROVEN (E4), 0 MISSING_EVIDENCE; all 113 historical commits classified by hash"
 				}
 			],
 			"reproducible": true,
@@ -7246,25 +7246,26 @@
 			"level": "E4",
 			"source": "repository",
 			"artifact": "security/mutation/cases.json",
-			"test_or_proof": "npm run security:verify (mutation runner): 89 case(s)",
-			"property_proven": "82 new known-bad cases: each historical vulnerability without a prior mutation is reintroduced exactly at its fix (secret fallback, legacy cookie, session from access/link codes, URL-borne access code, old-schema challenges, CSP report-only and connect-src, default privileges, innerHTML sinks, WalletConnect methods/disconnect/revoke, Host-header origin, body size, csp-report limits and logging, raw DB errors, GET state change, RPC-error caching, operator revocation, revoked-session logout, missing alerts/security events, prompt channel, contract TTL hints, session conflicts, preview origins, network/account re-checks, link-row kinds, Safe off-chain signing, cache bound, link target/account, display bounds, send isolation, M-1/M1/M2 limits, AppKit features and font, framework fixes, multi-chat isolation, private sender, answer filter, AI budget, font SHA-256, install scripts, retention, analytics redaction) and is detected by the intended behavioural test and message; 8 further cases weaken the register guard itself and are detected by its fixtures. The remaining PROVEN fixes reference existing KILLED cases (CR-AUTH, CR-SESSION, CR-RESOURCE, CR-CONC, CR-TELEGRAM, CR-PROVIDER, CR-INPUT, CR-API, CR-VERIFY). Phase 2R: removing the .env rules from .vercelignore (entirely or only .env.*), and removing the installCommand or replacing npm ci by npm install, are each detected by the real Vercel CLI tests; three further cases weaken the commit-classification guard (no trailer, trailer naming an unknown fix, \"none\" without reason) and are detected by its fixtures.",
-			"property_not_proven": "FIX-B706956-REGISTRY-SIGNATURES: EXTERNAL_EVIDENCE_REQUIRED. npm audit signatures (npm 11.17.0, lib/utils/verify-signatures.js) first initialises the Sigstore TUF client with the fixed mirror https://tuf-repo-cdn.sigstore.dev (forceCache false, embedded root seed) and refreshes its root metadata online before reading any registry key; only then does it fall back to the registry keys API. Reproduced in Phase 2R with a local registry fixture and a loopback-only network guard: npm aborts with ECONNREFUSED on https://tuf-repo-cdn.sigstore.dev/15.root.json before the first registry request. An offline proof would require patching npm's trust bootstrap (forceCache/mirror), i.e. mocking the property under test. The invariant stays MISSING_EVIDENCE.",
+			"test_or_proof": "npm run security:verify (mutation runner): 91 case(s)",
+			"property_proven": "82 new known-bad cases: each historical vulnerability without a prior mutation is reintroduced exactly at its fix (secret fallback, legacy cookie, session from access/link codes, URL-borne access code, old-schema challenges, CSP report-only and connect-src, default privileges, innerHTML sinks, WalletConnect methods/disconnect/revoke, Host-header origin, body size, csp-report limits and logging, raw DB errors, GET state change, RPC-error caching, operator revocation, revoked-session logout, missing alerts/security events, prompt channel, contract TTL hints, session conflicts, preview origins, network/account re-checks, link-row kinds, Safe off-chain signing, cache bound, link target/account, display bounds, send isolation, M-1/M1/M2 limits, AppKit features and font, framework fixes, multi-chat isolation, private sender, answer filter, AI budget, font SHA-256, install scripts, retention, analytics redaction) and is detected by the intended behavioural test and message; 8 further cases weaken the register guard itself and are detected by its fixtures. The remaining PROVEN fixes reference existing KILLED cases (CR-AUTH, CR-SESSION, CR-RESOURCE, CR-CONC, CR-TELEGRAM, CR-PROVIDER, CR-INPUT, CR-API, CR-VERIFY). Phase 2R: removing the .env rules from .vercelignore (entirely or only .env.*), and removing the installCommand or replacing npm ci by npm install, are each detected by the real Vercel CLI tests; three further cases weaken the commit-classification guard (no trailer, trailer naming an unknown fix, \"none\" without reason) and are detected by its fixtures. Phase 2S: removing npm audit signatures from check:ci, or ignoring its result, is detected by the real-npm registry-signature test (real Sigstore TUF and registry keys, tampered package metadata).",
+			"property_not_proven": "other conceivable weakenings beyond the listed cases; the cases needing postgres, vercel_cli or npm_network are NOT_RUN where those capabilities are absent",
 			"covers": [
 				{
 					"control": "CR-VERIFY-003",
 					"properties": [
 						"P1"
 					],
-					"scope": "PARTIAL",
+					"scope": "FULL",
 					"result": "SUPPORTS",
-					"note": "mutation cases: MUT-CR-VERIFY-003-P1-2QA1SECRET, MUT-CR-VERIFY-003-P1-2QA1LEGACY, MUT-CR-VERIFY-003-P1-2QA1RATE, MUT-CR-VERIFY-003-P1-2QA1VERIFY, MUT-CR-VERIFY-003-P1-2QA2COOKIE, MUT-CR-VERIFY-003-P1-2QA2URL, MUT-CR-VERIFY-003-P1-2QA3LEGACY, MUT-CR-VERIFY-003-P1-2QA4ORDER, MUT-CR-VERIFY-003-P1-2QA6, MUT-CR-VERIFY-003-P1-2QA7ENFORCE, MUT-CR-VERIFY-003-P1-2QA7DEFPRIV, MUT-CR-VERIFY-003-P1-2QF1FINISH, MUT-CR-VERIFY-003-P1-2QF1LANG, MUT-CR-VERIFY-003-P1-2QF1GUIDE, MUT-CR-VERIFY-003-P1-2QF2, MUT-CR-VERIFY-003-P1-2QW1, MUT-CR-VERIFY-003-P1-2QW2ORIGIN, MUT-CR-VERIFY-003-P1-2QW2DISCONNECT, MUT-CR-VERIFY-003-P1-2QW3, MUT-CR-VERIFY-003-P1-2QAPI001, MUT-CR-VERIFY-003-P1-2QAPI002, MUT-CR-VERIFY-003-P1-2QAPI003, MUT-CR-VERIFY-003-P1-2QAUTH002, MUT-CR-VERIFY-003-P1-2QHARD001CACHE, MUT-CR-VERIFY-003-P1-2QHARD002OPERATOR, MUT-CR-VERIFY-003-P1-2QHARD004, MUT-CR-VERIFY-003-P1-2QIR001, MUT-CR-VERIFY-003-P1-2QIR002, MUT-CR-VERIFY-003-P1-2QIR002RAW, MUT-CR-VERIFY-003-P1-2QLLM001, MUT-CR-VERIFY-003-P1-2QSAFE1FAIL, MUT-CR-VERIFY-003-P1-2QSAFE1CLIENT, MUT-CR-VERIFY-003-P1-2QSAFE2, MUT-CR-VERIFY-003-P1-2QSAFE4, MUT-CR-VERIFY-003-P1-2QUX5ACCOUNT, MUT-CR-VERIFY-003-P1-2QUX5APPKIT, MUT-CR-VERIFY-003-P1-2QUX5CHAIN, MUT-CR-VERIFY-003-P1-2QUX5WCCHAIN, MUT-CR-VERIFY-003-P1-2QAUDITF1, MUT-CR-VERIFY-003-P1-2QAUDITF2, MUT-CR-VERIFY-003-P1-2QAUDITF3, MUT-CR-VERIFY-003-P1-2QEL2, MUT-CR-VERIFY-003-P1-2QLINKACCOUNT, MUT-CR-VERIFY-003-P1-2QEL3BOUND, MUT-CR-VERIFY-003-P1-2QEL3ISO, MUT-CR-VERIFY-003-P1-2QEL4, MUT-CR-VERIFY-003-P1-2QSAL2, MUT-CR-VERIFY-003-P1-2QM1DASH, MUT-CR-VERIFY-003-P1-2QM1BOT, MUT-CR-VERIFY-003-P1-2QRM1LINKCHAT, MUT-CR-VERIFY-003-P1-2QRM1LINKGLOBAL, MUT-CR-VERIFY-003-P1-2QRM1ALERT, MUT-CR-VERIFY-003-P1-2QRM2WALLET, MUT-CR-VERIFY-003-P1-2QRM2GLOBAL, MUT-CR-VERIFY-003-P1-2QAPPKIT, MUT-CR-VERIFY-003-P1-2QAPPKITFONT, MUT-CR-VERIFY-003-P1-2QF2C2, MUT-CR-VERIFY-003-P1-2QF2C3, MUT-CR-VERIFY-003-P1-2QF2D1, MUT-CR-VERIFY-003-P1-2QF2J1, MUT-CR-VERIFY-003-P1-2QISOMETA, MUT-CR-VERIFY-003-P1-2QISOUNLINK, MUT-CR-VERIFY-003-P1-2QPRIVMSG, MUT-CR-VERIFY-003-P1-2QFILTERHOST, MUT-CR-VERIFY-003-P1-2QFILTERADDR, MUT-CR-VERIFY-003-P1-2QAIGLOBAL, MUT-CR-VERIFY-003-P1-2QAIFAIL, MUT-CR-VERIFY-003-P1-2QCSPCONNECT, MUT-CR-VERIFY-003-P1-2QCSPLOG, MUT-CR-VERIFY-003-P1-2QGUARDHTML, MUT-CR-VERIFY-003-P1-2QFONTSHA, MUT-CR-VERIFY-003-P1-2QNPMRC, MUT-CR-VERIFY-003-P1-2QRETENTION, MUT-CR-VERIFY-003-P1-2QANALYTICS, MUT-CR-VERIFY-003-P1-2QGTAG, MUT-CR-VERIFY-003-P1-2QGCATCHALL, MUT-CR-VERIFY-003-P1-2QGBEHAVIOURAL, MUT-CR-VERIFY-003-P1-2QGCOMMIT, MUT-CR-VERIFY-003-P1-2QGCOMPLETE, MUT-CR-VERIFY-003-P1-2QGFINDING, MUT-CR-VERIFY-003-P1-2QGSTALE, MUT-CR-VERIFY-003-P1-2QGTESTMATCH, MUT-CR-VERIFY-003-P1-2RVIALL, MUT-CR-VERIFY-003-P1-2RVISTAR, MUT-CR-VERIFY-003-P1-2RNCNONE, MUT-CR-VERIFY-003-P1-2RNCINSTALL, MUT-CR-VERIFY-003-P1-2RGTRAILER, MUT-CR-VERIFY-003-P1-2RGTRAILERFIX, MUT-CR-VERIFY-003-P1-2RGNONEREASON"
+					"note": "mutation cases: MUT-CR-VERIFY-003-P1-2QA1SECRET, MUT-CR-VERIFY-003-P1-2QA1LEGACY, MUT-CR-VERIFY-003-P1-2QA1RATE, MUT-CR-VERIFY-003-P1-2QA1VERIFY, MUT-CR-VERIFY-003-P1-2QA2COOKIE, MUT-CR-VERIFY-003-P1-2QA2URL, MUT-CR-VERIFY-003-P1-2QA3LEGACY, MUT-CR-VERIFY-003-P1-2QA4ORDER, MUT-CR-VERIFY-003-P1-2QA6, MUT-CR-VERIFY-003-P1-2QA7ENFORCE, MUT-CR-VERIFY-003-P1-2QA7DEFPRIV, MUT-CR-VERIFY-003-P1-2QF1FINISH, MUT-CR-VERIFY-003-P1-2QF1LANG, MUT-CR-VERIFY-003-P1-2QF1GUIDE, MUT-CR-VERIFY-003-P1-2QF2, MUT-CR-VERIFY-003-P1-2QW1, MUT-CR-VERIFY-003-P1-2QW2ORIGIN, MUT-CR-VERIFY-003-P1-2QW2DISCONNECT, MUT-CR-VERIFY-003-P1-2QW3, MUT-CR-VERIFY-003-P1-2QAPI001, MUT-CR-VERIFY-003-P1-2QAPI002, MUT-CR-VERIFY-003-P1-2QAPI003, MUT-CR-VERIFY-003-P1-2QAUTH002, MUT-CR-VERIFY-003-P1-2QHARD001CACHE, MUT-CR-VERIFY-003-P1-2QHARD002OPERATOR, MUT-CR-VERIFY-003-P1-2QHARD004, MUT-CR-VERIFY-003-P1-2QIR001, MUT-CR-VERIFY-003-P1-2QIR002, MUT-CR-VERIFY-003-P1-2QIR002RAW, MUT-CR-VERIFY-003-P1-2QLLM001, MUT-CR-VERIFY-003-P1-2QSAFE1FAIL, MUT-CR-VERIFY-003-P1-2QSAFE1CLIENT, MUT-CR-VERIFY-003-P1-2QSAFE2, MUT-CR-VERIFY-003-P1-2QSAFE4, MUT-CR-VERIFY-003-P1-2QUX5ACCOUNT, MUT-CR-VERIFY-003-P1-2QUX5APPKIT, MUT-CR-VERIFY-003-P1-2QUX5CHAIN, MUT-CR-VERIFY-003-P1-2QUX5WCCHAIN, MUT-CR-VERIFY-003-P1-2QAUDITF1, MUT-CR-VERIFY-003-P1-2QAUDITF2, MUT-CR-VERIFY-003-P1-2QAUDITF3, MUT-CR-VERIFY-003-P1-2QEL2, MUT-CR-VERIFY-003-P1-2QLINKACCOUNT, MUT-CR-VERIFY-003-P1-2QEL3BOUND, MUT-CR-VERIFY-003-P1-2QEL3ISO, MUT-CR-VERIFY-003-P1-2QEL4, MUT-CR-VERIFY-003-P1-2QSAL2, MUT-CR-VERIFY-003-P1-2QM1DASH, MUT-CR-VERIFY-003-P1-2QM1BOT, MUT-CR-VERIFY-003-P1-2QRM1LINKCHAT, MUT-CR-VERIFY-003-P1-2QRM1LINKGLOBAL, MUT-CR-VERIFY-003-P1-2QRM1ALERT, MUT-CR-VERIFY-003-P1-2QRM2WALLET, MUT-CR-VERIFY-003-P1-2QRM2GLOBAL, MUT-CR-VERIFY-003-P1-2QAPPKIT, MUT-CR-VERIFY-003-P1-2QAPPKITFONT, MUT-CR-VERIFY-003-P1-2QF2C2, MUT-CR-VERIFY-003-P1-2QF2C3, MUT-CR-VERIFY-003-P1-2QF2D1, MUT-CR-VERIFY-003-P1-2QF2J1, MUT-CR-VERIFY-003-P1-2QISOMETA, MUT-CR-VERIFY-003-P1-2QISOUNLINK, MUT-CR-VERIFY-003-P1-2QPRIVMSG, MUT-CR-VERIFY-003-P1-2QFILTERHOST, MUT-CR-VERIFY-003-P1-2QFILTERADDR, MUT-CR-VERIFY-003-P1-2QAIGLOBAL, MUT-CR-VERIFY-003-P1-2QAIFAIL, MUT-CR-VERIFY-003-P1-2QCSPCONNECT, MUT-CR-VERIFY-003-P1-2QCSPLOG, MUT-CR-VERIFY-003-P1-2QGUARDHTML, MUT-CR-VERIFY-003-P1-2QFONTSHA, MUT-CR-VERIFY-003-P1-2QNPMRC, MUT-CR-VERIFY-003-P1-2QRETENTION, MUT-CR-VERIFY-003-P1-2QANALYTICS, MUT-CR-VERIFY-003-P1-2QGTAG, MUT-CR-VERIFY-003-P1-2QGCATCHALL, MUT-CR-VERIFY-003-P1-2QGBEHAVIOURAL, MUT-CR-VERIFY-003-P1-2QGCOMMIT, MUT-CR-VERIFY-003-P1-2QGCOMPLETE, MUT-CR-VERIFY-003-P1-2QGFINDING, MUT-CR-VERIFY-003-P1-2QGSTALE, MUT-CR-VERIFY-003-P1-2QGTESTMATCH, MUT-CR-VERIFY-003-P1-2RVIALL, MUT-CR-VERIFY-003-P1-2RVISTAR, MUT-CR-VERIFY-003-P1-2RNCNONE, MUT-CR-VERIFY-003-P1-2RNCINSTALL, MUT-CR-VERIFY-003-P1-2RGTRAILER, MUT-CR-VERIFY-003-P1-2RGTRAILERFIX, MUT-CR-VERIFY-003-P1-2RGNONEREASON, MUT-CR-VERIFY-003-P1-2SSIGNONE, MUT-CR-VERIFY-003-P1-2SSIGNEUTER"
 				}
 			],
 			"reproducible": true,
 			"environment_requirements": [
 				"node",
 				"postgres",
-				"vercel_cli"
+				"vercel_cli",
+				"npm_network"
 			],
 			"known_bad_checked": true,
 			"known_bad_result": "KILLED",
@@ -7362,12 +7363,15 @@
 					"MUT-CR-VERIFY-003-P1-2RNCINSTALL",
 					"MUT-CR-VERIFY-003-P1-2RGTRAILER",
 					"MUT-CR-VERIFY-003-P1-2RGTRAILERFIX",
-					"MUT-CR-VERIFY-003-P1-2RGNONEREASON"
+					"MUT-CR-VERIFY-003-P1-2RGNONEREASON",
+					"MUT-CR-VERIFY-003-P1-2SSIGNONE",
+					"MUT-CR-VERIFY-003-P1-2SSIGNEUTER"
 				],
 				"environment": [
 					"node",
 					"postgres",
-					"vercel_cli"
+					"vercel_cli",
+					"npm_network"
 				],
 				"expected_result": "KILLED",
 				"known_bad_required": true
@@ -7375,8 +7379,8 @@
 			"control_ids": [
 				"CR-VERIFY-003"
 			],
-			"coverage": "PARTIAL",
-			"reason_for_partial": "CR-VERIFY-003[P1]: mutation cases: MUT-CR-VERIFY-003-P1-2QA1SECRET, MUT-CR-VERIFY-003-P1-2QA1LEGACY, MUT-CR-VERIFY-003-P1-2QA1RATE, MUT-CR-VERIFY-003-P1-2QA1VERIFY, MUT-CR-VERIFY-003-P1-2QA2COOKIE, MUT-CR-VERIFY-003-P1-2QA2URL, MUT-CR-VERIFY-003-P1-2QA3LEGACY, MUT-CR-VERIFY-003-P1-2QA4ORDER, MUT-CR-VERIFY-003-P1-2QA6, MUT-CR-VERIFY-003-P1-2QA7ENFORCE, MUT-CR-VERIFY-003-P1-2QA7DEFPRIV, MUT-CR-VERIFY-003-P1-2QF1FINISH, MUT-CR-VERIFY-003-P1-2QF1LANG, MUT-CR-VERIFY-003-P1-2QF1GUIDE, MUT-CR-VERIFY-003-P1-2QF2, MUT-CR-VERIFY-003-P1-2QW1, MUT-CR-VERIFY-003-P1-2QW2ORIGIN, MUT-CR-VERIFY-003-P1-2QW2DISCONNECT, MUT-CR-VERIFY-003-P1-2QW3, MUT-CR-VERIFY-003-P1-2QAPI001, MUT-CR-VERIFY-003-P1-2QAPI002, MUT-CR-VERIFY-003-P1-2QAPI003, MUT-CR-VERIFY-003-P1-2QAUTH002, MUT-CR-VERIFY-003-P1-2QHARD001CACHE, MUT-CR-VERIFY-003-P1-2QHARD002OPERATOR, MUT-CR-VERIFY-003-P1-2QHARD004, MUT-CR-VERIFY-003-P1-2QIR001, MUT-CR-VERIFY-003-P1-2QIR002, MUT-CR-VERIFY-003-P1-2QIR002RAW, MUT-CR-VERIFY-003-P1-2QLLM001, MUT-CR-VERIFY-003-P1-2QSAFE1FAIL, MUT-CR-VERIFY-003-P1-2QSAFE1CLIENT, MUT-CR-VERIFY-003-P1-2QSAFE2, MUT-CR-VERIFY-003-P1-2QSAFE4, MUT-CR-VERIFY-003-P1-2QUX5ACCOUNT, MUT-CR-VERIFY-003-P1-2QUX5APPKIT, MUT-CR-VERIFY-003-P1-2QUX5CHAIN, MUT-CR-VERIFY-003-P1-2QUX5WCCHAIN, MUT-CR-VERIFY-003-P1-2QAUDITF1, MUT-CR-VERIFY-003-P1-2QAUDITF2, MUT-CR-VERIFY-003-P1-2QAUDITF3, MUT-CR-VERIFY-003-P1-2QEL2, MUT-CR-VERIFY-003-P1-2QLINKACCOUNT, MUT-CR-VERIFY-003-P1-2QEL3BOUND, MUT-CR-VERIFY-003-P1-2QEL3ISO, MUT-CR-VERIFY-003-P1-2QEL4, MUT-CR-VERIFY-003-P1-2QSAL2, MUT-CR-VERIFY-003-P1-2QM1DASH, MUT-CR-VERIFY-003-P1-2QM1BOT, MUT-CR-VERIFY-003-P1-2QRM1LINKCHAT, MUT-CR-VERIFY-003-P1-2QRM1LINKGLOBAL, MUT-CR-VERIFY-003-P1-2QRM1ALERT, MUT-CR-VERIFY-003-P1-2QRM2WALLET, MUT-CR-VERIFY-003-P1-2QRM2GLOBAL, MUT-CR-VERIFY-003-P1-2QAPPKIT, MUT-CR-VERIFY-003-P1-2QAPPKITFONT, MUT-CR-VERIFY-003-P1-2QF2C2, MUT-CR-VERIFY-003-P1-2QF2C3, MUT-CR-VERIFY-003-P1-2QF2D1, MUT-CR-VERIFY-003-P1-2QF2J1, MUT-CR-VERIFY-003-P1-2QISOMETA, MUT-CR-VERIFY-003-P1-2QISOUNLINK, MUT-CR-VERIFY-003-P1-2QPRIVMSG, MUT-CR-VERIFY-003-P1-2QFILTERHOST, MUT-CR-VERIFY-003-P1-2QFILTERADDR, MUT-CR-VERIFY-003-P1-2QAIGLOBAL, MUT-CR-VERIFY-003-P1-2QAIFAIL, MUT-CR-VERIFY-003-P1-2QCSPCONNECT, MUT-CR-VERIFY-003-P1-2QCSPLOG, MUT-CR-VERIFY-003-P1-2QGUARDHTML, MUT-CR-VERIFY-003-P1-2QFONTSHA, MUT-CR-VERIFY-003-P1-2QNPMRC, MUT-CR-VERIFY-003-P1-2QRETENTION, MUT-CR-VERIFY-003-P1-2QANALYTICS, MUT-CR-VERIFY-003-P1-2QGTAG, MUT-CR-VERIFY-003-P1-2QGCATCHALL, MUT-CR-VERIFY-003-P1-2QGBEHAVIOURAL, MUT-CR-VERIFY-003-P1-2QGCOMMIT, MUT-CR-VERIFY-003-P1-2QGCOMPLETE, MUT-CR-VERIFY-003-P1-2QGFINDING, MUT-CR-VERIFY-003-P1-2QGSTALE, MUT-CR-VERIFY-003-P1-2QGTESTMATCH, MUT-CR-VERIFY-003-P1-2RVIALL, MUT-CR-VERIFY-003-P1-2RVISTAR, MUT-CR-VERIFY-003-P1-2RNCNONE, MUT-CR-VERIFY-003-P1-2RNCINSTALL, MUT-CR-VERIFY-003-P1-2RGTRAILER, MUT-CR-VERIFY-003-P1-2RGTRAILERFIX, MUT-CR-VERIFY-003-P1-2RGNONEREASON"
+			"coverage": "FULL",
+			"reason_for_partial": null
 		},
 		{
 			"id": "EV-VERCEL-CLI-LOCAL",
@@ -7421,6 +7425,56 @@
 				"environment": [
 					"node",
 					"vercel_cli"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-NPM-SIGNATURES",
+			"control_ids": [
+				"CR-VERIFY-003"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/npm-registry-signatures.test.mjs",
+			"test_or_proof": "test/npm-registry-signatures.test.mjs",
+			"property_proven": "real npm 11.17.0 `npm run check:ci` (network evidence, capability npm_network = CRSF_NETWORK_EVIDENCE=1): npm refreshes the Sigstore TUF metadata online from tuf-repo-cdn.sigstore.dev and takes the registry keys from the TUF target registry.npmjs.org/keys.json; pacote verifies every dist.signatures entry against \"<name>@<version>:<dist.integrity>\". Positive: fresh disposable cache against the real registry passes. Known-bad: in a disposable copy of that cache only dist.integrity of one direct dependency (@vercel/analytics) is changed (real signature kept), read with prefer-offline while TUF still refreshes online: check:ci fails with \"1 package has an invalid registry signature\" for exactly that package. Network boundary (preload in every node process): only tuf-repo-cdn.sigstore.dev and registry.npmjs.org, asserted; no credentials (empty user and global npmrc), nothing published or written to the registry. Not proven: a compromise of the registry signing key itself; attestation (provenance) verification is reported but not part of the invariant; without CRSF_NETWORK_EVIDENCE=1 the evidence is NOT_RUN.",
+			"property_not_proven": "a compromise of the registry signing key itself; provenance attestations (reported, not asserted); runs only with CRSF_NETWORK_EVIDENCE=1 (read-only access to tuf-repo-cdn.sigstore.dev and registry.npmjs.org)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-VERIFY-003[P1]: historical fix b706956 (npm registry signatures in check:ci) with the real npm verifier, real Sigstore TUF trust root and the real registry",
+			"covers": [
+				{
+					"control": "CR-VERIFY-003",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "historical fix b706956 (npm registry signatures in check:ci) with the real npm verifier, real Sigstore TUF trust root and the real registry"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"npm 11",
+				"read-only network to tuf-repo-cdn.sigstore.dev and registry.npmjs.org (CRSF_NETWORK_EVIDENCE=1)"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/npm-registry-signatures.test.mjs"
+				],
+				"environment": [
+					"node",
+					"npm_network"
 				],
 				"timeout_ms": 300000,
 				"expected_result": "PASS",

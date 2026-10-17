@@ -1568,6 +1568,37 @@
 					"reason": "discovery model: all 113 historical commits are now classified by hash (previously only keyword matches plus a subject rule for evidence commits, which is removed). A future security fix without tag or keyword can no longer pass silently: every later commit must declare \"Security-Fix: FIX-...\" or \"Security-Fix: none - <reason>\". Residual: a false \"none\" declaration is not machine-detectable (review)."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2s",
+			"summary": "Phase 2S: FIX-B706956-REGISTRY-SIGNATURES proven at E4 with the real npm verifier (real Sigstore TUF, real registry keys, tampered package metadata in a disposable cache); 102/102 historical fixes PROVEN. No application change, no finding.",
+			"changes": [
+				{
+					"id": "CR-VERIFY-003",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E4",
+					"evidence_added": [
+						"test/npm-registry-signatures.test.mjs + test-support/npm-network-boundary.mjs (EV-NPM-SIGNATURES)",
+						"security/mutation/cases.json (EV-KB-VERIFY-003 +2: MUT-CR-VERIFY-003-P1-2SSIGNONE, MUT-CR-VERIFY-003-P1-2SSIGNEUTER)",
+						"security/crsf/fix-register.json: FIX-B706956-REGISTRY-SIGNATURES PROVEN (no other entry changed)"
+					],
+					"why_sufficient": "every one of the 102 registered historical security fixes has a behavioural regression test and at least one known-bad mutation that the engine executes and requires KILLED (EV-KB-VERIFY-003 plus the referenced existing cases); the register guard fails closed on any new unclassified tag, marker or commit",
+					"remains_unproven": "cases needing postgres, vercel_cli or npm_network are NOT_RUN where those capabilities are absent (then the control does not reach PASS there); registry signing-key compromise; hosted Vercel infrastructure",
+					"reason": "evidence closure (Phase 2S); status recomputed by the engine"
+				},
+				{
+					"id": "mutations.schema.json",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "edits[].file may now also be exactly package.json at the repository root (anchored alternative, no wildcard), so the check chain of b706956 can be weakened by known-bad mutations; self-test fixtures MS8 (package-lock.json) and MS9 (docs/package.json) remain invalid targets; no threshold or class changed"
+				},
+				{
+					"id": "evidence.schema.json+mutations.schema.json",
+					"kind": "TEST_INFRA",
+					"reason": "new execution capability npm_network, available only with the explicit opt-in CRSF_NETWORK_EVIDENCE=1 (passed into the mutation sandbox only then); read-only access to tuf-repo-cdn.sigstore.dev and registry.npmjs.org, enforced by test-support/npm-network-boundary.mjs. Without the opt-in the test is skipped only under its exact-name entry in scripts/skip-policy.mjs and its evidence and mutation cases are NOT_RUN - never PASS."
+				}
+			]
 		}
 	]
 }

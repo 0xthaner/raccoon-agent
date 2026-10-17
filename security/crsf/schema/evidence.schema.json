@@ -240,7 +240,8 @@
 										"enum": [
 											"node",
 											"postgres",
-											"vercel_cli"
+											"vercel_cli",
+											"npm_network"
 										]
 									},
 									"minItems": 1
@@ -285,7 +286,8 @@
 										"enum": [
 											"node",
 											"postgres",
-											"vercel_cli"
+											"vercel_cli",
+											"npm_network"
 										]
 									},
 									"minItems": 1

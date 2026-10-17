@@ -1,6 +1,6 @@
 {
 	"$comment": "CRSF Phase 2Q (CR-VERIFY-003): canonical register of historical security fixes. Checked by security/crsf/lib/fix-register.mjs (test/fix-register.test.mjs). One invariant per fix; PROVEN = E4 (behavioural regression test + known-bad mutation expected KILLED and executed by security:verify).",
-	"version": "1.0-draft-phase2r",
+	"version": "1.0-draft-phase2s",
 	"discovery": {
 		"families": [
 			{
@@ -2967,18 +2967,19 @@
 			],
 			"bug": "registry signatures were not verified",
 			"invariant": "check:ci runs npm audit signatures and fails on invalid registry signatures",
-			"tests": [],
-			"mutations": [],
-			"evidence_level": "E2",
-			"status": "MISSING_EVIDENCE",
-			"missing_reason": "EXTERNAL_EVIDENCE_REQUIRED. npm audit signatures (npm 11.17.0, lib/utils/verify-signatures.js) first initialises the Sigstore TUF client with the fixed mirror https://tuf-repo-cdn.sigstore.dev (forceCache false, embedded root seed) and refreshes its root metadata online before reading any registry key; only then does it fall back to the registry keys API. Reproduced in Phase 2R with a local registry fixture and a loopback-only network guard: npm aborts with ECONNREFUSED on https://tuf-repo-cdn.sigstore.dev/15.root.json before the first registry request. An offline proof would require patching npm's trust bootstrap (forceCache/mirror), i.e. mocking the property under test. The invariant stays MISSING_EVIDENCE.",
-			"external_evidence_required": {
-				"command": "npm run check:signaturen (= npm audit signatures) in a clean `npm ci --ignore-scripts` checkout, plus a known-bad run of the same check against a registry fixture with a tampered signature (needs the TUF refresh to succeed)",
-				"creates_deployment": false,
-				"contacts": "tuf-repo-cdn.sigstore.dev (Sigstore TUF metadata, read-only) and registry.npmjs.org (keys and packuments, read-only)",
-				"can_affect_production": false,
-				"establishes": "that the check chain verifies npm registry signatures against the real trust root and fails on an invalid signature (already run in CI: check:ci on GitHub Actions has network)"
-			}
+			"tests": [
+				{
+					"file": "test/npm-registry-signatures.test.mjs",
+					"test": "^NPM-SIGNATURES b706956 check:ci verifies registry signatures with the real npm and fails on a tampered package$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2SSIGNONE",
+				"MUT-CR-VERIFY-003-P1-2SSIGNEUTER"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN",
+			"evidence_note": "real npm 11.17.0 `npm run check:ci` (network evidence, capability npm_network = CRSF_NETWORK_EVIDENCE=1): npm refreshes the Sigstore TUF metadata online from tuf-repo-cdn.sigstore.dev and takes the registry keys from the TUF target registry.npmjs.org/keys.json; pacote verifies every dist.signatures entry against \"<name>@<version>:<dist.integrity>\". Positive: fresh disposable cache against the real registry passes. Known-bad: in a disposable copy of that cache only dist.integrity of one direct dependency (@vercel/analytics) is changed (real signature kept), read with prefer-offline while TUF still refreshes online: check:ci fails with \"1 package has an invalid registry signature\" for exactly that package. Network boundary (preload in every node process): only tuf-repo-cdn.sigstore.dev and registry.npmjs.org, asserted; no credentials (empty user and global npmrc), nothing published or written to the registry. Not proven: a compromise of the registry signing key itself; attestation (provenance) verification is reported but not part of the invariant; without CRSF_NETWORK_EVIDENCE=1 the evidence is NOT_RUN."
 		},
 		{
 			"id": "FIX-B647281-NPM-CI",
