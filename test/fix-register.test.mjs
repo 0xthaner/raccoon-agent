@@ -18,7 +18,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { checkRepository, discoverMarkers, validateRegister } from '../security/crsf/lib/fix-register.mjs';
+import { checkRepository, discoverMarkers, parseSecurityFixTrailer, validateRegister } from '../security/crsf/lib/fix-register.mjs';
 
 const register = JSON.parse(readFileSync('security/crsf/fix-register.json', 'utf8'));
 const cases = JSON.parse(readFileSync('security/mutation/cases.json', 'utf8')).cases;
@@ -54,8 +54,8 @@ test('FIXREG the real register is complete and consistent with the repository', 
 	const result = checkRepository(process.cwd());
 	assert.deepEqual(result.errors, [], 'register errors');
 	assert.ok(result.summary.fixes >= 90, `expected the historical fixes, got ${result.summary.fixes}`);
-	// Ehrlich offen (kein reproduzierbarer Offline-Nachweis): Plattform-/Netzverhalten.
-	assert.deepEqual(result.summary.missing.sort(), ['FIX-B647281-NPM-CI', 'FIX-B706956-REGISTRY-SIGNATURES', 'FIX-CAD24D4-VERCELIGNORE']);
+	// Ehrlich offen: npm audit signatures braucht den Sigstore-TUF-Abgleich im Netz (Phase 2R, EXTERNAL_EVIDENCE_REQUIRED).
+	assert.deepEqual(result.summary.missing, ['FIX-B706956-REGISTRY-SIGNATURES']);
 	assert.equal(result.summary.complete, false, 'complete requires no MISSING_EVIDENCE');
 	assert.equal(result.summary.proven, result.summary.fixes - result.summary.missing.length);
 });
@@ -144,19 +144,44 @@ test('FIXREG fixture: a fixed CRSF finding that is not registered as a fix fails
 	assert.ok(codes(w.check(w.reg, { findingsFixed: [TAG('F', '9Z', '1')] })).includes('FINDING_FIX_UNREGISTERED'));
 });
 
-test('FIXREG fixture: with full history an unclassified security commit fails; the evidence-phase rule and other commits pass', (t) => {
+test('FIXREG fixture: every commit is classified - by hash in the register or by a Security-Fix: trailer; keyword-free commits too', (t) => {
 	const w = miniWorld();
 	t.after(() => rmSync(w.dir, { recursive: true, force: true }));
-	const reg = { ...clone(w.reg), commit_rules: [{ subject: '^security: complete CR-[A-Z]+-[0-9]+ ', classification: 'FRAMEWORK_EVIDENCE', reason: 'r' }] };
+	const reg = clone(w.reg);
+	const c = (hash, subject, body = '', matched = false) => ({ hash: `${hash}0000000000`, subject, body, matched });
 	const commits = { mode: 'FULL', commits: [
-		{ hash: 'aaaaaaa0000', subject: 'Harden the login', matched: true },
-		{ hash: 'bbbbbbb0000', subject: 'security: complete CR-VERIFY-003 historical fix evidence', matched: true },
-		{ hash: 'ccccccc0000', subject: 'Fix typo', matched: false }
+		c('aaaaaaa', 'Harden the login', '', true),
+		c('bbbbbbb', 'Tighten cookie handling', ''),
+		c('ccccccc', 'Tighten cookie handling', 'Body.\n\nSecurity-Fix: FIX-Z9\n'),
+		c('ddddddd', 'Fix typo', 'Security-Fix: none - wording in the guide only\n'),
+		c('eeeeeee', 'Something', 'Security-Fix: FIX-NOPE\n'),
+		c('fffffff', 'Something else', 'Security-Fix: none\n')
 	] };
-	const r = w.check(reg, { commits });
-	assert.deepEqual(r.errors.map((e) => `${e.code} ${e.detail}`), ['UNCLASSIFIED_SECURITY_COMMIT aaaaaaa Harden the login']);
-	reg.commits = [{ commit: 'aaaaaaa', classification: 'SECURITY_FIX', fixes: ['FIX-Z9'] }];
-	assert.deepEqual(w.check(reg, { commits }).errors, []);
-	// Ohne vollstaendige Historie wird die Commit-Pruefung nicht behauptet.
-	assert.equal(w.check(reg, { commits: { mode: 'SHALLOW', commits: [] } }).summary.commit_discovery, 'SHALLOW');
+	const codesOf = (r) => r.errors.map((e) => `${e.code} ${e.detail.slice(0, 7)}`);
+	assert.deepEqual(codesOf(w.check(reg, { commits })), [
+		'UNCLASSIFIED_SECURITY_COMMIT aaaaaaa',
+		'UNCLASSIFIED_COMMIT bbbbbbb',
+		'SECURITY_FIX_TRAILER_UNKNOWN_FIX eeeeeee',
+		'SECURITY_FIX_TRAILER_INVALID fffffff'
+	]);
+	// Registered by hash, the security commit passes; the trailers declare the rest.
+	reg.commits = [{ commit: 'aaaaaaa', classification: 'SECURITY_FIX', fixes: ['FIX-Z9'] }, { commit: 'bbbbbbb', classification: 'NOT_SECURITY_FIX', reason: 'fixture' }];
+	const ok = { mode: 'FULL', commits: commits.commits.filter((x) => !/^(eeeeeee|fffffff)/.test(x.hash)) };
+	const r = w.check(reg, { commits: ok });
+	assert.deepEqual(r.errors, []);
+	assert.deepEqual(r.summary.commit_trailers.map((x) => x.commit), ['ccccccc', 'ddddddd']);
+	// A shallow clone (CI) still checks every commit it has; without git nothing is asserted.
+	assert.deepEqual(codesOf(w.check(reg, { commits: { mode: 'SHALLOW', commits: [c('9999999', 'New thing', '')] } })), ['UNCLASSIFIED_COMMIT 9999999']);
+	assert.deepEqual(w.check(reg, { commits: { mode: 'UNAVAILABLE', commits: [] } }).errors, []);
+	// A registered commit that vanished from full history is stale.
+	assert.ok(codesOf(w.check(reg, { commits: { mode: 'FULL', commits: ok.commits.filter((x) => !x.hash.startsWith('bbbbbbb')) } })).includes('STALE_COMMIT bbbbbbb'));
+});
+
+test('FIXREG Security-Fix: trailer parsing is strict', () => {
+	assert.equal(parseSecurityFixTrailer('no trailer here'), null);
+	assert.deepEqual(parseSecurityFixTrailer('x\n\nSecurity-Fix: FIX-A1-SESSION-SECRET, FIX-F-2K-1\n'), { fixes: ['FIX-A1-SESSION-SECRET', 'FIX-F-2K-1'] });
+	assert.deepEqual(parseSecurityFixTrailer('Security-Fix: none - evidence only, no behaviour change'), { fixes: [], none: 'evidence only, no behaviour change' });
+	for (const bad of ['Security-Fix: none', 'Security-Fix: none - short', 'Security-Fix:', 'Security-Fix: fixes the login', 'Security-Fix: FIX-A\nSecurity-Fix: none - also something else']) {
+		assert.ok(parseSecurityFixTrailer(bad).error, bad);
+	}
 });

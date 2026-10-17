@@ -24,8 +24,16 @@ export function detectCapabilities(env = process.env) {
 		node: { available: nodeMajor === 24, version_major: nodeMajor, required: '24.x' },
 		postgres: { available: Boolean(pgUrl && pgModule && existsSync(pgModule)), via: 'M1_DB_TEST_PG_URL + M1_DB_TEST_PG_MODULE (disposable Postgres only)' },
 		git: { available: hasGit() },
+		// CRSF 2R: die echte Vercel-CLI (lokal, ohne Deployment; test/vercel-cli-local.test.mjs)
+		vercel_cli: (() => { const version = vercelCliVersion(env); return { available: Boolean(version), version }; })(),
 		production_access: { available: false, reason: 'never used by security:verify; production evidence is recorded manually' }
 	};
+}
+function vercelCliVersion(env) {
+	try {
+		const out = execFileSync('vercel', ['--version'], { encoding: 'utf8', env: { PATH: env.PATH ?? '', HOME: os.tmpdir(), VERCEL_TELEMETRY_DISABLED: '1', NO_UPDATE_NOTIFIER: '1' }, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60_000 });
+		return /(\d+\.\d+\.\d+)/.exec(out)?.[1] ?? null;
+	} catch { return null; }
 }
 function hasGit() {
 	try { execFileSync('git', ['--version'], { stdio: 'ignore' }); return true; } catch { return false; }

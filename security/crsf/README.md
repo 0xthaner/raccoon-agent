@@ -131,7 +131,7 @@ Exit codes:
 - **FAIL:** a release-blocking FAIL or an evidence failure.
 - **INCOMPLETE_EVIDENCE:** everything else.
 
-At CRSF 1.0-draft-phase2q the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE`. There are 54 release-blocking controls, and two are `MISSING_EVIDENCE`. CR-VERIFY-003 has a complete fix register, but three fixes have no offline known-bad proof (see below). CR-VERIFY-004 is the other. Findings F-2D-2, F-2F-1, F-2H-1, F-2I-1 and F-2K-1 are fixed; their probes are now regression proofs. F-2K-1 (GET /api/link) is covered by CR-RESOURCE-001 P5, added in 1.0-draft-phase2l.
+At CRSF 1.0-draft-phase2r the expected result is `FRAMEWORK_VALID: YES` and `RELEASE_SECURITY_ASSERTION: INCOMPLETE_EVIDENCE`. There are 54 release-blocking controls, and two are `MISSING_EVIDENCE`. CR-VERIFY-003 has a complete fix register, but one fix (npm registry signatures) needs external network evidence (see below). CR-VERIFY-004 is the other. Findings F-2D-2, F-2F-1, F-2H-1, F-2I-1 and F-2K-1 are fixed; their probes are now regression proofs. F-2K-1 (GET /api/link) is covered by CR-RESOURCE-001 P5, added in 1.0-draft-phase2l.
 
 Findings are a ledger, replayed from the `NEW_FINDING` / `FINDING_MAPPED` / `FINDING_FIXED` / `FINDING_WITHDRAWN` records in `framework-changes.json` (since 1.0-draft-phase2j, F-2J-1). Every application finding is mapped to a control property or explicitly declared unmapped. An open unmapped application finding makes `RELEASE_SECURITY_ASSERTION: FAIL` whatever the control statuses say. An open mapped one must be recorded as a `VIOLATION` on that property. The version lock records every finding, so none can be deleted or retyped.
 
@@ -206,24 +206,46 @@ Classes: A text only (textContent/createTextNode/append of strings); B URL with 
 
 URL schemes tried against every navigation sink: javascript:, JaVaScRiPt:, leading whitespace, data:text/html, vbscript:, //host, percent- and entity-encoded, user@host, backslashes, ../. All URLs stayed https on coverraccoon.com, t.me or app.nexusmutual.io. Server-side HTML: none (api/* answers JSON; src/web.mjs is the local static file server). No finding.
 
-## CR-VERIFY-003 historical security-fix register (1.0-draft-phase2q)
+## CR-VERIFY-003 historical security-fix register (1.0-draft-phase2q, 2r)
 
-`fix-register.json` is the canonical inventory of every historical security fix: AGENT-*, AUDIT-2026-10-12, AUDIT E-/SA-, META-AUDIT, Restaudit, HARD-n, the CRSF findings F-xx-n, and every commit whose message carries a security keyword. Each fix has exactly one invariant. A PROVEN fix is at E4: it has a behavioural regression test, and a known-bad mutation that reintroduces the original bug and is expected KILLED by that test. `security:verify` executes every one of these mutations.
+`fix-register.json` is the canonical inventory of every historical security fix: AGENT-*, AUDIT-2026-10-12, AUDIT E-/SA-, META-AUDIT, Restaudit, HARD-n and the CRSF findings F-xx-n. It also classifies every historical commit by hash (113 commits in total, not only keyword matches). Each fix has exactly one invariant. A PROVEN fix is at E4: it has a behavioural regression test, and a known-bad mutation that reintroduces the original bug and is expected KILLED by that test. `security:verify` executes every one of these mutations.
 
 The guard `lib/fix-register.mjs` (run by `test/fix-register.test.mjs`) fails closed in these cases:
 
 - a tag of a known family in code, tests, migrations, configuration or docs is not registered;
 - a catch-all marker of a new family (AUDIT, Restaudit, META-AUDIT, AGENT-X-, HARD-n) is not registered;
 - a registered tag has vanished;
-- a security-keyword commit is unclassified (only with full git history; a shallow clone or a sandbox reports the mode);
+- a commit is unclassified;
 - a PROVEN fix lacks an invariant or a behavioural KILLED mutation;
 - a fix names a test that is not an expected failure of its mutations;
 - a mutation is claimed by two fixes;
 - a FINDING_FIXED id is not registered as a fix.
 
-Eight further known-bad cases each weaken the guard, and each is killed by its fixture.
+Known-bad cases weaken the guard itself, and each is killed by its fixture.
 
-Status: 102 fixes, of which 99 are PROVEN (E4) and 3 are MISSING_EVIDENCE. Those 3 are platform or network behaviour without a reproducible offline known-bad proof: `npm audit signatures`, Vercel `npm ci`, and the `.vercelignore` upload filter. CR-VERIFY-003 P1 is therefore PARTIAL, and the control stays MISSING_EVIDENCE.
+**Commits after 1.0-draft-phase2r.** A commit cannot name its own hash, so every later commit carries exactly one trailer:
+
+- `Security-Fix: FIX-<id>[, FIX-<id>]` for a registered fix;
+- `Security-Fix: none - <reason>` with a reason of at least 10 characters.
+
+A commit without such a trailer fails the guard. This holds with full history and in a shallow CI clone; without git nothing is asserted. A future security fix without a tag and without a keyword can therefore not pass silently, because its commit must declare itself. The remaining risk is a false `none` declaration, and that is a review matter.
+
+**Platform fixes with the real Vercel CLI.** `test/vercel-cli-local.test.mjs` runs the installed CLI locally, with the capability `vercel_cli` (`vercel --version`):
+
+- Setup: every API call goes to a local fake API that refuses every deployment. Every other request goes through a refusing proxy, and the test asserts that it saw none.
+- `vercel deploy` reports its upload set. With the repository `.vercelignore` it excludes `.env` and `.env.*` and keeps `.env.example`. Without the file, the CLI would upload `.env` and `.env.production`; this is cad24d4.
+- `vercel build` runs the `installCommand` from `vercel.json`. `npm ci` aborts on a lockfile that does not match `package.json`. Without the `installCommand`, Vercel's default `npm install` rewrites the lockfile and builds; this is b647281.
+- Without the CLI, the two tests are an allowed skip and their evidence is NOT_RUN.
+
+Status: 102 fixes, of which 101 are PROVEN (E4) and 1 is MISSING_EVIDENCE. CR-VERIFY-003 P1 is therefore PARTIAL, and the control stays MISSING_EVIDENCE.
+
+**FIX-B706956-REGISTRY-SIGNATURES: EXTERNAL_EVIDENCE_REQUIRED.** `npm audit signatures` refreshes the Sigstore TUF metadata from `tuf-repo-cdn.sigstore.dev` before it reads any registry key. With a local registry fixture and loopback-only networking, npm aborts before its first registry request. Proving this offline would mean patching npm's trust bootstrap, which is not allowed. The external check needed is:
+
+- **Command:** npm run check:signaturen (= npm audit signatures) in a clean `npm ci --ignore-scripts` checkout, plus a known-bad run of the same check against a registry fixture with a tampered signature (needs the TUF refresh to succeed).
+- **Contacts:** tuf-repo-cdn.sigstore.dev (Sigstore TUF metadata, read-only) and registry.npmjs.org (keys and packuments, read-only).
+- **Creates a deployment:** no.
+- **Can affect production:** no.
+- **Would establish:** that the check chain verifies npm registry signatures against the real trust root and fails on an invalid signature (already run in CI: check:ci on GitHub Actions has network).
 
 The register does not hold everything as a fix:
 
@@ -333,8 +355,8 @@ The register does not hold everything as a fix:
 | FIX-E69AFD3-QUERY-PARAMS | e69afd3 | src/request-query.mjs | handlers read request.query loosely (query could override secrets or body values) | handlers read only defined single query values; query never replaces secrets or body fields | query-authority.test.mjs | API-004-P1-NEW1, API-004-P1-NEW2, API-004-P1-NEW3, API-004-P1-NEW4 | E4 | PROVEN |
 | FIX-536BC02-CANCELLED-TESTS | 536bc02 | scripts/run-tests-guarded.mjs | cancelled security tests (cancelledByParent) let the run exit 0 | the guarded test runner fails on cancelled tests | guard-behaviour.test.mjs | VERIFY-001-P1-NEW1 | E4 | PROVEN |
 | FIX-B706956-REGISTRY-SIGNATURES | b706956 | package.json | registry signatures were not verified | check:ci runs npm audit signatures and fails on invalid registry signatures | - | - | E2 | MISSING_EVIDENCE |
-| FIX-B647281-NPM-CI | b647281 | vercel.json | npm install could deviate from the lockfile hashes in the deployment build | the Vercel installCommand installs exactly the lockfile (npm ci) | - | - | E2 | MISSING_EVIDENCE |
-| FIX-CAD24D4-VERCELIGNORE | cad24d4 | .vercelignore | `vercel --prod` uploaded the local .env (bot token, Supabase key) as source | deployment uploads exclude .env and .env.* (except .env.example) | - | - | E2 | MISSING_EVIDENCE |
+| FIX-B647281-NPM-CI | b647281 | vercel.json | npm install could deviate from the lockfile hashes in the deployment build | the Vercel installCommand installs exactly the lockfile (npm ci) | vercel-cli-local.test.mjs | VERIFY-003-P1-2RNCNONE, VERIFY-003-P1-2RNCINSTALL | E4 | PROVEN |
+| FIX-CAD24D4-VERCELIGNORE | cad24d4 | .vercelignore | `vercel --prod` uploaded the local .env (bot token, Supabase key) as source | deployment uploads exclude .env and .env.* (except .env.example) | vercel-cli-local.test.mjs | VERIFY-003-P1-2RVIALL, VERIFY-003-P1-2RVISTAR | E4 | PROVEN |
 
 ## Framework versions
 

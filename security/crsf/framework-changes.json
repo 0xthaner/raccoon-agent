@@ -1530,6 +1530,44 @@
 					"reason": "edits[].file may now also be exactly .npmrc (project npm configuration; ignore-scripts), so the historical fix b706956/51c0cd4 can be checked by a known-bad mutation; no other path added, no threshold or class changed"
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2r",
+			"summary": "Phase 2R: CR-VERIFY-003 remaining historical fixes. cad24d4 (.vercelignore) and b647281 (npm ci) PROVEN at E4 with the real Vercel CLI locally (no deployment, no network); b706956 registry signatures stays MISSING_EVIDENCE (EXTERNAL_EVIDENCE_REQUIRED: npm needs the Sigstore TUF mirror online). Every historical commit classified; future commits need a Security-Fix: trailer. No application change, no finding.",
+			"changes": [
+				{
+					"id": "CR-VERIFY-003",
+					"kind": "REVIEWED_NOT_CLOSED",
+					"evidence_added": [
+						"test/vercel-cli-local.test.mjs + test-support/vercel-cli-local.mjs (EV-VERCEL-CLI-LOCAL)",
+						"security/mutation/cases.json (EV-KB-VERIFY-003 +7)",
+						"security/crsf/fix-register.json: all historical commits classified; Security-Fix: trailer policy"
+					],
+					"why_sufficient": "not sufficient: 1 fix(es) still without a reproducible known-bad proof",
+					"remains_unproven": "FIX-B706956-REGISTRY-SIGNATURES: EXTERNAL_EVIDENCE_REQUIRED. npm audit signatures (npm 11.17.0, lib/utils/verify-signatures.js) first initialises the Sigstore TUF client with the fixed mirror https://tuf-repo-cdn.sigstore.dev (forceCache false, embedded root seed) and refreshes its root metadata online before reading any registry key; only then does it fall back to the registry keys API. Reproduced in Phase 2R with a local registry fixture and a loopback-only network guard: npm aborts with ECONNREFUSED on https://tuf-repo-cdn.sigstore.dev/15.root.json before the first registry request. An offline proof would require patching npm's trust bootstrap (forceCache/mirror), i.e. mocking the property under test. The invariant stays MISSING_EVIDENCE.",
+					"reason": "evidence (Phase 2R); status recomputed by the engine - stays MISSING_EVIDENCE because P1 is only PARTIAL"
+				},
+				{
+					"id": "mutations.schema.json",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "edits[].file may now also be exactly .vercelignore (root only; anchored alternative, no wildcard), so the historical fix cad24d4 can be checked by known-bad mutations; self-test fixtures MS1-MS7 prove that other dotfiles and variants (.env, .gitignore, .npmrc.bak, docs/.npmrc, .vercelignore.orig, x/.vercelignore, .github/workflows/ci.yml) remain invalid targets; no threshold or class changed"
+				},
+				{
+					"id": "evidence.schema.json+mutations.schema.json",
+					"kind": "TEST_INFRA",
+					"reason": "new execution capability vercel_cli (detected by `vercel --version` in security/crsf/lib/exec.mjs; environment enum extended). Without the CLI the two tests are skipped only under the exact-name entries in scripts/skip-policy.mjs and their evidence and mutation cases are NOT_RUN - never PASS."
+				},
+				{
+					"id": "MUT-CR-VERIFY-003-P1-2QGCOMMIT",
+					"kind": "MUTATION_ANCHOR_UPDATED",
+					"reason": "the subject-rule line it weakened was replaced by the commit-classification policy; same weakening (unclassified security-keyword commits pass) re-anchored: \"\\t\\t\\tif (rules.some((r) => r.re.test(c.subject))) continue;\" -> \"\\t\\t\\tif (isRegistered(c.hash)) continue;\"; expected failure moved to the rewritten commit fixture test"
+				},
+				{
+					"id": "fix-register",
+					"kind": "GAP_CLOSED",
+					"reason": "discovery model: all 113 historical commits are now classified by hash (previously only keyword matches plus a subject rule for evidence commits, which is removed). A future security fix without tag or keyword can no longer pass silently: every later commit must declare \"Security-Fix: FIX-...\" or \"Security-Fix: none - <reason>\". Residual: a false \"none\" declaration is not machine-detectable (review)."
+				}
+			]
 		}
 	]
 }

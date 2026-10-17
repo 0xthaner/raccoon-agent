@@ -1,6 +1,6 @@
 {
 	"$comment": "CRSF Phase 2Q (CR-VERIFY-003): canonical register of historical security fixes. Checked by security/crsf/lib/fix-register.mjs (test/fix-register.test.mjs). One invariant per fix; PROVEN = E4 (behavioural regression test + known-bad mutation expected KILLED and executed by security:verify).",
-	"version": "1.0-draft-phase2q",
+	"version": "1.0-draft-phase2r",
 	"discovery": {
 		"families": [
 			{
@@ -2971,7 +2971,14 @@
 			"mutations": [],
 			"evidence_level": "E2",
 			"status": "MISSING_EVIDENCE",
-			"missing_reason": "needs the npm registry over the network; offline the invariant is only visible as the configured script (static, package.json). No reproducible offline known-bad test."
+			"missing_reason": "EXTERNAL_EVIDENCE_REQUIRED. npm audit signatures (npm 11.17.0, lib/utils/verify-signatures.js) first initialises the Sigstore TUF client with the fixed mirror https://tuf-repo-cdn.sigstore.dev (forceCache false, embedded root seed) and refreshes its root metadata online before reading any registry key; only then does it fall back to the registry keys API. Reproduced in Phase 2R with a local registry fixture and a loopback-only network guard: npm aborts with ECONNREFUSED on https://tuf-repo-cdn.sigstore.dev/15.root.json before the first registry request. An offline proof would require patching npm's trust bootstrap (forceCache/mirror), i.e. mocking the property under test. The invariant stays MISSING_EVIDENCE.",
+			"external_evidence_required": {
+				"command": "npm run check:signaturen (= npm audit signatures) in a clean `npm ci --ignore-scripts` checkout, plus a known-bad run of the same check against a registry fixture with a tampered signature (needs the TUF refresh to succeed)",
+				"creates_deployment": false,
+				"contacts": "tuf-repo-cdn.sigstore.dev (Sigstore TUF metadata, read-only) and registry.npmjs.org (keys and packuments, read-only)",
+				"can_affect_production": false,
+				"establishes": "that the check chain verifies npm registry signatures against the real trust root and fails on an invalid signature (already run in CI: check:ci on GitHub Actions has network)"
+			}
 		},
 		{
 			"id": "FIX-B647281-NPM-CI",
@@ -2986,11 +2993,19 @@
 			],
 			"bug": "npm install could deviate from the lockfile hashes in the deployment build",
 			"invariant": "the Vercel installCommand installs exactly the lockfile (npm ci)",
-			"tests": [],
-			"mutations": [],
-			"evidence_level": "E2",
-			"status": "MISSING_EVIDENCE",
-			"missing_reason": "the installCommand is executed only by Vercel; locally it is a configuration value (static). No reproducible offline known-bad test of the platform behaviour."
+			"tests": [
+				{
+					"file": "test/vercel-cli-local.test.mjs",
+					"test": "^VERCEL-CLI b647281 vercel build runs the installCommand of vercel\\.json and it refuses a lockfile that does not match$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2RNCNONE",
+				"MUT-CR-VERIFY-003-P1-2RNCINSTALL"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN",
+			"evidence_note": "real `vercel build` (local official build path, no deployment, npm offline) executes the installCommand of the repository vercel.json; with a lockfile that does not match package.json npm ci aborts the build and leaves the lockfile unchanged. Control with a matching lockfile builds. Known-bad without installCommand: Vercel's default npm install rewrites the lockfile and builds. Not proven: the hosted Vercel build container (runs the same CLI build logic; not observable locally); Vercel's second, function-level install (covered by .npmrc, 51c0cd4)."
 		},
 		{
 			"id": "FIX-CAD24D4-VERCELIGNORE",
@@ -3005,11 +3020,19 @@
 			],
 			"bug": "`vercel --prod` uploaded the local .env (bot token, Supabase key) as source",
 			"invariant": "deployment uploads exclude .env and .env.* (except .env.example)",
-			"tests": [],
-			"mutations": [],
-			"evidence_level": "E2",
-			"status": "MISSING_EVIDENCE",
-			"missing_reason": "the upload filter is applied only by the Vercel CLI (not installed, not run offline); locally it is a pattern file (static). No reproducible known-bad test of the platform behaviour."
+			"tests": [
+				{
+					"file": "test/vercel-cli-local.test.mjs",
+					"test": "^VERCEL-CLI cad24d4 the real CLI upload set excludes \\.env and \\.env\\.\\* \\(except \\.env\\.example\\)$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2RVIALL",
+				"MUT-CR-VERIFY-003-P1-2RVISTAR"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN",
+			"evidence_note": "real Vercel CLI (installed version, capability vercel_cli) computes the upload set of `vercel deploy` for a seeded project with the repository .vercelignore and reports it to a local fake API that refuses the deployment; no network, no upload, no deployment. Control without the file: the same CLI would upload .env and .env.production (its defaults only ignore .env.local / .env.*.local). Not proven: Vercel Git-integration uploads (none: Git deployments are disabled, e3270c1)."
 		}
 	],
 	"tag_classifications": [
@@ -3672,13 +3695,152 @@
 			"commit": "0afa171",
 			"classification": "REMOVED",
 			"reason": "knowledge API without credentials; module deleted later (see a97d95e)"
+		},
+		{
+			"commit": "d834ad1",
+			"classification": "FRAMEWORK_EVIDENCE",
+			"reason": "CRSF Phase 2Q evidence (fix register, regression tests, mutations); no application change"
+		},
+		{
+			"commit": "e3270c1",
+			"classification": "PROCESS",
+			"reason": "deployment governance: vercel.json git.deploymentEnabled false when the repo was linked to Vercel for commit metadata; preventive (deployments were never Git-triggered before), platform setting, no corrected vulnerability"
+		},
+		{
+			"commit": "111a5bb",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "feature: Open Graph image; adds a narrow CORP cross-origin exception for /og-image.png only (same pattern as a532091; covered by test/safe-app-metadata.test.mjs)"
+		},
+		{
+			"commit": "f63ab55",
+			"classification": "SUPERSEDED",
+			"reason": "experiment (partitioned Safe-App cookie for one allowlisted Safe), inert by default and reverted by 9ba7ee6"
+		},
+		{
+			"commit": "bf7be7d",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "test-only: Node 24.19/24.21 URLSearchParams decoding difference; no runtime change"
+		},
+		{
+			"commit": "2496918",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "feature: DeFi position / cover attribution UI"
+		},
+		{
+			"commit": "608491e",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "feature: Nexus product discovery catalog flow"
+		},
+		{
+			"commit": "09fbaf0",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "release toggle (AI answers enabled)"
+		},
+		{
+			"commit": "f375202",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "liability pause switch for AI answers (business decision)"
+		},
+		{
+			"commit": "5f810a3",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "liability pause switch for new sign-ins and links (business decision); answers 503 before any state"
+		},
+		{
+			"commit": "9d62799",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "redirect targets of old CoverRaccoon paths (domain shutdown)"
+		},
+		{
+			"commit": "11e6c4a",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "feature: product follow-up context table; its privileges (service role only) are proven by CR-DB-001/002 (test/db-privileges-db.test.mjs)"
+		},
+		{
+			"commit": "8459f80",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "imprint/contact address text"
+		},
+		{
+			"commit": "586a5ea",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "privacy notice text describing the live chain lookup"
+		},
+		{
+			"commit": "afa66f1",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "feature: covers read live from the chain; its bounds are CR-RESOURCE/CR-PROVIDER properties"
+		},
+		{
+			"commit": "52398c5",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "visual: dashboard eye animation"
+		},
+		{
+			"commit": "ead59c9",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "domain move to coverraccoon.com (production origin updated with the move; origin binding itself is CR-AUTH-001)"
+		},
+		{
+			"commit": "75995b5",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "feature: self-hosted font (previously system fonts, no external request); privacy by design, not a correction; download integrity was added later by 20f9549 (FIX-20F9549-FONT-SHA256)"
+		},
+		{
+			"commit": "b552a4f",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "footer text"
+		},
+		{
+			"commit": "ef64a8d",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "feature: product coverage-gap answers (src/coverraccoon-knowledge.mjs was deleted later)"
+		},
+		{
+			"commit": "2135952",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "feature: analysis links in Telegram (module deleted later)"
+		},
+		{
+			"commit": "90f0e72",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "feature: answers grounded in the knowledge API (module deleted later)"
+		},
+		{
+			"commit": "7124c38",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "feature: group conversation mode (\"safe\" = answer scope), later replaced by private-only processing (da4d901, FIX-DA4D901-PRIVATE-ONLY)"
+		},
+		{
+			"commit": "c635a75",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "feature: conversational explanation mode"
+		},
+		{
+			"commit": "98787e0",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "feature: bounded natural-language agent (intent routing)"
+		},
+		{
+			"commit": "26b89d3",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "privacy notice text"
+		},
+		{
+			"commit": "2f0e78f",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "footer link"
+		},
+		{
+			"commit": "0618cdb",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "initial import of the application (no earlier behaviour to correct)"
+		},
+		{
+			"commit": "501aa00",
+			"classification": "NOT_SECURITY_FIX",
+			"reason": "initial commit (licence)"
 		}
 	],
-	"commit_rules": [
-		{
-			"subject": "^security: complete CR-[A-Z]+-[0-9]+ ",
-			"classification": "FRAMEWORK_EVIDENCE",
-			"reason": "CRSF evidence-closure commits (one per phase; application fixes are forbidden in these phases and would carry a tag discovered above)"
-		}
-	]
+	"commit_policy": "Every historical commit up to 1.0-draft-phase2r is classified by hash above (all commits, not only keyword matches). Every later commit must carry exactly one trailer \"Security-Fix: FIX-<id>[, FIX-<id>]\" (registered fixes) or \"Security-Fix: none - <reason>\" (>= 10 characters); the guard fails on a commit with neither (full history and shallow clones; not asserted without git)."
 }

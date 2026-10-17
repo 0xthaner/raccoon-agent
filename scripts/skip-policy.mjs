@@ -7,7 +7,22 @@
 	(M1, H2, L1, L5, REVOKE, DBPRIV, DASHBOARD-LOGIN, INPUT-DB-PG), jeweils exakt mit Datei und Name, und nur solange kein
 	Wegwerf-Postgres konfiguriert ist. Ist M1_DB_TEST_PG_URL gesetzt und ein Test
 	wird trotzdem uebersprungen, ist das ein Fehler wie jeder andere Skip.
+
+	CRSF Phase 2R: die beiden Tests mit der echten Vercel-CLI, exakt mit Datei und
+	Name, nur solange `vercel --version` nicht laeuft. Ist die CLI installiert und
+	ein Test wird trotzdem uebersprungen, ist das ein Fehler.
 */
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+
+function vercelCliMissing(env) {
+	try {
+		const r = spawnSync('vercel', ['--version'], { encoding: 'utf8', env: { PATH: env.PATH ?? '', HOME: tmpdir(), VERCEL_TELEMETRY_DISABLED: '1', NO_UPDATE_NOTIFIER: '1' }, timeout: 60_000 });
+		return !(r.status === 0 && /\d+\.\d+\.\d+/.test(`${r.stdout}${r.stderr}`));
+	} catch {
+		return true;
+	}
+}
 export const ALLOWED_SKIPS = new Map([
 	['test/m1-wallet-limit-db.test.mjs :: M1-DB', (env) => !env.M1_DB_TEST_PG_URL],
 	// Restaudit H2: Challenge-Verbrauch unter echter Gleichzeitigkeit, derselbe Wegwerf-Postgres.
@@ -22,7 +37,10 @@ export const ALLOWED_SKIPS = new Map([
 	['test/db-privileges-db.test.mjs :: DBPRIV-DB', (env) => !env.M1_DB_TEST_PG_URL],
 	['test/dashboard-login-db.test.mjs :: DASHBOARD-LOGIN-DB', (env) => !env.M1_DB_TEST_PG_URL],
 	// CRSF Phase 2N: CR-INPUT-004, feindselige Werte und SQL-Funktionen gegen echtes Postgres.
-	['test/input-db-adversarial-db.test.mjs :: INPUT-DB-PG', (env) => !env.M1_DB_TEST_PG_URL]
+	['test/input-db-adversarial-db.test.mjs :: INPUT-DB-PG', (env) => !env.M1_DB_TEST_PG_URL],
+	// CRSF Phase 2R: historische Korrekturen cad24d4 und b647281 mit der echten Vercel-CLI.
+	['test/vercel-cli-local.test.mjs :: VERCEL-CLI cad24d4 the real CLI upload set excludes .env and .env.* (except .env.example)', vercelCliMissing],
+	['test/vercel-cli-local.test.mjs :: VERCEL-CLI b647281 vercel build runs the installCommand of vercel.json and it refuses a lockfile that does not match', vercelCliMissing]
 ]);
 
 /** Ist der Skip `id` ("<datei> :: <name>") unter der Umgebung `env` erlaubt? */

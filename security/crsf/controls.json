@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2q",
+	"crsf_version": "1.0-draft-phase2r",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -10262,7 +10262,8 @@
 			"current_evidence_ids": [
 				"EV-CRSF-SELFTEST",
 				"EV-FIX-REGISTER",
-				"EV-KB-VERIFY-003"
+				"EV-KB-VERIFY-003",
+				"EV-VERCEL-CLI-LOCAL"
 			],
 			"property_coverage": {
 				"P1": {
@@ -10270,15 +10271,16 @@
 					"partial_only": [
 						"EV-CRSF-SELFTEST",
 						"EV-FIX-REGISTER",
-						"EV-KB-VERIFY-003"
+						"EV-KB-VERIFY-003",
+						"EV-VERCEL-CLI-LOCAL"
 					],
 					"insufficient": []
 				}
 			},
 			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied (partial only: EV-CRSF-SELFTEST,EV-FIX-REGISTER,EV-KB-VERIFY-003)",
+			"conformance_status_reason": "P1 unsatisfied (partial only: EV-CRSF-SELFTEST,EV-FIX-REGISTER,EV-KB-VERIFY-003,EV-VERCEL-CLI-LOCAL)",
 			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied (partial only: EV-CRSF-SELFTEST,EV-FIX-REGISTER,EV-KB-VERIFY-003)",
+			"security_status_reason": "P1 unsatisfied (partial only: EV-CRSF-SELFTEST,EV-FIX-REGISTER,EV-KB-VERIFY-003,EV-VERCEL-CLI-LOCAL)",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [

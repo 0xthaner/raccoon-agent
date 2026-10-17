@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2q",
+	"crsf_version": "1.0-draft-phase2r",
 	"profile_rules_digest": "501cd4020037fd18d98d762b31003adf33faa4fdde4d50e8ec0d721be2748d5b",
 	"controls": {
 		"CR-API-001": {

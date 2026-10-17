@@ -11,8 +11,11 @@
 	  NEUEN Familie (jedes grossgeschriebene AUDIT, Restaudit, META-AUDIT, AGENT-X-,
 	  HARD-n), die keine bekannte Familie abdeckt; solche Stellen muessen einzeln
 	  eingeordnet sein. Umgekehrt muss jede eingetragene Kennung noch vorkommen.
-	- Commits (nur mit vollstaendiger Git-Historie): jeder Commit, dessen Text ein
-	  Sicherheits-Stichwort traegt, muss eingeordnet sein.
+	- Commits: JEDER Commit ist eingeordnet, nicht nur Stichwort-Treffer -
+	  historische (bis 1.0-draft-phase2r) per Hash im Register, kuenftige per
+	  Trailer "Security-Fix: FIX-..." bzw. "Security-Fix: none - <Grund>". Eine
+	  kuenftige Sicherheitskorrektur ohne Kennung und ohne Stichwort faellt damit
+	  nicht mehr still durch: ihr Commit muss sich erklaeren (Phase 2R).
 	- Jede SECURITY_FIX/FRAMEWORK_FIX mit Status PROVEN braucht eine Invariante und
 	  mindestens eine Mutation, die als KILLED mit verhaltensbasierter Erkennung
 	  erwartet wird; jeder genannte Test ist ein erwartetes Scheitern genau dieser
@@ -105,7 +108,7 @@ export function discoverCommits(root) {
 	const raw = git('log', '--format=%H%x1f%s%x1f%b%x1e');
 	const commits = raw.split('\x1e').map((r) => r.trim()).filter(Boolean).map((r) => {
 		const [hash, subject, body = ''] = r.split('\x1f');
-		return { hash, subject, matched: COMMIT_KEYWORDS.test(subject) || COMMIT_KEYWORDS.test(body) };
+		return { hash, subject, body, matched: COMMIT_KEYWORDS.test(subject) || COMMIT_KEYWORDS.test(body) };
 	});
 	return { mode: shallow ? 'SHALLOW' : 'FULL', commits };
 }
@@ -196,7 +199,11 @@ export function validateRegister({ register, discovered, commits = { mode: 'UNAV
 		if (!fixes.some((f) => FIX_CLASSES.includes(f.classification) && (f.tags ?? []).includes(id))) err('FINDING_FIX_UNREGISTERED', id);
 	}
 
-	// 5. Commits (nur mit vollstaendiger Historie).
+	// 5. Commits. Jeder Commit ist eingeordnet - historische per Hash im Register
+	//    (vollstaendig, nicht nur Stichwort-Treffer), kuenftige per Trailer
+	//    "Security-Fix: FIX-..." oder "Security-Fix: none - <Grund>" (ein Commit
+	//    kann seinen eigenen Hash nicht eintragen). Ohne Git nichts behauptet;
+	//    im flachen Klon werden die vorhandenen Commits geprueft.
 	const registeredCommits = new Map((register.commits ?? []).map((c) => [c.commit, c]));
 	for (const c of register.commits ?? []) {
 		if (![...FIX_CLASSES, ...OTHER_CLASSES].includes(c.classification)) err('COMMIT_CLASS_UNKNOWN', `${c.commit}: ${c.classification}`);
@@ -204,16 +211,20 @@ export function validateRegister({ register, discovered, commits = { mode: 'UNAV
 		if (FIX_CLASSES.includes(c.classification) && !(c.fixes ?? []).length) err('COMMIT_FIX_WITHOUT_ENTRY', c.commit);
 		if (!FIX_CLASSES.includes(c.classification) && !c.reason) err('COMMIT_REASON_MISSING', c.commit);
 	}
-	if (commits.mode === 'FULL') {
-		const rules = (register.commit_rules ?? []).map((r) => ({ ...r, re: new RegExp(r.subject) }));
+	const trailers = [];
+	if (commits.mode === 'FULL' || commits.mode === 'SHALLOW') {
 		// Eingetragen als Kurz-Hash (>= 7 Zeichen); Vergleich als Praefix des vollen Hashes.
 		const isRegistered = (hash) => [...registeredCommits.keys()].some((short) => short.length >= 7 && hash.startsWith(short));
 		for (const c of commits.commits) {
-			if (!c.matched || isRegistered(c.hash)) continue;
-			if (rules.some((r) => r.re.test(c.subject))) continue;
-			err('UNCLASSIFIED_SECURITY_COMMIT', `${c.hash.slice(0, 7)} ${c.subject}`);
+			if (isRegistered(c.hash)) continue;
+			const declared = parseSecurityFixTrailer(c.body ?? '');
+			const at = `${c.hash.slice(0, 7)} ${c.subject}`;
+			if (!declared) { err(c.matched ? 'UNCLASSIFIED_SECURITY_COMMIT' : 'UNCLASSIFIED_COMMIT', `${at} (neither in the register nor carrying a Security-Fix: trailer)`); continue; }
+			if (declared.error) { err('SECURITY_FIX_TRAILER_INVALID', `${at}: ${declared.error}`); continue; }
+			for (const id of declared.fixes) if (!FIX_CLASSES.includes(byId.get(id)?.classification)) err('SECURITY_FIX_TRAILER_UNKNOWN_FIX', `${at}: ${id}`);
+			trailers.push({ commit: c.hash.slice(0, 7), ...declared });
 		}
-		for (const short of registeredCommits.keys()) if (!commits.commits.some((c) => c.hash.startsWith(short))) err('STALE_COMMIT', short);
+		if (commits.mode === 'FULL') for (const short of registeredCommits.keys()) if (!commits.commits.some((c) => c.hash.startsWith(short))) err('STALE_COMMIT', short);
 	}
 
 	const proven = fixes.filter((f) => FIX_CLASSES.includes(f.classification) && f.status === 'PROVEN').map((f) => f.id);
@@ -226,9 +237,27 @@ export function validateRegister({ register, discovered, commits = { mode: 'UNAV
 			complete: errors.length === 0 && missing.length === 0,
 			tags_discovered: discovered.tags.size,
 			loose_markers: discovered.loose.length,
-			commit_discovery: commits.mode
+			commit_discovery: commits.mode,
+			commit_trailers: trailers
 		}
 	};
+}
+
+/**
+ * "Security-Fix:"-Trailer eines Commit-Texts: `FIX-A, FIX-B` (registrierte
+ * Korrekturen) oder `none - <Grund>` (mindestens 10 Zeichen). Mehrere Trailer,
+ * gemischte oder leere Angaben sind ungueltig. null = kein Trailer.
+ */
+export function parseSecurityFixTrailer(body) {
+	const values = [...body.matchAll(/^Security-Fix:[ \t]*(.*)$/gim)].map((m) => m[1].trim());
+	if (!values.length) return null;
+	if (values.length > 1) return { error: 'more than one Security-Fix: trailer' };
+	const value = values[0];
+	const none = /^none\b\s*[-:]?\s*(.*)$/i.exec(value);
+	if (none) return none[1].trim().length >= 10 ? { fixes: [], none: none[1].trim() } : { error: '"none" needs a reason of at least 10 characters' };
+	const ids = value.split(/\s*,\s*/).filter(Boolean);
+	if (!ids.length || ids.some((id) => !/^FIX-[A-Z0-9-]+$/.test(id))) return { error: `expected FIX-... ids or "none - <reason>", got "${value}"` };
+	return { fixes: ids };
 }
 
 /** Alles in einem: Register laden und gegen das Repository unter `root` pruefen. */

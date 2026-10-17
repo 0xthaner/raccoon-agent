@@ -10338,12 +10338,12 @@
 					"property": "P1"
 				}
 			],
-			"description": "register guard weakened: unclassified security commits pass",
+			"description": "register guard weakened: unclassified security-keyword commits pass",
 			"edits": [
 				{
 					"file": "security/crsf/lib/fix-register.mjs",
-					"find": "\t\t\tif (rules.some((r) => r.re.test(c.subject))) continue;",
-					"replace": "\t\t\tcontinue;"
+					"find": "\t\t\tif (isRegistered(c.hash)) continue;",
+					"replace": "\t\t\tif (isRegistered(c.hash) || c.matched) continue;"
 				}
 			],
 			"tests": [
@@ -10354,8 +10354,8 @@
 			],
 			"expected_failures": [
 				{
-					"test": "^FIXREG fixture: with full history an unclassified security commit fails; the evidence-phase rule and other commits pass$",
-					"message": "Expected values to be strictly deep-equal: \\+ actual - expect"
+					"test": "^FIXREG fixture: every commit is classified - by hash in the register or by a Security-Fix: trailer; keyword-free commits too$",
+					"message": "Expected values to be strictly deep-equal"
 				}
 			],
 			"expected_result": "KILLED",
@@ -10497,6 +10497,248 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2RVIALL",
+			"origin": "CRSF Phase 2R (CR-VERIFY-003 remaining historical fixes)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"description": "cad24d4 reintroduced: .vercelignore no longer excludes .env and .env.* (pre-fix: no ignore rules)",
+			"edits": [
+				{
+					"file": ".vercelignore",
+					"find": ".env\n.env.*\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/vercel-cli-local.test.mjs"
+			],
+			"environment": [
+				"node",
+				"vercel_cli"
+			],
+			"expected_failures": [
+				{
+					"test": "^VERCEL-CLI cad24d4 the real CLI upload set excludes \\.env and \\.env\\.\\* \\(except \\.env\\.example\\)$",
+					"message": "the real Vercel CLI \\(.*\\) would upload secret files"
+				}
+			]
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2RVISTAR",
+			"origin": "CRSF Phase 2R (CR-VERIFY-003 remaining historical fixes)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"description": "cad24d4 weakened: .vercelignore keeps .env but no longer excludes .env.* (.env.production etc.)",
+			"edits": [
+				{
+					"file": ".vercelignore",
+					"find": ".env.*\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/vercel-cli-local.test.mjs"
+			],
+			"environment": [
+				"node",
+				"vercel_cli"
+			],
+			"expected_failures": [
+				{
+					"test": "^VERCEL-CLI cad24d4 the real CLI upload set excludes \\.env and \\.env\\.\\* \\(except \\.env\\.example\\)$",
+					"message": "the real Vercel CLI \\(.*\\) would upload secret files"
+				}
+			]
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2RNCNONE",
+			"origin": "CRSF Phase 2R (CR-VERIFY-003 remaining historical fixes)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"description": "b647281 reintroduced: vercel.json has no installCommand (Vercel falls back to its default npm install)",
+			"edits": [
+				{
+					"file": "vercel.json",
+					"find": "  \"installCommand\": \"npm ci --ignore-scripts\",\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/vercel-cli-local.test.mjs"
+			],
+			"environment": [
+				"node",
+				"vercel_cli"
+			],
+			"expected_failures": [
+				{
+					"test": "^VERCEL-CLI b647281 vercel build runs the installCommand of vercel\\.json and it refuses a lockfile that does not match$",
+					"message": "the real Vercel build \\(.*\\) installed despite a lockfile that does not match"
+				}
+			]
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2RNCINSTALL",
+			"origin": "CRSF Phase 2R (CR-VERIFY-003 remaining historical fixes)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"description": "b647281 weakened: installCommand npm install instead of npm ci",
+			"edits": [
+				{
+					"file": "vercel.json",
+					"find": "\"installCommand\": \"npm ci --ignore-scripts\",",
+					"replace": "\"installCommand\": \"npm install --ignore-scripts\","
+				}
+			],
+			"tests": [
+				"test/vercel-cli-local.test.mjs"
+			],
+			"environment": [
+				"node",
+				"vercel_cli"
+			],
+			"expected_failures": [
+				{
+					"test": "^VERCEL-CLI b647281 vercel build runs the installCommand of vercel\\.json and it refuses a lockfile that does not match$",
+					"message": "the real Vercel build \\(.*\\) installed despite a lockfile that does not match"
+				}
+			]
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2RGTRAILER",
+			"origin": "CRSF Phase 2R (CR-VERIFY-003 remaining historical fixes)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"description": "register guard weakened: a commit that is neither registered nor carries a Security-Fix: trailer passes",
+			"edits": [
+				{
+					"file": "security/crsf/lib/fix-register.mjs",
+					"find": "\t\t\tif (!declared) { err(c.matched ? 'UNCLASSIFIED_SECURITY_COMMIT' : 'UNCLASSIFIED_COMMIT',",
+					"replace": "\t\t\tif (!declared) { continue; err(c.matched ? 'UNCLASSIFIED_SECURITY_COMMIT' : 'UNCLASSIFIED_COMMIT',"
+				}
+			],
+			"tests": [
+				"test/fix-register.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^FIXREG fixture: every commit is classified - by hash in the register or by a Security-Fix: trailer; keyword-free commits too$",
+					"message": "Expected values to be strictly deep-equal"
+				}
+			]
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2RGTRAILERFIX",
+			"origin": "CRSF Phase 2R (CR-VERIFY-003 remaining historical fixes)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"description": "register guard weakened: a Security-Fix: trailer may name a fix that is not registered",
+			"edits": [
+				{
+					"file": "security/crsf/lib/fix-register.mjs",
+					"find": "\t\t\tfor (const id of declared.fixes) if (!FIX_CLASSES.includes(byId.get(id)?.classification)) err(",
+					"replace": "\t\t\tfor (const id of declared.fixes) if (false) err("
+				}
+			],
+			"tests": [
+				"test/fix-register.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^FIXREG fixture: every commit is classified - by hash in the register or by a Security-Fix: trailer; keyword-free commits too$",
+					"message": "Expected values to be strictly deep-equal"
+				}
+			]
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2RGNONEREASON",
+			"origin": "CRSF Phase 2R (CR-VERIFY-003 remaining historical fixes)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"description": "register guard weakened: \"Security-Fix: none\" needs no reason",
+			"edits": [
+				{
+					"file": "security/crsf/lib/fix-register.mjs",
+					"find": "none[1].trim().length >= 10 ?",
+					"replace": "none[1].trim().length >= 0 ?"
+				}
+			],
+			"tests": [
+				"test/fix-register.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^FIXREG Security-Fix: trailer parsing is strict$",
+					"message": "Security-Fix: none"
+				}
+			]
 		}
 	]
 }
