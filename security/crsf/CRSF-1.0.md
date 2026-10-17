@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2k
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2l
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -354,10 +354,13 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-PROBE-TG-COVERS | behavioral | E2 | probe | FULL | yes | regression proof (finding F-2I-1, fixed in Phase 2J): real src/bot.mjs handleUpdate with an offline recording fetch; for every Telegram cover entry point and 1 and 10 linked wallets, a denied chat or global cover budget yields 0 cover lookups, and an admitted request makes one lookup per wallet after both budgets were charged once per wallet. History: before the fix (Phase 2J) it reproduced the defect - 1 -> 1 and 10 -> 10 lookups with no cover budget before them. |
 | EV-TG-COVER-BUDGET | behavioral | E3 | node-test | FULL | yes | real src/bot.mjs handleUpdate + real db/covers/cover-chain up to an offline wire: for the /covers command, the show_covers button and the AI intents show_covers and show_next_expiry, with 1 and 10 linked wallets: chat budget denied -> 0 cover lookups (global not charged); global budget denied -> 0 lookups; budget exhausted mid-sequence (global after 3, chat after 5) -> 0 lookups, stop at the first refusal; admitted -> exactly one lookup per wallet, both budgets charged once per wallet before the first lookup (30/600 s per chat, 300/600 s global = the dashboard cover budget key); AI route keeps its AI budget first; no wallet -> nothing charged; limiter failure fails closed |
 | EV-KB-TG-COVER-BUDGET | known-bad | E4 | mutation | FULL | yes | bypassing the cover budget on the command, the callback button or either AI intent, removing the chat or the global budget, checking the budget after the lookups, or charging only the first wallet is each detected by the intended test and message |
+| EV-PROBE-LINK-READ | behavioral | E2 | probe | PARTIAL | yes | regression proof (finding F-2K-1, fixed in Phase 2L): real api/link.mjs with an offline recording fetch; IP, per-code and global denial each yield 0 getChat; 20 requests from 20 IPs with one valid code make at most 10 getChat calls (10 refused); an admitted request answers 200 with the Telegram target after exactly one getChat, behind all three limits. History: in Phase 2K it reproduced the defect - 20 IPs x one code -> 20 getChat with only the per-IP limit before them. |
+| EV-LINK-READ-BUDGET | behavioral | E3 | node-test | PARTIAL | yes | real api/link.mjs + src/http-security.mjs + src/db.mjs + src/linking.mjs up to an offline wire, limiter counting per key in a fixed window: IP denied -> no pending-link read, no getChat; per-code denied -> no pending-link read, no getChat; global denied -> no getChat (with and without wallet); admitted -> unchanged 200 responses (target; signing message with wallet) after exactly one getChat, order wallet-link-read -> wallet-link-read-code -> pending link -> wallet-link-read-global -> getChat; invalid code -> no limiter beyond IP, no DB, no getChat; expired / used / non-private / unknown link and invalid wallet -> no getChat, global not charged; 20 IPs x one code -> 10 getChat (per-code bound); 70 codes x 12 IPs -> 600 getChat (global bound); limiter failure -> no getChat; keys: HMAC(code) and constant "all", not shared with /api/link/verify |
+| EV-KB-LINK-READ-BUDGET | known-bad | E4 | mutation | PARTIAL | yes | removing the per-code or the global limit, moving getChat before both limits, keying the per-code limit by IP, or applying the global limit only after getChat is each detected by the intended test and message |
 
 ## 6. Mutation cases
 
-164 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+169 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -525,6 +528,11 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-RESOURCE-007-P1-F2I1D2 | CR-RESOURCE-007.P1 | behavioral | KILLED |
 | MUT-CR-RESOURCE-007-P1-F2I1E | CR-RESOURCE-007.P1 | behavioral | KILLED |
 | MUT-CR-RESOURCE-007-P1-F2I1F | CR-RESOURCE-007.P1 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P5-F2K1A | CR-RESOURCE-001.P5 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P5-F2K1B | CR-RESOURCE-001.P5 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P5-F2K1C | CR-RESOURCE-001.P5 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P5-F2K1D | CR-RESOURCE-001.P5 | behavioral | KILLED |
+| MUT-CR-RESOURCE-001-P5-F2K1E | CR-RESOURCE-001.P5 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -770,4 +778,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2i** — Phase 2I: F-2H-1 fixed in api/position-attributions.mjs (global cover budget before every cover lookup), proven behaviourally and by four KILLED mutations; the VIOLATION probe is inverted to a regression proof. Same-root-cause search found a separate application finding F-2I-1 (Telegram cover lookups without any limit), recorded and not fixed (stop).
 - **1.0-draft-phase2j** — Phase 2J: findings ledger (F-2J-1) - every open application finding must map to a control property or fail the release; F-2I-1 mapped to the new control CR-RESOURCE-007 and fixed.
 - **1.0-draft-phase2k** — Phase 2K: application finding F-2K-1 recorded (UNMAPPED, release FAIL) during the CR-RESOURCE-001 path inventory - stop condition B; no evidence closure attempted.
+- **1.0-draft-phase2l** — Phase 2L: F-2K-1 mapped to CR-RESOURCE-001 P5 (PROPERTY_ADDED: link read limits before the Telegram getChat call) and fixed in api/link.mjs.
 

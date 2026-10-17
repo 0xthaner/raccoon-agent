@@ -132,7 +132,7 @@ function linkWorld() {
 		isTelegramLinkCode: linking.isTelegramLinkCode, isTelegramLinkRow: linking.isTelegramLinkRow,
 		signingMessage: linking.signingMessage, telegramTarget
 	};
-	const get = loadHandler(read('api/link.mjs'), { ...common, enforceRateLimit: async () => true, queryParams: requestQuery.queryParams, singleQueryValue: requestQuery.singleQueryValue });
+	const get = loadHandler(read('api/link.mjs'), { ...common, enforceRateLimit: async () => true, enforceRateLimitFor: async () => true, queryParams: requestQuery.queryParams, singleQueryValue: requestQuery.singleQueryValue });
 	const verify = loadHandler(read('api/link/verify.mjs'), {
 		...common, requireSameOrigin: () => true, requireJson: () => true, enforceRateLimit: async () => true, enforceRateLimitFor: async () => true,
 		linkSiweExpectation: linking.linkSiweExpectation,
@@ -201,7 +201,7 @@ test('E-L2: without a confirmed Telegram target there is no text to sign and not
 	const consumed = [];
 	for (const telegramTarget of [async () => null, (chatId) => linking.telegramTarget(chatId, { token: 'x', fetchImpl: async () => { throw new Error('telegram down'); } })]) {
 		const common = { isAddress: () => true, ANMELDUNG_PAUSIERT: false, pauseAntwort: () => {}, getPendingLink: async (c) => pending[c] ?? null, isTelegramLinkCode: linking.isTelegramLinkCode, isTelegramLinkRow: linking.isTelegramLinkRow, signingMessage: linking.signingMessage, telegramTarget };
-		const get = loadHandler(read('api/link.mjs'), { ...common, enforceRateLimit: async () => true, queryParams: requestQuery.queryParams, singleQueryValue: requestQuery.singleQueryValue });
+		const get = loadHandler(read('api/link.mjs'), { ...common, enforceRateLimit: async () => true, enforceRateLimitFor: async () => true, queryParams: requestQuery.queryParams, singleQueryValue: requestQuery.singleQueryValue });
 		const r = res();
 		await get({ method: 'GET', url: `/api/link?code=${CODE_A}&wallet=${signer.address}`, headers: {} }, r);
 		assert.equal(r.statusCode, 503);

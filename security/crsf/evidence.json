@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2k",
+	"crsf_version": "1.0-draft-phase2l",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -6292,6 +6292,148 @@
 			],
 			"coverage": "FULL",
 			"reason_for_partial": null
+		},
+		{
+			"id": "EV-PROBE-LINK-READ",
+			"type": "behavioral",
+			"level": "E2",
+			"source": "repository",
+			"artifact": "security/crsf/probes/link-read-getchat-probe.mjs",
+			"test_or_proof": "node security/crsf/probes/link-read-getchat-probe.mjs",
+			"property_proven": "regression proof (finding F-2K-1, fixed in Phase 2L): real api/link.mjs with an offline recording fetch; IP, per-code and global denial each yield 0 getChat; 20 requests from 20 IPs with one valid code make at most 10 getChat calls (10 refused); an admitted request answers 200 with the Telegram target after exactly one getChat, behind all three limits. History: in Phase 2K it reproduced the defect - 20 IPs x one code -> 20 getChat with only the per-IP limit before them.",
+			"property_not_proven": "real Telegram Bot API limits",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P5"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "Phase 2K/2L: reproduced F-2K-1 (VIOLATION), inverted to a regression proof after the fix"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "probe",
+				"script": "security/crsf/probes/link-read-getchat-probe.mjs",
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 60000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			},
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P5]: Phase 2K/2L: reproduced F-2K-1 (VIOLATION), inverted to a regression proof after the fix"
+		},
+		{
+			"id": "EV-LINK-READ-BUDGET",
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/link-read-budget.test.mjs",
+			"test_or_proof": "test/link-read-budget.test.mjs",
+			"property_proven": "real api/link.mjs + src/http-security.mjs + src/db.mjs + src/linking.mjs up to an offline wire, limiter counting per key in a fixed window: IP denied -> no pending-link read, no getChat; per-code denied -> no pending-link read, no getChat; global denied -> no getChat (with and without wallet); admitted -> unchanged 200 responses (target; signing message with wallet) after exactly one getChat, order wallet-link-read -> wallet-link-read-code -> pending link -> wallet-link-read-global -> getChat; invalid code -> no limiter beyond IP, no DB, no getChat; expired / used / non-private / unknown link and invalid wallet -> no getChat, global not charged; 20 IPs x one code -> 10 getChat (per-code bound); 70 codes x 12 IPs -> 600 getChat (global bound); limiter failure -> no getChat; keys: HMAC(code) and constant \"all\", not shared with /api/link/verify",
+			"property_not_proven": "real Telegram Bot API limits; limiter store atomicity (CR-RESOURCE-002); fixed-window edges (a code living across two 600 s buckets can be read up to 2 x 10 times, the global budget allows up to 2 x 600 in any 600 s span)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P5]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P5"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/link-read-budget.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-LINK-READ-BUDGET",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 5 case(s)",
+			"property_proven": "removing the per-code or the global limit, moving getChat before both limits, keying the per-code limit by IP, or applying the global limit only after getChat is each detected by the intended test and message",
+			"property_not_proven": "real Telegram Bot API limits; limiter store atomicity (CR-RESOURCE-002); fixed-window edges (a code living across two 600 s buckets can be read up to 2 x 10 times, the global budget allows up to 2 x 600 in any 600 s span)",
+			"covers": [
+				{
+					"control": "CR-RESOURCE-001",
+					"properties": [
+						"P5"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-RESOURCE-001-P5-F2K1A, MUT-CR-RESOURCE-001-P5-F2K1B, MUT-CR-RESOURCE-001-P5-F2K1C, MUT-CR-RESOURCE-001-P5-F2K1D, MUT-CR-RESOURCE-001-P5-F2K1E"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-RESOURCE-001-P5-F2K1A",
+					"MUT-CR-RESOURCE-001-P5-F2K1B",
+					"MUT-CR-RESOURCE-001-P5-F2K1C",
+					"MUT-CR-RESOURCE-001-P5-F2K1D",
+					"MUT-CR-RESOURCE-001-P5-F2K1E"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-RESOURCE-001"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-RESOURCE-001[P5]: mutation cases: MUT-CR-RESOURCE-001-P5-F2K1A, MUT-CR-RESOURCE-001-P5-F2K1B, MUT-CR-RESOURCE-001-P5-F2K1C, MUT-CR-RESOURCE-001-P5-F2K1D, MUT-CR-RESOURCE-001-P5-F2K1E"
 		}
 	]
 }

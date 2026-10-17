@@ -108,7 +108,7 @@ test('/api/link: exact code validation, duplicates count as missing, encoded val
 	const handler = loadHandler('api/link.mjs', {
 		isAddress: (v) => /^0x[0-9a-fA-F]{40}$/.test(v), queryParams, singleQueryValue,
 		getPendingLink: async (code) => { lookups.push(code); return code === CODE ? { chat_id: '123', nonce: 'ab'.repeat(16), expires_at: Date.now() + 60_000, used_at: null } : null; },
-		signingMessage: (p) => `msg:${p.wallet}`, enforceRateLimit: async () => true, ANMELDUNG_PAUSIERT: false, pauseAntwort: () => {},
+		signingMessage: (p) => `msg:${p.wallet}`, enforceRateLimit: async () => true, enforceRateLimitFor: async () => true, ANMELDUNG_PAUSIERT: false, pauseAntwort: () => {},
 		isTelegramLinkCode: linking.isTelegramLinkCode, isTelegramLinkRow: linking.isTelegramLinkRow,
 		telegramTarget: async (chatId) => linking.telegramTargetOf({ id: Number(chatId), type: 'private', username: 'raccoon_user' }, chatId),
 		process: { env: {} }, fetch: async () => { throw new Error('offline'); }

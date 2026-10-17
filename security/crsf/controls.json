@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2k",
+	"crsf_version": "1.0-draft-phase2l",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -3783,6 +3783,11 @@
 					"id": "P4",
 					"kind": "REQUIREMENT",
 					"text": "positions/attribution lookups limited before provider calls"
+				},
+				{
+					"id": "P5",
+					"kind": "REQUIREMENT",
+					"text": "link read (GET /api/link) limits per IP, per link code and globally before the Telegram getChat provider call"
 				}
 			],
 			"release_class": "RELEASE_BLOCKING",
@@ -3799,11 +3804,14 @@
 				"EV-ERC1271",
 				"EV-KB-ATTRIB-COVER-BUDGET",
 				"EV-KB-LEGACY-ORDER",
+				"EV-KB-LINK-READ-BUDGET",
 				"EV-LEGACY-ORDER",
+				"EV-LINK-READ-BUDGET",
 				"EV-M1",
 				"EV-M2",
 				"EV-PROBE-ATTRIB-COVERS",
 				"EV-PROBE-LEGACY-RPC",
+				"EV-PROBE-LINK-READ",
 				"EV-RL"
 			],
 			"property_coverage": {
@@ -3842,6 +3850,16 @@
 						"EV-KB-ATTRIB-COVER-BUDGET"
 					],
 					"insufficient": []
+				},
+				"P5": {
+					"satisfied_by": [
+						"EV-LINK-READ-BUDGET",
+						"EV-KB-LINK-READ-BUDGET"
+					],
+					"partial_only": [],
+					"insufficient": [
+						"EV-PROBE-LINK-READ(E2)"
+					]
 				}
 			},
 			"conformance_status": "NOT_DEMONSTRATED",

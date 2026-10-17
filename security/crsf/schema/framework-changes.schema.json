@@ -251,6 +251,22 @@
 										"budget_charging_model": {
 											"type": "string",
 											"minLength": 20
+										},
+										"mapping_rationale": {
+											"type": "string",
+											"minLength": 20
+										},
+										"attack_model": {
+											"type": "string",
+											"minLength": 20
+										},
+										"per_code_budget": {
+											"type": "string",
+											"minLength": 20
+										},
+										"rotating_ip_bound": {
+											"type": "string",
+											"minLength": 20
 										}
 									}
 								},

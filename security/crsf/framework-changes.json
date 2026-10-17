@@ -1250,6 +1250,161 @@
 					"reason": "Stop condition B (real application finding F-2K-1) reached while inventorying CR-RESOURCE-001 paths, before any new evidence was written. Not attempted: CR-RESOURCE-001 P1-P4 behavioural evidence, CR-INPUT-004, CR-BROWSER-004, CR-VERIFY-003, CR-VERIFY-004."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2l",
+			"summary": "Phase 2L: F-2K-1 mapped to CR-RESOURCE-001 P5 (PROPERTY_ADDED: link read limits before the Telegram getChat call) and fixed in api/link.mjs.",
+			"changes": [
+				{
+					"id": "CR-RESOURCE-001",
+					"kind": "PROPERTY_ADDED",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "FAIL (while F-2K-1 is open)",
+					"minimum_level": "E3",
+					"before": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "dashboard login/action limits before verification"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "link verify limits before verification"
+							},
+							{
+								"id": "P3",
+								"kind": "REQUIREMENT",
+								"text": "challenge issuance limits before getCode"
+							},
+							{
+								"id": "P4",
+								"kind": "REQUIREMENT",
+								"text": "positions/attribution lookups limited before provider calls"
+							}
+						]
+					},
+					"after": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "dashboard login/action limits before verification"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "link verify limits before verification"
+							},
+							{
+								"id": "P3",
+								"kind": "REQUIREMENT",
+								"text": "challenge issuance limits before getCode"
+							},
+							{
+								"id": "P4",
+								"kind": "REQUIREMENT",
+								"text": "positions/attribution lookups limited before provider calls"
+							},
+							{
+								"id": "P5",
+								"kind": "REQUIREMENT",
+								"text": "link read (GET /api/link) limits per IP, per link code and globally before the Telegram getChat provider call"
+							}
+						]
+					},
+					"reason": "P5 added for finding F-2K-1. CR-RESOURCE-001 meaning A (all costly api/* provider work), not B (only the P1-P4 families): its coverraccoon_requirement reads \"Every endpoint triggering RPC/provider/LLM work applies per-IP, per-key and global limits before that work\", applies_to is api/*, expected_property is \"limit hit -> 429 before external call\", and the external requirements (V2.4.1 excessive calls / quota exhaustion, API4:2023, V15.2.2) are not path-specific. P1-P4 were the endpoint families enumerated when the control was derived (Phase 2A); they are a decomposition of that requirement, not its boundary. GET /api/link is an api/* HTTP endpoint triggering Telegram Bot API provider work (getChat with the bot token), with IP-addressable callers and a natural per-key (the link code) - exactly the shape the requirement names. P5 therefore adds no new obligation to the derivation (title, requirement, sources, applies_to, threat and threshold unchanged); it closes a gap in the enumeration. Contrast Phase 2J (CR-RESOURCE-007): Telegram bot updates are not api/* endpoints with per-IP callers, so they could not be expressed under this requirement and got a new control. A new narrow control here would duplicate CR-RESOURCE-001's requirement for one more path.",
+					"rationale": "The control requirement already demands per-IP, per-key and global limits before provider work on every api/* endpoint; P1-P4 did not enumerate the link read endpoint, so a defect there could not show in the computed status. P5 makes the existing requirement complete for that endpoint; derivation and threshold are unchanged.",
+					"why_not_weakening": "Only a property is added (a stricter decomposition of the unchanged requirement); no property, threshold, release class, applicability or derivation field is removed or relaxed. CR-RESOURCE-001 stays RELEASE_BLOCKING at E3 and becomes FAIL while F-2K-1 is open."
+				},
+				{
+					"id": "F-2K-1",
+					"kind": "FINDING_MAPPED",
+					"reason": "F-2K-1 mapped from UNMAPPED to CR-RESOURCE-001 P5; the VIOLATION probe EV-PROBE-LINK-READ makes it visible as a FAIL of that control.",
+					"mapping": {
+						"control": "CR-RESOURCE-001",
+						"property": "P5",
+						"rationale": "F-2K-1 is exactly the absence of the per-key (link code) and global limits that CR-RESOURCE-001 requires before provider work on an api/* endpoint; P5 names that obligation for GET /api/link. CR-RESOURCE-001 meaning A (all costly api/* provider work), not B (only the P1-P4 families): its coverraccoon_requirement reads \"Every endpoint triggering RPC/provider/LLM work applies per-IP, per-key and global limits before that work\", applies_to is api/*, expected_property is \"limit hit -> 429 before external call\", and the external requirements (V2.4.1 excessive calls / quota exhaustion, API4:"
+					}
+				},
+				{
+					"id": "CR-RESOURCE-001",
+					"kind": "STATUS_CHANGE",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "FAIL",
+					"minimum_level": "E3",
+					"evidence_added": [
+						"security/crsf/probes/link-read-getchat-probe.mjs (EV-PROBE-LINK-READ, VIOLATION P5)"
+					],
+					"why_sufficient": "Reproducible observation of a P5 violation on the real handler and guards; FAIL until fixed.",
+					"remains_unproven": "n/a (finding); P1-P4 unchanged (partial).",
+					"reason": "F-2K-1 mapped (Phase 2L), not yet fixed"
+				},
+				{
+					"id": "F-2K-1",
+					"kind": "FINDING_FIXED",
+					"reason": "Application finding F-2K-1 (Low, Phase 2K) mapped to CR-RESOURCE-001 P5 and fixed in api/link.mjs; proven behaviourally (denials, admitted path, invalid/expired links, rotating-IP bounds) and by five KILLED mutations; the probe is inverted to a regression proof.",
+					"finding": {
+						"control": "CR-RESOURCE-001",
+						"property": "P5",
+						"status_before": "OPEN",
+						"status_after": "FIXED",
+						"mapping_rationale": "CR-RESOURCE-001 requires \"every endpoint triggering RPC/provider/LLM work applies per-IP, per-key and global limits before that work\" (applies_to api/*); P1-P4 enumerated only four endpoint families. GET /api/link is an api/* endpoint triggering Telegram Bot API work with IP-addressable callers and a per-key (the link code), so P5 completes the enumeration of the unchanged requirement (PROPERTY_ADDED, this version) instead of a new control duplicating it.",
+						"affected_endpoints": [
+							"GET /api/link?code=... (with and without &wallet=)"
+						],
+						"attack_model": "Any Telegram user can obtain valid link codes for their own chat (bounded by link-code-chat 10/600 s and link-code-global 300/600 s); each code is valid for 10 minutes. With one code and rotating IPs (the only gate was per IP, 30/600 s), unbounded getChat requests ran on the bot token; with many codes, the aggregate was unbounded too. Telegram throttles per bot, so this could slow or drop bot replies, link confirmations and expiry alerts (assumption: Telegram per-bot limits not verified).",
+						"root_cause": "api/link.mjs called getPendingLink and then telegramTarget (Telegram getChat) after only the per-IP limit wallet-link-read. Unlike the sibling POST /api/link/verify (AGENT-SEC-A5 per-code, META-AUDIT M-2 global), the read path never received a per-key or a global gate, and no CR-RESOURCE-001 property named it, so its absence could not show in the computed status.",
+						"code_change": "api/link.mjs: syntax check of the code before any limiter beyond IP; then wallet-link-read-code (HMAC of the code, 10/600 s); pending-link read and validity; wallet syntax check moved before getChat (same 400 response); then wallet-link-read-global (\"all\", 2 x LINK_CODE_GLOBAL_LIMIT.max = 600/600 s); only then telegramTarget/getChat. Limits exported as LINK_READ_CODE_LIMIT and LINK_READ_GLOBAL_LIMIT.",
+						"before_behavior": "Probe (Phase 2K): 20 requests from 20 IPs with one valid code -> 20 getChat calls with every non-IP scope denied; only wallet-link-read ran before getChat.",
+						"after_behavior": "IP, per-code or global refusal -> 0 getChat (429); invalid code, expired/used/unknown link or invalid wallet -> 0 getChat, global not charged; admitted -> unchanged 200 responses after exactly one getChat; 20 IPs x one code -> 10 getChat; 70 codes x 12 IPs -> 600 getChat.",
+						"order_before": {
+							"link_read": "wallet-link-read (IP) -> getPendingLink -> validity -> telegramTarget (getChat) -> wallet syntax -> response"
+						},
+						"order_after": {
+							"link_read": "wallet-link-read (IP) -> code syntax -> wallet-link-read-code -> getPendingLink -> validity -> wallet syntax -> wallet-link-read-global -> telegramTarget (getChat) -> response"
+						},
+						"per_code_budget": "wallet-link-read-code, key = HMAC of the link code, 10 per 600 s. Own key, not wallet-link-code: that one (5/600 s) is the verification-attempt budget of POST /api/link/verify (AGENT-SEC-A5); sharing it would let page loads and reloads use up a user's signing attempts, and let anyone holding a code exhaust its verification via cheap reads. Size: a link flow reads once on page load and once per signing attempt (verify allows 5 per code), so 10 leaves room for reloads.",
+						"global_budget_used": "wallet-link-read-global, key \"all\", 600 per 600 s = two reads per link code the bot can issue in that window (LINK_CODE_GLOBAL_LIMIT 300/600 s). Own key, not wallet-link-verify-global (200/600 s): that budget is sized for a verification (getChat plus roughly ten dual-RPC ERC-1271 calls); counting 1-call reads against it would cut legitimate link capacity below code issuance (300 codes need >= 600 reads + 300 verifies) and let cheap reads starve verification globally. No existing global Telegram-provider budget existed. Charged only for valid, open links, so invented codes cannot drain it.",
+						"rotating_ip_bound": "Per code: at most 10 getChat per fixed 600 s bucket (a code lives 600 s, so at most 20 over its lifetime across a bucket edge), regardless of the number of IPs. Overall: at most 600 getChat per bucket for all link reads. Before: unbounded (20 of 20 in the probe).",
+						"application_files_changed": [
+							"api/link.mjs"
+						],
+						"regression_tests": [
+							"test/link-read-budget.test.mjs (LINK-READ-BUDGET: IP/per-code/global denied, admitted, keys, invalid code, expired/used/unknown link, invalid wallet, rotating IPs one code and many codes, fail closed)",
+							"security/crsf/probes/link-read-getchat-probe.mjs (regression proof)"
+						],
+						"mutation_ids": [
+							"MUT-CR-RESOURCE-001-P5-F2K1A",
+							"MUT-CR-RESOURCE-001-P5-F2K1B",
+							"MUT-CR-RESOURCE-001-P5-F2K1C",
+							"MUT-CR-RESOURCE-001-P5-F2K1D",
+							"MUT-CR-RESOURCE-001-P5-F2K1E"
+						],
+						"mutation_result": "KILLED",
+						"call_sites_proven": [
+							"api/link.mjs handler -> telegramTarget (the only getChat call on GET /api/link)"
+						],
+						"remaining_assumptions": "Limiter store and Telegram are offline stubs (limiter atomicity is CR-RESOURCE-002). Same-root-cause search over every Telegram Bot API call: api/link/verify.mjs getChat (gated IP -> code -> global, P2) and its sendMessage notices (only after a valid signature); api/dashboard.mjs telegram-disconnect sendMessage (authenticated session, per-IP limit, fresh authority for contract wallets; one message per removed chat, rows deleted so not repeatable without relinking); src/security-events.mjs operator alerts (threshold + cooldown per rule); api/alerts.mjs (cron secret, run budgets, CR-RESOURCE-003); src/bot.mjs replies and answerCallbackQuery (one per inbound Telegram update; cover lookups budgeted by CR-RESOURCE-007). src/web.mjs repeats the link read/verify without limits, but it is the local polling-mode server: started only when VERCEL is unset and bound to 127.0.0.1, not reachable in the deployed system. No other distinct unbudgeted path."
+					}
+				},
+				{
+					"id": "CR-RESOURCE-001",
+					"kind": "STATUS_CHANGE",
+					"old_status": "FAIL",
+					"new_status": "MISSING_EVIDENCE",
+					"minimum_level": "E3",
+					"evidence_added": [
+						"test/link-read-budget.test.mjs (EV-LINK-READ-BUDGET, behavioural E3, P5 FULL)",
+						"security/mutation/cases.json (EV-KB-LINK-READ-BUDGET, 5 KILLED)",
+						"EV-PROBE-LINK-READ inverted to SUPPORTS"
+					],
+					"why_sufficient": "P5 is satisfied behaviourally and by known-bad mutations; the status is recomputed by the engine. P1-P4 remain partial, so the control returns to MISSING_EVIDENCE, not PASS.",
+					"remains_unproven": "P1 login / on-chain approval / fresh-authority ordering; P2; P3; P4 for GET /api/positions.",
+					"reason": "F-2K-1 fixed (Phase 2L)"
+				}
+			]
 		}
 	]
 }

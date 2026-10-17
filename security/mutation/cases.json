@@ -6140,6 +6140,203 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P5-F2K1A",
+			"origin": "new (Phase 2L)",
+			"evidence_id": "EV-KB-LINK-READ-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P5"
+				}
+			],
+			"description": "per-code limit removed (getChat after the per-IP and global limits only)",
+			"edits": [
+				{
+					"file": "api/link.mjs",
+					"find": "\tif (!await enforceRateLimitFor(response, 'wallet-link-read-code', code, LINK_READ_CODE_LIMIT.max, LINK_READ_CODE_LIMIT.windowSeconds)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/link-read-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^LINK-READ-BUDGET B per-code denied",
+					"message": "^getChat [1-9]\\d* with the per-code limit denied"
+				},
+				{
+					"test": "^LINK-READ-BUDGET rotating IPs, one code",
+					"message": "^rotating IPs: (1[1-9]|20) getChat calls for one code"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P5-F2K1B",
+			"origin": "new (Phase 2L)",
+			"evidence_id": "EV-KB-LINK-READ-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P5"
+				}
+			],
+			"description": "global limit removed (getChat after the per-IP and per-code limits only)",
+			"edits": [
+				{
+					"file": "api/link.mjs",
+					"find": "\tif (!await enforceRateLimitFor(response, 'wallet-link-read-global', 'all', LINK_READ_GLOBAL_LIMIT.max, LINK_READ_GLOBAL_LIMIT.windowSeconds)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/link-read-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^LINK-READ-BUDGET C global denied",
+					"message": "^getChat [1-9]\\d* with the global limit denied"
+				},
+				{
+					"test": "^LINK-READ-BUDGET rotating IPs, many codes",
+					"message": "^rotating IPs over 70 codes: ([6-9]\\d[1-9]|[6-9]\\d{2}[1-9]|6[1-9]\\d|[7-9]\\d\\d) getChat calls"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P5-F2K1C",
+			"origin": "new (Phase 2L)",
+			"evidence_id": "EV-KB-LINK-READ-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P5"
+				}
+			],
+			"description": "getChat moved before the per-code and global limits",
+			"edits": [
+				{
+					"file": "api/link.mjs",
+					"find": "\tif (!await enforceRateLimitFor(response, 'wallet-link-read-code', code, LINK_READ_CODE_LIMIT.max, LINK_READ_CODE_LIMIT.windowSeconds)) return;\n",
+					"replace": ""
+				},
+				{
+					"file": "api/link.mjs",
+					"find": "\tif (!await enforceRateLimitFor(response, 'wallet-link-read-global', 'all', LINK_READ_GLOBAL_LIMIT.max, LINK_READ_GLOBAL_LIMIT.windowSeconds)) return;\n",
+					"replace": ""
+				},
+				{
+					"file": "api/link.mjs",
+					"find": "\tconst target = await telegramTarget(pending.chat_id);\n",
+					"replace": "\tconst target = await telegramTarget(pending.chat_id);\n\tif (!await enforceRateLimitFor(response, 'wallet-link-read-code', code, LINK_READ_CODE_LIMIT.max, LINK_READ_CODE_LIMIT.windowSeconds)) return;\n\tif (!await enforceRateLimitFor(response, 'wallet-link-read-global', 'all', LINK_READ_GLOBAL_LIMIT.max, LINK_READ_GLOBAL_LIMIT.windowSeconds)) return;\n"
+				}
+			],
+			"tests": [
+				"test/link-read-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^LINK-READ-BUDGET B per-code denied",
+					"message": "^getChat [1-9]\\d* with the per-code limit denied"
+				},
+				{
+					"test": "^LINK-READ-BUDGET C global denied",
+					"message": "^getChat [1-9]\\d* with the global limit denied"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P5-F2K1D",
+			"origin": "new (Phase 2L)",
+			"evidence_id": "EV-KB-LINK-READ-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P5"
+				}
+			],
+			"description": "per-code limiter keyed by the client IP instead of the link code",
+			"edits": [
+				{
+					"file": "api/link.mjs",
+					"find": "'wallet-link-read-code', code,",
+					"replace": "'wallet-link-read-code', String(request.headers['x-forwarded-for'] ?? ''),"
+				}
+			],
+			"tests": [
+				"test/link-read-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^LINK-READ-BUDGET rotating IPs, one code",
+					"message": "^rotating IPs: (1[1-9]|20) getChat calls for one code"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-RESOURCE-001-P5-F2K1E",
+			"origin": "new (Phase 2L)",
+			"evidence_id": "EV-KB-LINK-READ-BUDGET",
+			"targets": [
+				{
+					"control": "CR-RESOURCE-001",
+					"property": "P5"
+				}
+			],
+			"description": "global limit applied only after getChat",
+			"edits": [
+				{
+					"file": "api/link.mjs",
+					"find": "\tif (!await enforceRateLimitFor(response, 'wallet-link-read-global', 'all', LINK_READ_GLOBAL_LIMIT.max, LINK_READ_GLOBAL_LIMIT.windowSeconds)) return;\n",
+					"replace": ""
+				},
+				{
+					"file": "api/link.mjs",
+					"find": "\tconst target = await telegramTarget(pending.chat_id);\n",
+					"replace": "\tconst target = await telegramTarget(pending.chat_id);\n\tif (!await enforceRateLimitFor(response, 'wallet-link-read-global', 'all', LINK_READ_GLOBAL_LIMIT.max, LINK_READ_GLOBAL_LIMIT.windowSeconds)) return;\n"
+				}
+			],
+			"tests": [
+				"test/link-read-budget.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^LINK-READ-BUDGET C global denied",
+					"message": "^getChat [1-9]\\d* with the global limit denied"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

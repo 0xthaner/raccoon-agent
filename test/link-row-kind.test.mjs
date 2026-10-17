@@ -52,7 +52,7 @@ function linkDeps(lookups) {
 		isAddress: (v) => /^0x[0-9a-fA-F]{40}$/.test(v),
 		getPendingLink: async (code) => { lookups.push(code); return ROWS[code] ?? null; },
 		signingMessage: (p) => `SIWE nonce=${p.nonce}`,
-		enforceRateLimit: async () => true,
+		enforceRateLimit: async () => true, enforceRateLimitFor: async () => true,
 		ANMELDUNG_PAUSIERT: false, pauseAntwort: () => {},
 		isTelegramLinkCode: linking.isTelegramLinkCode, isTelegramLinkRow: linking.isTelegramLinkRow,
 		telegramTarget: async (chatId) => linking.telegramTargetOf({ id: Number(chatId), type: 'private', username: 'raccoon_user' }, chatId),

@@ -263,7 +263,7 @@ test('QUERY-IGNORED link (declared: code, wallet): undeclared names change neith
 		const rec = recorder();
 		const http = httpSecurity(rec);
 		const handler = compile('api/link.mjs', {
-			isAddress, queryParams, singleQueryValue, ANMELDUNG_PAUSIERT: false, pauseAntwort: () => {}, enforceRateLimit: http.enforceRateLimit,
+			isAddress, queryParams, singleQueryValue, ANMELDUNG_PAUSIERT: false, pauseAntwort: () => {}, enforceRateLimit: http.enforceRateLimit, enforceRateLimitFor: http.enforceRateLimitFor,
 			getPendingLink: rec.fn('getPendingLink', async () => ({ chat_id: '123', nonce: 'ab'.repeat(16), expires_at: EXPIRES })),
 			isTelegramLinkCode: (c) => typeof c === 'string' && /^[A-Za-z0-9_-]{24}$/.test(c), isTelegramLinkRow: () => true,
 			signingMessage: (p) => `link ${p.wallet} ${p.code} ${p.target} ${p.nonce}`, telegramTarget: rec.fn('telegramTarget', async () => ({ target: '@raccoon_user' }))

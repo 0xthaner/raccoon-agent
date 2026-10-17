@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2k",
+	"crsf_version": "1.0-draft-phase2l",
 	"profile_rules_digest": "501cd4020037fd18d98d762b31003adf33faa4fdde4d50e8ec0d721be2748d5b",
 	"controls": {
 		"CR-API-001": {
@@ -1068,7 +1068,7 @@
 				"V15.2.2",
 				"V6.3.1"
 			],
-			"properties_digest": "dcc96d1d19921dc862958fc1b6b3cbec03798df67fff9b85c17b4d8ff8b6edc5",
+			"properties_digest": "1b24f6c55b19e4a40be225490d25b5e1f934640f58c8b21e10f761d4f4467db4",
 			"derivation_digest": "cb03172074ecb5c103baf009fb887700b1a63799bc160941e3c352aa20620d74"
 		},
 		"CR-RESOURCE-002": {
