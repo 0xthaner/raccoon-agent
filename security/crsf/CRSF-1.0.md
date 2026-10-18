@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2v
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2w
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -10,8 +10,8 @@
 
 - FAIL: 19
 - INFORMATIONAL: 2
-- MISSING_EVIDENCE: 45
-- PASS_AUTOMATED: 57
+- MISSING_EVIDENCE: 44
+- PASS_AUTOMATED: 58
 - PASS_MANUAL: 24
 
 ### Release classes
@@ -23,8 +23,7 @@
 
 ### Release-blocking controls by security status
 
-- MISSING_EVIDENCE: 1
-- PASS_AUTOMATED: 53
+- PASS_AUTOMATED: 54
 
 ### Standard conformance (ASVS 5.0.0, applicable requirements)
 
@@ -243,7 +242,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-VERIFY-001 | Unexpected cancelled tests fail CI | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E4 |
 | CR-VERIFY-002 | Unexpected skipped/todo tests fail CI; only exact allowlisted DB skips without DB | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E4 |
 | CR-VERIFY-003 | Security fixes carry reproducible known-bad/mutation proof | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E4 |
-| CR-VERIFY-004 | Concurrency claims proven with real concurrent execution | RELEASE_BLOCKING | E5 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied (partial only: EV-E5-OBSERVATION) (below E5/not acceptable: EV-CRSF-SELFTEST(E3: type not acceptable for minimum level)) |
+| CR-VERIFY-004 | Concurrency claims proven with real concurrent execution | RELEASE_BLOCKING | E5 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E5 (P1 derived by OBSERVED_CONCURRENCY_COVERAGE over 15 properties) |
 | CR-VERIFY-005 | Security tests fail for the intended reason | RELEASE_BLOCKING | E4 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E4 |
 | CR-VERIFY-006 | Production-code vs test-only changes distinguished per release | MANUAL_ASSURANCE | E1 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied |
 | CR-VERIFY-007 | Deployed artifact equals intended commit | MANUAL_ASSURANCE | E1 | **PASS_MANUAL** | CONFORMANT | all 1 sub-properties satisfied at >= E1 |
@@ -382,10 +381,12 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-LOCKS-DB | real-system | E5 | node-test | FULL | yes | Inventory from pg_proc of the migrated database: every public function that takes an advisory lock, directly or through another function (lock_chat_wallets, upsert_position_attribution_limited, revoke_dashboard_sessions_atomic, consume_wallet_link_v2, consume_wallet_link), is exercised; a new locking function fails the test. Per operation with separate connections: inside an open transaction the caller holds exactly one advisory lock (P2); a second caller with the same key waits with wait_event Lock/advisory and exactly one ungranted advisory request - no retry, no sleep (P3); on commit the lock is gone, the second caller completes and no session keeps an advisory lock (P1); 11 simultaneous callers per operation finish without deadlock (40P01) or error and leave no lock. Runner-observed: server-confirmed use and overlapping execution. |
 | EV-KB-RL-DB | known-bad | E4 | mutation | FULL | yes | Reintroducing the lost-update race (read the counter, then write read+1) in check_agent_rate_limit is detected by the gated real-Postgres test (more than max admitted). |
 | EV-KB-LOCKS-DB | known-bad | E4 | mutation | FULL | yes | A session-level advisory lock (P1), a second advisory lock in one operation (P2) and an unbounded try-lock/sleep retry loop (P3) are each detected by the real-Postgres lock test. |
+| EV-META-DERIVATION | behavioral | E3 | node-test | PARTIAL | yes | The derivation of CR-VERIFY-004 P1 from the real definition: PASS only when every canonical concurrency property is genuinely satisfied and observed (M9); not PASS for a property without evidence (M1), a missing postgres capability (M2), use without overlap (M3), overlap without a completed statement (M3b), a NOT_RUN / SURVIVED / KILLED_OTHER / INVALID mutation or a declared gap (M4, M5), a VIOLATION or open finding (M6), a new marked or unmarked concurrency property without evidence (M7), declared metadata without a runner observation, a fake-upstream receipt or a failed run (M8), the reduced environment (M10), an unkilled rule mutation; a relabelled real-system item covering CR-VERIFY-004 is a framework error and not counted; lowering the meta control below a real-system level is a framework error. |
+| EV-KB-META-CONC | known-bad | E4 | mutation | FULL | yes | Each weakening of the derivation is detected by the meta-derivation tests: tolerating one failing property (A), ignoring missing Postgres use (B) or overlap (C), accepting a NOT_RUN mutation (D), accepting declared instead of observed E5 (E), hard-coding the current concurrency set (F). |
 
 ## 6. Mutation cases
 
-307 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+314 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -696,6 +697,13 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-CONC-006-P1-2VSESSIONLOCK | CR-CONC-006.P1 | behavioral | KILLED |
 | MUT-CR-CONC-006-P2-2VTWOLOCKS | CR-CONC-006.P2 | behavioral | KILLED |
 | MUT-CR-CONC-006-P3-2VRETRYLOOP | CR-CONC-006.P3 | behavioral | KILLED |
+| MUT-CR-VERIFY-004-P1-2WIGNOREONE | CR-VERIFY-004.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-004-P1-2WNOUSE | CR-VERIFY-004.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-004-P1-2WNOOVERLAP | CR-VERIFY-004.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-004-P1-2WNOTRUNOK | CR-VERIFY-004.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-004-P1-2WDECLARED | CR-VERIFY-004.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-004-P1-2WHARDCODED | CR-VERIFY-004.P1 | behavioral | KILLED |
+| MUT-CR-VERIFY-003-P1-2WZ6OPEN | CR-VERIFY-003.P1 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -952,4 +960,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2ua** — Phase 2U (part a): framework findings F-2T-1 and F-2T-2 from the Phase 2T analysis persisted as OPEN before any fix. No status, threshold or control text changed.
 - **1.0-draft-phase2u** — Phase 2U: framework findings F-2T-1 (fake E5 via declared metadata) and F-2T-2 (fixture N needs an open control) fixed. Real-system evidence is credited only from a runner-signed observation receipt (server-confirmed Postgres use; observed overlap for concurrency claims). All 8 existing real-system items revalidated with observed use, the 6 covering concurrency claims with observed overlap; no control lost PASS. CR-VERIFY-004 unchanged and still MISSING_EVIDENCE. No application change.
 - **1.0-draft-phase2v** — Phase 2V: real-Postgres concurrency evidence with runner-observed use and overlap for CR-RESOURCE-002 (rate limiter counting) and CR-CONC-006 (advisory locks); four KILLED mutations. No application change, no finding. CR-VERIFY-004 re-evaluated and left MISSING_EVIDENCE (see record).
+- **1.0-draft-phase2w** — Phase 2W: versioned meta-control derivation. CR-VERIFY-004 P1 is computed by the engine from the observed, runtime-verified coverage of every canonical concurrency property (rule OBSERVED_CONCURRENCY_COVERAGE) instead of requiring an evidence item of its own. Minimum level E5, type real-system, property text and derivation of CR-VERIFY-004 unchanged. Six KILLED rule mutations. No application change, no finding. Framework finding F-2W-1 (findings fixture Z6 needed an open release-blocking control; Low, fails closed) found once every release-blocking control was satisfied, recorded and fixed.
 

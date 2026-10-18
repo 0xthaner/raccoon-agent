@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { loadDefinition, loadSchemas, validateSchemas, checkIntegrity, checkPinnedSources, declaredOutcomes, derivationOf, findingLedger, openUnmappedFindings, releaseAssertion, evaluate, context, realSystemObserved } from '../lib/engine.mjs';
 import { runTests, classifyOutcomes, childEnv, detectCapabilities, createWorkspace, runMutation, mutationClaimMismatches, runObservedTests, authenticObservation } from '../lib/exec.mjs';
 import { generate } from '../generator/crsf-gen.mjs';
-import { dropMutationsFor, forgedPassTarget, allReleaseControlsSatisfied } from '../lib/selftest-states.mjs';
+import { dropMutationsFor, forgedPassTarget, allReleaseControlsSatisfied, forgeAllReleaseBlockingPass } from '../lib/selftest-states.mjs';
 export { allReleaseControlsSatisfied };
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -107,6 +107,12 @@ export const DEFINITION_FIXTURES = [
 	['Y2', 'finding marked FIXED citing a KILLED mutation of an unrelated control', 'FINDING_FIX_NOT_PROVEN', /F-2D-2/, (d) => { fixRecord(d).finding.mutation_ids = ['MUT-CR-SESSION-001-P2-NEW1']; }],
 	['Y3', 'finding marked FIXED while its VIOLATION evidence is still recorded', 'FINDING_FIX_NOT_PROVEN', /F-2D-2/, (d) => { evi(d, 'EV-PROBE-GETCODE').covers[0].result = 'VIOLATION'; }],
 	['Y4', 'finding marked FIXED whose mutation is downgraded to an expected SURVIVED gap', 'FINDING_FIX_NOT_PROVEN', /F-2D-2/, (d) => { for (const id of fixRecord(d).finding.mutation_ids) Object.assign(mut(d, id), { expected_result: 'SURVIVED', expected_failures: [] }); }],
+	// Phase 2W - CR-VERIFY-004 is derived from the observed concurrency coverage; it cannot be relabelled, lowered or bypassed.
+	['MD1', 'meta rule for CR-VERIFY-004 removed at the same version', 'PROFILE_CHANGED_WITHOUT_VERSION', null, (d) => { d.profile.meta_control_derivation.rules = []; }],
+	['MD2', 'application DB test relabelled as real-system evidence of CR-VERIFY-004', 'META_PROPERTY_DIRECT_EVIDENCE', /EV-RELABEL-004/, (d) => { d.evidence.evidence.push({ ...clone(evi(d, 'EV-RL-DB')), id: 'EV-RELABEL-004', covers: [{ control: 'CR-VERIFY-004', properties: ['P1'], scope: 'FULL', result: 'SUPPORTS', note: 'relabel' }], control_ids: ['CR-VERIFY-004'] }); }],
+	['MD3', 'meta control lowered below a real-system level', 'META_RULE_NOT_REAL_SYSTEM', /CR-VERIFY-004/, (d) => { ctl(d, 'CR-VERIFY-004').minimum_evidence_level = 'E3'; }],
+	['MD4', 'a concurrency control loses its real-Postgres evidence while CR-VERIFY-004 keeps its recorded PASS', 'STATUS_NOT_RECOMPUTABLE', /CR-VERIFY-004\.security_status/, (d) => { d.evidence.evidence = d.evidence.evidence.filter((e) => e.id !== 'EV-RL-DB'); }],
+	['MD5', 'a new concurrency control is added without evidence while CR-VERIFY-004 keeps its recorded PASS', 'STATUS_NOT_RECOMPUTABLE', /CR-VERIFY-004\.security_status/, (d) => { d.controls.controls.push({ ...clone(ctl(d, 'CR-CONC-005')), id: 'CR-CONC-007', properties: [{ id: 'P1', kind: 'SECURITY', text: 'fixture: a new race-free operation' }] }); }],
 	['T2', 'sequential node test relabelled type real-system (fake real concurrency, E5 within the cap)', 'REAL_SYSTEM_WITHOUT_INFRASTRUCTURE', /EV-FAKE-REAL/, (d) => { d.evidence.evidence.push({ ...clone(evi(d, 'EV-L3')), id: 'EV-FAKE-REAL', type: 'real-system', level: 'E5', covers: [{ control: 'CR-CONC-001', properties: ['P1'], scope: 'FULL', result: 'SUPPORTS', note: 'claims real concurrency' }], control_ids: ['CR-CONC-001'], coverage: 'PARTIAL', reason_for_partial: 'CR-CONC-001[P1]: x' }); }]
 ];
 
@@ -129,7 +135,7 @@ export const FINDING_FIXTURES = [
 	['Z3', 'open application finding mapped to an unknown property', 'FINDING_MAPPING_UNKNOWN', (d) => { lastVersion(d).changes.push(appFinding('F-TEST-3', mapTo('CR-RESOURCE-001', 'P9'))); }, (d, e) => hasCode(e, 'FINDING_MAPPING_UNKNOWN', /F-TEST-3 -> CR-RESOURCE-001\.P9/)],
 	['Z4', 'finding closed by a proven FINDING_FIXED no longer blocks', 'not blocking', (d) => { lastVersion(d).changes.push(appFinding('F-TEST-4', UNMAPPED), provenFix(d, 'F-TEST-4')); }, (d, e) => findingLedger(d).get('F-TEST-4').status === 'FIXED' && !openUnmappedFindings(d).includes('F-TEST-4') && !hasCode(e, 'FINDING_FIX_NOT_PROVEN', /F-TEST-4/)],
 	['Z5', 'informational note without a mapping does not block', 'not blocking', (d) => { lastVersion(d).changes.push({ id: 'F-TEST-5', kind: 'NEW_FINDING', finding_class: 'INFORMATIONAL', reason: 'observation, not a security defect' }); }, (d, e) => !openUnmappedFindings(d).includes('F-TEST-5') && !hasCode(e, 'FINDING_RECORD_INCOMPLETE', /F-TEST-5/)],
-	['Z6', 'unmapped open finding hidden by editing control statuses to PASS', 'STATUS_NOT_RECOMPUTABLE + assertion FAIL', (d) => { lastVersion(d).changes.push(appFinding('F-TEST-6', UNMAPPED)); for (const c of d.controls.controls.filter((x) => x.release_class === 'RELEASE_BLOCKING')) c.security_status = 'PASS_AUTOMATED'; }, (d, e) => hasCode(e, 'STATUS_NOT_RECOMPUTABLE') && assertAllPass(d, d.controls.controls.filter((c) => c.release_class === 'RELEASE_BLOCKING').map((c) => c.security_status)) === 'FAIL'],
+	['Z6', 'unmapped open finding hidden by editing control statuses to PASS', 'STATUS_NOT_RECOMPUTABLE + assertion FAIL', (d) => { forgeAllReleaseBlockingPass(d); lastVersion(d).changes.push(appFinding('F-TEST-6', UNMAPPED)); }, (d, e) => hasCode(e, 'STATUS_NOT_RECOMPUTABLE') && assertAllPass(d, d.controls.controls.filter((c) => c.release_class === 'RELEASE_BLOCKING').map((c) => c.security_status)) === 'FAIL'],
 	['Z7', 'finding record deleted at the same version', 'FINDING_DELETED_SILENTLY', (d) => { for (const v of d['framework-changes'].versions) v.changes = v.changes.filter((c) => !(c.id === 'F-2H-1' && c.kind === 'NEW_FINDING')); }, (d, e) => hasCode(e, 'FINDING_DELETED_SILENTLY', /^F-2H-1$/)],
 	['Z7b', 'finding record deleted under a version bump', 'FINDING_DELETED_SILENTLY', (d) => { for (const v of d['framework-changes'].versions) v.changes = v.changes.filter((c) => !(c.id === 'F-2H-1' && c.kind === 'NEW_FINDING')); bump(d, [{ id: 'F-2H-1', kind: 'EVIDENCE_MODEL', reason: 'cleanup' }]); }, (d, e) => hasCode(e, 'FINDING_DELETED_SILENTLY', /^F-2H-1$/)],
 	['Z8', 'new finding without a class (and application finding without a mapping)', 'FINDING_RECORD_INCOMPLETE', (d) => { lastVersion(d).changes.push({ id: 'F-TEST-8', kind: 'NEW_FINDING', reason: 'untyped' }, appFinding('F-TEST-8b')); }, (d, e) => hasCode(e, 'FINDING_RECORD_INCOMPLETE', /F-TEST-8: finding_class/) && hasCode(e, 'FINDING_RECORD_INCOMPLETE', /F-TEST-8b: mapping missing/)],
@@ -139,7 +145,7 @@ export const FINDING_FIXTURES = [
 	['Z12', 'finding "withdrawn" without a documented resolution stays open', 'assertion FAIL', (d) => { lastVersion(d).changes.push(appFinding('F-TEST-12', UNMAPPED), { id: 'F-TEST-12', kind: 'FINDING_WITHDRAWN', reason: 'gone' }); }, (d) => findingLedger(d).get('F-TEST-12').status === 'OPEN' && assertAllPass(d) === 'FAIL']
 ];
 
-function runFindingFixtures(base, schemas) {
+export function runFindingFixtures(base, schemas) {
 	return FINDING_FIXTURES.map(([id, description, expected, mutate, holds]) => {
 		const d = clone(base);
 		let ok;
@@ -259,15 +265,25 @@ export function runObservationFixtures(base) {
 	return out;
 }
 
+/** Phase 2W: without Postgres in the run (no observations, DB evidence and DB mutations NOT_RUN) CR-VERIFY-004 is never PASS. */
+export function runMetaReducedFixture(base) {
+	const outcomes = { mode: 'OBSERVED', evidence: {}, mutations: {}, observations: {}, capabilities: { node: { available: true }, postgres: { available: false } } };
+	for (const e of base.evidence.evidence) outcomes.evidence[e.id] = e.execution?.environment?.includes('postgres') ? 'NOT_RUN' : 'PASS';
+	for (const m of base.mutations.cases) outcomes.mutations[m.id] = { result: m.environment.includes('postgres') ? 'NOT_RUN' : m.expected_result === 'EQUIVALENT' ? 'SURVIVED' : m.expected_result };
+	const c = evaluate(base, outcomes).controls.find((x) => x.id === 'CR-VERIFY-004');
+	return { id: 'MDO', description: 'reduced environment without Postgres: CR-VERIFY-004 not PASS', expected: 'MISSING_EVIDENCE', rejected: c.security_status === 'MISSING_EVIDENCE' && c.property_coverage.P1.derived?.ok === false, codes: [c.security_status] };
+}
+
 /** Phase 2U (F-2T-2): the definition fixtures (with N) hold in a state where every release-blocking control is satisfied. */
 export function runAllSatisfiedState(base, schemas) {
 	const d = allReleaseControlsSatisfied(base);
 	const rb = d.controls.controls.filter((c) => c.release_class === 'RELEASE_BLOCKING');
 	const allPass = rb.every((c) => c.security_status === 'PASS_AUTOMATED');
 	const baseline = definitionErrors(d, schemas);
-	const fixtures = runDefinitionFixtures(d, schemas);
+	// Phase 2W (F-2W-1): the findings fixtures too - Z6 depended on an open control.
+	const fixtures = [...runDefinitionFixtures(d, schemas), ...runFindingFixtures(d, schemas)];
 	const missed = fixtures.filter((f) => !f.rejected).map((f) => f.id);
-	return { id: 'N-ALL', description: 'every release-blocking control satisfied: baseline valid and every definition fixture (incl. N) still rejected', expected: 'valid + all rejected', rejected: allPass && baseline.length === 0 && missed.length === 0, codes: [`rb_pass=${rb.filter((c) => c.security_status === 'PASS_AUTOMATED').length}/${rb.length}`, `baseline_errors=${baseline.length}`, `missed=${missed.join(',') || 'none'}`] };
+	return { id: 'N-ALL', description: 'every release-blocking control satisfied: baseline valid and every definition and findings fixture (incl. N, Z6) still rejected', expected: 'valid + all rejected', rejected: allPass && baseline.length === 0 && missed.length === 0, codes: [`rb_pass=${rb.filter((c) => c.security_status === 'PASS_AUTOMATED').length}/${rb.length}`, `baseline_errors=${baseline.length}`, `missed=${missed.join(',') || 'none'}`] };
 }
 
 function runGeneratorDeterminism(base) {
@@ -279,7 +295,7 @@ export function runSelfTests() {
 	const base = loadDefinition(CRSF, path.resolve(CRSF, '../mutation/cases.json'));
 	const schemas = loadSchemas(path.join(CRSF, 'schema'));
 	const baseline = definitionErrors(base, schemas);
-	const fixtures = [...runDefinitionFixtures(base, schemas), ...runFindingFixtures(base, schemas), ...runExecutionFixtures(), runMutationFixture(), runEquivalentClaimFixture(), runGeneratorDeterminism(base), ...runObservationFixtures(base), runAllSatisfiedState(base, schemas)];
+	const fixtures = [...runDefinitionFixtures(base, schemas), ...runFindingFixtures(base, schemas), ...runExecutionFixtures(), runMutationFixture(), runEquivalentClaimFixture(), runGeneratorDeterminism(base), ...runObservationFixtures(base), runMetaReducedFixture(base), runAllSatisfiedState(base, schemas)];
 	const passed = baseline.length === 0 && fixtures.every((f) => f.rejected);
 	return { passed, baseline_errors: baseline, fixtures, total: fixtures.length, rejected: fixtures.filter((f) => f.rejected).length };
 }

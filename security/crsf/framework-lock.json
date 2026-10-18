@@ -1,6 +1,6 @@
 {
-	"crsf_version": "1.0-draft-phase2v",
-	"profile_rules_digest": "d1c4170ce018e03b726a6573c237ba818254615f3f6e5ebd8904ba37ad5cb650",
+	"crsf_version": "1.0-draft-phase2w",
+	"profile_rules_digest": "59da3e481750b5c7687099ad6c8a4dc9669e65b17141f2826fbcb9e67a847e9f",
 	"controls": {
 		"CR-API-001": {
 			"release_class": "RELEASE_BLOCKING",
@@ -1575,6 +1575,10 @@
 		"F-2T-2": {
 			"finding_class": "FRAMEWORK",
 			"opened_in": "1.0-draft-phase2ua"
+		},
+		"F-2W-1": {
+			"finding_class": "FRAMEWORK",
+			"opened_in": "1.0-draft-phase2w"
 		}
 	}
 }

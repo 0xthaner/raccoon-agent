@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2v",
+	"crsf_version": "1.0-draft-phase2w",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -7246,7 +7246,7 @@
 			"level": "E4",
 			"source": "repository",
 			"artifact": "security/mutation/cases.json",
-			"test_or_proof": "npm run security:verify (mutation runner): 97 case(s)",
+			"test_or_proof": "npm run security:verify (mutation runner): 98 case(s)",
 			"property_proven": "82 new known-bad cases: each historical vulnerability without a prior mutation is reintroduced exactly at its fix (secret fallback, legacy cookie, session from access/link codes, URL-borne access code, old-schema challenges, CSP report-only and connect-src, default privileges, innerHTML sinks, WalletConnect methods/disconnect/revoke, Host-header origin, body size, csp-report limits and logging, raw DB errors, GET state change, RPC-error caching, operator revocation, revoked-session logout, missing alerts/security events, prompt channel, contract TTL hints, session conflicts, preview origins, network/account re-checks, link-row kinds, Safe off-chain signing, cache bound, link target/account, display bounds, send isolation, M-1/M1/M2 limits, AppKit features and font, framework fixes, multi-chat isolation, private sender, answer filter, AI budget, font SHA-256, install scripts, retention, analytics redaction) and is detected by the intended behavioural test and message; 8 further cases weaken the register guard itself and are detected by its fixtures. The remaining PROVEN fixes reference existing KILLED cases (CR-AUTH, CR-SESSION, CR-RESOURCE, CR-CONC, CR-TELEGRAM, CR-PROVIDER, CR-INPUT, CR-API, CR-VERIFY). Phase 2R: removing the .env rules from .vercelignore (entirely or only .env.*), and removing the installCommand or replacing npm ci by npm install, are each detected by the real Vercel CLI tests; three further cases weaken the commit-classification guard (no trailer, trailer naming an unknown fix, \"none\" without reason) and are detected by its fixtures. Phase 2S: removing npm audit signatures from check:ci, or ignoring its result, is detected by the real-npm registry-signature test (real Sigstore TUF and registry keys, tampered package metadata). Phase 2U: the framework fixes F-2T-1 (runner-observed real-system use and concurrency) and F-2T-2 (fixture N independent of open controls) are proven by six KILLED framework mutations.",
 			"property_not_proven": "other conceivable weakenings beyond the listed cases; the cases needing postgres, vercel_cli or npm_network are NOT_RUN where those capabilities are absent",
 			"covers": [
@@ -7257,7 +7257,7 @@
 					],
 					"scope": "FULL",
 					"result": "SUPPORTS",
-					"note": "mutation cases: MUT-CR-VERIFY-003-P1-2QA1SECRET, MUT-CR-VERIFY-003-P1-2QA1LEGACY, MUT-CR-VERIFY-003-P1-2QA1RATE, MUT-CR-VERIFY-003-P1-2QA1VERIFY, MUT-CR-VERIFY-003-P1-2QA2COOKIE, MUT-CR-VERIFY-003-P1-2QA2URL, MUT-CR-VERIFY-003-P1-2QA3LEGACY, MUT-CR-VERIFY-003-P1-2QA4ORDER, MUT-CR-VERIFY-003-P1-2QA6, MUT-CR-VERIFY-003-P1-2QA7ENFORCE, MUT-CR-VERIFY-003-P1-2QA7DEFPRIV, MUT-CR-VERIFY-003-P1-2QF1FINISH, MUT-CR-VERIFY-003-P1-2QF1LANG, MUT-CR-VERIFY-003-P1-2QF1GUIDE, MUT-CR-VERIFY-003-P1-2QF2, MUT-CR-VERIFY-003-P1-2QW1, MUT-CR-VERIFY-003-P1-2QW2ORIGIN, MUT-CR-VERIFY-003-P1-2QW2DISCONNECT, MUT-CR-VERIFY-003-P1-2QW3, MUT-CR-VERIFY-003-P1-2QAPI001, MUT-CR-VERIFY-003-P1-2QAPI002, MUT-CR-VERIFY-003-P1-2QAPI003, MUT-CR-VERIFY-003-P1-2QAUTH002, MUT-CR-VERIFY-003-P1-2QHARD001CACHE, MUT-CR-VERIFY-003-P1-2QHARD002OPERATOR, MUT-CR-VERIFY-003-P1-2QHARD004, MUT-CR-VERIFY-003-P1-2QIR001, MUT-CR-VERIFY-003-P1-2QIR002, MUT-CR-VERIFY-003-P1-2QIR002RAW, MUT-CR-VERIFY-003-P1-2QLLM001, MUT-CR-VERIFY-003-P1-2QSAFE1FAIL, MUT-CR-VERIFY-003-P1-2QSAFE1CLIENT, MUT-CR-VERIFY-003-P1-2QSAFE2, MUT-CR-VERIFY-003-P1-2QSAFE4, MUT-CR-VERIFY-003-P1-2QUX5ACCOUNT, MUT-CR-VERIFY-003-P1-2QUX5APPKIT, MUT-CR-VERIFY-003-P1-2QUX5CHAIN, MUT-CR-VERIFY-003-P1-2QUX5WCCHAIN, MUT-CR-VERIFY-003-P1-2QAUDITF1, MUT-CR-VERIFY-003-P1-2QAUDITF2, MUT-CR-VERIFY-003-P1-2QAUDITF3, MUT-CR-VERIFY-003-P1-2QEL2, MUT-CR-VERIFY-003-P1-2QLINKACCOUNT, MUT-CR-VERIFY-003-P1-2QEL3BOUND, MUT-CR-VERIFY-003-P1-2QEL3ISO, MUT-CR-VERIFY-003-P1-2QEL4, MUT-CR-VERIFY-003-P1-2QSAL2, MUT-CR-VERIFY-003-P1-2QM1DASH, MUT-CR-VERIFY-003-P1-2QM1BOT, MUT-CR-VERIFY-003-P1-2QRM1LINKCHAT, MUT-CR-VERIFY-003-P1-2QRM1LINKGLOBAL, MUT-CR-VERIFY-003-P1-2QRM1ALERT, MUT-CR-VERIFY-003-P1-2QRM2WALLET, MUT-CR-VERIFY-003-P1-2QRM2GLOBAL, MUT-CR-VERIFY-003-P1-2QAPPKIT, MUT-CR-VERIFY-003-P1-2QAPPKITFONT, MUT-CR-VERIFY-003-P1-2QF2C2, MUT-CR-VERIFY-003-P1-2QF2C3, MUT-CR-VERIFY-003-P1-2QF2D1, MUT-CR-VERIFY-003-P1-2QF2J1, MUT-CR-VERIFY-003-P1-2QISOMETA, MUT-CR-VERIFY-003-P1-2QISOUNLINK, MUT-CR-VERIFY-003-P1-2QPRIVMSG, MUT-CR-VERIFY-003-P1-2QFILTERHOST, MUT-CR-VERIFY-003-P1-2QFILTERADDR, MUT-CR-VERIFY-003-P1-2QAIGLOBAL, MUT-CR-VERIFY-003-P1-2QAIFAIL, MUT-CR-VERIFY-003-P1-2QCSPCONNECT, MUT-CR-VERIFY-003-P1-2QCSPLOG, MUT-CR-VERIFY-003-P1-2QGUARDHTML, MUT-CR-VERIFY-003-P1-2QFONTSHA, MUT-CR-VERIFY-003-P1-2QNPMRC, MUT-CR-VERIFY-003-P1-2QRETENTION, MUT-CR-VERIFY-003-P1-2QANALYTICS, MUT-CR-VERIFY-003-P1-2QGTAG, MUT-CR-VERIFY-003-P1-2QGCATCHALL, MUT-CR-VERIFY-003-P1-2QGBEHAVIOURAL, MUT-CR-VERIFY-003-P1-2QGCOMMIT, MUT-CR-VERIFY-003-P1-2QGCOMPLETE, MUT-CR-VERIFY-003-P1-2QGFINDING, MUT-CR-VERIFY-003-P1-2QGSTALE, MUT-CR-VERIFY-003-P1-2QGTESTMATCH, MUT-CR-VERIFY-003-P1-2RVIALL, MUT-CR-VERIFY-003-P1-2RVISTAR, MUT-CR-VERIFY-003-P1-2RNCNONE, MUT-CR-VERIFY-003-P1-2RNCINSTALL, MUT-CR-VERIFY-003-P1-2RGTRAILER, MUT-CR-VERIFY-003-P1-2RGTRAILERFIX, MUT-CR-VERIFY-003-P1-2RGNONEREASON, MUT-CR-VERIFY-003-P1-2SSIGNONE, MUT-CR-VERIFY-003-P1-2SSIGNEUTER, MUT-CR-VERIFY-003-P1-2UOBSUSE, MUT-CR-VERIFY-003-P1-2UOBSCLIENT, MUT-CR-VERIFY-003-P1-2UOBSSEQ, MUT-CR-VERIFY-003-P1-2UOBSCONC, MUT-CR-VERIFY-003-P1-2UOBSMAC, MUT-CR-VERIFY-003-P1-2UNOPEN"
+					"note": "mutation cases: MUT-CR-VERIFY-003-P1-2QA1SECRET, MUT-CR-VERIFY-003-P1-2QA1LEGACY, MUT-CR-VERIFY-003-P1-2QA1RATE, MUT-CR-VERIFY-003-P1-2QA1VERIFY, MUT-CR-VERIFY-003-P1-2QA2COOKIE, MUT-CR-VERIFY-003-P1-2QA2URL, MUT-CR-VERIFY-003-P1-2QA3LEGACY, MUT-CR-VERIFY-003-P1-2QA4ORDER, MUT-CR-VERIFY-003-P1-2QA6, MUT-CR-VERIFY-003-P1-2QA7ENFORCE, MUT-CR-VERIFY-003-P1-2QA7DEFPRIV, MUT-CR-VERIFY-003-P1-2QF1FINISH, MUT-CR-VERIFY-003-P1-2QF1LANG, MUT-CR-VERIFY-003-P1-2QF1GUIDE, MUT-CR-VERIFY-003-P1-2QF2, MUT-CR-VERIFY-003-P1-2QW1, MUT-CR-VERIFY-003-P1-2QW2ORIGIN, MUT-CR-VERIFY-003-P1-2QW2DISCONNECT, MUT-CR-VERIFY-003-P1-2QW3, MUT-CR-VERIFY-003-P1-2QAPI001, MUT-CR-VERIFY-003-P1-2QAPI002, MUT-CR-VERIFY-003-P1-2QAPI003, MUT-CR-VERIFY-003-P1-2QAUTH002, MUT-CR-VERIFY-003-P1-2QHARD001CACHE, MUT-CR-VERIFY-003-P1-2QHARD002OPERATOR, MUT-CR-VERIFY-003-P1-2QHARD004, MUT-CR-VERIFY-003-P1-2QIR001, MUT-CR-VERIFY-003-P1-2QIR002, MUT-CR-VERIFY-003-P1-2QIR002RAW, MUT-CR-VERIFY-003-P1-2QLLM001, MUT-CR-VERIFY-003-P1-2QSAFE1FAIL, MUT-CR-VERIFY-003-P1-2QSAFE1CLIENT, MUT-CR-VERIFY-003-P1-2QSAFE2, MUT-CR-VERIFY-003-P1-2QSAFE4, MUT-CR-VERIFY-003-P1-2QUX5ACCOUNT, MUT-CR-VERIFY-003-P1-2QUX5APPKIT, MUT-CR-VERIFY-003-P1-2QUX5CHAIN, MUT-CR-VERIFY-003-P1-2QUX5WCCHAIN, MUT-CR-VERIFY-003-P1-2QAUDITF1, MUT-CR-VERIFY-003-P1-2QAUDITF2, MUT-CR-VERIFY-003-P1-2QAUDITF3, MUT-CR-VERIFY-003-P1-2QEL2, MUT-CR-VERIFY-003-P1-2QLINKACCOUNT, MUT-CR-VERIFY-003-P1-2QEL3BOUND, MUT-CR-VERIFY-003-P1-2QEL3ISO, MUT-CR-VERIFY-003-P1-2QEL4, MUT-CR-VERIFY-003-P1-2QSAL2, MUT-CR-VERIFY-003-P1-2QM1DASH, MUT-CR-VERIFY-003-P1-2QM1BOT, MUT-CR-VERIFY-003-P1-2QRM1LINKCHAT, MUT-CR-VERIFY-003-P1-2QRM1LINKGLOBAL, MUT-CR-VERIFY-003-P1-2QRM1ALERT, MUT-CR-VERIFY-003-P1-2QRM2WALLET, MUT-CR-VERIFY-003-P1-2QRM2GLOBAL, MUT-CR-VERIFY-003-P1-2QAPPKIT, MUT-CR-VERIFY-003-P1-2QAPPKITFONT, MUT-CR-VERIFY-003-P1-2QF2C2, MUT-CR-VERIFY-003-P1-2QF2C3, MUT-CR-VERIFY-003-P1-2QF2D1, MUT-CR-VERIFY-003-P1-2QF2J1, MUT-CR-VERIFY-003-P1-2QISOMETA, MUT-CR-VERIFY-003-P1-2QISOUNLINK, MUT-CR-VERIFY-003-P1-2QPRIVMSG, MUT-CR-VERIFY-003-P1-2QFILTERHOST, MUT-CR-VERIFY-003-P1-2QFILTERADDR, MUT-CR-VERIFY-003-P1-2QAIGLOBAL, MUT-CR-VERIFY-003-P1-2QAIFAIL, MUT-CR-VERIFY-003-P1-2QCSPCONNECT, MUT-CR-VERIFY-003-P1-2QCSPLOG, MUT-CR-VERIFY-003-P1-2QGUARDHTML, MUT-CR-VERIFY-003-P1-2QFONTSHA, MUT-CR-VERIFY-003-P1-2QNPMRC, MUT-CR-VERIFY-003-P1-2QRETENTION, MUT-CR-VERIFY-003-P1-2QANALYTICS, MUT-CR-VERIFY-003-P1-2QGTAG, MUT-CR-VERIFY-003-P1-2QGCATCHALL, MUT-CR-VERIFY-003-P1-2QGBEHAVIOURAL, MUT-CR-VERIFY-003-P1-2QGCOMMIT, MUT-CR-VERIFY-003-P1-2QGCOMPLETE, MUT-CR-VERIFY-003-P1-2QGFINDING, MUT-CR-VERIFY-003-P1-2QGSTALE, MUT-CR-VERIFY-003-P1-2QGTESTMATCH, MUT-CR-VERIFY-003-P1-2RVIALL, MUT-CR-VERIFY-003-P1-2RVISTAR, MUT-CR-VERIFY-003-P1-2RNCNONE, MUT-CR-VERIFY-003-P1-2RNCINSTALL, MUT-CR-VERIFY-003-P1-2RGTRAILER, MUT-CR-VERIFY-003-P1-2RGTRAILERFIX, MUT-CR-VERIFY-003-P1-2RGNONEREASON, MUT-CR-VERIFY-003-P1-2SSIGNONE, MUT-CR-VERIFY-003-P1-2SSIGNEUTER, MUT-CR-VERIFY-003-P1-2UOBSUSE, MUT-CR-VERIFY-003-P1-2UOBSCLIENT, MUT-CR-VERIFY-003-P1-2UOBSSEQ, MUT-CR-VERIFY-003-P1-2UOBSCONC, MUT-CR-VERIFY-003-P1-2UOBSMAC, MUT-CR-VERIFY-003-P1-2UNOPEN, MUT-CR-VERIFY-003-P1-2WZ6OPEN"
 				}
 			],
 			"reproducible": true,
@@ -7371,7 +7371,8 @@
 					"MUT-CR-VERIFY-003-P1-2UOBSSEQ",
 					"MUT-CR-VERIFY-003-P1-2UOBSCONC",
 					"MUT-CR-VERIFY-003-P1-2UOBSMAC",
-					"MUT-CR-VERIFY-003-P1-2UNOPEN"
+					"MUT-CR-VERIFY-003-P1-2UNOPEN",
+					"MUT-CR-VERIFY-003-P1-2WZ6OPEN"
 				],
 				"environment": [
 					"node",
@@ -7730,6 +7731,104 @@
 			},
 			"control_ids": [
 				"CR-CONC-006"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
+			"id": "EV-META-DERIVATION",
+			"control_ids": [
+				"CR-VERIFY-004"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/crsf-meta-derivation.test.mjs",
+			"test_or_proof": "test/crsf-meta-derivation.test.mjs",
+			"property_proven": "The derivation of CR-VERIFY-004 P1 from the real definition: PASS only when every canonical concurrency property is genuinely satisfied and observed (M9); not PASS for a property without evidence (M1), a missing postgres capability (M2), use without overlap (M3), overlap without a completed statement (M3b), a NOT_RUN / SURVIVED / KILLED_OTHER / INVALID mutation or a declared gap (M4, M5), a VIOLATION or open finding (M6), a new marked or unmarked concurrency property without evidence (M7), declared metadata without a runner observation, a fake-upstream receipt or a failed run (M8), the reduced environment (M10), an unkilled rule mutation; a relabelled real-system item covering CR-VERIFY-004 is a framework error and not counted; lowering the meta control below a real-system level is a framework error.",
+			"property_not_proven": "receipt authenticity (proven in test/crsf-real-system-observation.test.mjs; here receipts are synthetic); that the observed statements are the ones relevant to each claimed race (mutation cases of the underlying controls).",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-VERIFY-004[P1]: framework rule only: tests the OBSERVED_CONCURRENCY_COVERAGE derivation; never counted for the meta-derived property",
+			"covers": [
+				{
+					"control": "CR-VERIFY-004",
+					"properties": [
+						"P1"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "framework rule only: tests the OBSERVED_CONCURRENCY_COVERAGE derivation; never counted for the meta-derived property"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/crsf-meta-derivation.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-META-CONC",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 6 case(s)",
+			"property_proven": "Each weakening of the derivation is detected by the meta-derivation tests: tolerating one failing property (A), ignoring missing Postgres use (B) or overlap (C), accepting a NOT_RUN mutation (D), accepting declared instead of observed E5 (E), hard-coding the current concurrency set (F).",
+			"property_not_proven": "other conceivable weakenings of the derivation beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-VERIFY-004",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-VERIFY-004-P1-2WIGNOREONE, MUT-CR-VERIFY-004-P1-2WNOUSE, MUT-CR-VERIFY-004-P1-2WNOOVERLAP, MUT-CR-VERIFY-004-P1-2WNOTRUNOK, MUT-CR-VERIFY-004-P1-2WDECLARED, MUT-CR-VERIFY-004-P1-2WHARDCODED"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-VERIFY-004-P1-2WIGNOREONE",
+					"MUT-CR-VERIFY-004-P1-2WNOUSE",
+					"MUT-CR-VERIFY-004-P1-2WNOOVERLAP",
+					"MUT-CR-VERIFY-004-P1-2WNOTRUNOK",
+					"MUT-CR-VERIFY-004-P1-2WDECLARED",
+					"MUT-CR-VERIFY-004-P1-2WHARDCODED"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-VERIFY-004"
 			],
 			"coverage": "FULL",
 			"reason_for_partial": null

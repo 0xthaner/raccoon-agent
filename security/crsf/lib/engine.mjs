@@ -63,6 +63,95 @@ export function declaredOutcomes(def) {
 	return { mode: 'DECLARED', evidence, mutations, observations: {} };
 }
 
+/*
+	Phase 2W: meta-derived properties (profile.meta_control_derivation). A meta
+	property is a statement about the framework's own evidence graph - for
+	CR-VERIFY-004 P1 that every concurrency control has real-Postgres evidence with
+	genuine concurrent execution. It is never satisfied by an evidence item of its
+	own (that would only relabel application tests); the engine derives it from the
+	underlying properties in the same evaluation, at the meta control's own minimum
+	level and type. In DECLARED mode the underlying claims are taken as recorded;
+	security:verify recomputes them from the observed run.
+*/
+export const isConcurrencyClaim = (c, p) => c.domain === 'CR-CONC' || /concurren/i.test(p.text);
+export const metaProperties = (profile) => new Set((profile.meta_control_derivation?.rules ?? []).map((r) => `${r.control}.${r.property}`));
+/** The canonical concurrency set: every property the profile marks plus every one the classifier finds, minus the meta-derived ones. */
+export function canonicalConcurrencyProperties(def) {
+	const meta = metaProperties(def.profile);
+	const keys = new Set((def.profile.real_system_observation?.concurrency?.properties ?? []).map((x) => `${x.control}.${x.property}`));
+	for (const c of def.controls.controls) for (const p of c.properties) if (isConcurrencyClaim(c, p)) keys.add(`${c.id}.${p.id}`);
+	return [...keys].filter((k) => !meta.has(k)).sort();
+}
+/** A mutation case holds when it ended as declared in this run; a declared gap (SURVIVED) never holds. */
+const mutationHolds = (m, res) => m.expected_result !== 'SURVIVED' && (res === m.expected_result || (m.expected_result === 'EQUIVALENT' && res === 'SURVIVED'));
+/** Did this real-system item run in the current run, with its capabilities, and did the runner observe Postgres use and overlap? */
+function observedConcurrentRun(ctx, e, outcomes) {
+	if (outcomes.mode === 'DECLARED') return { id: e.id, ok: true };
+	const rule = ctx.p.real_system_observation;
+	const no = (why) => ({ id: e.id, ok: false, why });
+	for (const cap of (e.execution?.environment ?? []).filter((x) => x !== 'node')) {
+		if (rule?.capabilities?.[cap] !== 'pg-observer') return no(`no runner-side observer for capability ${cap}`);
+		if (outcomes.capabilities?.[cap]?.available !== true) return no(`capability ${cap} missing in this run`);
+	}
+	if (outcomes.evidence[e.id] !== 'PASS') return no(`did not pass in this run (${outcomes.evidence[e.id] ?? 'NOT_RUN'})`);
+	const o = outcomes.observations?.[e.id];
+	if (!o || o.upstream_kind !== 'postgres') return no('not observed by the runner against the real postgres');
+	const use = summarizeReceipt(o.receipt, rule.concurrency);
+	if (!use.postgres_use) return no('runner observed no Postgres use');
+	if (!use.concurrency) return no('runner observed no concurrent execution');
+	return { id: e.id, ok: true };
+}
+/** Gaps of one canonical concurrency property (empty = genuinely satisfied for the meta rule). */
+function concurrencyPropertyGaps(ctx, def, key, meta, results, outcomes, ledger) {
+	const [cid, pid] = key.split('.');
+	const c = ctx.ctlById.get(cid), r = results[cid];
+	if (!c || !r || !c.properties.some((p) => p.id === pid)) return ['unknown or unevaluated control property'];
+	const gaps = [];
+	const covers = coversFor(ctx, def, c);
+	// A: the application control is satisfied at its own required level
+	if (r.security !== 'PASS_AUTOMATED' || !r.detail[pid]?.satisfied_by.length) gaps.push(`control ${r.security}`);
+	// G: no violation, no open finding on the property
+	if (covers.some(({ cv }) => cv.result === 'VIOLATION' && cv.properties.includes(pid))) gaps.push('VIOLATION recorded');
+	const open = ledger.filter((f) => f.status === 'OPEN' && f.mapping?.control === cid && f.mapping?.property === pid);
+	if (open.length) gaps.push(`open finding ${open.map((f) => f.id).join(',')}`);
+	// B-E, H: real-system evidence at the meta control's level that ran now, with its capabilities, observed use and overlap
+	const types = ctx.p.required_types_by_level[meta.minimum_evidence_level] ?? [];
+	const candidates = covers.filter(({ e, cv }) => cv.result === 'SUPPORTS' && cv.scope === 'FULL' && cv.properties.includes(pid) && e.reproducible && types.includes(ctx.evidenceClass[e.type]) && rank(ctx, e.level) >= rank(ctx, meta.minimum_evidence_level)).map(({ e }) => e);
+	if (!candidates.length) gaps.push(`no ${types.join('/')} evidence at >= ${meta.minimum_evidence_level}`);
+	else {
+		const runs = candidates.map((e) => observedConcurrentRun(ctx, e, outcomes));
+		if (!runs.some((x) => x.ok)) gaps.push(runs.map((x) => `${x.id} ${x.why}`).join(', '));
+	}
+	// F: every mutation case for the property ended as declared in this run
+	const bad = def.mutations.cases.filter((m) => m.targets.some((t) => t.control === cid && t.property === pid))
+		.map((m) => [m, outcomes.mutations[m.id]?.result ?? 'NOT_RUN']).filter(([m, res]) => !mutationHolds(m, res));
+	if (bad.length) gaps.push(`mutation ${bad.map(([m, res]) => `${m.id}=${res}`).join(', ')}`);
+	return gaps;
+}
+/** OBSERVED_CONCURRENCY_COVERAGE: every canonical concurrency property genuinely satisfied in this run, and the rule's own known-bad cases killed. */
+function deriveObservedConcurrencyCoverage(ctx, def, rule, results, outcomes) {
+	const meta = ctx.ctlById.get(rule.control);
+	const ledger = [...findingLedger(def).values()];
+	const canonical = canonicalConcurrencyProperties(def);
+	const failing = [];
+	for (const key of canonical) {
+		const gaps = concurrencyPropertyGaps(ctx, def, key, meta, results, outcomes, ledger);
+		if (gaps.length) failing.push(`${key}: ${gaps.join('; ')}`);
+	}
+	if (!canonical.length) failing.push('no concurrency property in the canonical set');
+	const own = def.mutations.cases.filter((m) => m.targets.some((t) => t.control === rule.control && t.property === rule.property));
+	const ownBad = own.map((m) => [m, outcomes.mutations[m.id]?.result ?? 'NOT_RUN']).filter(([m, res]) => !mutationHolds(m, res));
+	if (ownBad.length) failing.push(`rule mutation ${ownBad.map(([m, res]) => `${m.id}=${res}`).join(', ')}`);
+	if (!own.some((m) => m.expected_result === 'KILLED' && m.detection === 'behavioral')) failing.push('rule has no behavioural KILLED mutation case');
+	return { rule: rule.rule, ok: failing.length === 0, level: meta.minimum_evidence_level, properties: canonical.length, failing };
+}
+const META_RULES = { OBSERVED_CONCURRENCY_COVERAGE: deriveObservedConcurrencyCoverage };
+function deriveMetaProperty(ctx, def, rule, results, outcomes) {
+	const fn = META_RULES[rule.rule];
+	if (!fn || !ctx.ctlById.get(rule.control)) return { rule: rule.rule, ok: false, level: null, properties: 0, failing: [`unknown meta rule ${rule.rule} or control ${rule.control}`] };
+	return fn(ctx, def, rule, results, outcomes);
+}
+
 /** Builds the evaluation context once per definition. */
 export function context(def) {
 	const p = def.profile;
@@ -71,7 +160,8 @@ export function context(def) {
 	const casesByEvidence = new Map();
 	for (const m of def.mutations.cases) { if (!casesByEvidence.has(m.evidence_id)) casesByEvidence.set(m.evidence_id, []); casesByEvidence.get(m.evidence_id).push(m); }
 	const concurrencyProps = new Set((p.real_system_observation?.concurrency?.properties ?? []).map((x) => `${x.control}.${x.property}`));
-	return { p, levels: p.evidence_levels.map((l) => l.id), ctlById, evById, casesByEvidence, evidenceClass: p.evidence_type_classes, structural: structuralProperties(def), concurrencyProps };
+	const metaRules = p.meta_control_derivation?.rules ?? [];
+	return { p, levels: p.evidence_levels.map((l) => l.id), ctlById, evById, casesByEvidence, evidenceClass: p.evidence_type_classes, structural: structuralProperties(def), concurrencyProps, metaRules, metaProps: metaProperties(p) };
 }
 
 /*
@@ -183,7 +273,8 @@ function deviatedFor(def, deviationStatus, controlId) {
 	return { props, type: types.size === 1 ? [...types][0] : types.size ? 'MIXED' : null, ids };
 }
 
-export function evaluateControl(ctx, def, c, outcomes, deviation = { props: new Set(), type: null, ids: [] }) {
+const NO_DEVIATION = { props: new Set(), type: null, ids: [] };
+export function evaluateControl(ctx, def, c, outcomes, deviation = NO_DEVIATION, derived = {}) {
 	if (c.applicability === 'NOT_APPLICABLE' || c.applicability === 'DEFERRED') return { security: c.applicability, conformance: c.applicability, sreason: c.applicability_reason, creason: c.applicability_reason, detail: {}, deviated: [] };
 	const kind = Object.fromEntries(c.properties.map((p) => [p.id, p.kind]));
 	const covers = coversFor(ctx, def, c);
@@ -196,10 +287,13 @@ export function evaluateControl(ctx, def, c, outcomes, deviation = { props: new 
 	for (const p of c.properties) {
 		if (deviated.has(p.id)) { detail[p.id] = { deviated: true, satisfied_by: [], partial_only: [], insufficient: [] }; continue; }
 		const sats = [], partial = [], insufficient = [], structural = [];
+		const isMeta = ctx.metaProps.has(`${c.id}.${p.id}`);
 		for (const { e, cv } of covers) {
 			if (cv.result !== 'SUPPORTS' || !cv.properties.includes(p.id)) continue;
 			if (cv.scope === 'PARTIAL') { partial.push(e.id); continue; }
 			const a = acceptable(ctx, e, c, p.id, outcomes);
+			// Phase 2W: a meta-derived property never takes credit from an evidence item of its own.
+			if (isMeta) { insufficient.push(`${e.id}(${e.level}: ${a.ok ? 'not counted for a meta-derived property' : a.why})`); continue; }
 			// A structural property (profile allowlist only) is met at the rule's own minimum level.
 			const minimum = a.structural ? ctx.p.structural_property_rule.minimum_level : c.minimum_evidence_level;
 			if (a.ok && rank(ctx, e.level) >= rank(ctx, minimum)) { sats.push(e); if (a.structural) structural.push(e.id); }
@@ -207,10 +301,13 @@ export function evaluateControl(ctx, def, c, outcomes, deviation = { props: new 
 		}
 		detail[p.id] = { satisfied_by: sats.map((e) => e.id), partial_only: partial, insufficient };
 		if (structural.length) detail[p.id].structurally_verified_by = structural;
+		if (isMeta) { const d = derived[p.id] ?? { rule: 'UNEVALUATED', ok: false, level: null, properties: 0, failing: ['meta derivation not evaluated'] }; detail[p.id].derived = { rule: d.rule, ok: d.ok, level: d.level, properties: d.properties, failing: d.failing }; }
 		if (sats.some((e) => !e.reproducible)) anyManual = true;
 	}
-	const unsat = (ids) => ids.filter((k) => !detail[k].deviated && !detail[k].satisfied_by.length && !defects.some((d) => d.pid === k));
-	const why = (k) => `${k} unsatisfied${detail[k].partial_only.length ? ` (partial only: ${detail[k].partial_only.join(',')})` : ''}${detail[k].insufficient.length ? ` (below ${c.minimum_evidence_level}/not acceptable: ${detail[k].insufficient.join(',')})` : ''}`;
+	const met = (k) => detail[k].satisfied_by.length > 0 || detail[k].derived?.ok === true;
+	const unsat = (ids) => ids.filter((k) => !detail[k].deviated && !met(k) && !defects.some((d) => d.pid === k));
+	const derivedWhy = (k) => { const d = detail[k].derived; return d && !d.ok ? ` (derived ${d.rule}: ${d.failing.slice(0, 4).join(' | ')}${d.failing.length > 4 ? ` | +${d.failing.length - 4} more` : ''})` : ''; };
+	const why = (k) => `${k} unsatisfied${derivedWhy(k)}${detail[k].partial_only.length ? ` (partial only: ${detail[k].partial_only.join(',')})` : ''}${detail[k].insufficient.length ? ` (below ${c.minimum_evidence_level}/not acceptable: ${detail[k].insufficient.join(',')})` : ''}`;
 	const all = c.properties.map((p) => p.id);
 	let security, sreason;
 	if (defects.length) { security = 'FAIL'; sreason = defects.map((d) => d.text).join('; '); }
@@ -220,9 +317,10 @@ export function evaluateControl(ctx, def, c, outcomes, deviation = { props: new 
 		security = anyManual ? 'PASS_MANUAL' : 'PASS_AUTOMATED';
 		// Properties met ONLY by structural evidence are named: structurally verified, not mutation-proven.
 		const structuralOnly = all.filter((k) => detail[k].structurally_verified_by && detail[k].structurally_verified_by.length === detail[k].satisfied_by.length);
+		const derivedProps = all.filter((k) => detail[k].derived?.ok);
 		sreason = structuralOnly.length
 			? `all ${all.length} sub-properties satisfied; ${structuralOnly.join('+')} structurally verified (${ctx.p.structural_property_rule.minimum_level}, not behaviourally mutation-proven), the rest at >= ${c.minimum_evidence_level}`
-			: `all ${all.length} sub-properties satisfied at >= ${c.minimum_evidence_level}`;
+			: `all ${all.length} sub-properties satisfied at >= ${c.minimum_evidence_level}${derivedProps.length ? ` (${derivedProps.map((k) => `${k} derived by ${detail[k].derived.rule} over ${detail[k].derived.properties} properties`).join('; ')})` : ''}`;
 	}
 	const lit = c.properties.filter((p) => p.kind !== 'SECURITY').map((p) => p.id);
 	const litDefects = defects.filter((d) => d.kind !== 'SECURITY');
@@ -275,14 +373,28 @@ export function validateDeviation(ctx, def, d, baseline) {
 }
 
 /* ================================================================ evaluate */
+/** Evaluates every control; controls with meta-derived properties last, from the results of all others (Phase 2W). */
+function evaluateAll(ctx, def, outcomes, deviationOf) {
+	const out = {};
+	const metaControls = new Set(ctx.metaRules.map((r) => r.control));
+	for (const c of def.controls.controls) if (!metaControls.has(c.id)) out[c.id] = evaluateControl(ctx, def, c, outcomes, deviationOf(c.id));
+	for (const c of def.controls.controls) if (metaControls.has(c.id)) {
+		const derived = Object.fromEntries(ctx.metaRules.filter((r) => r.control === c.id).map((r) => [r.property, deriveMetaProperty(ctx, def, r, out, outcomes)]));
+		out[c.id] = evaluateControl(ctx, def, c, outcomes, deviationOf(c.id), derived);
+	}
+	return out;
+}
+
 export function evaluate(def, outcomes) {
 	const ctx = context(def);
-	const baseline = Object.fromEntries(def.controls.controls.map((c) => [c.id, evaluateControl(ctx, def, c, outcomes)]));
+	const baseline = evaluateAll(ctx, def, outcomes, () => NO_DEVIATION);
 	const deviationResults = Object.fromEntries(def.deviations.deviations.map((d) => [d.id, validateDeviation(ctx, def, d, baseline)]));
 	const devStatus = Object.fromEntries(Object.entries(deviationResults).map(([k, v]) => [k, v.status]));
+	const deviations = Object.fromEntries(def.controls.controls.map((c) => [c.id, deviatedFor(def, devStatus, c.id)]));
+	const final = Object.values(deviations).some((dv) => dv.ids.length) ? evaluateAll(ctx, def, outcomes, (id) => (deviations[id].ids.length ? deviations[id] : NO_DEVIATION)) : baseline;
 	const controls = def.controls.controls.map((c) => {
-		const dv = deviatedFor(def, devStatus, c.id);
-		const r = dv.ids.length ? evaluateControl(ctx, def, c, outcomes, dv) : baseline[c.id];
+		const dv = deviations[c.id];
+		const r = final[c.id];
 		const covers = coversFor(ctx, def, c);
 		const classes = [...new Set(covers.filter(({ cv, e }) => cv.result === 'SUPPORTS' && e.reproducible).map(({ e }) => ctx.evidenceClass[e.type]))].sort();
 		const fixtures = covers.map(({ e }) => e.fixture_group).filter(Boolean);
@@ -344,8 +456,15 @@ export function checkIntegrity(def, declared) {
 	for (const a of def.profile.structural_property_rule?.allowed ?? []) if (!ctx.structural.has(`${a.control}.${a.property}`)) err('STRUCTURAL_ALLOWLIST_UNMARKED', `${a.control}.${a.property}: allowlisted but the property is unknown or not marked evidence_basis STRUCTURAL`);
 	// Phase 2U: every concurrency claim (domain CR-CONC, or a property text naming concurrency) is marked in the profile; marked entries must exist.
 	const marked = new Set((def.profile.real_system_observation?.concurrency?.properties ?? []).map((x) => `${x.control}.${x.property}`));
-	for (const c of def.controls.controls) for (const p of c.properties) if ((c.domain === 'CR-CONC' || /concurren/i.test(p.text)) && !marked.has(`${c.id}.${p.id}`)) err('CONCURRENCY_CLAIM_UNMARKED', `${c.id}.${p.id}: not in profile.real_system_observation.concurrency.properties`);
+	for (const c of def.controls.controls) for (const p of c.properties) if (isConcurrencyClaim(c, p) && !marked.has(`${c.id}.${p.id}`)) err('CONCURRENCY_CLAIM_UNMARKED', `${c.id}.${p.id}: not in profile.real_system_observation.concurrency.properties`);
 	for (const k of marked) { const [cid, pid] = k.split('.'); if (!ctx.ctlById.get(cid)?.properties.some((p) => p.id === pid)) err('CONCURRENCY_CLAIM_UNKNOWN', k); }
+	// Phase 2W: a meta rule names a real property, keeps its control at a real-system level, and no real-system item covers it directly.
+	for (const r of ctx.metaRules) {
+		const c = ctx.ctlById.get(r.control);
+		if (!c?.properties.some((p) => p.id === r.property) || !META_RULES[r.rule]) { err('META_RULE_UNKNOWN', `${r.control}.${r.property} (${r.rule})`); continue; }
+		if (!(def.profile.required_types_by_level[c.minimum_evidence_level] ?? []).includes('real-system')) err('META_RULE_NOT_REAL_SYSTEM', `${r.control}: minimum ${c.minimum_evidence_level} does not require real-system evidence`);
+	}
+	for (const e of def.evidence.evidence) for (const cv of e.covers) for (const pid of cv.properties) if (ctx.metaProps.has(`${cv.control}.${pid}`) && e.type === 'real-system' && cv.result === 'SUPPORTS') err('META_PROPERTY_DIRECT_EVIDENCE', `${e.id} -> ${cv.control}.${pid}: a meta-derived property is computed from the evidence graph, not covered by an item`);
 	const cap = def.profile.evidence_level_cap_by_type ?? {};
 	for (const e of def.evidence.evidence) {
 		// Phase 2C (F-2C-3): a self-declared level may not exceed what the evidence type can show.
@@ -434,7 +553,7 @@ export function checkIntegrity(def, declared) {
 	for (const r of ev.controls) {
 		const c = ctx.ctlById.get(r.id);
 		for (const f of COMPUTED_CONTROL_FIELDS) if (canonical(c[f]) !== canonical(r[f])) err(f === 'security_status' || f === 'conformance_status' ? 'STATUS_NOT_RECOMPUTABLE' : 'COMPUTED_FIELD_MISMATCH', `${c.id}.${f}: recorded ${JSON.stringify(c[f])?.slice(0, 80)} != recomputed ${JSON.stringify(r[f])?.slice(0, 80)}`);
-		if (r.security_status.startsWith('PASS') || r.security_status === 'INFORMATIONAL') for (const [pid, v] of Object.entries(r.property_coverage)) if (!v.deviated && !v.satisfied_by.length) err('PASS_WITHOUT_EVIDENCE', `${c.id}.${pid}`);
+		if (r.security_status.startsWith('PASS') || r.security_status === 'INFORMATIONAL') for (const [pid, v] of Object.entries(r.property_coverage)) if (!v.deviated && !v.satisfied_by.length && v.derived?.ok !== true) err('PASS_WITHOUT_EVIDENCE', `${c.id}.${pid}`);
 		if (c.release_class === 'RELEASE_BLOCKING' && r.security_status === 'PASS_MANUAL') err('RELEASE_BLOCKING_PASS_MANUAL', c.id);
 		if (r.deviation_ids.length && r.security_status.startsWith('PASS')) err('DEVIATION_AS_PASS', c.id);
 	}
@@ -520,7 +639,9 @@ export function lockEntry(c) {
 	return { release_class: c.release_class, minimum_evidence_level: c.minimum_evidence_level, applicability: c.applicability, external_requirement_ids: c.external_requirement_ids, properties_digest: sha256(c.properties), derivation_digest: sha256(derivationOf(c)) };
 }
 export function profileLockDigest(profile) {
-	return sha256({ release_classes: profile.release_classes, minimum_levels: profile.minimum_levels, required_types_by_level: profile.required_types_by_level, acceptance_rules: profile.acceptance_rules, deviation_rules: profile.deviation_rules, evidence_levels: profile.evidence_levels, evidence_level_cap_by_type: profile.evidence_level_cap_by_type ?? null, structural_property_rule: profile.structural_property_rule ?? null });
+	return sha256({ release_classes: profile.release_classes, minimum_levels: profile.minimum_levels, required_types_by_level: profile.required_types_by_level, acceptance_rules: profile.acceptance_rules, deviation_rules: profile.deviation_rules, evidence_levels: profile.evidence_levels, evidence_level_cap_by_type: profile.evidence_level_cap_by_type ?? null, structural_property_rule: profile.structural_property_rule ?? null,
+		// Phase 2W: the concurrency marking and the meta rules decide what CR-VERIFY-004 requires - both are locked.
+		real_system_observation: profile.real_system_observation ?? null, meta_control_derivation: profile.meta_control_derivation ?? null });
 }
 /** Change kinds that may alter what a control requires (properties or derivation) - each needs documented before/after wording. */
 export const REQUIREMENT_CHANGE_KINDS = ['REQUIREMENT_CLARIFICATION', 'PROPERTY_ADDED', 'EVIDENCE_BASIS_CHANGE'];

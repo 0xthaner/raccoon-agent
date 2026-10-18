@@ -284,6 +284,43 @@
 									"type": "string"
 								},
 								"minItems": 1
+							},
+							"derived": {
+								"type": "object",
+								"additionalProperties": false,
+								"required": [
+									"rule",
+									"ok",
+									"level",
+									"properties",
+									"failing"
+								],
+								"properties": {
+									"rule": {
+										"type": "string",
+										"minLength": 1
+									},
+									"ok": {
+										"type": "boolean"
+									},
+									"level": {
+										"type": [
+											"string",
+											"null"
+										]
+									},
+									"properties": {
+										"type": "integer",
+										"minimum": 0
+									},
+									"failing": {
+										"type": "array",
+										"items": {
+											"type": "string"
+										},
+										"minItems": 0
+									}
+								}
 							}
 						}
 					}

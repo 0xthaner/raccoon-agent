@@ -1702,6 +1702,50 @@
 					"reason": "two exact-name allowed skips (RL-DB, LOCKS-DB), only while M1_DB_TEST_PG_URL is unset; with Postgres configured a skip is an error."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2w",
+			"summary": "Phase 2W: versioned meta-control derivation. CR-VERIFY-004 P1 is computed by the engine from the observed, runtime-verified coverage of every canonical concurrency property (rule OBSERVED_CONCURRENCY_COVERAGE) instead of requiring an evidence item of its own. Minimum level E5, type real-system, property text and derivation of CR-VERIFY-004 unchanged. Six KILLED rule mutations. No application change, no finding. Framework finding F-2W-1 (findings fixture Z6 needed an open release-blocking control; Low, fails closed) found once every release-blocking control was satisfied, recorded and fixed.",
+			"changes": [
+				{
+					"id": "PROFILE",
+					"kind": "PROFILE_EXTENDED",
+					"reason": "new profile section meta_control_derivation (rule OBSERVED_CONCURRENCY_COVERAGE for CR-VERIFY-004 P1). The profile lock digest now also covers real_system_observation (the concurrency marking and observation thresholds, unlocked since 1.0-draft-phase2u) and meta_control_derivation, so removing a property from the concurrency set or weakening the meta rule needs a versioned change. Engine: canonical concurrency set = profile marking plus classifier minus meta properties; new integrity codes META_RULE_UNKNOWN, META_RULE_NOT_REAL_SYSTEM, META_PROPERTY_DIRECT_EVIDENCE; observed outcomes carry the run's capabilities."
+				},
+				{
+					"id": "CR-VERIFY-004",
+					"kind": "META_DERIVATION",
+					"old_status": "MISSING_EVIDENCE",
+					"new_status": "PASS_AUTOMATED",
+					"minimum_level": "E5",
+					"evidence_added": [
+						"profile.meta_control_derivation (rule OBSERVED_CONCURRENCY_COVERAGE)",
+						"test/crsf-meta-derivation.test.mjs (EV-META-DERIVATION, behavioural, PARTIAL, not counted)",
+						"security/mutation/cases.json (EV-KB-META-CONC: MUT-CR-VERIFY-004-P1-2WIGNOREONE, MUT-CR-VERIFY-004-P1-2WNOUSE, MUT-CR-VERIFY-004-P1-2WNOOVERLAP, MUT-CR-VERIFY-004-P1-2WNOTRUNOK, MUT-CR-VERIFY-004-P1-2WDECLARED, MUT-CR-VERIFY-004-P1-2WHARDCODED; not counted, but required KILLED by the rule)"
+					],
+					"reason": "Why a meta-control: P1 \"each concurrency control has a real-Postgres test\" does not describe an application behaviour that a test could exercise; its subject is the completeness of the framework's concurrency evidence, i.e. a property of the evidence graph over CR-CONC-001..006 and CR-RESOURCE-002 (and any concurrency property added later). Why duplicating application evidence is rejected: listing the application DB tests again as covers of CR-VERIFY-004 (strategy B of Phase 2T) would be a relabel - each item would vouch for one control, and nothing would check that ALL concurrency properties are covered, that a newly added one is included, or that the mutation proofs ran; it is now a framework error (META_PROPERTY_DIRECT_EVIDENCE). Why derived coverage is the correct subject: the engine already knows, per run, which concurrency property has real-system evidence that passed with runner-observed use and overlap; computing P1 from exactly that graph tests the claim itself instead of a proxy. Status: recomputed by the engine; in DECLARED mode PASS_AUTOMATED from the recorded claims, in security:verify only from the observed run (full environment: expected PASS_AUTOMATED; without Postgres: MISSING_EVIDENCE).",
+					"rationale": "The control was unclosable by construction: E5 real-system demands an observed Postgres run, but the property is about all concurrency controls, so any single item covering it would either be a relabelled application test or framework evidence below E5. Phases 2T, 2U and 2V recorded this as REVIEWED_NOT_CLOSED and deferred it to a versioned framework decision; this is that decision.",
+					"why_not_weakening": "E5 is preserved: the derived property is satisfied only at the meta control's own minimum (E5) and type (real-system) - every underlying property must have real-system evidence at >= E5 that passed in the same run with runner-observed, server-confirmed Postgres use and overlap; lowering CR-VERIFY-004 below a real-system level is a framework error. Not a threshold reduction: minimum_evidence_level, required type, release class, property text and derivation of CR-VERIFY-004 are unchanged (lock entry identical). Stricter than a separate evidence item: one item would prove one test file; the rule fails if ANY canonical property lacks observed E5 evidence, if any of its mutation cases did not run or did not end as declared (even for CR-CONC-006, whose own minimum is E3), if its control is not PASS_AUTOMATED, if a violation or open finding exists, if a capability is missing, if a new concurrency property is not covered, or if the rule's own mutation cases were not killed in the run.",
+					"why_sufficient": "Fifteen canonical concurrency properties; each has real-system evidence (EV-H2-DB, EV-M1-DB, EV-L1-DB, EV-L5-DB, EV-REVOKE-DB, EV-LOCKS-DB, EV-RL-DB) observed with Postgres use and overlap in the Phase 2V full runs; the rule is tested (M1-M10) and six weakenings are KILLED.",
+					"remains_unproven": "that the overlapping statements are the ones relevant to each race (mutation cases of the underlying controls); the hosted deployment"
+				},
+				{
+					"id": "F-2W-1",
+					"kind": "NEW_FINDING",
+					"finding_class": "FRAMEWORK",
+					"reason": "Framework self-test robustness (Low: fails closed, but blocks an honest closure). Findings fixture Z6 (\"unmapped open finding hidden by editing control statuses to PASS\") sets every release-blocking status to PASS_AUTOMATED and expects STATUS_NOT_RECOMPUTABLE; that code only appears while some release-blocking control is honestly not PASS. Demonstrated in Phase 2W: with the meta derivation every release-blocking control recomputes to PASS_AUTOMATED, Z6 is no longer rejected, the self-test reports 98/99 and FRAMEWORK_VALID would be NO. Same class as F-2T-2 (fixture N); N-ALL did not catch it because it ran only the definition fixtures."
+				},
+				{
+					"id": "F-2W-1",
+					"kind": "FRAMEWORK_FIX",
+					"reason": "Z6 now uses forgeAllReleaseBlockingPass (security/crsf/lib/selftest-states.mjs): it first makes sure one release-blocking control is honestly open (forgedPassTarget: an open one, or one stripped of its evidence and regenerated) and only then forges PASS everywhere. N-ALL runs the findings fixtures as well as the definition fixtures in the all-satisfied state. Mutation 2WZ6OPEN (the old Z6) KILLED."
+				},
+				{
+					"id": "F-2W-1",
+					"kind": "FINDING_FIXED",
+					"reason": "Framework finding F-2W-1 fixed (Low). Proof: self-test 99/99 with all 54 release-blocking controls satisfied, N-ALL, test \"META all-closed state\" (every definition and findings fixture rejected in the all-satisfied state), mutation MUT-CR-VERIFY-003-P1-2WZ6OPEN KILLED."
+				}
+			]
 		}
 	]
 }

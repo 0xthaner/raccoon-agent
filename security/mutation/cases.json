@@ -11147,6 +11147,242 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-004-P1-2WIGNOREONE",
+			"origin": "CRSF Phase 2W (CR-VERIFY-004 meta derivation)",
+			"evidence_id": "EV-KB-META-CONC",
+			"targets": [
+				{
+					"control": "CR-VERIFY-004",
+					"property": "P1"
+				}
+			],
+			"description": "A: the derivation tolerates one failing concurrency property (one missing control is ignored)",
+			"edits": [
+				{
+					"file": "security/crsf/lib/engine.mjs",
+					"find": "ok: failing.length === 0, level: meta.minimum_evidence_level",
+					"replace": "ok: failing.length <= 1, level: meta.minimum_evidence_level"
+				}
+			],
+			"tests": [
+				"test/crsf-meta-derivation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^META M1 one concurrency property without evidence: not PASS$",
+					"message": "CR-VERIFY-004 must not pass"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-004-P1-2WNOUSE",
+			"origin": "CRSF Phase 2W (CR-VERIFY-004 meta derivation)",
+			"evidence_id": "EV-KB-META-CONC",
+			"targets": [
+				{
+					"control": "CR-VERIFY-004",
+					"property": "P1"
+				}
+			],
+			"description": "B: missing runner-observed Postgres use is ignored by the derivation",
+			"edits": [
+				{
+					"file": "security/crsf/lib/engine.mjs",
+					"find": "\tif (!use.postgres_use) return no('runner observed no Postgres use');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/crsf-meta-derivation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^META M3b overlapping connections without any completed statement: no Postgres use, not PASS$",
+					"message": "CR-VERIFY-004 must not pass"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-004-P1-2WNOOVERLAP",
+			"origin": "CRSF Phase 2W (CR-VERIFY-004 meta derivation)",
+			"evidence_id": "EV-KB-META-CONC",
+			"targets": [
+				{
+					"control": "CR-VERIFY-004",
+					"property": "P1"
+				}
+			],
+			"description": "C: missing runner-observed overlap is ignored by the derivation",
+			"edits": [
+				{
+					"file": "security/crsf/lib/engine.mjs",
+					"find": "\tif (!use.concurrency) return no('runner observed no concurrent execution');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/crsf-meta-derivation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^META M3 Postgres use observed but no overlap: not PASS, while the E3 control itself still passes$",
+					"message": "CR-VERIFY-004 must not pass"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-004-P1-2WNOTRUNOK",
+			"origin": "CRSF Phase 2W (CR-VERIFY-004 meta derivation)",
+			"evidence_id": "EV-KB-META-CONC",
+			"targets": [
+				{
+					"control": "CR-VERIFY-004",
+					"property": "P1"
+				}
+			],
+			"description": "D: a NOT_RUN mutation of a concurrency property is accepted",
+			"edits": [
+				{
+					"file": "security/crsf/lib/engine.mjs",
+					"find": "\t\t.map((m) => [m, outcomes.mutations[m.id]?.result ?? 'NOT_RUN']).filter(([m, res]) => !mutationHolds(m, res));\n\tif (bad.length)",
+					"replace": "\t\t.map((m) => [m, outcomes.mutations[m.id]?.result ?? 'NOT_RUN']).filter(([m, res]) => res !== 'NOT_RUN' && !mutationHolds(m, res));\n\tif (bad.length)"
+				}
+			],
+			"tests": [
+				"test/crsf-meta-derivation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^META M4 one required mutation NOT_RUN: not PASS$",
+					"message": "CR-VERIFY-004 must not pass"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-004-P1-2WDECLARED",
+			"origin": "CRSF Phase 2W (CR-VERIFY-004 meta derivation)",
+			"evidence_id": "EV-KB-META-CONC",
+			"targets": [
+				{
+					"control": "CR-VERIFY-004",
+					"property": "P1"
+				}
+			],
+			"description": "E: declared E5 is accepted instead of observed E5 (the observed-run checks are skipped in every mode)",
+			"edits": [
+				{
+					"file": "security/crsf/lib/engine.mjs",
+					"find": "\tif (outcomes.mode === 'DECLARED') return { id: e.id, ok: true };",
+					"replace": "\tif (outcomes.mode) return { id: e.id, ok: true };"
+				}
+			],
+			"tests": [
+				"test/crsf-meta-derivation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^META M8 declared E5 metadata without a runner observation: not PASS$",
+					"message": "CR-VERIFY-004 must not pass"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-004-P1-2WHARDCODED",
+			"origin": "CRSF Phase 2W (CR-VERIFY-004 meta derivation)",
+			"evidence_id": "EV-KB-META-CONC",
+			"targets": [
+				{
+					"control": "CR-VERIFY-004",
+					"property": "P1"
+				}
+			],
+			"description": "F: the canonical concurrency set is hard-coded to the current properties, so a new concurrency property is missed",
+			"edits": [
+				{
+					"file": "security/crsf/lib/engine.mjs",
+					"find": "\treturn [...keys].filter((k) => !meta.has(k)).sort();",
+					"replace": "\treturn ['CR-CONC-001.P1', 'CR-CONC-001.P2', 'CR-CONC-001.P3', 'CR-CONC-002.P1', 'CR-CONC-002.P2', 'CR-CONC-003.P1', 'CR-CONC-003.P2', 'CR-CONC-003.P3', 'CR-CONC-004.P1', 'CR-CONC-004.P2', 'CR-CONC-005.P1', 'CR-CONC-006.P1', 'CR-CONC-006.P2', 'CR-CONC-006.P3', 'CR-RESOURCE-002.P1'];"
+				}
+			],
+			"tests": [
+				"test/crsf-meta-derivation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^META M7 a new concurrency property joins the canonical set automatically; unmarked it is a framework error$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-VERIFY-003-P1-2WZ6OPEN",
+			"origin": "CRSF Phase 2W (F-2W-1)",
+			"evidence_id": "EV-KB-VERIFY-003",
+			"targets": [
+				{
+					"control": "CR-VERIFY-003",
+					"property": "P1"
+				}
+			],
+			"description": "F-2W-1 reintroduced: fixture Z6 forges PASS on every release-blocking control without first making sure one is honestly open",
+			"edits": [
+				{
+					"file": "security/crsf/lib/selftest-states.mjs",
+					"find": "\tforgedPassTarget(d);\n\tfor (const c of d.controls.controls",
+					"replace": "\tfor (const c of d.controls.controls"
+				}
+			],
+			"tests": [
+				"test/crsf-meta-derivation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^META all-closed state: every definition and findings fixture is still rejected \\(no fixture needs an open control, F-2W-1\\)$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

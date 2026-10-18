@@ -39,15 +39,29 @@ export function forgedPassTarget(d) {
 }
 
 /**
+ * Fixture Z6 state (Phase 2W, F-2W-1): every release-blocking status edited to
+ * PASS_AUTOMATED while at least one of them honestly is not - taken from the
+ * definition if one is open, otherwise built by forgedPassTarget. Without that,
+ * the forged statuses would equal the recomputation once nothing is open and the
+ * fixture could not show the edit.
+ */
+export function forgeAllReleaseBlockingPass(d) {
+	forgedPassTarget(d);
+	for (const c of d.controls.controls.filter((x) => x.release_class === 'RELEASE_BLOCKING')) c.security_status = 'PASS_AUTOMATED';
+}
+
+/**
  * Phase 2U (F-2T-2): synthetic state in which every release-blocking control is
  * satisfied. Each open one gets a declared real-system item covering all of its
- * properties; computed fields are regenerated. Used to prove the self-test stays
+ * properties (meta-derived controls excepted); computed fields are regenerated. Used to prove the self-test stays
  * valid once nothing is open - never written to the repository.
  */
 export function allReleaseControlsSatisfied(base) {
 	const d = clone(base);
 	const template = d.evidence.evidence.find((e) => e.type === 'real-system');
-	for (const c of d.controls.controls.filter((x) => x.release_class === 'RELEASE_BLOCKING' && !x.security_status.startsWith('PASS'))) {
+	// Phase 2W: meta-derived controls are never covered directly - they follow from the others once those are satisfied.
+	const meta = new Set((d.profile.meta_control_derivation?.rules ?? []).map((r) => r.control));
+	for (const c of d.controls.controls.filter((x) => x.release_class === 'RELEASE_BLOCKING' && !x.security_status.startsWith('PASS') && !meta.has(x.id))) {
 		d.evidence.evidence.push({ ...clone(template), id: `EV-SYNTH-${c.id}`, covers: [{ control: c.id, properties: c.properties.map((p) => p.id), scope: 'FULL', result: 'SUPPORTS', note: 'synthetic self-test state' }], control_ids: [c.id], coverage: 'FULL', reason_for_partial: null });
 	}
 	Object.assign(d, generate(d));

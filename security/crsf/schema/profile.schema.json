@@ -473,6 +473,52 @@
 				}
 			}
 		},
+		"meta_control_derivation": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"description",
+				"rules"
+			],
+			"properties": {
+				"description": {
+					"type": "string",
+					"minLength": 80
+				},
+				"rules": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": [
+							"control",
+							"property",
+							"rule",
+							"definition"
+						],
+						"properties": {
+							"control": {
+								"type": "string",
+								"pattern": "^CR-[A-Z]+-[0-9]{3}$"
+							},
+							"property": {
+								"type": "string",
+								"pattern": "^P[0-9]+$"
+							},
+							"rule": {
+								"enum": [
+									"OBSERVED_CONCURRENCY_COVERAGE"
+								]
+							},
+							"definition": {
+								"type": "string",
+								"minLength": 80
+							}
+						}
+					}
+				}
+			}
+		},
 		"real_system_observation": {
 			"type": "object",
 			"additionalProperties": false,

@@ -1,6 +1,6 @@
 {
 	"id": "CRSF-1.0/COVER-RACCOON-PROFILE",
-	"crsf_version": "1.0-draft-phase2v",
+	"crsf_version": "1.0-draft-phase2w",
 	"asvs_target": {
 		"baseline": "ASVS L2 (all applicable L1 + L2 requirements are in scope)",
 		"selected_l3": [
@@ -332,5 +332,16 @@
 				}
 			]
 		}
+	},
+	"meta_control_derivation": {
+		"description": "Meta-derived properties are statements about the framework's own evidence graph. They are never satisfied by an evidence item of their own (a real-system item covering one is a framework error, META_PROPERTY_DIRECT_EVIDENCE); the engine computes them in the same evaluation from the underlying properties, at the meta control's own minimum level and type, which must stay a real-system level (META_RULE_NOT_REAL_SYSTEM). DECLARED mode (generator, recorded statuses) takes the underlying claims as recorded; security:verify recomputes them from the observed run only.",
+		"rules": [
+			{
+				"control": "CR-VERIFY-004",
+				"property": "P1",
+				"rule": "OBSERVED_CONCURRENCY_COVERAGE",
+				"definition": "Canonical set: every property listed in real_system_observation.concurrency.properties plus every property the concurrency classifier finds (domain CR-CONC or text naming concurrency), minus meta-derived properties; an unlisted classified property is also a framework error (CONCURRENCY_CLAIM_UNMARKED). P1 holds only if the set is non-empty and EVERY member (A) belongs to a control that is PASS_AUTOMATED with the property satisfied at the control's own required level, (B) has reproducible real-system evidence with FULL scope at >= the meta control's minimum (E5) that (C) passed in the current run, (H) with each of its capabilities available and runner-observed, (D) with runner-observed, server-confirmed Postgres use and (E) observed overlapping execution, (F) has every mutation case targeting it ended as declared in this run (NOT_RUN, SURVIVED, KILLED_OTHER, INVALID, mismatch or a declared SURVIVED gap fail), and (G) carries no VIOLATION and no OPEN finding; and the rule's own known-bad cases were KILLED in this run."
+			}
+		]
 	}
 }

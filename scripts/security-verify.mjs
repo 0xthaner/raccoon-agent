@@ -67,7 +67,8 @@ log(`framework: ${framework.length ? `INVALID (${framework.length} error(s))` : 
 const caps = detectCapabilities();
 const env = childEnv(caps);
 const items = def.evidence?.evidence ?? [];
-const observed = { mode: 'OBSERVED', evidence: {}, mutations: {}, observations: {} };
+// Phase 2W: the capabilities of this run are part of the observed outcomes (meta-derived properties check them).
+const observed = { mode: 'OBSERVED', evidence: {}, mutations: {}, observations: {}, capabilities: caps };
 const evidenceResults = [];
 let guard = { tests: 0, pass: 0, failed: [], cancelled: [], todo: [], unexpected_skips: [], allowed_skips: [] };
 let mutationRun = { results: {}, baseline: { ok: true, reason: 'not run' } };

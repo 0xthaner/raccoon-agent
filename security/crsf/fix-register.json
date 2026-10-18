@@ -3106,6 +3106,31 @@
 			],
 			"evidence_level": "E4",
 			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F-2W-1",
+			"classification": "FRAMEWORK_FIX",
+			"tags": [
+				"F-2W-1"
+			],
+			"origin": "F-2W-1 (CRSF 2W, found and fixed in 2W)",
+			"files": [
+				"security/crsf/lib/selftest-states.mjs",
+				"security/crsf/selftest/framework-selftest.mjs"
+			],
+			"bug": "findings fixture Z6 forged PASS on every release-blocking control and expected STATUS_NOT_RECOMPUTABLE, which only appears while some control is honestly open; with every release-blocking control satisfied the self-test failed (98/99) and the framework became invalid",
+			"invariant": "every definition and findings fixture is rejected both while a release-blocking control is open and when every release-blocking control is satisfied",
+			"tests": [
+				{
+					"file": "test/crsf-meta-derivation.test.mjs",
+					"test": "^META all-closed state: every definition and findings fixture is still rejected \\(no fixture needs an open control, F-2W-1\\)$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-VERIFY-003-P1-2WZ6OPEN"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
 		}
 	],
 	"tag_classifications": [
