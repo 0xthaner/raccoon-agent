@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2w
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2x
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -11,19 +11,19 @@
 - FAIL: 19
 - INFORMATIONAL: 2
 - MISSING_EVIDENCE: 44
-- PASS_AUTOMATED: 58
+- PASS_AUTOMATED: 63
 - PASS_MANUAL: 24
 
 ### Release classes
 
 - INFORMATIONAL: 2
 - MANUAL_ASSURANCE: 30
-- RELEASE_BLOCKING: 54
+- RELEASE_BLOCKING: 59
 - SECURITY_DEBT: 61
 
 ### Release-blocking controls by security status
 
-- PASS_AUTOMATED: 54
+- PASS_AUTOMATED: 59
 
 ### Standard conformance (ASVS 5.0.0, applicable requirements)
 
@@ -251,6 +251,11 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-VERIFY-010 | Release-blocking controls not weakened to preserve release | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
 | CR-VERIFY-011 | Controls derived from pinned sources before results | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
 | CR-VERIFY-012 | Machine-readable status preserves FAIL and MISSING_EVIDENCE | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
+| CR-NEXUS-001 | Nexus product identity pinned and validated | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
+| CR-NEXUS-002 | Position to Nexus product mapping fails closed | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
+| CR-NEXUS-003 | Nexus API responses structurally validated | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
+| CR-NEXUS-004 | Nexus API failure cannot create availability | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
+| CR-NEXUS-005 | Only an explicitly supported product and chain becomes AVAILABLE | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
 
 ## 5. Evidence
 
@@ -383,10 +388,12 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-KB-LOCKS-DB | known-bad | E4 | mutation | FULL | yes | A session-level advisory lock (P1), a second advisory lock in one operation (P2) and an unbounded try-lock/sleep retry loop (P3) are each detected by the real-Postgres lock test. |
 | EV-META-DERIVATION | behavioral | E3 | node-test | PARTIAL | yes | The derivation of CR-VERIFY-004 P1 from the real definition: PASS only when every canonical concurrency property is genuinely satisfied and observed (M9); not PASS for a property without evidence (M1), a missing postgres capability (M2), use without overlap (M3), overlap without a completed statement (M3b), a NOT_RUN / SURVIVED / KILLED_OTHER / INVALID mutation or a declared gap (M4, M5), a VIOLATION or open finding (M6), a new marked or unmarked concurrency property without evidence (M7), declared metadata without a runner observation, a fake-upstream receipt or a failed run (M8), the reduced environment (M10), an unkilled rule mutation; a relabelled real-system item covering CR-VERIFY-004 is a framework error and not counted; lowering the meta control below a real-system level is a framework error. |
 | EV-KB-META-CONC | known-bad | E4 | mutation | FULL | yes | Each weakening of the derivation is detected by the meta-derivation tests: tolerating one failing property (A), ignoring missing Postgres use (B) or overlap (C), accepting a NOT_RUN mutation (D), accepting declared instead of observed E5 (E), hard-coding the current concurrency set (F). |
+| EV-NEXUS-READ | behavioral | E3 | node-test | FULL | yes | Offline, against captured Nexus responses: product 97 is AVAILABLE for an Aave v3 Ethereum Core position only with its exact pinned identity and wording; renamed, similarly named, re-typed, private, deprecated, re-categorised, re-worded or annexed products are UNAVAILABLE; wrong chain, Aave v2, look-alike protocol keys and another market address are AMBIGUOUS; Lido/Prime and EtherFi are PROBABLE and never read; malformed, mismatched, inflated or zero capacity, timeouts, network/HTTP errors and redirected responses are UNAVAILABLE; only GET on three allowlisted paths, bounded size, failures not cached; only ETH/USDC/cbBTC capacity reported with timestamp; exposure AAVE_NET_EXPOSURE_V1 exact and disclaimed; no purchase fields. |
+| EV-KB-NEXUS-READ | known-bad | E4 | mutation | FULL | yes | Each listed weakening of the read-only Nexus integration is detected by its intended test: renamed or similar product name, wrong product type, changed wording, wrong chain, Aave v2 as v3, similar protocol key, malformed or fake-high capacity, followed redirect, missing capacity, API timeout, stale data after failure, ambiguous deployment accepted. |
 
 ## 6. Mutation cases
 
-314 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+328 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -704,6 +711,20 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-VERIFY-004-P1-2WDECLARED | CR-VERIFY-004.P1 | behavioral | KILLED |
 | MUT-CR-VERIFY-004-P1-2WHARDCODED | CR-VERIFY-004.P1 | behavioral | KILLED |
 | MUT-CR-VERIFY-003-P1-2WZ6OPEN | CR-VERIFY-003.P1 | behavioral | KILLED |
+| MUT-CR-NEXUS-001-P1-NXRENAMED | CR-NEXUS-001.P1 | behavioral | KILLED |
+| MUT-CR-NEXUS-001-P1-NXSIMILARNAME | CR-NEXUS-001.P1 | behavioral | KILLED |
+| MUT-CR-NEXUS-001-P1-NXPRODTYPE | CR-NEXUS-001.P1 | behavioral | KILLED |
+| MUT-CR-NEXUS-001-P2-NXWORDING | CR-NEXUS-001.P2 | behavioral | KILLED |
+| MUT-CR-NEXUS-002-P1-NXCHAIN | CR-NEXUS-002.P1 | behavioral | KILLED |
+| MUT-CR-NEXUS-002-P1-NXAAVEV2 | CR-NEXUS-002.P1 | behavioral | KILLED |
+| MUT-CR-NEXUS-002-P2-NXPROTONAME | CR-NEXUS-002.P2 | behavioral | KILLED |
+| MUT-CR-NEXUS-003-P1-NXMALFORMED | CR-NEXUS-003.P1 | behavioral | KILLED |
+| MUT-CR-NEXUS-003-P2-NXFAKEHIGH | CR-NEXUS-003.P2 | behavioral | KILLED |
+| MUT-CR-NEXUS-003-P3-NXREDIRECT | CR-NEXUS-003.P3 | behavioral | KILLED |
+| MUT-CR-NEXUS-004-P1-NXMISSINGCAP | CR-NEXUS-004.P1 | behavioral | KILLED |
+| MUT-CR-NEXUS-004-P1-NXTIMEOUT | CR-NEXUS-004.P1 | behavioral | KILLED |
+| MUT-CR-NEXUS-004-P2-NXSTALE | CR-NEXUS-004.P2 | behavioral | KILLED |
+| MUT-CR-NEXUS-005-P1-NXAMBIGUOUS | CR-NEXUS-005.P1 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -726,9 +747,9 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V2.1.1 | L1 | CR-INPUT-009 | NON_CONFORMANT |
 | V2.1.2 | L2 | CR-INPUT-009 | NON_CONFORMANT |
 | V2.1.3 | L2 | CR-RESOURCE-005 | NON_CONFORMANT |
-| V2.2.1 | L1 | CR-API-003 | CONFORMANT |
+| V2.2.1 | L1 | CR-API-003, CR-NEXUS-001, CR-NEXUS-003 | CONFORMANT |
 | V2.2.2 | L1 | CR-API-003 | CONFORMANT |
-| V2.2.3 | L2 | CR-INPUT-010 | CONFORMANT |
+| V2.2.3 | L2 | CR-INPUT-010, CR-NEXUS-001, CR-NEXUS-002 | CONFORMANT |
 | V2.3.1 | L1 | CR-API-009 | CONFORMANT |
 | V2.3.2 | L2 | CR-CONC-002 | CONFORMANT |
 | V2.3.3 | L2 | CR-CONC-001, CR-CONC-004 | CONFORMANT |
@@ -847,7 +868,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V15.2.2 | L2 | CR-RESOURCE-001, CR-RESOURCE-003, CR-RESOURCE-004, CR-RESOURCE-007, CR-DOC-003 | CONFORMANT |
 | V15.2.3 | L2 | CR-CONFIG-008 | CONFORMANT |
 | V15.3.1 | L1 | CR-API-007 | NOT_DEMONSTRATED |
-| V15.3.2 | L2 | CR-PROVIDER-003 | CONFORMANT |
+| V15.3.2 | L2 | CR-PROVIDER-003, CR-NEXUS-003 | CONFORMANT |
 | V15.3.3 | L2 | CR-API-003 | CONFORMANT |
 | V15.3.4 | L2 | CR-API-011 | NOT_DEMONSTRATED |
 | V15.3.5 | L2 | CR-INPUT-011 | NOT_DEMONSTRATED |
@@ -869,8 +890,8 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V16.4.2 | L2 | CR-LOG-008 | NOT_DEMONSTRATED |
 | V16.4.3 | L2 | CR-LOG-009 | NOT_DEMONSTRATED |
 | V16.5.1 | L2 | CR-API-006 | NOT_DEMONSTRATED |
-| V16.5.2 | L2 | CR-RESOURCE-003, CR-PROVIDER-001, CR-PROVIDER-002 | NOT_DEMONSTRATED |
-| V16.5.3 | L2 | CR-AUTH-005, CR-API-006, CR-PROVIDER-001 | NOT_DEMONSTRATED |
+| V16.5.2 | L2 | CR-RESOURCE-003, CR-PROVIDER-001, CR-PROVIDER-002, CR-NEXUS-004 | NOT_DEMONSTRATED |
+| V16.5.3 | L2 | CR-AUTH-005, CR-API-006, CR-PROVIDER-001, CR-NEXUS-002, CR-NEXUS-004, CR-NEXUS-005 | NOT_DEMONSTRATED |
 
 ## 8. Pinned sources
 
@@ -893,6 +914,9 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | SRC-ETH-YP | [Ethereum Yellow Paper (Paper.tex)](https://github.com/ethereum/yellowpaper/blob/efc5f9a1f356cba376c978eedb63cb0363c2aa85/Paper.tex) | master @ efc5f9a1 | git commit efc5f9a1f356cba376c978eedb63cb0363c2aa85, sha256 e24873bc2edc6f41fad1c319299f2ceff4e21b243a0fba83a61cfed4a11eb618 |
 | SRC-ETH-EXECSPECS | [Ethereum execution-specs: crypto/elliptic_curve.py and crypto/hash.py](https://github.com/ethereum/execution-specs/tree/2004296f2ffcbcebcd00f41152d33e8dfda0922a/src/ethereum/crypto) | v2.20.0 | git tag v2.20.0 = 2004296f2ffcbcebcd00f41152d33e8dfda0922a; elliptic_curve.py sha256 216673ca717b6b6fcbc4d11009ed7e5126ed9fe65021834960b68147f660480b; hash.py sha256 a91044ec31477542dfeea97c9480456146332ac64cc0a9b5150264e19bb6440b |
 | SRC-VERCEL-ENC | [Vercel docs: Encryption (HTTPS redirection)](https://vercel.com/docs/cdn-security/encryption) | unversioned web page | unversioned page; pinned by retrieval date + normative quote: "HTTPS redirection is an industry standard and can't be disabled." |
+| SRC-NEXUS-API | [Nexus Mutual public API v2: products, product-types, capacity](https://api.nexusmutual.io/v2/products/97) | v2 (responses of 2026-10-18) | unversioned API; pinned by captured responses in test/fixtures/nexus (sha256 product-97 8382d2eca21ade50ebfa4b33405bc45726a60c1c469d39c8932041645f11fb51, product-type-0 da46bb115687d0ee1e0e250d9d2ff238540d5663eb07c43b206232738b7e7f25, capacity-97 7391051f6d37c0d0b729470ba13acda8311a234c5bc3cf53b45ce4515c2fb44a) and by the identity constants in src/nexus-pinned.mjs |
+| SRC-NEXUS-CONTRACTS | [NexusMutual/smart-contracts (Cover.sol cover period limits)](https://github.com/NexusMutual/smart-contracts/tree/v3.4.0) | v3.4.0 | git tag v3.4.0 = commit 67f531208b693f8edbc6ea46528f164046ed1f0b; MIN_COVER_PERIOD 28 days, MAX_COVER_PERIOD 365 days; mainnet addresses from @nexusmutual/sdk 3.1.1 data/addresses.json (SDK not used, GPL-3.0 review open) |
+| SRC-NEXUS-WORDING | [Single Protocol Cover wording (product type 0)](https://api.nexusmutual.io/ipfs/QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY) | IPFS QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY | content-addressed IPFS CID QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY; PDF sha256 9d831f51fc158b385d0daaa8aa4ae0294990a8e68f60aa8884611dc39e62003b |
 
 ## 9. Drift model
 
@@ -914,7 +938,11 @@ Drift output only prioritises review. security:verify always evaluates every con
 | `api/alerts*` | CR-API, CR-RESOURCE |
 | `src/alerts*` | CR-RESOURCE, CR-TELEGRAM, CR-PROVIDER |
 | `src/bot.mjs` | CR-TELEGRAM, CR-API, CR-INPUT |
-| `src/nexus*` | CR-DOC, CR-PROVIDER |
+| `src/nexus*` | CR-DOC, CR-NEXUS, CR-PROVIDER |
+| `src/positions/nexus-mapping.mjs` | CR-NEXUS |
+| `src/positions/exposure.mjs` | CR-NEXUS |
+| `src/positions/aave-registry.mjs` | CR-NEXUS |
+| `scripts/nexus-live-probe.mjs` | CR-NEXUS, CR-PROVIDER |
 | `src/pdf-text.mjs` | CR-DOC |
 | `src/agent-*.mjs` | CR-DOC, CR-PRIV |
 | `src/positions/*` | CR-PROVIDER, CR-RESOURCE |
@@ -961,4 +989,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2u** — Phase 2U: framework findings F-2T-1 (fake E5 via declared metadata) and F-2T-2 (fixture N needs an open control) fixed. Real-system evidence is credited only from a runner-signed observation receipt (server-confirmed Postgres use; observed overlap for concurrency claims). All 8 existing real-system items revalidated with observed use, the 6 covering concurrency claims with observed overlap; no control lost PASS. CR-VERIFY-004 unchanged and still MISSING_EVIDENCE. No application change.
 - **1.0-draft-phase2v** — Phase 2V: real-Postgres concurrency evidence with runner-observed use and overlap for CR-RESOURCE-002 (rate limiter counting) and CR-CONC-006 (advisory locks); four KILLED mutations. No application change, no finding. CR-VERIFY-004 re-evaluated and left MISSING_EVIDENCE (see record).
 - **1.0-draft-phase2w** — Phase 2W: versioned meta-control derivation. CR-VERIFY-004 P1 is computed by the engine from the observed, runtime-verified coverage of every canonical concurrency property (rule OBSERVED_CONCURRENCY_COVERAGE) instead of requiring an evidence item of its own. Minimum level E5, type real-system, property text and derivation of CR-VERIFY-004 unchanged. Six KILLED rule mutations. No application change, no finding. Framework finding F-2W-1 (findings fixture Z6 needed an open release-blocking control; Low, fails closed) found once every release-blocking control was satisfied, recorded and fixed.
+- **1.0-draft-phase2x** — Nexus P1+P2: read-only Nexus product/capacity/wording integration and deterministic position -> product mapping. New domain CR-NEXUS with five RELEASE_BLOCKING controls (E3), behavioural evidence and 14 KILLED known-bad mutations; three pinned sources; drift rules for the new files. No purchase flow, no transaction, no deployment; no finding.
 

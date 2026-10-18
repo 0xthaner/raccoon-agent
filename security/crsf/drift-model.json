@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2w",
+	"crsf_version": "1.0-draft-phase2x",
 	"rules": [
 		{
 			"pattern": "src/*auth*",
@@ -120,6 +120,32 @@
 			"pattern": "src/nexus*",
 			"domains": [
 				"CR-DOC",
+				"CR-NEXUS",
+				"CR-PROVIDER"
+			]
+		},
+		{
+			"pattern": "src/positions/nexus-mapping.mjs",
+			"domains": [
+				"CR-NEXUS"
+			]
+		},
+		{
+			"pattern": "src/positions/exposure.mjs",
+			"domains": [
+				"CR-NEXUS"
+			]
+		},
+		{
+			"pattern": "src/positions/aave-registry.mjs",
+			"domains": [
+				"CR-NEXUS"
+			]
+		},
+		{
+			"pattern": "scripts/nexus-live-probe.mjs",
+			"domains": [
+				"CR-NEXUS",
 				"CR-PROVIDER"
 			]
 		},

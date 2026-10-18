@@ -11383,6 +11383,479 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-001-P1-NXRENAMED",
+			"origin": "new (Nexus P1+P2)",
+			"evidence_id": "EV-KB-NEXUS-READ",
+			"targets": [
+				{
+					"control": "CR-NEXUS-001",
+					"property": "P1"
+				}
+			],
+			"description": "product 97 renamed: the exact name check is dropped, any product with id 97 is accepted",
+			"edits": [
+				{
+					"file": "src/nexus-read-model.mjs",
+					"find": "\tif (product.name !== pinned.name) return fail('PRODUCT_NAME_MISMATCH');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/nexus-read-model.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NEXUS-MODEL renamed product 97 is never AVAILABLE$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-001-P1-NXSIMILARNAME",
+			"origin": "new (Nexus P1+P2)",
+			"evidence_id": "EV-KB-NEXUS-READ",
+			"targets": [
+				{
+					"control": "CR-NEXUS-001",
+					"property": "P1"
+				}
+			],
+			"description": "similar product name: the name is compared case- and whitespace-insensitively",
+			"edits": [
+				{
+					"file": "src/nexus-read-model.mjs",
+					"find": "if (product.name !== pinned.name)",
+					"replace": "if (product.name.trim().toLowerCase() !== pinned.name.toLowerCase())"
+				}
+			],
+			"tests": [
+				"test/nexus-read-model.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NEXUS-MODEL similar product names are not accepted as Aave v3$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-001-P1-NXPRODTYPE",
+			"origin": "new (Nexus P1+P2)",
+			"evidence_id": "EV-KB-NEXUS-READ",
+			"targets": [
+				{
+					"control": "CR-NEXUS-001",
+					"property": "P1"
+				}
+			],
+			"description": "wrong product type: the product's own productType is no longer compared with the pinned type",
+			"edits": [
+				{
+					"file": "src/nexus-read-model.mjs",
+					"find": "\tif (product.productTypeId !== pinned.productTypeId) return fail('PRODUCT_TYPE_MISMATCH');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/nexus-read-model.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NEXUS-MODEL wrong product type is never AVAILABLE$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-001-P2-NXWORDING",
+			"origin": "new (Nexus P1+P2)",
+			"evidence_id": "EV-KB-NEXUS-READ",
+			"targets": [
+				{
+					"control": "CR-NEXUS-001",
+					"property": "P2"
+				}
+			],
+			"description": "changed wording: a different wording CID of the product type is accepted",
+			"edits": [
+				{
+					"file": "src/nexus-read-model.mjs",
+					"find": "\tif (productType.wordingCid !== pinned.wordingCid) return fail('TERMS_CHANGED');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/nexus-read-model.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NEXUS-MODEL changed wording CID or a new annex is TERMS_CHANGED$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-002-P1-NXCHAIN",
+			"origin": "new (Nexus P1+P2)",
+			"evidence_id": "EV-KB-NEXUS-READ",
+			"targets": [
+				{
+					"control": "CR-NEXUS-002",
+					"property": "P1"
+				}
+			],
+			"description": "wrong chain: the chain of the position is not checked",
+			"edits": [
+				{
+					"file": "src/positions/nexus-mapping.mjs",
+					"find": "\tif (position.chainId !== CHAIN_ID || position.chainId !== NEXUS_CHAIN_ID) return result('AMBIGUOUS', 'CHAIN_CONFLICT');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/nexus-read-model.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NEXUS-MAP wrong chain is AMBIGUOUS, never EXACT$"
+				},
+				{
+					"test": "^NEXUS-MODEL wrong chain position never reaches the Nexus API$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-002-P1-NXAAVEV2",
+			"origin": "new (Nexus P1+P2)",
+			"evidence_id": "EV-KB-NEXUS-READ",
+			"targets": [
+				{
+					"control": "CR-NEXUS-002",
+					"property": "P1"
+				}
+			],
+			"description": "Aave v2 mapped as v3: the protocol version of the position is not checked",
+			"edits": [
+				{
+					"file": "src/positions/nexus-mapping.mjs",
+					"find": "if (position.protocolKey !== market.protocolKey || position.protocolVersion !== market.protocolVersion)",
+					"replace": "if (position.protocolKey !== market.protocolKey)"
+				}
+			],
+			"tests": [
+				"test/nexus-read-model.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NEXUS-MAP Aave v2 is never mapped as v3$"
+				},
+				{
+					"test": "^NEXUS-MODEL Aave v2 position is never AVAILABLE$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-002-P2-NXPROTONAME",
+			"origin": "new (Nexus P1+P2)",
+			"evidence_id": "EV-KB-NEXUS-READ",
+			"targets": [
+				{
+					"control": "CR-NEXUS-002",
+					"property": "P2"
+				}
+			],
+			"description": "similar protocol name: the protocol key is matched by a lower-cased prefix instead of exactly",
+			"edits": [
+				{
+					"file": "src/positions/nexus-mapping.mjs",
+					"find": "if (position.protocolKey !== market.protocolKey ||",
+					"replace": "if (!String(position.protocolKey).toLowerCase().startsWith(market.protocolKey) ||"
+				}
+			],
+			"tests": [
+				"test/nexus-read-model.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NEXUS-MAP similar protocol identities are AMBIGUOUS, not matched by name$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-003-P1-NXMALFORMED",
+			"origin": "new (Nexus P1+P2)",
+			"evidence_id": "EV-KB-NEXUS-READ",
+			"targets": [
+				{
+					"control": "CR-NEXUS-003",
+					"property": "P1"
+				}
+			],
+			"description": "malformed capacity: signed amounts pass the capacity schema",
+			"edits": [
+				{
+					"file": "src/nexus-read-api.mjs",
+					"find": "typeof entry.amount !== 'string' || !DIGITS.test(entry.amount)",
+					"replace": "typeof entry.amount !== 'string' || !/^-?[0-9]+$/.test(entry.amount)"
+				}
+			],
+			"tests": [
+				"test/nexus-read-model.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NEXUS-CAP malformed capacity is UNAVAILABLE$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-003-P2-NXFAKEHIGH",
+			"origin": "new (Nexus P1+P2)",
+			"evidence_id": "EV-KB-NEXUS-READ",
+			"targets": [
+				{
+					"control": "CR-NEXUS-003",
+					"property": "P2"
+				}
+			],
+			"description": "fake high capacity: the total is no longer reconciled with the per-pool capacity",
+			"edits": [
+				{
+					"file": "src/nexus-read-api.mjs",
+					"find": "\t\tif (difference > BigInt(pools.length)) bad('CAPACITY_INCONSISTENT');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/nexus-read-model.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NEXUS-CAP fake high total capacity that disagrees with the pools is rejected$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-003-P3-NXREDIRECT",
+			"origin": "new (Nexus P1+P2)",
+			"evidence_id": "EV-KB-NEXUS-READ",
+			"targets": [
+				{
+					"control": "CR-NEXUS-003",
+					"property": "P3"
+				}
+			],
+			"description": "redirect followed: a response served from another URL than the pinned endpoint is accepted",
+			"edits": [
+				{
+					"file": "src/nexus-read-api.mjs",
+					"find": "\tif (response?.redirected === true || (typeof response?.url === 'string' && response.url !== '' && response.url !== url)) bad('REDIRECTED');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/nexus-read-model.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NEXUS-API network errors and HTTP errors never produce AVAILABLE$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-004-P1-NXMISSINGCAP",
+			"origin": "new (Nexus P1+P2)",
+			"evidence_id": "EV-KB-NEXUS-READ",
+			"targets": [
+				{
+					"control": "CR-NEXUS-004",
+					"property": "P1"
+				}
+			],
+			"description": "missing capacity: a failed capacity read no longer blocks availability",
+			"edits": [
+				{
+					"file": "src/nexus-read-model.mjs",
+					"find": "\t\treasons.push(`CAPACITY_UNAVAILABLE:${errorCode(capacity)}`);\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/nexus-read-model.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NEXUS-CAP missing capacity is UNAVAILABLE$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-004-P1-NXTIMEOUT",
+			"origin": "new (Nexus P1+P2)",
+			"evidence_id": "EV-KB-NEXUS-READ",
+			"targets": [
+				{
+					"control": "CR-NEXUS-004",
+					"property": "P1"
+				}
+			],
+			"description": "API timeout: the Nexus request is sent without a time limit, so a hanging API stalls the read model",
+			"edits": [
+				{
+					"file": "src/nexus-read-api.mjs",
+					"find": "redirect: 'error', signal: AbortSignal.timeout(timeoutMs) });",
+					"replace": "redirect: 'error' });"
+				}
+			],
+			"tests": [
+				"test/nexus-read-model.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NEXUS-API timeout makes the product UNAVAILABLE within the time budget$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-004-P2-NXSTALE",
+			"origin": "new (Nexus P1+P2)",
+			"evidence_id": "EV-KB-NEXUS-READ",
+			"targets": [
+				{
+					"control": "CR-NEXUS-004",
+					"property": "P2"
+				}
+			],
+			"description": "stale data after a failure: expired cached capacity is reused instead of re-read",
+			"edits": [
+				{
+					"file": "src/nexus-read-api.mjs",
+					"find": "if (hit && now - hit.at < TTL_MS[kind]) return hit.value;",
+					"replace": "if (hit) return hit.value;"
+				}
+			],
+			"tests": [
+				"test/nexus-read-model.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NEXUS-API failures are not cached; a later good read recovers$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-005-P1-NXAMBIGUOUS",
+			"origin": "new (Nexus P1+P2)",
+			"evidence_id": "EV-KB-NEXUS-READ",
+			"targets": [
+				{
+					"control": "CR-NEXUS-005",
+					"property": "P1"
+				}
+			],
+			"description": "ambiguous deployment accepted: a PROBABLE match (Lido/Prime, EtherFi) is read and can become AVAILABLE",
+			"edits": [
+				{
+					"file": "src/nexus-read-model.mjs",
+					"find": "\tif (staticMatch.status !== 'EXACT') return model(",
+					"replace": "\tif (staticMatch.status !== 'EXACT' && staticMatch.status !== 'PROBABLE') return model("
+				},
+				{
+					"file": "src/nexus-read-model.mjs",
+					"find": "\tif (match.status !== 'EXACT') return buildNexusReadModel(",
+					"replace": "\tif (match.status !== 'EXACT' && match.status !== 'PROBABLE') return buildNexusReadModel("
+				}
+			],
+			"tests": [
+				"test/nexus-read-model.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NEXUS-MODEL ambiguous deployments \\(Lido/Prime, EtherFi\\) are never AVAILABLE$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

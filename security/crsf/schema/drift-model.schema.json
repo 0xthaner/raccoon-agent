@@ -49,7 +49,8 @@
 								"CR-LOG",
 								"CR-SUPPLY",
 								"CR-PRIV",
-								"CR-VERIFY"
+								"CR-VERIFY",
+								"CR-NEXUS"
 							]
 						},
 						"minItems": 1

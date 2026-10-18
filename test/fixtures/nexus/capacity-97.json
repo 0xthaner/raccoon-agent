@@ -1,0 +1,443 @@
+{
+	"productId": 97,
+	"availableCapacity": [
+		{
+			"assetId": 0,
+			"amount": "3671271908207964819328",
+			"asset": {
+				"id": 0,
+				"symbol": "ETH",
+				"decimals": 18
+			}
+		},
+		{
+			"assetId": 1,
+			"amount": "8714943794695084704670023",
+			"asset": {
+				"id": 1,
+				"symbol": "DAI",
+				"decimals": 18
+			}
+		},
+		{
+			"assetId": 6,
+			"amount": "8712444805266",
+			"asset": {
+				"id": 6,
+				"symbol": "USDC",
+				"decimals": 6
+			}
+		},
+		{
+			"assetId": 7,
+			"amount": "10718953358",
+			"asset": {
+				"id": 7,
+				"symbol": "cbBTC",
+				"decimals": 8
+			}
+		},
+		{
+			"assetId": 255,
+			"amount": "142246080000000000000000",
+			"asset": {
+				"id": 255,
+				"symbol": "NXM",
+				"decimals": 18
+			}
+		}
+	],
+	"allocatedNxm": "91054530000000000000000",
+	"minAnnualPrice": "0.0374",
+	"maxAnnualPrice": "0.046798437579996054",
+	"capacityPerPool": [
+		{
+			"poolId": 1,
+			"availableCapacity": [
+				{
+					"assetId": 0,
+					"amount": "474672277262367786402",
+					"asset": {
+						"id": 0,
+						"symbol": "ETH",
+						"decimals": 18
+					}
+				},
+				{
+					"assetId": 1,
+					"amount": "1126787206361050822965615",
+					"asset": {
+						"id": 1,
+						"symbol": "DAI",
+						"decimals": 18
+					}
+				},
+				{
+					"assetId": 6,
+					"amount": "1126464102806",
+					"asset": {
+						"id": 6,
+						"symbol": "USDC",
+						"decimals": 6
+					}
+				},
+				{
+					"assetId": 7,
+					"amount": "1385892989",
+					"asset": {
+						"id": 7,
+						"symbol": "cbBTC",
+						"decimals": 8
+					}
+				},
+				{
+					"assetId": 255,
+					"amount": "18391520000000000000000",
+					"asset": {
+						"id": 255,
+						"symbol": "NXM",
+						"decimals": 18
+					}
+				}
+			],
+			"allocatedNxm": "10065410000000000000000",
+			"minAnnualPrice": "0.0572",
+			"maxAnnualPrice": "0.0572"
+		},
+		{
+			"poolId": 2,
+			"availableCapacity": [
+				{
+					"assetId": 0,
+					"amount": "1084863774617825657210",
+					"asset": {
+						"id": 0,
+						"symbol": "ETH",
+						"decimals": 18
+					}
+				},
+				{
+					"assetId": 1,
+					"amount": "2575272836522230294934665",
+					"asset": {
+						"id": 1,
+						"symbol": "DAI",
+						"decimals": 18
+					}
+				},
+				{
+					"assetId": 6,
+					"amount": "2574534383154",
+					"asset": {
+						"id": 6,
+						"symbol": "USDC",
+						"decimals": 6
+					}
+				},
+				{
+					"assetId": 7,
+					"amount": "3167459259",
+					"asset": {
+						"id": 7,
+						"symbol": "cbBTC",
+						"decimals": 8
+					}
+				},
+				{
+					"assetId": 255,
+					"amount": "42033830000000000000000",
+					"asset": {
+						"id": 255,
+						"symbol": "NXM",
+						"decimals": 18
+					}
+				}
+			],
+			"allocatedNxm": "38750760000000000000000",
+			"minAnnualPrice": "0.0374",
+			"maxAnnualPrice": "0.0374"
+		},
+		{
+			"poolId": 4,
+			"availableCapacity": [],
+			"allocatedNxm": "0",
+			"minAnnualPrice": "0.0",
+			"maxAnnualPrice": "0.0"
+		},
+		{
+			"poolId": 5,
+			"availableCapacity": [
+				{
+					"assetId": 0,
+					"amount": "1206174974458487803827",
+					"asset": {
+						"id": 0,
+						"symbol": "ETH",
+						"decimals": 18
+					}
+				},
+				{
+					"assetId": 1,
+					"amount": "2863243957897015172567240",
+					"asset": {
+						"id": 1,
+						"symbol": "DAI",
+						"decimals": 18
+					}
+				},
+				{
+					"assetId": 6,
+					"amount": "2862422929494",
+					"asset": {
+						"id": 6,
+						"symbol": "USDC",
+						"decimals": 6
+					}
+				},
+				{
+					"assetId": 7,
+					"amount": "3521649612",
+					"asset": {
+						"id": 7,
+						"symbol": "cbBTC",
+						"decimals": 8
+					}
+				},
+				{
+					"assetId": 255,
+					"amount": "46734120000000000000000",
+					"asset": {
+						"id": 255,
+						"symbol": "NXM",
+						"decimals": 18
+					}
+				}
+			],
+			"allocatedNxm": "0",
+			"minAnnualPrice": "0.045",
+			"maxAnnualPrice": "0.045"
+		},
+		{
+			"poolId": 8,
+			"availableCapacity": [
+				{
+					"assetId": 0,
+					"amount": "37345026311449825365",
+					"asset": {
+						"id": 0,
+						"symbol": "ETH",
+						"decimals": 18
+					}
+				},
+				{
+					"assetId": 1,
+					"amount": "88650422374887236008678",
+					"asset": {
+						"id": 1,
+						"symbol": "DAI",
+						"decimals": 18
+					}
+				},
+				{
+					"assetId": 6,
+					"amount": "88625002076",
+					"asset": {
+						"id": 6,
+						"symbol": "USDC",
+						"decimals": 6
+					}
+				},
+				{
+					"assetId": 7,
+					"amount": "109035670",
+					"asset": {
+						"id": 7,
+						"symbol": "cbBTC",
+						"decimals": 8
+					}
+				},
+				{
+					"assetId": 255,
+					"amount": "1446960000000000000000",
+					"asset": {
+						"id": 255,
+						"symbol": "NXM",
+						"decimals": 18
+					}
+				}
+			],
+			"allocatedNxm": "3112790000000000000000",
+			"minAnnualPrice": "0.0489",
+			"maxAnnualPrice": "0.0489"
+		},
+		{
+			"poolId": 13,
+			"availableCapacity": [],
+			"allocatedNxm": "0",
+			"minAnnualPrice": "0.0",
+			"maxAnnualPrice": "0.0"
+		},
+		{
+			"poolId": 15,
+			"availableCapacity": [],
+			"allocatedNxm": "0",
+			"minAnnualPrice": "0.0",
+			"maxAnnualPrice": "0.0"
+		},
+		{
+			"poolId": 17,
+			"availableCapacity": [],
+			"allocatedNxm": "0",
+			"minAnnualPrice": "0.0",
+			"maxAnnualPrice": "0.0"
+		},
+		{
+			"poolId": 19,
+			"availableCapacity": [],
+			"allocatedNxm": "0",
+			"minAnnualPrice": "0.0",
+			"maxAnnualPrice": "0.0"
+		},
+		{
+			"poolId": 21,
+			"availableCapacity": [],
+			"allocatedNxm": "0",
+			"minAnnualPrice": "0.0",
+			"maxAnnualPrice": "0.0"
+		},
+		{
+			"poolId": 22,
+			"availableCapacity": [
+				{
+					"assetId": 0,
+					"amount": "308609555975216313406",
+					"asset": {
+						"id": 0,
+						"symbol": "ETH",
+						"decimals": 18
+					}
+				},
+				{
+					"assetId": 1,
+					"amount": "732583966013738560241174",
+					"asset": {
+						"id": 1,
+						"symbol": "DAI",
+						"decimals": 18
+					}
+				},
+				{
+					"assetId": 6,
+					"amount": "732373899301",
+					"asset": {
+						"id": 6,
+						"symbol": "USDC",
+						"decimals": 6
+					}
+				},
+				{
+					"assetId": 7,
+					"amount": "901042341",
+					"asset": {
+						"id": 7,
+						"symbol": "cbBTC",
+						"decimals": 8
+					}
+				},
+				{
+					"assetId": 255,
+					"amount": "11957300000000000000000",
+					"asset": {
+						"id": 255,
+						"symbol": "NXM",
+						"decimals": 18
+					}
+				}
+			],
+			"allocatedNxm": "26224800000000000000000",
+			"minAnnualPrice": "0.055",
+			"maxAnnualPrice": "0.055"
+		},
+		{
+			"poolId": 23,
+			"availableCapacity": [
+				{
+					"assetId": 0,
+					"amount": "559606299582617433115",
+					"asset": {
+						"id": 0,
+						"symbol": "ETH",
+						"decimals": 18
+					}
+				},
+				{
+					"assetId": 1,
+					"amount": "1328405405526162617952649",
+					"asset": {
+						"id": 1,
+						"symbol": "DAI",
+						"decimals": 18
+					}
+				},
+				{
+					"assetId": 6,
+					"amount": "1328024488432",
+					"asset": {
+						"id": 6,
+						"symbol": "USDC",
+						"decimals": 6
+					}
+				},
+				{
+					"assetId": 7,
+					"amount": "1633873484",
+					"asset": {
+						"id": 7,
+						"symbol": "cbBTC",
+						"decimals": 8
+					}
+				},
+				{
+					"assetId": 255,
+					"amount": "21682350000000000000000",
+					"asset": {
+						"id": 255,
+						"symbol": "NXM",
+						"decimals": 18
+					}
+				}
+			],
+			"allocatedNxm": "12900770000000000000000",
+			"minAnnualPrice": "0.0478",
+			"maxAnnualPrice": "0.0478"
+		},
+		{
+			"poolId": 24,
+			"availableCapacity": [],
+			"allocatedNxm": "0",
+			"minAnnualPrice": "0.0",
+			"maxAnnualPrice": "0.0"
+		},
+		{
+			"poolId": 25,
+			"availableCapacity": [],
+			"allocatedNxm": "0",
+			"minAnnualPrice": "0.0",
+			"maxAnnualPrice": "0.0"
+		},
+		{
+			"poolId": 27,
+			"availableCapacity": [],
+			"allocatedNxm": "0",
+			"minAnnualPrice": "0.0",
+			"maxAnnualPrice": "0.0"
+		},
+		{
+			"poolId": 31,
+			"availableCapacity": [],
+			"allocatedNxm": "0",
+			"minAnnualPrice": "0.0",
+			"maxAnnualPrice": "0.0"
+		}
+	]
+}

@@ -1,0 +1,32 @@
+{
+	"id": 97,
+	"name": "Aave v3",
+	"minPrice": "50",
+	"coverAssets": [
+		{
+			"assetId": 0,
+			"assetSymbol": "ETH"
+		},
+		{
+			"assetId": 6,
+			"assetSymbol": "USDC"
+		},
+		{
+			"assetId": 7,
+			"assetSymbol": "cbBTC"
+		}
+	],
+	"initialPriceRatio": "100",
+	"capacityReductionRatio": "0",
+	"isDeprecated": false,
+	"useFixedPrice": false,
+	"metadata": "",
+	"allowedPools": [],
+	"timestamp": 1761821039,
+	"productType": 0,
+	"proofOfLossInputTypes": [
+		"address"
+	],
+	"isPrivate": false,
+	"category": "lending"
+}

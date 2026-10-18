@@ -102,6 +102,9 @@ const contractSignature = await import('../src/contract-signature.mjs');
 const { isDeployedContract } = await import('../src/contract-detect.mjs');
 const db = await import('../src/db.mjs');
 const { fetchAuthoritativeDocument } = await import('../src/nexus-documents.mjs');
+const nexusRead = await import('../src/nexus-read-api.mjs');
+const { getNexusReadModel } = await import('../src/nexus-read-model.mjs');
+const { AAVE_V3_MARKETS } = await import('../src/positions/aave-registry.mjs');
 const { default: webhook } = await import('../api/telegram.mjs');
 
 test('OUTBOUND linking.telegramTarget: the chat id is only an encoded query value of the fixed getChat URL', async () => {
@@ -136,6 +139,22 @@ test('OUTBOUND Nexus facts: product ids and questions never leave api.nexusmutua
 		if (byId.length) assertFixed(`getProductFactsById(${h})`, byId); // malformed ids may be refused before any request
 		nexusFacts._test.reset();
 		assertFixed(`getNexusProductFacts(${h})`, await capture(() => nexusFacts.getNexusProductFacts(`cover ${h}`, { documents: true })));
+	}
+});
+
+test('OUTBOUND Nexus read API (P1/P2): only GET on the three pinned paths of api.nexusmutual.io', async () => {
+	nexusRead._test.reset();
+	assertFixed('readProduct(97) (control)', await capture(() => nexusRead.readProduct(97)));
+	assertFixed('readProductType(0) (control)', await capture(() => nexusRead.readProductType(0)));
+	assertFixed('readCapacity(97) (control)', await capture(() => nexusRead.readCapacity(97)));
+	const core = AAVE_V3_MARKETS[0];
+	nexusRead._test.reset();
+	assertFixed('getNexusReadModel(core)', await capture(() => getNexusReadModel({ chainId: 1, protocolKey: 'aave', protocolVersion: 'v3', deploymentKey: core.deploymentKey, marketAddress: core.pool })));
+	for (const h of [...HOSTILE, '1/../../x', '1?x=https://evil.example', '-1', '1e3', '/v2/quote', '/v2/products/97/../../quote']) {
+		nexusRead._test.reset();
+		assert.deepEqual(await capture(() => nexusRead.nexusGet(h)), [], `nexusGet(${h}) must be refused before any request`);
+		assert.deepEqual(await capture(() => nexusRead.readProduct(h)), [], `readProduct(${h}) must be refused before any request`);
+		assert.deepEqual(await capture(() => nexusRead.readCapacity(h)), [], `readCapacity(${h}) must be refused before any request`);
 	}
 });
 
@@ -231,7 +250,7 @@ test('OUTBOUND failures (throw, 500, malformed, empty) never turn into a confirm
 const INVENTORY = {
 	'api/alerts.mjs': 1, 'api/dashboard.mjs': 1, 'api/link/verify.mjs': 2,
 	'src/agent-intent.mjs': 1, 'src/agent-knowledge.mjs': 1, 'src/bot.mjs': 1, 'src/contract-detect.mjs': 1, 'src/contract-signature.mjs': 1,
-	'src/cover-chain.mjs': 3, 'src/db.mjs': 1, 'src/linking.mjs': 1, 'src/nexus-documents.mjs': 1, 'src/nexus-facts.mjs': 1,
+	'src/cover-chain.mjs': 3, 'src/db.mjs': 1, 'src/linking.mjs': 1, 'src/nexus-documents.mjs': 1, 'src/nexus-facts.mjs': 1, 'src/nexus-read-api.mjs': 1,
 	'src/positions/index.mjs': 1, 'src/security-events.mjs': 1
 };
 const OUTBOUND = /\b(?:fetch|fetchImpl)\s*\(|\bhttp\s*\(|\bcreateClient\s*\(/g;

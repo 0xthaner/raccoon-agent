@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2w",
+	"crsf_version": "1.0-draft-phase2x",
 	"sources": [
 		{
 			"id": "SRC-ASVS",
@@ -164,6 +164,36 @@
 			"date": "retrieved 2026-10-16",
 			"pin": "unversioned page; pinned by retrieval date + normative quote: \"HTTPS redirection is an industry standard and can't be disabled.\"",
 			"note": "Official platform documentation; dynamic page, so no stable checksum."
+		},
+		{
+			"id": "SRC-NEXUS-API",
+			"org": "Nexus Mutual",
+			"title": "Nexus Mutual public API v2: products, product-types, capacity",
+			"version": "v2 (responses of 2026-10-18)",
+			"date": "2026-10-18 (retrieved)",
+			"url": "https://api.nexusmutual.io/v2/products/97",
+			"pin": "unversioned API; pinned by captured responses in test/fixtures/nexus (sha256 product-97 8382d2eca21ade50ebfa4b33405bc45726a60c1c469d39c8932041645f11fb51, product-type-0 da46bb115687d0ee1e0e250d9d2ff238540d5663eb07c43b206232738b7e7f25, capacity-97 7391051f6d37c0d0b729470ba13acda8311a234c5bc3cf53b45ce4515c2fb44a) and by the identity constants in src/nexus-pinned.mjs",
+			"note": "Untrusted third-party data; used only as the expected identity of product 97 / product type 0 and the response structure."
+		},
+		{
+			"id": "SRC-NEXUS-CONTRACTS",
+			"org": "Nexus Mutual",
+			"title": "NexusMutual/smart-contracts (Cover.sol cover period limits)",
+			"version": "v3.4.0",
+			"date": "2026-10-18 (retrieved)",
+			"url": "https://github.com/NexusMutual/smart-contracts/tree/v3.4.0",
+			"pin": "git tag v3.4.0 = commit 67f531208b693f8edbc6ea46528f164046ed1f0b; MIN_COVER_PERIOD 28 days, MAX_COVER_PERIOD 365 days; mainnet addresses from @nexusmutual/sdk 3.1.1 data/addresses.json (SDK not used, GPL-3.0 review open)",
+			"note": "Reference only; no contract is called in P1/P2."
+		},
+		{
+			"id": "SRC-NEXUS-WORDING",
+			"org": "Nexus Mutual",
+			"title": "Single Protocol Cover wording (product type 0)",
+			"version": "IPFS QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY",
+			"date": "2026-10-18 (retrieved)",
+			"url": "https://api.nexusmutual.io/ipfs/QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY",
+			"pin": "content-addressed IPFS CID QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY; PDF sha256 9d831f51fc158b385d0daaa8aa4ae0294990a8e68f60aa8884611dc39e62003b",
+			"note": "Legal terms are linked, never summarised; a changed CID makes the product UNAVAILABLE (TERMS_CHANGED)."
 		}
 	],
 	"deferred_sources": [
@@ -216,6 +246,24 @@
 			"change": "FIELD_FILLED",
 			"id": "SRC-SAFE-APPS",
 			"reason": "date was empty; the pin is the exact npm version, recorded explicitly (strict schema forbids empty fields)"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2x",
+			"change": "ADDED",
+			"id": "SRC-NEXUS-API",
+			"reason": "pinned basis for the read-only Nexus integration controls CR-NEXUS-001..005"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2x",
+			"change": "ADDED",
+			"id": "SRC-NEXUS-CONTRACTS",
+			"reason": "pinned basis for the read-only Nexus integration controls CR-NEXUS-001..005"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2x",
+			"change": "ADDED",
+			"id": "SRC-NEXUS-WORDING",
+			"reason": "pinned basis for the read-only Nexus integration controls CR-NEXUS-001..005"
 		}
 	],
 	"vendored": [

@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2w",
+	"crsf_version": "1.0-draft-phase2x",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -7829,6 +7829,202 @@
 			},
 			"control_ids": [
 				"CR-VERIFY-004"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
+			"id": "EV-NEXUS-READ",
+			"control_ids": [
+				"CR-NEXUS-001",
+				"CR-NEXUS-002",
+				"CR-NEXUS-003",
+				"CR-NEXUS-004",
+				"CR-NEXUS-005"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/nexus-read-model.test.mjs",
+			"test_or_proof": "test/nexus-read-model.test.mjs",
+			"property_proven": "Offline, against captured Nexus responses: product 97 is AVAILABLE for an Aave v3 Ethereum Core position only with its exact pinned identity and wording; renamed, similarly named, re-typed, private, deprecated, re-categorised, re-worded or annexed products are UNAVAILABLE; wrong chain, Aave v2, look-alike protocol keys and another market address are AMBIGUOUS; Lido/Prime and EtherFi are PROBABLE and never read; malformed, mismatched, inflated or zero capacity, timeouts, network/HTTP errors and redirected responses are UNAVAILABLE; only GET on three allowlisted paths, bounded size, failures not cached; only ETH/USDC/cbBTC capacity reported with timestamp; exposure AAVE_NET_EXPOSURE_V1 exact and disclaimed; no purchase fields.",
+			"property_not_proven": "the live Nexus API (optional manual probe scripts/nexus-live-probe.mjs); the legal effect of the wording; whether Nexus covers the Lido/Prime and EtherFi markets; quote/purchase (out of scope, P3+)",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-NEXUS-001",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-NEXUS-002",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-NEXUS-003",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-NEXUS-004",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-NEXUS-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/nexus-read-model.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-NEXUS-READ",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 14 case(s)",
+			"property_proven": "Each listed weakening of the read-only Nexus integration is detected by its intended test: renamed or similar product name, wrong product type, changed wording, wrong chain, Aave v2 as v3, similar protocol key, malformed or fake-high capacity, followed redirect, missing capacity, API timeout, stale data after failure, ambiguous deployment accepted.",
+			"property_not_proven": "other conceivable weakenings beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-NEXUS-001",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-NEXUS-001-P1-NXRENAMED, MUT-CR-NEXUS-001-P1-NXSIMILARNAME, MUT-CR-NEXUS-001-P1-NXPRODTYPE, MUT-CR-NEXUS-001-P2-NXWORDING"
+				},
+				{
+					"control": "CR-NEXUS-002",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-NEXUS-002-P1-NXCHAIN, MUT-CR-NEXUS-002-P1-NXAAVEV2, MUT-CR-NEXUS-002-P2-NXPROTONAME"
+				},
+				{
+					"control": "CR-NEXUS-003",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-NEXUS-003-P1-NXMALFORMED, MUT-CR-NEXUS-003-P2-NXFAKEHIGH, MUT-CR-NEXUS-003-P3-NXREDIRECT"
+				},
+				{
+					"control": "CR-NEXUS-004",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-NEXUS-004-P1-NXMISSINGCAP, MUT-CR-NEXUS-004-P1-NXTIMEOUT, MUT-CR-NEXUS-004-P2-NXSTALE"
+				},
+				{
+					"control": "CR-NEXUS-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-NEXUS-005-P1-NXAMBIGUOUS"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-NEXUS-001-P1-NXRENAMED",
+					"MUT-CR-NEXUS-001-P1-NXSIMILARNAME",
+					"MUT-CR-NEXUS-001-P1-NXPRODTYPE",
+					"MUT-CR-NEXUS-001-P2-NXWORDING",
+					"MUT-CR-NEXUS-002-P1-NXCHAIN",
+					"MUT-CR-NEXUS-002-P1-NXAAVEV2",
+					"MUT-CR-NEXUS-002-P2-NXPROTONAME",
+					"MUT-CR-NEXUS-003-P1-NXMALFORMED",
+					"MUT-CR-NEXUS-003-P2-NXFAKEHIGH",
+					"MUT-CR-NEXUS-003-P3-NXREDIRECT",
+					"MUT-CR-NEXUS-004-P1-NXMISSINGCAP",
+					"MUT-CR-NEXUS-004-P1-NXTIMEOUT",
+					"MUT-CR-NEXUS-004-P2-NXSTALE",
+					"MUT-CR-NEXUS-005-P1-NXAMBIGUOUS"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-NEXUS-001",
+				"CR-NEXUS-002",
+				"CR-NEXUS-003",
+				"CR-NEXUS-004",
+				"CR-NEXUS-005"
 			],
 			"coverage": "FULL",
 			"reason_for_partial": null

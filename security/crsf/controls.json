@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2w",
+	"crsf_version": "1.0-draft-phase2x",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -10876,6 +10876,414 @@
 					"behavioral"
 				],
 				"independent_classes": 1,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-NEXUS",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Feature present in CoverRaccoon at the verified commit (internal read model, not yet wired to an endpoint or UI).",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-NEXUS-001",
+			"title": "Nexus product identity pinned and validated",
+			"source_refs": [
+				"SRC-ASVS V2.2.1",
+				"SRC-ASVS V2.2.3",
+				"SRC-NEXUS-API",
+				"SRC-NEXUS-WORDING"
+			],
+			"external_requirement_ids": [
+				"V2.2.1",
+				"V2.2.3"
+			],
+			"external_requirement": "Input used for business or security decisions is validated positively against an allow list / expected structure (V2.2.1); combinations of related data items are reasonable according to pre-defined rules (V2.2.3).",
+			"coverraccoon_requirement": "Product data read from the Nexus API is accepted only if it equals the pinned identity of product 97 (name, product type and type name, category, proof-of-loss input types, public, not deprecated) and the pinned wording CID of product type 0 with no annex; any deviation makes the product UNAVAILABLE.",
+			"applies_to": [
+				"src/nexus-pinned.mjs",
+				"src/nexus-read-model.mjs",
+				"src/nexus-facts.mjs"
+			],
+			"threat": "a renamed, re-typed, private, deprecated or re-worded Nexus product is presented as the reviewed Aave v3 cover",
+			"expected_property": "identity or terms deviation -> UNAVAILABLE",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "product 97 is accepted only with its pinned identity: exact name, product type id and name, category, proof-of-loss input types, public and not deprecated; any deviation is UNAVAILABLE"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "the pinned wording CID of product type 0 and the absence of a product annex are verified; any change is TERMS_CHANGED and UNAVAILABLE"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-NEXUS-READ",
+				"EV-NEXUS-READ"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-NEXUS-READ",
+						"EV-KB-NEXUS-READ"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-NEXUS-READ",
+						"EV-KB-NEXUS-READ"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 2 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 2 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-NEXUS",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Feature present in CoverRaccoon at the verified commit (internal read model, not yet wired to an endpoint or UI).",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-NEXUS-002",
+			"title": "Position to Nexus product mapping fails closed",
+			"source_refs": [
+				"SRC-ASVS V2.2.3",
+				"SRC-ASVS V16.5.3"
+			],
+			"external_requirement_ids": [
+				"V2.2.3",
+				"V16.5.3"
+			],
+			"external_requirement": "Combinations of related data items are reasonable according to pre-defined rules (V2.2.3); the application fails securely and prevents fail-open conditions (V16.5.3).",
+			"coverraccoon_requirement": "A detected position maps EXACT to a Nexus product only via the deterministic identity chain chain id 1 - reviewed deployment key - protocol aave - version v3 - registry pool address - pinned product id; never by display or product name. Unconfirmed deployments are PROBABLE, conflicting data AMBIGUOUS, everything else NO_LISTING.",
+			"applies_to": [
+				"src/positions/nexus-mapping.mjs",
+				"src/positions/aave-registry.mjs"
+			],
+			"threat": "cover offered for a position the product does not cover (other chain, Aave v2/v4, other market, look-alike protocol)",
+			"expected_property": "only Aave v3 Ethereum Core -> EXACT 97",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "only Aave v3 Ethereum Core with chain 1, protocol aave, version v3 and the registry pool address maps EXACT to product 97; a wrong chain, version or market is never EXACT"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "the mapping compares identities exactly and never uses display or product names; Lido/Prime and EtherFi are PROBABLE, conflicting data AMBIGUOUS, everything else NO_LISTING"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-NEXUS-READ",
+				"EV-NEXUS-READ"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-NEXUS-READ",
+						"EV-KB-NEXUS-READ"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-NEXUS-READ",
+						"EV-KB-NEXUS-READ"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 2 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 2 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-NEXUS",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Feature present in CoverRaccoon at the verified commit (internal read model, not yet wired to an endpoint or UI).",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-NEXUS-003",
+			"title": "Nexus API responses structurally validated",
+			"source_refs": [
+				"SRC-API API10:2023",
+				"SRC-ASVS V2.2.1",
+				"SRC-ASVS V15.3.2",
+				"SRC-NEXUS-API"
+			],
+			"external_requirement_ids": [
+				"API10:2023",
+				"V2.2.1",
+				"V15.3.2"
+			],
+			"external_requirement": "Data from third-party APIs is validated before use (API10:2023, V2.2.1); backend calls to external URLs do not follow redirects unless intended (V15.3.2).",
+			"coverraccoon_requirement": "Only GET on /v2/products/:id, /v2/product-types/:id and /v2/capacity/:id under the pinned API base, without redirects and with a size cap; each response is validated strictly; capacity totals must reconcile with per-pool capacity and only the product's supported cover assets count.",
+			"applies_to": [
+				"src/nexus-read-api.mjs",
+				"src/nexus-read-model.mjs"
+			],
+			"threat": "malformed, inflated or redirected API data turns into displayed availability or capacity",
+			"expected_property": "invalid response -> error, never a partial result",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "product, product-type and capacity responses are structurally validated; malformed data is an error, never a partial result"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "capacity totals must reconcile with the per-pool capacity; only the product's supported cover assets (ETH, USDC, cbBTC) are reported, DAI and NXM are dropped"
+				},
+				{
+					"id": "P3",
+					"kind": "REQUIREMENT",
+					"text": "only GET on the three allowlisted paths under the pinned API base, without following redirects and with a bounded response size"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-NEXUS-READ",
+				"EV-NEXUS-READ"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-NEXUS-READ",
+						"EV-KB-NEXUS-READ"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-NEXUS-READ",
+						"EV-KB-NEXUS-READ"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P3": {
+					"satisfied_by": [
+						"EV-NEXUS-READ",
+						"EV-KB-NEXUS-READ"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 3 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 3 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-NEXUS",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Feature present in CoverRaccoon at the verified commit (internal read model, not yet wired to an endpoint or UI).",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-NEXUS-004",
+			"title": "Nexus API failure cannot create availability",
+			"source_refs": [
+				"SRC-ASVS V16.5.2",
+				"SRC-ASVS V16.5.3"
+			],
+			"external_requirement_ids": [
+				"V16.5.2",
+				"V16.5.3"
+			],
+			"external_requirement": "The application operates securely when external resource access fails (V16.5.2) and prevents fail-open conditions (V16.5.3).",
+			"coverraccoon_requirement": "A timeout, network error, HTTP error or validation failure of any Nexus read makes the product UNAVAILABLE; every request has a time limit; failures are not cached and expired data is not reused after a failure.",
+			"applies_to": [
+				"src/nexus-read-api.mjs",
+				"src/nexus-read-model.mjs"
+			],
+			"threat": "an outage or slow API is shown as available cover or stalls the caller",
+			"expected_property": "API failure -> UNAVAILABLE",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "timeouts, network, HTTP and validation failures of any Nexus read make the product UNAVAILABLE; every request is time-limited"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "failures are not cached and expired cached data is not reused after a failure"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-NEXUS-READ",
+				"EV-NEXUS-READ"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-NEXUS-READ",
+						"EV-KB-NEXUS-READ"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-NEXUS-READ",
+						"EV-KB-NEXUS-READ"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 2 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 2 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-NEXUS",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Feature present in CoverRaccoon at the verified commit (internal read model, not yet wired to an endpoint or UI).",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-NEXUS-005",
+			"title": "Only an explicitly supported product and chain becomes AVAILABLE",
+			"source_refs": [
+				"SRC-ASVS V16.5.3"
+			],
+			"external_requirement_ids": [
+				"V16.5.3"
+			],
+			"external_requirement": "The application fails securely and prevents fail-open conditions (V16.5.3).",
+			"coverraccoon_requirement": "Eligibility AVAILABLE only for an EXACT match whose product identity, terms, positive capacity in a supported asset and exposure are all verified; PROBABLE is AMBIGUOUS, NO_LISTING is UNSUPPORTED, and neither triggers a Nexus read. The read model carries no purchase, quote, transaction or commission fields.",
+			"applies_to": [
+				"src/nexus-read-model.mjs"
+			],
+			"threat": "an unconfirmed deployment or product is presented as purchasable cover",
+			"expected_property": "AVAILABLE only for verified EXACT",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "only an EXACT match with verified identity, terms, positive supported capacity and valid exposure is AVAILABLE; PROBABLE, AMBIGUOUS and NO_LISTING are never AVAILABLE and trigger no Nexus read"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-NEXUS-READ",
+				"EV-NEXUS-READ"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-NEXUS-READ",
+						"EV-KB-NEXUS-READ"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 1 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 1 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
 				"shared_fixture_groups": []
 			}
 		}

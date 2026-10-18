@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2w",
+	"crsf_version": "1.0-draft-phase2x",
 	"profile_rules_digest": "59da3e481750b5c7687099ad6c8a4dc9669e65b17141f2826fbcb9e67a847e9f",
 	"controls": {
 		"CR-API-001": {
@@ -926,6 +926,61 @@
 			],
 			"properties_digest": "2d1655df077dcd25512c4d97a307317060a71f9201c69535d796e0f2a0d5ff76",
 			"derivation_digest": "90130a0ba116fc41151256c9e744f8d2624d682b547cd0155cae2b7d2183df35"
+		},
+		"CR-NEXUS-001": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.2.1",
+				"V2.2.3"
+			],
+			"properties_digest": "dfb6fb808462efdfa5fafc0f4905d0ad01ada7fdb42a837e20fb95d38ed80a02",
+			"derivation_digest": "df9f49bf7fe9b03efe4b78c1c3a2203c990bbe4b926805de3547683094c35987"
+		},
+		"CR-NEXUS-002": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.2.3",
+				"V16.5.3"
+			],
+			"properties_digest": "72d91242b7f8298ce599c6f0fd2a2700008848e935912694b1d0c27bf50e8b65",
+			"derivation_digest": "351100a00dd61e10b53d664b5876f140fb320bd0be0e429fcf7feb0ef305dc24"
+		},
+		"CR-NEXUS-003": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"API10:2023",
+				"V2.2.1",
+				"V15.3.2"
+			],
+			"properties_digest": "5a6e7d9500867c76068323e3fd08ce15b3306108f84db7be308871d3fb916e2a",
+			"derivation_digest": "908933a589b234330178f8b7578f55ceadfce8d5b99db8c2e25c8d2fc993775e"
+		},
+		"CR-NEXUS-004": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V16.5.2",
+				"V16.5.3"
+			],
+			"properties_digest": "6bb4870b7fc077e751de7104d62587c088fc983af917a0407291fbd3ee691894",
+			"derivation_digest": "f9b9af5e9723db7dd866554cf596ec9ff004dcef02cb139f0262590f5cd01b85"
+		},
+		"CR-NEXUS-005": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V16.5.3"
+			],
+			"properties_digest": "072ba081efbf46259ba6122274fe47a2622caf46819aed1aacb9d90baccc4f59",
+			"derivation_digest": "cda6a80ad358978e586604cbda47e8b6e8ce731be95b87978e514cf806e46c3e"
 		},
 		"CR-PRIV-001": {
 			"release_class": "SECURITY_DEBT",

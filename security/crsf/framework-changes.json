@@ -1746,6 +1746,57 @@
 					"reason": "Framework finding F-2W-1 fixed (Low). Proof: self-test 99/99 with all 54 release-blocking controls satisfied, N-ALL, test \"META all-closed state\" (every definition and findings fixture rejected in the all-satisfied state), mutation MUT-CR-VERIFY-003-P1-2WZ6OPEN KILLED."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2x",
+			"summary": "Nexus P1+P2: read-only Nexus product/capacity/wording integration and deterministic position -> product mapping. New domain CR-NEXUS with five RELEASE_BLOCKING controls (E3), behavioural evidence and 14 KILLED known-bad mutations; three pinned sources; drift rules for the new files. No purchase flow, no transaction, no deployment; no finding.",
+			"changes": [
+				{
+					"id": "controls.schema.json+drift-model.schema.json",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "domain enums of controls and drift-model extended by CR-NEXUS (read-only Nexus Mutual integration); no other schema change, no threshold or class changed"
+				},
+				{
+					"id": "drift-model",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "rule src/nexus* gains CR-NEXUS; new rules for src/positions/nexus-mapping.mjs, src/positions/exposure.mjs, src/positions/aave-registry.mjs and scripts/nexus-live-probe.mjs; domains only added, none removed"
+				},
+				{
+					"id": "CR-NEXUS-001",
+					"kind": "ADDED",
+					"reason": "New control for the read-only Nexus integration (P1+P2): Nexus product identity pinned and validated. Derivation: Input used for business or security decisions is validated positively against an allow list / expected structure (V2.2.1); combinations of related data items are reasonable according to pre-defined rules (V2.2.3). CoverRaccoon now reads third-party product and capacity data and derives an availability statement from it, so the pinned requirements apply to that new data path. Not added to CR-PROVIDER-001/003: those properties name cover-index, getCode and position data and the existing outbound allowlist; widening them would retroactively change locked controls whose evidence was judged against those paths.",
+					"rationale": "Extension for a new feature; each property is tested behaviourally and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence changes."
+				},
+				{
+					"id": "CR-NEXUS-002",
+					"kind": "ADDED",
+					"reason": "New control for the read-only Nexus integration (P1+P2): Position to Nexus product mapping fails closed. Derivation: Combinations of related data items are reasonable according to pre-defined rules (V2.2.3); the application fails securely and prevents fail-open conditions (V16.5.3). CoverRaccoon now reads third-party product and capacity data and derives an availability statement from it, so the pinned requirements apply to that new data path. Not added to CR-PROVIDER-001/003: those properties name cover-index, getCode and position data and the existing outbound allowlist; widening them would retroactively change locked controls whose evidence was judged against those paths.",
+					"rationale": "Extension for a new feature; each property is tested behaviourally and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence changes."
+				},
+				{
+					"id": "CR-NEXUS-003",
+					"kind": "ADDED",
+					"reason": "New control for the read-only Nexus integration (P1+P2): Nexus API responses structurally validated. Derivation: Data from third-party APIs is validated before use (API10:2023, V2.2.1); backend calls to external URLs do not follow redirects unless intended (V15.3.2). CoverRaccoon now reads third-party product and capacity data and derives an availability statement from it, so the pinned requirements apply to that new data path. Not added to CR-PROVIDER-001/003: those properties name cover-index, getCode and position data and the existing outbound allowlist; widening them would retroactively change locked controls whose evidence was judged against those paths.",
+					"rationale": "Extension for a new feature; each property is tested behaviourally and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence changes."
+				},
+				{
+					"id": "CR-NEXUS-004",
+					"kind": "ADDED",
+					"reason": "New control for the read-only Nexus integration (P1+P2): Nexus API failure cannot create availability. Derivation: The application operates securely when external resource access fails (V16.5.2) and prevents fail-open conditions (V16.5.3). CoverRaccoon now reads third-party product and capacity data and derives an availability statement from it, so the pinned requirements apply to that new data path. Not added to CR-PROVIDER-001/003: those properties name cover-index, getCode and position data and the existing outbound allowlist; widening them would retroactively change locked controls whose evidence was judged against those paths.",
+					"rationale": "Extension for a new feature; each property is tested behaviourally and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence changes."
+				},
+				{
+					"id": "CR-NEXUS-005",
+					"kind": "ADDED",
+					"reason": "New control for the read-only Nexus integration (P1+P2): Only an explicitly supported product and chain becomes AVAILABLE. Derivation: The application fails securely and prevents fail-open conditions (V16.5.3). CoverRaccoon now reads third-party product and capacity data and derives an availability statement from it, so the pinned requirements apply to that new data path. Not added to CR-PROVIDER-001/003: those properties name cover-index, getCode and position data and the existing outbound allowlist; widening them would retroactively change locked controls whose evidence was judged against those paths.",
+					"rationale": "Extension for a new feature; each property is tested behaviourally and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence changes."
+				}
+			]
 		}
 	]
 }

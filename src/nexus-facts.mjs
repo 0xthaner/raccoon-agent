@@ -41,12 +41,12 @@ export function normalize(text) {
 		.trim();
 }
 
-function ipfsUrl(cid) {
+export function ipfsUrl(cid) {
 	return typeof cid === 'string' && /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{50,})$/.test(cid) ? `${API}/ipfs/${cid}` : null;
 }
 
 /** Produkt-Anhang: historisch mal leerer String, mal CID, mal Objekt mit `annex`. */
-function annexCid(metadata) {
+export function annexCid(metadata) {
 	if (typeof metadata === 'string') return metadata || null;
 	if (metadata && typeof metadata === 'object' && typeof metadata.annex === 'string') return metadata.annex;
 	return null;
@@ -58,7 +58,7 @@ function annexCid(metadata) {
  * ein Schedule oder ein Upload-Fehler) liest der Agent nicht; dann darf auch
  * das Wording nicht allein erklaert werden.
  */
-function productTerms(metadata) {
+export function productTerms(metadata) {
 	if (metadata == null || metadata === '') return 'NONE';
 	if (typeof metadata === 'string') return ipfsUrl(metadata) ? 'ANNEX' : 'UNSUPPORTED';
 	if (typeof metadata === 'object' && !Array.isArray(metadata)
