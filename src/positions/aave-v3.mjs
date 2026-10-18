@@ -22,7 +22,7 @@
 	Keine Transaktion, keine Signatur, keine Freigabe; nur eth_call.
 */
 import { formatUnits, getAddress, isAddress } from 'viem';
-import { AAVE_V3_MARKETS } from './aave-registry.mjs';
+import { AAVE_V3_MARKETS, REFERENCE_TOKENS } from './aave-registry.mjs';
 
 export const LIMITS = Object.freeze({
 	maxReservesPerMarket: 128,
@@ -174,7 +174,7 @@ function round2Calls(market, wallet, reserves) {
 function buildPosition(market, wallet, head, results, blockNumber, detectedAt) {
 	const prices = ok(results.at(-1));
 	if (!Array.isArray(prices) || prices.length !== head.reserves.length) throw new MarketUnavailable('INCOMPLETE_RESULT');
-	const supplied = [], borrowed = [];
+	const supplied = [], borrowed = [], reference = [];
 	let suppliedBase = 0n, debtBase = 0n, collateralAll = 0n, collateralWithThreshold = 0n, involved = 0;
 	head.reserves.forEach((asset, i) => {
 		const user = ok(results[i * 2]);
@@ -183,6 +183,8 @@ function buildPosition(market, wallet, head, results, blockNumber, detectedAt) {
 		if (!Number.isInteger(decimals) || decimals < 0 || decimals > 36) throw new MarketUnavailable('BAD_DECIMALS');
 		const price = prices[i];
 		if (typeof price !== 'bigint' || price < 0n) throw new MarketUnavailable('BAD_PRICE');
+		const token = Object.keys(REFERENCE_TOKENS).find((key) => same(REFERENCE_TOKENS[key], asset));
+		if (token && price > 0n) reference.push({ token, asset, decimals, price: price.toString() });
 		const supply = user[0];
 		const debt = user[1] + user[2];
 		const isCollateral = Boolean(user[8]);
@@ -227,7 +229,7 @@ function buildPosition(market, wallet, head, results, blockNumber, detectedAt) {
 			healthFactor: head.totalDebtBase === 0n || head.healthFactor === MAX_UINT ? null : formatUnits(head.healthFactor, 18)
 		},
 		valueKind: 'DERIVED_FROM_AAVE_ORACLE',
-		pricing: { source: 'aave-oracle', oracle: market.oracle, baseCurrency: 'USD', baseUnitDecimals: 8 },
+		pricing: { source: 'aave-oracle', oracle: market.oracle, baseCurrency: 'USD', baseUnitDecimals: 8, reference },
 		sourceContracts: [market.poolAddressesProvider, market.pool, market.dataProvider, market.oracle],
 		blockNumber: blockNumber.toString(),
 		detectedAt,

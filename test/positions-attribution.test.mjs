@@ -97,6 +97,8 @@ function load(server = fakeServer(), lang = 'de') {
 const allNodes = (node) => [node, ...node.children.flatMap(allNodes)];
 const byClass = (node, className) => allNodes(node).filter((n) => String(n.className).split(' ').includes(className));
 const buttons = (node, label) => allNodes(node).filter((n) => n.tag === 'button' && (label == null || n._text === label));
+/** Zuordnungs-Knoepfe; der Nexus-P3-Knopf "Cover-Details ansehen" (nur Anzeige) zaehlt nicht dazu und wird einzeln geprueft. */
+const attributionButtons = (node) => buttons(node).filter((n) => !String(n.className).includes('cover-details-action'));
 const statusOf = (page, key) => page.current()?.byPosition.get(key)?.state ?? null;
 const visibleSlots = (page) => page.slots().filter(({ slot }) => !slot.hidden).map(({ slot }) => slot.textContent);
 
@@ -123,7 +125,8 @@ test('1: one position + one cover + complete data -> AUTO_UNAMBIGUOUS', async ()
 	assert.equal(statusOf(page, CORE.deploymentKey), page.ATTRIBUTION.AUTO);
 	const [card] = byClass(page.list(), 'position-card');
 	assert.match(card.textContent, /Cover-Zuordnung \| Eindeutig · 1:1 \| Eine aktive passende Position und ein aktives passendes Nexus Cover wurden erkannt\./);
-	assert.equal(buttons(page.list()).length, 0, 'nichts zu bestaetigen');
+	assert.equal(attributionButtons(page.list()).length, 0, 'nichts zu bestaetigen');
+	assert.deepEqual(buttons(page.list()).map((n) => n._text), ['Cover-Details ansehen'], 'nur der Anzeige-Knopf der Position');
 	assert.deepEqual(visibleSlots(page), ['Cover-Zuordnung | Eindeutig · 1:1 · Aave v3 · Core']);
 	assert.match(byClass(page.list(), 'protocol-summary')[0].textContent, /keine Aussage über die Berechtigung eines Claims oder eine Auszahlung/);
 });
@@ -153,7 +156,8 @@ test('5: one position + no covers -> NO_ACTIVE_COVER, attribution "—"', async 
 	await page.show(A, data([CORE]), []);
 	assert.equal(statusOf(page, CORE.deploymentKey), page.ATTRIBUTION.NONE);
 	assert.match(page.list().textContent, /Wallet-Cover \| Kein aktives passendes Cover erkannt \| Cover-Zuordnung \| —/);
-	assert.equal(buttons(page.list()).length, 0);
+	assert.equal(attributionButtons(page.list()).length, 0);
+	assert.deepEqual(buttons(page.list()).map((n) => n._text), ['Cover-Details ansehen'], 'nur der Anzeige-Knopf der Position');
 });
 
 test('6/7/8: wrong productId, inactive, same-name/wrong-product, string-id and demo covers never participate', async () => {

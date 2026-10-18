@@ -1,0 +1,23 @@
+{
+	"quote": {
+		"totalCoverAmountInAsset": "1000192871",
+		"annualPrice": "365",
+		"premiumInNXM": "48990000000000000",
+		"premiumInAsset": "3000578",
+		"refundInNXM": "0",
+		"refundInAsset": "0",
+		"premiumInNXMWithRefund": "48990000000000000",
+		"premiumInAssetWithRefund": "3000578",
+		"poolAllocationRequests": [
+			{
+				"poolId": "2",
+				"coverAmountInAsset": "1000192871"
+			}
+		],
+		"asset": {
+			"id": 6,
+			"symbol": "USDC",
+			"decimals": 6
+		}
+	}
+}

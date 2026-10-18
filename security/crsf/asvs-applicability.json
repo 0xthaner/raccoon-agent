@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2x",
+	"crsf_version": "1.0-draft-phase2y",
 	"asvs": "5.0.0",
 	"input": "security/crsf/vendor/asvs-5.0.0.flat.json",
 	"input_sha256": "8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311",
@@ -331,10 +331,11 @@
 			"applicability": "APPLICABLE",
 			"reason": "",
 			"controls": [
-				"CR-RESOURCE-005"
+				"CR-RESOURCE-005",
+				"CR-QUOTE-008"
 			],
 			"conformance_status": "NON_CONFORMANT",
-			"release_relevance": "SECURITY_DEBT"
+			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
 			"req_id": "V2.2.1",
@@ -344,7 +345,10 @@
 			"controls": [
 				"CR-API-003",
 				"CR-NEXUS-001",
-				"CR-NEXUS-003"
+				"CR-NEXUS-003",
+				"CR-QUOTE-001",
+				"CR-QUOTE-003",
+				"CR-QUOTE-004"
 			],
 			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
@@ -368,7 +372,8 @@
 			"controls": [
 				"CR-INPUT-010",
 				"CR-NEXUS-001",
-				"CR-NEXUS-002"
+				"CR-NEXUS-002",
+				"CR-QUOTE-002"
 			],
 			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
@@ -390,7 +395,9 @@
 			"applicability": "APPLICABLE",
 			"reason": "",
 			"controls": [
-				"CR-CONC-002"
+				"CR-CONC-002",
+				"CR-QUOTE-003",
+				"CR-QUOTE-005"
 			],
 			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
@@ -438,7 +445,8 @@
 			"controls": [
 				"CR-RESOURCE-001",
 				"CR-RESOURCE-002",
-				"CR-RESOURCE-007"
+				"CR-RESOURCE-007",
+				"CR-QUOTE-008"
 			],
 			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
@@ -478,7 +486,8 @@
 			"applicability": "APPLICABLE",
 			"reason": "",
 			"controls": [
-				"CR-BROWSER-004"
+				"CR-BROWSER-004",
+				"CR-QUOTE-007"
 			],
 			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
@@ -1738,7 +1747,8 @@
 			"applicability": "APPLICABLE",
 			"reason": "",
 			"controls": [
-				"CR-API-001"
+				"CR-API-001",
+				"CR-QUOTE-002"
 			],
 			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
@@ -1769,7 +1779,8 @@
 			"applicability": "APPLICABLE",
 			"reason": "",
 			"controls": [
-				"CR-API-001"
+				"CR-API-001",
+				"CR-QUOTE-001"
 			],
 			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
@@ -3049,10 +3060,11 @@
 			"applicability": "APPLICABLE",
 			"reason": "",
 			"controls": [
-				"CR-API-007"
+				"CR-API-007",
+				"CR-QUOTE-007"
 			],
 			"conformance_status": "NOT_DEMONSTRATED",
-			"release_relevance": "SECURITY_DEBT"
+			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
 			"req_id": "V15.3.2",
@@ -3061,7 +3073,8 @@
 			"reason": "",
 			"controls": [
 				"CR-PROVIDER-003",
-				"CR-NEXUS-003"
+				"CR-NEXUS-003",
+				"CR-QUOTE-004"
 			],
 			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
@@ -3329,7 +3342,8 @@
 				"CR-RESOURCE-003",
 				"CR-PROVIDER-001",
 				"CR-PROVIDER-002",
-				"CR-NEXUS-004"
+				"CR-NEXUS-004",
+				"CR-QUOTE-006"
 			],
 			"conformance_status": "NOT_DEMONSTRATED",
 			"release_relevance": "RELEASE_BLOCKING"
@@ -3345,7 +3359,10 @@
 				"CR-PROVIDER-001",
 				"CR-NEXUS-002",
 				"CR-NEXUS-004",
-				"CR-NEXUS-005"
+				"CR-NEXUS-005",
+				"CR-QUOTE-002",
+				"CR-QUOTE-005",
+				"CR-QUOTE-006"
 			],
 			"conformance_status": "NOT_DEMONSTRATED",
 			"release_relevance": "RELEASE_BLOCKING"

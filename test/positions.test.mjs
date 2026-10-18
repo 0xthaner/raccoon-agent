@@ -176,7 +176,11 @@ test('C: supply + borrow over several reserves, collateral flags kept', async ()
 	assert.equal(position.protocolVersion, 'v3');
 	assert.equal(position.marketAddress, CORE.pool);
 	assert.equal(position.blockNumber, '21000000');
-	assert.deepEqual(position.pricing, { source: 'aave-oracle', oracle: CORE.oracle, baseCurrency: 'USD', baseUnitDecimals: 8 });
+	// Nexus P3: Referenzpreise (WETH/USDC/cbBTC) aus demselben Orakelaufruf; wstETH ist keine Referenz, cbBTC hier keine Reserve.
+	assert.deepEqual(position.pricing, { source: 'aave-oracle', oracle: CORE.oracle, baseCurrency: 'USD', baseUnitDecimals: 8, reference: [
+		{ token: 'WETH', asset: WETH, decimals: 18, price: '300000000000' },
+		{ token: 'USDC', asset: USDC, decimals: 6, price: '100000000' }
+	] });
 });
 
 test('C: a zero position produces no card, but the market counts as read', async () => {

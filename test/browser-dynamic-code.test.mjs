@@ -34,12 +34,15 @@ export const BROWSER_FILES = files(ROOT).sort();
 	- nexus: fester Wert aus NEXUS_PRODUCT_PAGES, gegen https://app.nexusmutual.io/... geprueft;
 	- telegram: Vorlage mit festem "https://t.me/" vorne (Schema und Host fest);
 	- dashboard: Literal '/'.
+	- nexus-cover (P3, 18.10.2026): Wording-/Annex-Link nur nach Pruefung gegen
+	  ^https://api.nexusmutual.io/ipfs/<CID>$ (IPFS_URL), sonst kein Link.
 */
 const URL_SINKS = [
 	'web/src/main.js href Identifier(url)',
 	'web/src/main.js href ConditionalExpression(TemplateLiteral:https://t.me/|TemplateLiteral:https://t.me/)',
 	'web/src/main.js href TemplateLiteral:https://t.me/',
-	'web/src/main.js href Literal:/'
+	'web/src/main.js href Literal:/',
+	'web/src/nexus-cover.js href Identifier(url)'
 ];
 
 function walk(node, visit, parent = null) {

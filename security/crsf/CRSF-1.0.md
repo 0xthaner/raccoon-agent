@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2x
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2y
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -11,19 +11,19 @@
 - FAIL: 19
 - INFORMATIONAL: 2
 - MISSING_EVIDENCE: 44
-- PASS_AUTOMATED: 63
+- PASS_AUTOMATED: 71
 - PASS_MANUAL: 24
 
 ### Release classes
 
 - INFORMATIONAL: 2
 - MANUAL_ASSURANCE: 30
-- RELEASE_BLOCKING: 59
+- RELEASE_BLOCKING: 67
 - SECURITY_DEBT: 61
 
 ### Release-blocking controls by security status
 
-- PASS_AUTOMATED: 59
+- PASS_AUTOMATED: 67
 
 ### Standard conformance (ASVS 5.0.0, applicable requirements)
 
@@ -256,6 +256,14 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-NEXUS-003 | Nexus API responses structurally validated | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
 | CR-NEXUS-004 | Nexus API failure cannot create availability | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
 | CR-NEXUS-005 | Only an explicitly supported product and chain becomes AVAILABLE | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
+| CR-QUOTE-001 | Quote product derived server-side, never chosen by the client | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
+| CR-QUOTE-002 | Quote bound to an EXACT validated Nexus mapping of the session wallet | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
+| CR-QUOTE-003 | Quote amount, asset and period strictly bounded | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
+| CR-QUOTE-004 | Nexus quote responses strictly validated | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
+| CR-QUOTE-005 | Quote freshness explicit; stale quotes never usable | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
+| CR-QUOTE-006 | Nexus failures never produce a synthetic premium or availability | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
+| CR-QUOTE-007 | User-facing quote is informational and cannot trigger wallet methods | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
+| CR-QUOTE-008 | Quote retrieval rate limited per IP, wallet and globally | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
 
 ## 5. Evidence
 
@@ -390,10 +398,12 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-KB-META-CONC | known-bad | E4 | mutation | FULL | yes | Each weakening of the derivation is detected by the meta-derivation tests: tolerating one failing property (A), ignoring missing Postgres use (B) or overlap (C), accepting a NOT_RUN mutation (D), accepting declared instead of observed E5 (E), hard-coding the current concurrency set (F). |
 | EV-NEXUS-READ | behavioral | E3 | node-test | FULL | yes | Offline, against captured Nexus responses: product 97 is AVAILABLE for an Aave v3 Ethereum Core position only with its exact pinned identity and wording; renamed, similarly named, re-typed, private, deprecated, re-categorised, re-worded or annexed products are UNAVAILABLE; wrong chain, Aave v2, look-alike protocol keys and another market address are AMBIGUOUS; Lido/Prime and EtherFi are PROBABLE and never read; malformed, mismatched, inflated or zero capacity, timeouts, network/HTTP errors and redirected responses are UNAVAILABLE; only GET on three allowlisted paths, bounded size, failures not cached; only ETH/USDC/cbBTC capacity reported with timestamp; exposure AAVE_NET_EXPOSURE_V1 exact and disclaimed; no purchase fields. |
 | EV-KB-NEXUS-READ | known-bad | E4 | mutation | FULL | yes | Each listed weakening of the read-only Nexus integration is detected by its intended test: renamed or similar product name, wrong product type, changed wording, wrong chain, Aave v2 as v3, similar protocol key, malformed or fake-high capacity, followed redirect, missing capacity, API timeout, stale data after failure, ambiguous deployment accepted. |
+| EV-NEXUS-QUOTE | behavioral | E3 | node-test | FULL | yes | Offline, real handler with real session/origin/JSON checks, real read model and quote validation against captured Nexus responses: valid USDC and ETH quotes (server-derived productId 97, fixed GET path, no redirect); client productId rejected; ambiguous, unsupported and unavailable positions get a neutral status and no quote request; unsupported assets, amounts above exposure or capacity and periods outside 28..365 rejected before Nexus; malformed, foreign-pool, foreign-asset, mispriced, redirected or timed-out quotes never become a premium; quotes stale after 60 s and never usable; per-IP/wallet/global limits; responses without pools, fees or transaction fields; no purchase surface in runtime code; the cover panel (recording DOM) never calls a wallet method, renders remote strings as text and links only validated Nexus IPFS URLs. |
+| EV-KB-NEXUS-QUOTE | known-bad | E4 | mutation | FULL | yes | Each listed weakening of the quote display is detected by its intended test: client productId, ambiguous mapping, unsupported asset, amount above capacity or exposure, period below 28 or above 365 days, malformed/foreign-product/foreign-asset quote, followed redirect, arbitrary host, stale quote marked fresh, fallback premium on timeout, wallet method from the panel, exposed pools/fee fields, missing global quote budget. |
 
 ## 6. Mutation cases
 
-328 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+345 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -725,6 +735,23 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-NEXUS-004-P1-NXTIMEOUT | CR-NEXUS-004.P1 | behavioral | KILLED |
 | MUT-CR-NEXUS-004-P2-NXSTALE | CR-NEXUS-004.P2 | behavioral | KILLED |
 | MUT-CR-NEXUS-005-P1-NXAMBIGUOUS | CR-NEXUS-005.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-001-P1-QTCLIENTPID | CR-QUOTE-001.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-002-P1-QTAMBIGUOUS | CR-QUOTE-002.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-003-P1-QTASSET | CR-QUOTE-003.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-003-P2-QTCAPACITY | CR-QUOTE-003.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-003-P2-QTEXPOSURE | CR-QUOTE-003.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-003-P3-QTSHORTPERIOD | CR-QUOTE-003.P3 | behavioral | KILLED |
+| MUT-CR-QUOTE-003-P3-QTLONGPERIOD | CR-QUOTE-003.P3 | behavioral | KILLED |
+| MUT-CR-QUOTE-004-P1-QTMALFORMED | CR-QUOTE-004.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-004-P1-QTWRONGPRODUCT | CR-QUOTE-004.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-004-P1-QTWRONGASSET | CR-QUOTE-004.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-004-P2-QTREDIRECT | CR-QUOTE-004.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-004-P2-QTANYHOST | CR-QUOTE-004.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-005-P1-QTSTALE | CR-QUOTE-005.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-006-P1-QTFALLBACK | CR-QUOTE-006.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-007-P1-QTWALLET | CR-QUOTE-007.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-007-P2-QTEXPOSEDATA | CR-QUOTE-007.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-008-P1-QTGLOBALRATE | CR-QUOTE-008.P1 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -746,18 +773,18 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V1.5.2 | L2 | CR-DOC-002 | CONFORMANT |
 | V2.1.1 | L1 | CR-INPUT-009 | NON_CONFORMANT |
 | V2.1.2 | L2 | CR-INPUT-009 | NON_CONFORMANT |
-| V2.1.3 | L2 | CR-RESOURCE-005 | NON_CONFORMANT |
-| V2.2.1 | L1 | CR-API-003, CR-NEXUS-001, CR-NEXUS-003 | CONFORMANT |
+| V2.1.3 | L2 | CR-RESOURCE-005, CR-QUOTE-008 | NON_CONFORMANT |
+| V2.2.1 | L1 | CR-API-003, CR-NEXUS-001, CR-NEXUS-003, CR-QUOTE-001, CR-QUOTE-003, CR-QUOTE-004 | CONFORMANT |
 | V2.2.2 | L1 | CR-API-003 | CONFORMANT |
-| V2.2.3 | L2 | CR-INPUT-010, CR-NEXUS-001, CR-NEXUS-002 | CONFORMANT |
+| V2.2.3 | L2 | CR-INPUT-010, CR-NEXUS-001, CR-NEXUS-002, CR-QUOTE-002 | CONFORMANT |
 | V2.3.1 | L1 | CR-API-009 | CONFORMANT |
-| V2.3.2 | L2 | CR-CONC-002 | CONFORMANT |
+| V2.3.2 | L2 | CR-CONC-002, CR-QUOTE-003, CR-QUOTE-005 | CONFORMANT |
 | V2.3.3 | L2 | CR-CONC-001, CR-CONC-004 | CONFORMANT |
 | V2.3.4 | L2 | CR-CONC-002, CR-CONC-003 | CONFORMANT |
 | V2.3.5 | L3 | CR-API-010 | CONFORMANT |
-| V2.4.1 | L2 | CR-RESOURCE-001, CR-RESOURCE-002, CR-RESOURCE-007 | CONFORMANT |
+| V2.4.1 | L2 | CR-RESOURCE-001, CR-RESOURCE-002, CR-RESOURCE-007, CR-QUOTE-008 | CONFORMANT |
 | V3.2.1 | L1 | CR-BROWSER-006 | CONFORMANT |
-| V3.2.2 | L1 | CR-BROWSER-004 | CONFORMANT |
+| V3.2.2 | L1 | CR-BROWSER-004, CR-QUOTE-007 | CONFORMANT |
 | V3.3.1 | L1 | CR-SESSION-004 | CONFORMANT |
 | V3.3.2 | L2 | CR-SESSION-004 | CONFORMANT |
 | V3.3.3 | L2 | CR-SESSION-004 | CONFORMANT |
@@ -805,9 +832,9 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V8.1.1 | L1 | CR-API-012 | NON_CONFORMANT |
 | V8.1.2 | L2 | CR-API-012 | NON_CONFORMANT |
 | V8.2.1 | L1 | CR-API-002, CR-DB-002 | CONFORMANT |
-| V8.2.2 | L1 | CR-API-001 | CONFORMANT |
+| V8.2.2 | L1 | CR-API-001, CR-QUOTE-002 | CONFORMANT |
 | V8.2.3 | L2 | CR-API-003 | CONFORMANT |
-| V8.3.1 | L1 | CR-API-001 | CONFORMANT |
+| V8.3.1 | L1 | CR-API-001, CR-QUOTE-001 | CONFORMANT |
 | V8.3.2 | L3 | CR-SESSION-007 | CONFORMANT |
 | V8.4.1 | L2 | CR-API-001, CR-TELEGRAM-004 | CONFORMANT |
 | V9.1.1 | L1 | CR-SESSION-001 | CONFORMANT |
@@ -867,8 +894,8 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V15.2.1 | L1 | CR-SUPPLY-005 | NON_CONFORMANT |
 | V15.2.2 | L2 | CR-RESOURCE-001, CR-RESOURCE-003, CR-RESOURCE-004, CR-RESOURCE-007, CR-DOC-003 | CONFORMANT |
 | V15.2.3 | L2 | CR-CONFIG-008 | CONFORMANT |
-| V15.3.1 | L1 | CR-API-007 | NOT_DEMONSTRATED |
-| V15.3.2 | L2 | CR-PROVIDER-003, CR-NEXUS-003 | CONFORMANT |
+| V15.3.1 | L1 | CR-API-007, CR-QUOTE-007 | NOT_DEMONSTRATED |
+| V15.3.2 | L2 | CR-PROVIDER-003, CR-NEXUS-003, CR-QUOTE-004 | CONFORMANT |
 | V15.3.3 | L2 | CR-API-003 | CONFORMANT |
 | V15.3.4 | L2 | CR-API-011 | NOT_DEMONSTRATED |
 | V15.3.5 | L2 | CR-INPUT-011 | NOT_DEMONSTRATED |
@@ -890,8 +917,8 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V16.4.2 | L2 | CR-LOG-008 | NOT_DEMONSTRATED |
 | V16.4.3 | L2 | CR-LOG-009 | NOT_DEMONSTRATED |
 | V16.5.1 | L2 | CR-API-006 | NOT_DEMONSTRATED |
-| V16.5.2 | L2 | CR-RESOURCE-003, CR-PROVIDER-001, CR-PROVIDER-002, CR-NEXUS-004 | NOT_DEMONSTRATED |
-| V16.5.3 | L2 | CR-AUTH-005, CR-API-006, CR-PROVIDER-001, CR-NEXUS-002, CR-NEXUS-004, CR-NEXUS-005 | NOT_DEMONSTRATED |
+| V16.5.2 | L2 | CR-RESOURCE-003, CR-PROVIDER-001, CR-PROVIDER-002, CR-NEXUS-004, CR-QUOTE-006 | NOT_DEMONSTRATED |
+| V16.5.3 | L2 | CR-AUTH-005, CR-API-006, CR-PROVIDER-001, CR-NEXUS-002, CR-NEXUS-004, CR-NEXUS-005, CR-QUOTE-002, CR-QUOTE-005, CR-QUOTE-006 | NOT_DEMONSTRATED |
 
 ## 8. Pinned sources
 
@@ -917,6 +944,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | SRC-NEXUS-API | [Nexus Mutual public API v2: products, product-types, capacity](https://api.nexusmutual.io/v2/products/97) | v2 (responses of 2026-10-18) | unversioned API; pinned by captured responses in test/fixtures/nexus (sha256 product-97 8382d2eca21ade50ebfa4b33405bc45726a60c1c469d39c8932041645f11fb51, product-type-0 da46bb115687d0ee1e0e250d9d2ff238540d5663eb07c43b206232738b7e7f25, capacity-97 7391051f6d37c0d0b729470ba13acda8311a234c5bc3cf53b45ce4515c2fb44a) and by the identity constants in src/nexus-pinned.mjs |
 | SRC-NEXUS-CONTRACTS | [NexusMutual/smart-contracts (Cover.sol cover period limits)](https://github.com/NexusMutual/smart-contracts/tree/v3.4.0) | v3.4.0 | git tag v3.4.0 = commit 67f531208b693f8edbc6ea46528f164046ed1f0b; MIN_COVER_PERIOD 28 days, MAX_COVER_PERIOD 365 days; mainnet addresses from @nexusmutual/sdk 3.1.1 data/addresses.json (SDK not used, GPL-3.0 review open) |
 | SRC-NEXUS-WORDING | [Single Protocol Cover wording (product type 0)](https://api.nexusmutual.io/ipfs/QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY) | IPFS QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY | content-addressed IPFS CID QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY; PDF sha256 9d831f51fc158b385d0daaa8aa4ae0294990a8e68f60aa8884611dc39e62003b |
+| SRC-NEXUS-QUOTE | [Nexus Mutual public API v2: quote](https://api.nexusmutual.io/v2/quote) | v2 (responses of 2026-10-18) | unversioned API; pinned by captured responses in test/fixtures/nexus (sha256 quote-97-usdc-1000-30d 0c81004cedb1038ec4b2d2d0852a589f9ffefff94f04d92909c09d987b2cb92e, quote-97-eth-1-365d d7556163bfe7c856509a3fa49a972e96a5048c4627a09939cc32403b8a28d233); query parameters productId, amount, period (days), coverAsset, paymentAsset as used by @nexusmutual/sdk 3.1.1 Quote.getQuote (SDK not used); premium = total x annualPrice[bps] x days / (10000 x 365) observed for USDC/ETH/cbBTC; the API itself accepted period 27 and coverAsset DAI for product 97 on 2026-10-18 |
 
 ## 9. Drift model
 
@@ -938,11 +966,14 @@ Drift output only prioritises review. security:verify always evaluates every con
 | `api/alerts*` | CR-API, CR-RESOURCE |
 | `src/alerts*` | CR-RESOURCE, CR-TELEGRAM, CR-PROVIDER |
 | `src/bot.mjs` | CR-TELEGRAM, CR-API, CR-INPUT |
-| `src/nexus*` | CR-DOC, CR-NEXUS, CR-PROVIDER |
+| `src/nexus*` | CR-DOC, CR-NEXUS, CR-PROVIDER, CR-QUOTE |
+| `api/nexus/*` | CR-API, CR-PROVIDER, CR-QUOTE, CR-RESOURCE |
+| `web/src/nexus-cover.js` | CR-BROWSER, CR-QUOTE |
+| `src/positions/aave-v3.mjs` | CR-QUOTE |
 | `src/positions/nexus-mapping.mjs` | CR-NEXUS |
 | `src/positions/exposure.mjs` | CR-NEXUS |
 | `src/positions/aave-registry.mjs` | CR-NEXUS |
-| `scripts/nexus-live-probe.mjs` | CR-NEXUS, CR-PROVIDER |
+| `scripts/nexus-live-probe.mjs` | CR-NEXUS, CR-PROVIDER, CR-QUOTE |
 | `src/pdf-text.mjs` | CR-DOC |
 | `src/agent-*.mjs` | CR-DOC, CR-PRIV |
 | `src/positions/*` | CR-PROVIDER, CR-RESOURCE |
@@ -990,4 +1021,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2v** — Phase 2V: real-Postgres concurrency evidence with runner-observed use and overlap for CR-RESOURCE-002 (rate limiter counting) and CR-CONC-006 (advisory locks); four KILLED mutations. No application change, no finding. CR-VERIFY-004 re-evaluated and left MISSING_EVIDENCE (see record).
 - **1.0-draft-phase2w** — Phase 2W: versioned meta-control derivation. CR-VERIFY-004 P1 is computed by the engine from the observed, runtime-verified coverage of every canonical concurrency property (rule OBSERVED_CONCURRENCY_COVERAGE) instead of requiring an evidence item of its own. Minimum level E5, type real-system, property text and derivation of CR-VERIFY-004 unchanged. Six KILLED rule mutations. No application change, no finding. Framework finding F-2W-1 (findings fixture Z6 needed an open release-blocking control; Low, fails closed) found once every release-blocking control was satisfied, recorded and fixed.
 - **1.0-draft-phase2x** — Nexus P1+P2: read-only Nexus product/capacity/wording integration and deterministic position -> product mapping. New domain CR-NEXUS with five RELEASE_BLOCKING controls (E3), behavioural evidence and 14 KILLED known-bad mutations; three pinned sources; drift rules for the new files. No purchase flow, no transaction, no deployment; no finding.
+- **1.0-draft-phase2y** — Nexus P3: user-facing cover details and live quote, display only (POST /api/nexus/quote, dashboard cover panel). New domain CR-QUOTE with eight RELEASE_BLOCKING controls (E3), behavioural evidence and 17 KILLED known-bad mutations; source SRC-NEXUS-QUOTE; drift rules. No purchase, approval, transaction, fee or proof-of-loss upload; no deployment; no finding.
 

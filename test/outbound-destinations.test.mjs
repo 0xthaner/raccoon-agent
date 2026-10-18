@@ -63,7 +63,7 @@ globalThis.fetch = async (input, init = {}) => {
 const DESTINATIONS = {
 	'api.telegram.org': [new RegExp(`^/bot${TOKEN}/(sendMessage|getChat|answerCallbackQuery|getMe|sendChatAction|editMessageText|editMessageReplyMarkup|deleteMessage|setMyCommands)$`)],
 	'api.openai.com': [/^\/v1\/responses$/],
-	'api.nexusmutual.io': [/^\/v2\/(products|product-types|capacity)(\/\d+)?$/, /^\/ipfs\/(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{50,})$/],
+	'api.nexusmutual.io': [/^\/v2\/(products|product-types|capacity)(\/\d+)?$/, /^\/v2\/quote$/, /^\/ipfs\/(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{50,})$/],
 	'eth-mainnet.g.alchemy.com': [/^\/v2\/alchemy-test-key$/, /^\/nft\/v3\/alchemy-test-key\/getNFTsForOwner$/],
 	'mainnet.infura.io': [/^\/v3\/infura-test-key$/],
 	'supabase.test.invalid': [/^\/rest\/v1\/(rpc\/)?[a-z_0-9]+$/]
@@ -150,6 +150,18 @@ test('OUTBOUND Nexus read API (P1/P2): only GET on the three pinned paths of api
 	const core = AAVE_V3_MARKETS[0];
 	nexusRead._test.reset();
 	assertFixed('getNexusReadModel(core)', await capture(() => getNexusReadModel({ chainId: 1, protocolKey: 'aave', protocolVersion: 'v3', deploymentKey: core.deploymentKey, marketAddress: core.pool })));
+	// P3: die Quote nur mit fester Pfadvorlage und genau fuenf kodierten Parametern.
+	const usdc = { assetId: 6, symbol: 'USDC', decimals: 6 };
+	const capacity = { productId: 97, pools: [{ poolId: 2, assets: [{ assetId: 6, amount: '1000000000000' }] }] };
+	const quoteUrls = await capture(() => nexusRead.readQuote({ productId: 97, coverAsset: usdc, amount: 1_000_000_000n, periodDays: 30, capacity }));
+	assertFixed('readQuote (control)', quoteUrls);
+	assert.deepEqual([...new URL(quoteUrls[0]).searchParams.keys()], ['productId', 'amount', 'period', 'coverAsset', 'paymentAsset']);
+	for (const h of HOSTILE) {
+		for (const bad of [{ productId: h }, { periodDays: h }, { coverAsset: { ...usdc, assetId: h } }]) {
+			const urls = await capture(() => nexusRead.readQuote({ productId: 97, coverAsset: usdc, amount: 1_000_000_000n, periodDays: 30, capacity: { ...capacity, productId: bad.productId ?? 97 }, ...bad }));
+			assert.deepEqual(urls, [], `readQuote(${JSON.stringify(bad)}) must be refused before any request`);
+		}
+	}
 	for (const h of [...HOSTILE, '1/../../x', '1?x=https://evil.example', '-1', '1e3', '/v2/quote', '/v2/products/97/../../quote']) {
 		nexusRead._test.reset();
 		assert.deepEqual(await capture(() => nexusRead.nexusGet(h)), [], `nexusGet(${h}) must be refused before any request`);

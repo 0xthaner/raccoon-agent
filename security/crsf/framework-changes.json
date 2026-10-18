@@ -1797,6 +1797,98 @@
 					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence changes."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2y",
+			"summary": "Nexus P3: user-facing cover details and live quote, display only (POST /api/nexus/quote, dashboard cover panel). New domain CR-QUOTE with eight RELEASE_BLOCKING controls (E3), behavioural evidence and 17 KILLED known-bad mutations; source SRC-NEXUS-QUOTE; drift rules. No purchase, approval, transaction, fee or proof-of-loss upload; no deployment; no finding.",
+			"changes": [
+				{
+					"id": "controls.schema.json+drift-model.schema.json",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "domain enums of controls and drift-model extended by CR-QUOTE (Nexus quote display); no other schema change, no threshold or class changed"
+				},
+				{
+					"id": "drift-model",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "rules src/nexus* and scripts/nexus-live-probe.mjs gain CR-QUOTE; new rules api/nexus/*, web/src/nexus-cover.js, src/positions/aave-v3.mjs; domains only added"
+				},
+				{
+					"id": "MUT-CR-NEXUS-004-P2-NXSTALE",
+					"kind": "MUTATION_ANCHOR_UPDATED",
+					"reason": "the cache-hit line it weakens now also honours an optional shorter maxAgeMs (quote: fresh capacity); re-anchored to \"if (hit && now - hit.at < Math.min(maxAgeMs, TTL_MS[kind])) return hit.value;\" with the same weakening (any cached value reused regardless of age) and the same expected failing test"
+				},
+				{
+					"id": "EV-NEXUS-READ",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "test NEXUS-SCOPE no longer forbids the string /v2/quote in src/nexus-read-api.mjs, because P3 adds readQuote there by explicit request; it still forbids it in the read model, mapping and exposure modules, and still forbids CoverBroker, buyCover, approve(, sendTransaction, writeContract and fee handling in all four. The new test QUOTE-SURFACE asserts the absence of the purchase surface across all runtime code. CR-NEXUS-005 property text and evidence level unchanged."
+				},
+				{
+					"id": "test/positions*.test.mjs",
+					"kind": "TEST_INFRA",
+					"reason": "dashboard layout tests updated for the display-only \"Cover-Details ansehen\" button on MATCHED market cards (expected card text gains that label; attribution-button counts exclude it and assert it separately); the route list gains api/nexus/quote.mjs with assertions on session, revocation, same-origin and JSON checks; the pricing expectation gains reference prices from the same oracle call. The invariant \"exactly one Nexus action per protocol\" is unchanged (the new button is not a nexus-action)."
+				},
+				{
+					"id": "inventories-p3",
+					"kind": "TEST_INFRA",
+					"reason": "reviewed inventories extended for the new surface, nothing removed: URL_SINKS (test/browser-dynamic-code.test.mjs) gains web/src/nexus-cover.js href Identifier(url) (IPFS_URL-checked, class B, README CR-BROWSER-004 rows added); query CLASSIFICATION (test/query-authority.test.mjs) gains api/nexus/quote.mjs as REJECTED with its own QUERY-REJECTED test (any query -> 400 before every dependency); outbound DESTINATIONS gains the fixed path /v2/quote on api.nexusmutual.io with a hostile-value driving test; check:quellen gains syntax checks of the three new modules"
+				},
+				{
+					"id": "CR-QUOTE-001",
+					"kind": "ADDED",
+					"reason": "New control for the Nexus quote display (P3): Quote product derived server-side, never chosen by the client. Derivation: Authorization rules are enforced at a trusted service layer and not by anything an untrusted consumer could manipulate (V8.3.1); input used for business decisions is validated positively (V2.2.1). P3 adds a user-facing endpoint that combines session data, third-party product/capacity/quote data and a computed cover amount, so these pinned requirements apply to that new path. Kept separate from CR-NEXUS-001..005 (read model, locked) and CR-API/CR-RESOURCE controls (other endpoints), so no locked property changes.",
+					"rationale": "Extension for a new feature; each property is tested behaviourally and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-QUOTE-002",
+					"kind": "ADDED",
+					"reason": "New control for the Nexus quote display (P3): Quote bound to an EXACT validated Nexus mapping of the session wallet. Derivation: Related data items are combined only per pre-defined rules (V2.2.3); no fail-open (V16.5.3); data-specific access only to the owner (V8.2.2). P3 adds a user-facing endpoint that combines session data, third-party product/capacity/quote data and a computed cover amount, so these pinned requirements apply to that new path. Kept separate from CR-NEXUS-001..005 (read model, locked) and CR-API/CR-RESOURCE controls (other endpoints), so no locked property changes.",
+					"rationale": "Extension for a new feature; each property is tested behaviourally and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-QUOTE-003",
+					"kind": "ADDED",
+					"reason": "New control for the Nexus quote display (P3): Quote amount, asset and period strictly bounded. Derivation: Business logic limits are implemented as documented (V2.3.2); input is validated against allow lists and ranges (V2.2.1). P3 adds a user-facing endpoint that combines session data, third-party product/capacity/quote data and a computed cover amount, so these pinned requirements apply to that new path. Kept separate from CR-NEXUS-001..005 (read model, locked) and CR-API/CR-RESOURCE controls (other endpoints), so no locked property changes.",
+					"rationale": "Extension for a new feature; each property is tested behaviourally and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-QUOTE-004",
+					"kind": "ADDED",
+					"reason": "New control for the Nexus quote display (P3): Nexus quote responses strictly validated. Derivation: Third-party API data is validated before use (API10:2023, V2.2.1); external calls do not follow redirects (V15.3.2). P3 adds a user-facing endpoint that combines session data, third-party product/capacity/quote data and a computed cover amount, so these pinned requirements apply to that new path. Kept separate from CR-NEXUS-001..005 (read model, locked) and CR-API/CR-RESOURCE controls (other endpoints), so no locked property changes.",
+					"rationale": "Extension for a new feature; each property is tested behaviourally and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-QUOTE-005",
+					"kind": "ADDED",
+					"reason": "New control for the Nexus quote display (P3): Quote freshness explicit; stale quotes never usable. Derivation: Business logic limits are implemented as documented (V2.3.2); no fail-open (V16.5.3). P3 adds a user-facing endpoint that combines session data, third-party product/capacity/quote data and a computed cover amount, so these pinned requirements apply to that new path. Kept separate from CR-NEXUS-001..005 (read model, locked) and CR-API/CR-RESOURCE controls (other endpoints), so no locked property changes.",
+					"rationale": "Extension for a new feature; each property is tested behaviourally and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-QUOTE-006",
+					"kind": "ADDED",
+					"reason": "New control for the Nexus quote display (P3): Nexus failures never produce a synthetic premium or availability. Derivation: Secure operation when external access fails (V16.5.2); no fail-open (V16.5.3). P3 adds a user-facing endpoint that combines session data, third-party product/capacity/quote data and a computed cover amount, so these pinned requirements apply to that new path. Kept separate from CR-NEXUS-001..005 (read model, locked) and CR-API/CR-RESOURCE controls (other endpoints), so no locked property changes.",
+					"rationale": "Extension for a new feature; each property is tested behaviourally and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-QUOTE-007",
+					"kind": "ADDED",
+					"reason": "New control for the Nexus quote display (P3): User-facing quote is informational and cannot trigger wallet methods. Derivation: Text is rendered with safe text functions (V3.2.2); only the required subset of fields is returned (V15.3.1). P3 adds a user-facing endpoint that combines session data, third-party product/capacity/quote data and a computed cover amount, so these pinned requirements apply to that new path. Kept separate from CR-NEXUS-001..005 (read model, locked) and CR-API/CR-RESOURCE controls (other endpoints), so no locked property changes.",
+					"rationale": "Extension for a new feature; each property is tested behaviourally and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-QUOTE-008",
+					"kind": "ADDED",
+					"reason": "New control for the Nexus quote display (P3): Quote retrieval rate limited per IP, wallet and globally. Derivation: Anti-automation against excessive calls and quota exhaustion (V2.4.1, API4:2023); limits documented per user and globally (V2.1.3). P3 adds a user-facing endpoint that combines session data, third-party product/capacity/quote data and a computed cover amount, so these pinned requirements apply to that new path. Kept separate from CR-NEXUS-001..005 (read model, locked) and CR-API/CR-RESOURCE controls (other endpoints), so no locked property changes.",
+					"rationale": "Extension for a new feature; each property is tested behaviourally and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				}
+			]
 		}
 	]
 }

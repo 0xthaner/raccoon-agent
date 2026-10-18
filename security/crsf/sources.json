@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2x",
+	"crsf_version": "1.0-draft-phase2y",
 	"sources": [
 		{
 			"id": "SRC-ASVS",
@@ -194,6 +194,16 @@
 			"url": "https://api.nexusmutual.io/ipfs/QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY",
 			"pin": "content-addressed IPFS CID QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY; PDF sha256 9d831f51fc158b385d0daaa8aa4ae0294990a8e68f60aa8884611dc39e62003b",
 			"note": "Legal terms are linked, never summarised; a changed CID makes the product UNAVAILABLE (TERMS_CHANGED)."
+		},
+		{
+			"id": "SRC-NEXUS-QUOTE",
+			"org": "Nexus Mutual",
+			"title": "Nexus Mutual public API v2: quote",
+			"version": "v2 (responses of 2026-10-18)",
+			"date": "2026-10-18 (retrieved)",
+			"url": "https://api.nexusmutual.io/v2/quote",
+			"pin": "unversioned API; pinned by captured responses in test/fixtures/nexus (sha256 quote-97-usdc-1000-30d 0c81004cedb1038ec4b2d2d0852a589f9ffefff94f04d92909c09d987b2cb92e, quote-97-eth-1-365d d7556163bfe7c856509a3fa49a972e96a5048c4627a09939cc32403b8a28d233); query parameters productId, amount, period (days), coverAsset, paymentAsset as used by @nexusmutual/sdk 3.1.1 Quote.getQuote (SDK not used); premium = total x annualPrice[bps] x days / (10000 x 365) observed for USDC/ETH/cbBTC; the API itself accepted period 27 and coverAsset DAI for product 97 on 2026-10-18",
+			"note": "Untrusted third-party data. No expiry and no signature in the response; CoverRaccoon assigns its own 60 s freshness."
 		}
 	],
 	"deferred_sources": [
@@ -264,6 +274,12 @@
 			"change": "ADDED",
 			"id": "SRC-NEXUS-WORDING",
 			"reason": "pinned basis for the read-only Nexus integration controls CR-NEXUS-001..005"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2y",
+			"change": "ADDED",
+			"id": "SRC-NEXUS-QUOTE",
+			"reason": "pinned basis for the Nexus quote display controls CR-QUOTE-001..008"
 		}
 	],
 	"vendored": [

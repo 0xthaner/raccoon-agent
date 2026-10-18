@@ -81,12 +81,15 @@ export function capacityView(capacity, verified) {
 		assets.push(Object.freeze({ assetId: known.assetId, symbol: known.symbol, decimals: known.decimals, amount: entry.amount, formatted: formatUnits(BigInt(entry.amount), known.decimals) }));
 	}
 	const positive = assets.some((asset) => BigInt(asset.amount) > 0n);
+	const supported = new Set(assets.map((asset) => asset.assetId));
 	return Object.freeze({
 		status: positive ? 'AVAILABLE' : 'NO_CAPACITY',
+		productId: capacity.productId,
 		fetchedAt: capacity.fetchedAt,
 		source: capacity.source,
 		assets: Object.freeze(assets),
 		missingAssets: Object.freeze(missingAssets),
+		pools: Object.freeze((capacity.pools ?? []).map((pool) => Object.freeze({ poolId: pool.poolId, assets: Object.freeze(pool.assets.filter((entry) => supported.has(entry.assetId))) }))),
 		annualPriceRange: Object.freeze({ min: capacity.minAnnualPrice, max: capacity.maxAnnualPrice })
 	});
 }
@@ -163,8 +166,11 @@ export function buildNexusReadModel(position, sources = null, { now = Date.now()
 	return model(nexusMatch, capacityResult, wording, reasons.length ? 'UNAVAILABLE' : 'AVAILABLE', reasons);
 }
 
-/** Liest die Nexus-Daten nur fuer eine EXACT-Zuordnung; sonst kein einziger Abruf. */
-export async function getNexusReadModel(position, { fetchImpl = fetch, now = Date.now(), timeoutMs } = {}) {
+/**
+ * Liest die Nexus-Daten nur fuer eine EXACT-Zuordnung; sonst kein einziger Abruf.
+ * `capacityMaxAgeMs` verkuerzt das zulaessige Alter der Kapazitaet (Quote: 60 s).
+ */
+export async function getNexusReadModel(position, { fetchImpl = fetch, now = Date.now(), timeoutMs, capacityMaxAgeMs } = {}) {
 	const match = matchPositionToNexus(position);
 	if (match.status !== 'EXACT') return buildNexusReadModel(position, null, { now });
 	const pinned = PINNED_PRODUCTS[match.productId];
@@ -172,7 +178,7 @@ export async function getNexusReadModel(position, { fetchImpl = fetch, now = Dat
 	const [product, productType, capacity] = await Promise.allSettled([
 		readProduct(pinned.productId, options),
 		readProductType(pinned.productTypeId, options),
-		readCapacity(pinned.productId, options)
+		readCapacity(pinned.productId, capacityMaxAgeMs ? { ...options, maxAgeMs: capacityMaxAgeMs } : options)
 	]);
 	return buildNexusReadModel(position, { product, productType, capacity }, { now });
 }

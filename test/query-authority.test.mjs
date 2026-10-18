@@ -31,6 +31,7 @@ const { siweOrigin } = await import('../src/siwe-auth.mjs');
 const { isPrivateChatUpdate } = await import('../src/telegram-audit.mjs');
 const { createPositionsHandler } = await import('../api/positions.mjs');
 const { createAttributionsHandler } = await import('../api/position-attributions.mjs');
+const { createNexusQuoteHandler } = await import('../api/nexus/quote.mjs');
 
 const A = '0x' + 'a1'.repeat(20);
 const B = '0x' + 'b2'.repeat(20);
@@ -213,6 +214,20 @@ test('QUERY-REJECTED positions and position-attributions: any query -> 400 befor
 		assert.deepEqual(rec.log, [], `${q}: nothing ran`);
 	}
 });
+test('QUERY-REJECTED nexus/quote: any query -> 400 before origin check, rate limit, session, lookup or Nexus', async () => {
+	for (const q of variants()) {
+		const rec = recorder();
+		const res = response();
+		await createNexusQuoteHandler({
+			getPositions: rec.fn('getPositions'), isRevoked: rec.fn('isRevoked'), readModel: rec.fn('readModel'), quote: rec.fn('quote'),
+			rateLimit: rec.fn('rateLimit', async () => true), rateLimitFor: rec.fn('rateLimitFor', async () => true), resolveSession: rec.fn('resolveSession'),
+			sameOrigin: rec.fn('sameOrigin', () => true), json: rec.fn('json', () => true)
+		})({ method: 'POST', url: `/api/nexus/quote${q}`, body: { action: 'details', deploymentKey: 'aave-v3-ethereum-core' }, headers: { cookie: sessionCookie(A), 'content-type': 'application/json' } }, res);
+		assert.equal(res.code, 400, `nexus/quote ${q}`);
+		assert.equal(res.body.code, 'QUERY_NOT_ALLOWED');
+		assert.deepEqual(rec.log, [], `${q}: nothing ran`);
+	}
+});
 
 /* -------------------- endpoints with declared parameters: extra names ignored */
 function dashboardHandler(rec) {
@@ -249,7 +264,7 @@ test('QUERY-IGNORED dashboard (declared: access, wallet, telegram): undeclared n
 /* ---------------------------------------------------------------- inventory */
 const CLASSIFICATION = {
 	'api/alerts.mjs': 'IGNORED', 'api/config.mjs': 'IGNORED', 'api/csp-report.mjs': 'IGNORED', 'api/telegram.mjs': 'IGNORED', 'api/link/verify.mjs': 'IGNORED',
-	'api/positions.mjs': 'REJECTED', 'api/position-attributions.mjs': 'REJECTED',
+	'api/positions.mjs': 'REJECTED', 'api/position-attributions.mjs': 'REJECTED', 'api/nexus/quote.mjs': 'REJECTED',
 	// Declared single-value parameters (duplicates -> '' per CR-API-004 P2); undeclared names are tested above (dashboard) or ignored by construction of the same reader (link).
 	'api/dashboard.mjs': 'DECLARED', 'api/link.mjs': 'DECLARED'
 };

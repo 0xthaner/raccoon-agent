@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2x",
+	"crsf_version": "1.0-draft-phase2y",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -11268,6 +11268,614 @@
 					"satisfied_by": [
 						"EV-NEXUS-READ",
 						"EV-KB-NEXUS-READ"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 1 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 1 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-QUOTE",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Feature present in CoverRaccoon at the verified commit (POST /api/nexus/quote and the dashboard cover panel; display only).",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-QUOTE-001",
+			"title": "Quote product derived server-side, never chosen by the client",
+			"source_refs": [
+				"SRC-ASVS V8.3.1",
+				"SRC-ASVS V2.2.1"
+			],
+			"external_requirement_ids": [
+				"V8.3.1",
+				"V2.2.1"
+			],
+			"external_requirement": "Authorization rules are enforced at a trusted service layer and not by anything an untrusted consumer could manipulate (V8.3.1); input used for business decisions is validated positively (V2.2.1).",
+			"coverraccoon_requirement": "The quote request names only deploymentKey, cover asset symbol, amount and period; any product field is rejected (PRODUCT_ID_NOT_ACCEPTED) and the Nexus productId, asset id and pools are derived on the server from the strict mapping and pinned tables.",
+			"applies_to": [
+				"api/nexus/quote.mjs",
+				"src/nexus-quote.mjs"
+			],
+			"threat": "a client quotes (and later buys) a different product than the one mapped to its position",
+			"expected_property": "client productId -> 400, Nexus request uses productId 97",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "a client-supplied product identifier is rejected and the Nexus quote always uses the productId derived server-side from the EXACT mapping"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-NEXUS-QUOTE",
+				"EV-NEXUS-QUOTE"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-NEXUS-QUOTE",
+						"EV-KB-NEXUS-QUOTE"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 1 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 1 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-QUOTE",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Feature present in CoverRaccoon at the verified commit (POST /api/nexus/quote and the dashboard cover panel; display only).",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-QUOTE-002",
+			"title": "Quote bound to an EXACT validated Nexus mapping of the session wallet",
+			"source_refs": [
+				"SRC-ASVS V2.2.3",
+				"SRC-ASVS V16.5.3",
+				"SRC-ASVS V8.2.2"
+			],
+			"external_requirement_ids": [
+				"V2.2.3",
+				"V16.5.3",
+				"V8.2.2"
+			],
+			"external_requirement": "Related data items are combined only per pre-defined rules (V2.2.3); no fail-open (V16.5.3); data-specific access only to the owner (V8.2.2).",
+			"coverraccoon_requirement": "Details and quotes exist only for a position the server resolves for the session wallet whose mapping is EXACT and whose read model is AVAILABLE; PROBABLE, AMBIGUOUS, NO_LISTING and UNAVAILABLE give a neutral status and never a Nexus quote request.",
+			"applies_to": [
+				"api/nexus/quote.mjs",
+				"src/nexus-quote.mjs",
+				"src/nexus-read-model.mjs"
+			],
+			"threat": "a quote for a position the product may not cover, or for another wallet's position",
+			"expected_property": "non-EXACT -> neutral status, no quote",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "a quote is requested only for a session-wallet position with an EXACT mapping and an AVAILABLE read model; every other state is a neutral status without a Nexus quote request"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-NEXUS-QUOTE",
+				"EV-NEXUS-QUOTE"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-NEXUS-QUOTE",
+						"EV-KB-NEXUS-QUOTE"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 1 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 1 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-QUOTE",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Feature present in CoverRaccoon at the verified commit (POST /api/nexus/quote and the dashboard cover panel; display only).",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-QUOTE-003",
+			"title": "Quote amount, asset and period strictly bounded",
+			"source_refs": [
+				"SRC-ASVS V2.3.2",
+				"SRC-ASVS V2.2.1",
+				"SRC-NEXUS-CONTRACTS"
+			],
+			"external_requirement_ids": [
+				"V2.3.2",
+				"V2.2.1"
+			],
+			"external_requirement": "Business logic limits are implemented as documented (V2.3.2); input is validated against allow lists and ranges (V2.2.1).",
+			"coverraccoon_requirement": "Cover asset only from the product's supported cover assets (ETH, USDC, cbBTC); amount > 0 and <= min(suggested exposure converted with the Aave oracle price of the same block, available capacity), exact in BigInt; period an integer of 28..365 days - enforced locally because the Nexus API accepts periods below 28 days and unsupported assets.",
+			"applies_to": [
+				"src/nexus-quote.mjs",
+				"api/nexus/quote.mjs"
+			],
+			"threat": "over-insurance beyond the economic exposure, quotes above capacity, invalid periods or unsupported assets presented as available",
+			"expected_property": "out of bounds -> 422, no quote",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "only a cover asset listed by the mapped product and the pinned asset table can be quoted"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "the amount is > 0 and <= min(suggested exposure converted with the Aave oracle price, available capacity), computed exactly"
+				},
+				{
+					"id": "P3",
+					"kind": "REQUIREMENT",
+					"text": "the period is an integer between 28 and 365 days"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-NEXUS-QUOTE",
+				"EV-NEXUS-QUOTE"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-NEXUS-QUOTE",
+						"EV-KB-NEXUS-QUOTE"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-NEXUS-QUOTE",
+						"EV-KB-NEXUS-QUOTE"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P3": {
+					"satisfied_by": [
+						"EV-NEXUS-QUOTE",
+						"EV-KB-NEXUS-QUOTE"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 3 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 3 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-QUOTE",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Feature present in CoverRaccoon at the verified commit (POST /api/nexus/quote and the dashboard cover panel; display only).",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-QUOTE-004",
+			"title": "Nexus quote responses strictly validated",
+			"source_refs": [
+				"SRC-API API10:2023",
+				"SRC-ASVS V2.2.1",
+				"SRC-ASVS V15.3.2",
+				"SRC-NEXUS-QUOTE"
+			],
+			"external_requirement_ids": [
+				"API10:2023",
+				"V2.2.1",
+				"V15.3.2"
+			],
+			"external_requirement": "Third-party API data is validated before use (API10:2023, V2.2.1); external calls do not follow redirects (V15.3.2).",
+			"coverraccoon_requirement": "Only GET /v2/quote with exactly five encoded server-built parameters on the pinned host, no redirects, JSON content type, size cap, never cached; the response must match the requested asset, cover the requested amount (<= 1 % above), allocate only to pools of the product within their capacity with allocations summing to the total, and carry a premium consistent with its annual price and period.",
+			"applies_to": [
+				"src/nexus-read-api.mjs",
+				"src/nexus-quote.mjs"
+			],
+			"threat": "a malformed, foreign-product, foreign-asset or redirected quote shown as a real premium",
+			"expected_property": "invalid quote -> error, never a premium",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "a quote is accepted only if schema, numeric formats, asset, amount, product pools and premium/price consistency all match the request"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "only GET on the fixed /v2/quote path of the pinned host with encoded server-built parameters, no redirects, no caching"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-NEXUS-QUOTE",
+				"EV-NEXUS-QUOTE"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-NEXUS-QUOTE",
+						"EV-KB-NEXUS-QUOTE"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-NEXUS-QUOTE",
+						"EV-KB-NEXUS-QUOTE"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 2 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 2 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-QUOTE",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Feature present in CoverRaccoon at the verified commit (POST /api/nexus/quote and the dashboard cover panel; display only).",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-QUOTE-005",
+			"title": "Quote freshness explicit; stale quotes never usable",
+			"source_refs": [
+				"SRC-ASVS V2.3.2",
+				"SRC-ASVS V16.5.3",
+				"SRC-NEXUS-QUOTE"
+			],
+			"external_requirement_ids": [
+				"V2.3.2",
+				"V16.5.3"
+			],
+			"external_requirement": "Business logic limits are implemented as documented (V2.3.2); no fail-open (V16.5.3).",
+			"coverraccoon_requirement": "Nexus quotes carry no expiry; every quote gets quoteFetchedAt and quoteExpiresAt = fetchedAt + 60 s. From quoteExpiresAt on it is STALE, displayed only as expired, and isQuoteUsable is false, so no later transactional step can build on it.",
+			"applies_to": [
+				"src/nexus-quote.mjs",
+				"web/src/nexus-cover.js"
+			],
+			"threat": "an outdated premium is acted on",
+			"expected_property": "expired -> STALE, not usable",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "every quote carries quoteFetchedAt and quoteExpiresAt (60 s); from expiry on it is STALE and never usable"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-NEXUS-QUOTE",
+				"EV-NEXUS-QUOTE"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-NEXUS-QUOTE",
+						"EV-KB-NEXUS-QUOTE"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 1 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 1 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-QUOTE",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Feature present in CoverRaccoon at the verified commit (POST /api/nexus/quote and the dashboard cover panel; display only).",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-QUOTE-006",
+			"title": "Nexus failures never produce a synthetic premium or availability",
+			"source_refs": [
+				"SRC-ASVS V16.5.2",
+				"SRC-ASVS V16.5.3"
+			],
+			"external_requirement_ids": [
+				"V16.5.2",
+				"V16.5.3"
+			],
+			"external_requirement": "Secure operation when external access fails (V16.5.2); no fail-open (V16.5.3).",
+			"coverraccoon_requirement": "A timeout, network error, HTTP error or invalid answer of the quote request gives QUOTE_UNAVAILABLE without any premium, estimate or fallback price; the request is time-limited.",
+			"applies_to": [
+				"src/nexus-quote.mjs",
+				"src/nexus-read-api.mjs",
+				"api/nexus/quote.mjs"
+			],
+			"threat": "an outage is shown as a made-up premium",
+			"expected_property": "Nexus failure -> QUOTE_UNAVAILABLE, no premium",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "any Nexus quote failure, including a timeout, yields QUOTE_UNAVAILABLE without a premium or fallback value"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-NEXUS-QUOTE",
+				"EV-NEXUS-QUOTE"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-NEXUS-QUOTE",
+						"EV-KB-NEXUS-QUOTE"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 1 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 1 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-QUOTE",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Feature present in CoverRaccoon at the verified commit (POST /api/nexus/quote and the dashboard cover panel; display only).",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-QUOTE-007",
+			"title": "User-facing quote is informational and cannot trigger wallet methods",
+			"source_refs": [
+				"SRC-ASVS V3.2.2",
+				"SRC-ASVS V15.3.1"
+			],
+			"external_requirement_ids": [
+				"V3.2.2",
+				"V15.3.1"
+			],
+			"external_requirement": "Text is rendered with safe text functions (V3.2.2); only the required subset of fields is returned (V15.3.1).",
+			"coverraccoon_requirement": "The cover panel calls only POST /api/nexus/quote, never a wallet method; remote strings are text only and links only validated Nexus IPFS URLs; responses carry no pool allocations, contract data, fee or transaction fields; runtime code contains no purchase surface (buyCover, approve, send-transaction methods, fee handling, cover metadata upload).",
+			"applies_to": [
+				"web/src/nexus-cover.js",
+				"web/src/main.js",
+				"api/nexus/quote.mjs",
+				"src/nexus-quote.mjs"
+			],
+			"threat": "a display turns into a transaction prompt or leaks transaction inputs",
+			"expected_property": "no wallet call, no transaction fields",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "requesting details or a quote never calls a wallet method; remote strings are rendered as text and only validated Nexus IPFS links are shown"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "responses carry no pool allocations, contract data, fee or transaction fields, and runtime code contains no purchase surface"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-NEXUS-QUOTE",
+				"EV-NEXUS-QUOTE"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-NEXUS-QUOTE",
+						"EV-KB-NEXUS-QUOTE"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-NEXUS-QUOTE",
+						"EV-KB-NEXUS-QUOTE"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 2 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 2 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-QUOTE",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Feature present in CoverRaccoon at the verified commit (POST /api/nexus/quote and the dashboard cover panel; display only).",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-QUOTE-008",
+			"title": "Quote retrieval rate limited per IP, wallet and globally",
+			"source_refs": [
+				"SRC-API API4:2023",
+				"SRC-ASVS V2.4.1",
+				"SRC-ASVS V2.1.3"
+			],
+			"external_requirement_ids": [
+				"API4:2023",
+				"V2.4.1",
+				"V2.1.3"
+			],
+			"external_requirement": "Anti-automation against excessive calls and quota exhaustion (V2.4.1, API4:2023); limits documented per user and globally (V2.1.3).",
+			"coverraccoon_requirement": "POST /api/nexus/quote is limited per IP (30/10 min) and per wallet (20/10 min), Nexus reads globally (400/10 min), and quote calls per wallet (10/10 min) and globally (200/10 min); quote budgets are taken only after all local checks, immediately before the Nexus quote call.",
+			"applies_to": [
+				"api/nexus/quote.mjs"
+			],
+			"threat": "cheap amplification of quote calls against Nexus",
+			"expected_property": "over budget -> 429, no Nexus quote",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "per-IP, per-wallet and global limits apply; an over-budget request makes no Nexus quote call and invalid requests consume no quote budget"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-NEXUS-QUOTE",
+				"EV-NEXUS-QUOTE"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-NEXUS-QUOTE",
+						"EV-KB-NEXUS-QUOTE"
 					],
 					"partial_only": [],
 					"insufficient": []

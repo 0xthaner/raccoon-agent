@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2x",
+	"crsf_version": "1.0-draft-phase2y",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -8025,6 +8025,264 @@
 				"CR-NEXUS-003",
 				"CR-NEXUS-004",
 				"CR-NEXUS-005"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
+			"id": "EV-NEXUS-QUOTE",
+			"control_ids": [
+				"CR-QUOTE-001",
+				"CR-QUOTE-002",
+				"CR-QUOTE-003",
+				"CR-QUOTE-004",
+				"CR-QUOTE-005",
+				"CR-QUOTE-006",
+				"CR-QUOTE-007",
+				"CR-QUOTE-008"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/nexus-quote.test.mjs",
+			"test_or_proof": "test/nexus-quote.test.mjs, test/nexus-cover-view.test.mjs",
+			"property_proven": "Offline, real handler with real session/origin/JSON checks, real read model and quote validation against captured Nexus responses: valid USDC and ETH quotes (server-derived productId 97, fixed GET path, no redirect); client productId rejected; ambiguous, unsupported and unavailable positions get a neutral status and no quote request; unsupported assets, amounts above exposure or capacity and periods outside 28..365 rejected before Nexus; malformed, foreign-pool, foreign-asset, mispriced, redirected or timed-out quotes never become a premium; quotes stale after 60 s and never usable; per-IP/wallet/global limits; responses without pools, fees or transaction fields; no purchase surface in runtime code; the cover panel (recording DOM) never calls a wallet method, renders remote strings as text and links only validated Nexus IPFS URLs.",
+			"property_not_proven": "the live Nexus API (optional manual probe scripts/nexus-live-probe.mjs --quote); a real browser; the legal effect of the wording; whether Nexus accepts the shown premium at purchase time (no purchase in P3)",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-QUOTE-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-QUOTE-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-QUOTE-003",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-QUOTE-004",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-QUOTE-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-QUOTE-006",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-QUOTE-007",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-QUOTE-008",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/nexus-quote.test.mjs",
+					"test/nexus-cover-view.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-NEXUS-QUOTE",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 17 case(s)",
+			"property_proven": "Each listed weakening of the quote display is detected by its intended test: client productId, ambiguous mapping, unsupported asset, amount above capacity or exposure, period below 28 or above 365 days, malformed/foreign-product/foreign-asset quote, followed redirect, arbitrary host, stale quote marked fresh, fallback premium on timeout, wallet method from the panel, exposed pools/fee fields, missing global quote budget.",
+			"property_not_proven": "other conceivable weakenings beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-QUOTE-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-QUOTE-001-P1-QTCLIENTPID"
+				},
+				{
+					"control": "CR-QUOTE-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-QUOTE-002-P1-QTAMBIGUOUS"
+				},
+				{
+					"control": "CR-QUOTE-003",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-QUOTE-003-P1-QTASSET, MUT-CR-QUOTE-003-P2-QTCAPACITY, MUT-CR-QUOTE-003-P2-QTEXPOSURE, MUT-CR-QUOTE-003-P3-QTSHORTPERIOD, MUT-CR-QUOTE-003-P3-QTLONGPERIOD"
+				},
+				{
+					"control": "CR-QUOTE-004",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-QUOTE-004-P1-QTMALFORMED, MUT-CR-QUOTE-004-P1-QTWRONGPRODUCT, MUT-CR-QUOTE-004-P1-QTWRONGASSET, MUT-CR-QUOTE-004-P2-QTREDIRECT, MUT-CR-QUOTE-004-P2-QTANYHOST"
+				},
+				{
+					"control": "CR-QUOTE-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-QUOTE-005-P1-QTSTALE"
+				},
+				{
+					"control": "CR-QUOTE-006",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-QUOTE-006-P1-QTFALLBACK"
+				},
+				{
+					"control": "CR-QUOTE-007",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-QUOTE-007-P1-QTWALLET, MUT-CR-QUOTE-007-P2-QTEXPOSEDATA"
+				},
+				{
+					"control": "CR-QUOTE-008",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-QUOTE-008-P1-QTGLOBALRATE"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-QUOTE-001-P1-QTCLIENTPID",
+					"MUT-CR-QUOTE-002-P1-QTAMBIGUOUS",
+					"MUT-CR-QUOTE-003-P1-QTASSET",
+					"MUT-CR-QUOTE-003-P2-QTCAPACITY",
+					"MUT-CR-QUOTE-003-P2-QTEXPOSURE",
+					"MUT-CR-QUOTE-003-P3-QTSHORTPERIOD",
+					"MUT-CR-QUOTE-003-P3-QTLONGPERIOD",
+					"MUT-CR-QUOTE-004-P1-QTMALFORMED",
+					"MUT-CR-QUOTE-004-P1-QTWRONGPRODUCT",
+					"MUT-CR-QUOTE-004-P1-QTWRONGASSET",
+					"MUT-CR-QUOTE-004-P2-QTREDIRECT",
+					"MUT-CR-QUOTE-004-P2-QTANYHOST",
+					"MUT-CR-QUOTE-005-P1-QTSTALE",
+					"MUT-CR-QUOTE-006-P1-QTFALLBACK",
+					"MUT-CR-QUOTE-007-P1-QTWALLET",
+					"MUT-CR-QUOTE-007-P2-QTEXPOSEDATA",
+					"MUT-CR-QUOTE-008-P1-QTGLOBALRATE"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-QUOTE-001",
+				"CR-QUOTE-002",
+				"CR-QUOTE-003",
+				"CR-QUOTE-004",
+				"CR-QUOTE-005",
+				"CR-QUOTE-006",
+				"CR-QUOTE-007",
+				"CR-QUOTE-008"
 			],
 			"coverage": "FULL",
 			"reason_for_partial": null

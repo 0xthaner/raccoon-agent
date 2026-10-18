@@ -3,6 +3,7 @@ import { ensureMainnetAccount, ensureAppKitMainnetAccount, eoaLoginTexts, guarde
 import { submitDashboardLogin } from './onchain-login.js';
 import { startAnalytics } from './analytics.js';
 import { mountEye } from './eye.js';
+import { createCoverPanel } from './nexus-cover.js';
 
 const status = document.querySelector('#status');
 const wcButton = document.querySelector('#walletconnect');
@@ -33,7 +34,7 @@ Object.assign(translations.de, {
 	totalsIncompleteOne: '{markets} konnte derzeit nicht gelesen werden. Die Summen enthalten nur verfügbare Märkte.',
 	totalsIncompleteMany: '{markets} konnten derzeit nicht gelesen werden. Die Summen enthalten nur verfügbare Märkte.', listAnd: 'und',
 	totalSupplied: 'Gesamt eingezahlt', totalBorrowed: 'Gesamt geliehen', netHelp: 'Eingezahlter Wert minus geliehener Wert', positionsHeading: 'Positionen',
-	nexusLabel: 'Nexus Mutual', cardNexusLabel: 'Nexus', productAvailableShort: 'Passendes Produkt verfügbar', walletCoverStatusLabel: 'Wallet-Cover-Status', walletCoverLabel: 'Wallet-Cover',
+	coverDetailsAction: 'Cover-Details ansehen', nexusLabel: 'Nexus Mutual', cardNexusLabel: 'Nexus', productAvailableShort: 'Passendes Produkt verfügbar', walletCoverStatusLabel: 'Wallet-Cover-Status', walletCoverLabel: 'Wallet-Cover',
 	activeCoverFound: 'Aktives Aave-v3-Cover gefunden', activeCoversFound: '{n} aktive Aave-v3-Covers gefunden', coversFoundOne: '1 aktives Cover gefunden', coversFoundMany: '{n} aktive Covers gefunden', noActiveCover: 'Kein aktives passendes Cover erkannt',
 	attributionLabel: 'Cover-Zuordnung', attributionAuto: 'Eindeutig · 1:1', attributionRequired: 'Bestätigung erforderlich', attributionConfirmed: 'Vom Nutzer bestätigt', attributionNone: '—',
 	attributionAutoHelp: 'Eine aktive passende Position und ein aktives passendes Nexus Cover wurden erkannt.',
@@ -62,7 +63,7 @@ Object.assign(translations.en, {
 	totalsIncompleteOne: '{markets} could not be read right now. The totals include only available markets.',
 	totalsIncompleteMany: '{markets} could not be read right now. The totals include only available markets.', listAnd: 'and',
 	totalSupplied: 'Total supplied', totalBorrowed: 'Total borrowed', netHelp: 'Supplied value minus borrowed value', positionsHeading: 'Positions',
-	nexusLabel: 'Nexus Mutual', cardNexusLabel: 'Nexus', productAvailableShort: 'Matching product available', walletCoverStatusLabel: 'Wallet cover status', walletCoverLabel: 'Wallet cover',
+	coverDetailsAction: 'View cover details', nexusLabel: 'Nexus Mutual', cardNexusLabel: 'Nexus', productAvailableShort: 'Matching product available', walletCoverStatusLabel: 'Wallet cover status', walletCoverLabel: 'Wallet cover',
 	activeCoverFound: 'Active Aave v3 cover found', activeCoversFound: '{n} active Aave v3 covers found', coversFoundOne: '1 active cover found', coversFoundMany: '{n} active covers found', noActiveCover: 'No active matching cover detected',
 	attributionLabel: 'Cover attribution', attributionAuto: 'Unambiguous · 1:1', attributionRequired: 'Confirmation required', attributionConfirmed: 'Confirmed by you', attributionNone: '—',
 	attributionAutoHelp: 'One active matching position and one active matching Nexus cover were detected.',
@@ -389,6 +390,7 @@ let attributionPending = null;
 let attributionError = null;
 
 function resetAttributionState() {
+	coverPanels = new Map();
 	attributionStore = { wallet: null, status: 'idle', links: new Map() };
 	attributionChooser = null;
 	attributionPending = null;
@@ -398,6 +400,28 @@ function resetAttributionState() {
 /** Gespeicherte Zuordnungen GENAU dieser Wallet; jede andere Wallet bekommt keine. */
 function persistedLinksFor(wallet) {
 	return wallet && attributionStore.wallet === wallet && attributionStore.status === 'ok' ? attributionStore.links : new Map();
+}
+
+/*
+	Nexus-Cover-Details und Quote (P3): nur Anzeige ueber POST /api/nexus/quote.
+	Das Panel kennt keinen Wallet-Provider; Produkt und Grenzen bestimmt der Server.
+*/
+let coverPanels = new Map();
+const nexusQuoteApi = {
+	post: (body) => authFetch('/api/nexus/quote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(25000) })
+		.then(async (response) => ({ status: response.status, body: await response.json().catch(() => null) }))
+};
+
+function renderCoverDetails(card, position) {
+	const key = position.deploymentKey;
+	const open = coverPanels.get(key);
+	if (open) { card.appendChild(open.element); return; }
+	actionButton(card, t.coverDetailsAction, () => {
+		const panel = createCoverPanel({ deploymentKey: key, post: nexusQuoteApi.post, language });
+		coverPanels.set(key, panel);
+		renderPositions();
+		panel.load();
+	}, 'cover-action cover-details-action');
 }
 
 /* Server-Zugriff; die DEV-Fixture ersetzt ihn durch einen Speicher im Arbeitsspeicher. */
@@ -680,6 +704,7 @@ function renderMarketCard(parent, position, attribution) {
 	figureRow(figures, t.netPosition, formatUsd(position.totals.netUsd), t.netHelp);
 	figureRow(figures, t.healthFactor, position.totals.healthFactor == null ? t.noDebt : formatAmount(position.totals.healthFactor));
 	renderMarketStatus(card, position, attribution);
+	if (position.nexus?.state === 'MATCHED') renderCoverDetails(card, position);
 }
 
 function renderUnavailableCard(parent, market) {

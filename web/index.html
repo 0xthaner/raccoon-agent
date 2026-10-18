@@ -219,6 +219,23 @@
       .market-status .figure-row { gap:2px; }
       .market-status .figure-value { font-size:.84rem; }
       .market-status .attribution-required .figure-value { color:var(--gold); }
+      .cover-details-action { margin-top:12px; align-self:flex-start; padding:8px 12px; border:1px solid var(--line-soft); border-radius:9px; background:transparent; color:inherit; font:inherit; cursor:pointer; }
+      .cover-panel { display:flex; flex-direction:column; gap:12px; margin-top:12px; padding:14px; border:1px solid var(--line-soft); border-radius:11px; background:rgba(255,255,255,.02); }
+      .cover-panel-title { margin:0; font-size:.9rem; }
+      .cover-product { margin:0; font-weight:600; }
+      .cover-figures, .cover-quote, .cover-form { display:flex; flex-direction:column; gap:10px; }
+      .cover-terms { display:flex; flex-direction:column; gap:4px; }
+      .cover-terms-link { color:inherit; text-decoration:underline; overflow-wrap:anywhere; }
+      .cover-disclaimer { margin:0; font-size:.8rem; opacity:.85; }
+      .cover-assets, .cover-presets { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+      .cover-asset, .cover-preset { padding:6px 10px; border:1px solid var(--line-soft); border-radius:8px; background:transparent; color:inherit; font:inherit; cursor:pointer; }
+      .cover-asset.active, .cover-preset.active { border-color:var(--gold); }
+      .cover-field { display:flex; flex-direction:column; gap:4px; }
+      .cover-field input { max-width:100%; padding:8px 10px; border:1px solid var(--line-soft); border-radius:8px; background:transparent; color:inherit; font:inherit; }
+      .cover-get-quote { align-self:flex-start; padding:9px 14px; border:1px solid var(--gold); border-radius:9px; background:transparent; color:inherit; font:inherit; font-weight:600; cursor:pointer; }
+      .cover-get-quote:disabled { opacity:.6; cursor:default; }
+      .cover-quote { padding:12px; border:1px solid var(--line-soft); border-radius:10px; }
+      .cover-quote-stale, .cover-error { color:var(--gold); }
       .attribution-actions { display:flex; flex-wrap:wrap; gap:8px; }
       .attribution-action { align-self:flex-start; min-height:36px; padding:0 13px; border:1px solid var(--line); border-radius:9px; background:transparent; color:var(--white); font:inherit; font-size:.74rem; font-weight:600; cursor:pointer; }
       .attribution-action:hover { border-color:var(--silver); }

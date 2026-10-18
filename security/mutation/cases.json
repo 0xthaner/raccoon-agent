@@ -11800,7 +11800,7 @@
 			"edits": [
 				{
 					"file": "src/nexus-read-api.mjs",
-					"find": "if (hit && now - hit.at < TTL_MS[kind]) return hit.value;",
+					"find": "if (hit && now - hit.at < Math.min(maxAgeMs, TTL_MS[kind])) return hit.value;",
 					"replace": "if (hit) return hit.value;"
 				}
 			],
@@ -11851,6 +11851,592 @@
 			"expected_failures": [
 				{
 					"test": "^NEXUS-MODEL ambiguous deployments \\(Lido/Prime, EtherFi\\) are never AVAILABLE$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-001-P1-QTCLIENTPID",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-001",
+					"property": "P1"
+				}
+			],
+			"description": "1: a client-supplied productId is accepted and used for the Nexus quote",
+			"edits": [
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "\tif (keys.some((key) => /product/i.test(key))) return fail('PRODUCT_ID_NOT_ACCEPTED');\n",
+					"replace": ""
+				},
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "keys.some((key) => !QUOTE_KEYS.includes(key)) || keys.length !== QUOTE_KEYS.length)",
+					"replace": "keys.some((key) => ![...QUOTE_KEYS, 'productId'].includes(key)) || keys.length < QUOTE_KEYS.length)"
+				},
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "amount: body.amount, periodDays: body.periodDays });",
+					"replace": "amount: body.amount, periodDays: body.periodDays, productId: body.productId });"
+				},
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "\tconst productId = checked.productId;\n",
+					"replace": "\tconst productId = request.productId ?? checked.productId;\n"
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUOTE-PRODUCTID a client-supplied productId is rejected; the product is derived server-side$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-002-P1-QTAMBIGUOUS",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-002",
+					"property": "P1"
+				}
+			],
+			"description": "2: a non-EXACT (ambiguous) mapping is accepted for a quote",
+			"edits": [
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "if (model?.nexusMatch?.status !== 'EXACT' || model.eligibility?.status !== 'AVAILABLE') return fail('COVER_NOT_AVAILABLE');",
+					"replace": "if (model?.eligibility?.status !== 'AVAILABLE') return fail('COVER_NOT_AVAILABLE');"
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUOTE-AMBIGUOUS Lido/Prime and EtherFi positions get a neutral status and never a quote$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-003-P1-QTASSET",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-003",
+					"property": "P1"
+				}
+			],
+			"description": "3: an asset the mapped product does not list is accepted",
+			"edits": [
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": " || !model.nexusMatch.supportedCoverAssets.includes(request.coverAsset)) return fail(",
+					"replace": ") return fail("
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUOTE-ASSET only the product cover assets ETH, USDC and cbBTC can be quoted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-003-P2-QTCAPACITY",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-003",
+					"property": "P2"
+				}
+			],
+			"description": "4: an amount above the available capacity is accepted",
+			"edits": [
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "\tif (amount > BigInt(bound.capacityRaw)) return fail('AMOUNT_OUT_OF_RANGE', { maxAmount: bound.maxAmount, limitedBy: 'CAPACITY' });\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUOTE-CAPACITY bounded by the available capacity of the asset$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-003-P2-QTEXPOSURE",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-003",
+					"property": "P2"
+				}
+			],
+			"description": "5: an amount above the allowed (suggested) exposure is accepted",
+			"edits": [
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "\tif (amount > BigInt(bound.maxFromExposureRaw)) return fail('AMOUNT_OUT_OF_RANGE', { maxAmount: bound.maxAmount, limitedBy: 'EXPOSURE' });\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUOTE-AMOUNT bounded by the suggested exposure \\(converted with the Aave oracle price\\)$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-003-P3-QTSHORTPERIOD",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-003",
+					"property": "P3"
+				}
+			],
+			"description": "6: a duration below 28 days is accepted",
+			"edits": [
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "body.periodDays < COVER_PERIOD_DAYS.min ||",
+					"replace": "body.periodDays < 1 ||"
+				},
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "request.periodDays < COVER_PERIOD_DAYS.min ||",
+					"replace": "request.periodDays < 1 ||"
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUOTE-PERIOD only 28 to 365 days$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-003-P3-QTLONGPERIOD",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-003",
+					"property": "P3"
+				}
+			],
+			"description": "7: a duration above 365 days is accepted",
+			"edits": [
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "|| body.periodDays > COVER_PERIOD_DAYS.max)",
+					"replace": "|| body.periodDays > 3650)"
+				},
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "|| request.periodDays > COVER_PERIOD_DAYS.max)",
+					"replace": "|| request.periodDays > 3650)"
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUOTE-PERIOD only 28 to 365 days$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-004-P1-QTMALFORMED",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-004",
+					"property": "P1"
+				}
+			],
+			"description": "8: a malformed quote (allocations not summing to the cover amount) is treated as valid",
+			"edits": [
+				{
+					"file": "src/nexus-read-api.mjs",
+					"find": "\tif (allocated !== total) bad('MALFORMED_QUOTE');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUOTE-MALFORMED malformed Nexus quote responses never become a premium$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-004-P1-QTWRONGPRODUCT",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-004",
+					"property": "P1"
+				}
+			],
+			"description": "9: a quote allocated to pools outside the product is accepted",
+			"edits": [
+				{
+					"file": "src/nexus-read-api.mjs",
+					"find": "\t\tif (!room || part > BigInt(room.amount)) bad('QUOTE_PRODUCT_MISMATCH');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUOTE-WRONGPRODUCT a quote allocated to pools outside product 97 is rejected$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-004-P1-QTWRONGASSET",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-004",
+					"property": "P1"
+				}
+			],
+			"description": "10: a quote in another asset than requested is accepted",
+			"edits": [
+				{
+					"file": "src/nexus-read-api.mjs",
+					"find": "\tif (q.asset.id !== coverAsset.assetId || q.asset.symbol !== coverAsset.symbol || q.asset.decimals !== coverAsset.decimals) bad('QUOTE_ASSET_MISMATCH');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUOTE-WRONGASSET a quote in another asset than requested is rejected$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-004-P2-QTREDIRECT",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-004",
+					"property": "P2"
+				}
+			],
+			"description": "13: the Nexus request follows redirects",
+			"edits": [
+				{
+					"file": "src/nexus-read-api.mjs",
+					"find": "redirect: 'error', signal: AbortSignal.timeout(timeoutMs) });",
+					"replace": "redirect: 'follow', signal: AbortSignal.timeout(timeoutMs) });"
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUOTE-SSRF only the fixed quote path on the pinned host, encoded values, no redirect$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-004-P2-QTANYHOST",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-004",
+					"property": "P2"
+				}
+			],
+			"description": "14: a path naming another host is resolved and fetched (arbitrary Nexus host)",
+			"edits": [
+				{
+					"file": "src/nexus-read-api.mjs",
+					"find": "\tif (typeof path !== 'string' || !(READ_PATH.test(path) || QUOTE_PATH.test(path))) bad('PATH_NOT_ALLOWED');\n\tconst url = `${NEXUS_API_BASE}${path}`;",
+					"replace": "\tif (typeof path !== 'string' || !(READ_PATH.test(path) || QUOTE_PATH.test(path.replace(/^(https:)?\\/\\/[^/]+/, '')))) bad('PATH_NOT_ALLOWED');\n\tconst url = new URL(path, NEXUS_API_BASE).href;"
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUOTE-SSRF only the fixed quote path on the pinned host, encoded values, no redirect$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-005-P1-QTSTALE",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-005",
+					"property": "P1"
+				}
+			],
+			"description": "11: an expired quote is still marked fresh",
+			"edits": [
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "return Number.isFinite(expires) && now < expires ? 'FRESH' : 'STALE';",
+					"replace": "return Number.isFinite(expires) ? 'FRESH' : 'STALE';"
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUOTE-STALE a quote is fresh for 60 s only and never usable afterwards$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-006-P1-QTFALLBACK",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-006",
+					"property": "P1"
+				}
+			],
+			"description": "12: a Nexus timeout produces a fallback premium from the capacity price range",
+			"edits": [
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "\t\treturn fail('QUOTE_UNAVAILABLE', { reason: typeof error?.code === 'string' ? error.code : 'UNKNOWN' });\n",
+					"replace": "\t\tif (error?.code !== 'TIMEOUT') return fail('QUOTE_UNAVAILABLE', { reason: typeof error?.code === 'string' ? error.code : 'UNKNOWN' });\n\t\tconst bps = Math.round(Number(model.capacity.annualPriceRange.max) * 10_000);\n\t\tquote = { coverAsset: checked.coverAsset.symbol, coverAmount: checked.amount.toString(), premiumInAsset: ((checked.amount * BigInt(bps) * BigInt(checked.periodDays)) / 3_650_000n).toString(), annualPriceBps: bps, periodDays: checked.periodDays, fetchedAt: new Date(now).toISOString() };\n"
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUOTE-TIMEOUT a hanging Nexus quote gives QUOTE_UNAVAILABLE without any fallback premium$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-007-P1-QTWALLET",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-007",
+					"property": "P1"
+				}
+			],
+			"description": "15: requesting a quote triggers a wallet method",
+			"edits": [
+				{
+					"file": "web/src/nexus-cover.js",
+					"find": "\t\tstate.error = null;\n\t\tstate.pending = true;\n",
+					"replace": "\t\tstate.error = null;\n\t\twindow.ethereum?.request?.({ method: 'eth_requestAccounts' });\n\t\tstate.pending = true;\n"
+				}
+			],
+			"tests": [
+				"test/nexus-cover-view.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^VIEW quote and details never call a wallet method$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-007-P2-QTEXPOSEDATA",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-007",
+					"property": "P2"
+				}
+			],
+			"description": "16: the quote response exposes pool allocations and a fee ratio (transaction inputs)",
+			"edits": [
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "\treturn Object.freeze({ ok: true, quote: quoteView(quote, model, now) });",
+					"replace": "\treturn Object.freeze({ ok: true, quote: { ...quoteView(quote, model, now), poolAllocationRequests: model.capacity.pools, commissionRatio: 0 } });"
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUOTE-NOPURCHASE responses carry no pools, contract data, fees or transaction fields$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-008-P1-QTGLOBALRATE",
+			"origin": "new (Nexus P3)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-008",
+					"property": "P1"
+				}
+			],
+			"description": "the global quote budget is not enforced (cheap amplification against Nexus)",
+			"edits": [
+				{
+					"file": "api/nexus/quote.mjs",
+					"find": "\t\tif (!await rateLimitFor(response, 'nexus-quote-global', 'all', ...LIMITS.quoteGlobal)) return;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^QUOTE-RATE per-IP, per-wallet and global limits; quote budgets only before a real quote call$"
 				}
 			],
 			"expected_result": "KILLED",

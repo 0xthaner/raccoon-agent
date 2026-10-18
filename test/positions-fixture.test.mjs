@@ -86,7 +86,11 @@ test('D/E: activation depends only on build-time import.meta.env, never on URL, 
 test('F: no server file knows the fixture; routes and auth are unchanged in kind', () => {
 	const server = [...filesUnder('api'), ...filesUnder('src')].filter((f) => /\.m?js$/.test(f));
 	for (const file of server) assert.doesNotMatch(readFileSync(file, 'utf8'), /fixture|VITE_POSITIONS_FIXTURE/i, file);
-	assert.deepEqual(filesUnder('api').map((f) => f.replace(/\\/g, '/')).sort(), ['api/alerts.mjs', 'api/config.mjs', 'api/csp-report.mjs', 'api/dashboard.mjs', 'api/link.mjs', 'api/link/verify.mjs', 'api/position-attributions.mjs', 'api/positions.mjs', 'api/telegram.mjs'], 'nur die bekannten Routen (14.10.2026: + position-attributions)');
+	assert.deepEqual(filesUnder('api').map((f) => f.replace(/\\/g, '/')).sort(), ['api/alerts.mjs', 'api/config.mjs', 'api/csp-report.mjs', 'api/dashboard.mjs', 'api/link.mjs', 'api/link/verify.mjs', 'api/nexus/quote.mjs', 'api/position-attributions.mjs', 'api/positions.mjs', 'api/telegram.mjs'], 'nur die bekannten Routen (14.10.2026: + position-attributions; 18.10.2026: + nexus/quote)');
+	const quoteApi = readFileSync('api/nexus/quote.mjs', 'utf8');
+	assert.match(quoteApi, /resolveSession = resolveDashboardSession/);
+	assert.match(quoteApi, /isRevoked\(session\.wallet/);
+	assert.match(quoteApi, /sameOrigin\(request, response\) \|\| !json\(request, response, MAX_BODY_BYTES\)/);
 	const positionsApi = readFileSync('api/positions.mjs', 'utf8');
 	assert.match(positionsApi, /resolveSession = resolveDashboardSession/);
 	assert.match(positionsApi, /WALLET_PARAMETER_NOT_ALLOWED/);
@@ -149,7 +153,7 @@ test('G/H: fixture with cover renders through the real renderer: summary, clean 
 	assert.match(core.textContent, /Geliehen \| USDT \| 2\.000 USDT/);
 	assert.match(core.textContent, /Nettoposition \| .*10\.430,00 \| Eingezahlter Wert minus geliehener Wert/);
 	assert.match(core.textContent, /Health Factor \| 2,31/);
-	assert.match(core.textContent, /Nexus \| Passendes Produkt verfügbar \| Wallet-Cover \| Aktives Aave-v3-Cover gefunden \| Cover-Zuordnung \| Bestätigung erforderlich \| Cover zuordnen$/);
+	assert.match(core.textContent, /Nexus \| Passendes Produkt verfügbar \| Wallet-Cover \| Aktives Aave-v3-Cover gefunden \| Cover-Zuordnung \| Bestätigung erforderlich \| Cover zuordnen \| Cover-Details ansehen$/);
 	assert.match(lido.textContent, /wstETH \| 0,8 wstETH \| .*2\.960,00 \| nicht als Sicherheit/);
 	assert.match(lido.textContent, /Health Factor \| keine Schulden/);
 	assert.match(etherfi.textContent, /^Aave v3 · EtherFi \| Status \| Nicht verfügbar \|/);
@@ -173,7 +177,7 @@ test('H: no-cover variant: neutral wallet status, one primary action, three-row 
 	assert.equal(byClass(list, 'nexus-action').length, 1, 'genau eine Aktion');
 	assert.equal(byClass(summary, 'primary').length, 1, 'und die steht in der Zusammenfassung');
 	for (const card of byClass(list, 'position-card').filter((c) => !String(c.className).includes('position-unavailable'))) {
-		assert.match(card.textContent, /Nexus \| Passendes Produkt verfügbar \| Wallet-Cover \| Kein aktives passendes Cover erkannt \| Cover-Zuordnung \| —$/);
+		assert.match(card.textContent, /Nexus \| Passendes Produkt verfügbar \| Wallet-Cover \| Kein aktives passendes Cover erkannt \| Cover-Zuordnung \| — \| Cover-Details ansehen$/);
 	}
 	assert.doesNotMatch(list.textContent, /Cover #|unversichert|nicht versichert|uninsured/);
 	assert.deepEqual(list.attributionSlots, []);
@@ -204,7 +208,7 @@ test('H: one-to-one variant: complete data, one position, one cover -> Eindeutig
 	assert.deepEqual(positions.positions.map((p) => p.label), ['Core']);
 	const list = renderReal(positions, dashboard);
 	const [core] = byClass(list, 'position-card');
-	assert.match(core.textContent, /Cover-Zuordnung \| Eindeutig · 1:1 \| Eine aktive passende Position und ein aktives passendes Nexus Cover wurden erkannt\.$/);
+	assert.match(core.textContent, /Cover-Zuordnung \| Eindeutig · 1:1 \| Eine aktive passende Position und ein aktives passendes Nexus Cover wurden erkannt\. \| Cover-Details ansehen$/);
 	assert.match(byClass(list, 'protocol-summary')[0].textContent, /Diese Zuordnung ergibt sich aus einer eindeutigen 1:1-Konstellation der öffentlich verfügbaren Daten\. Sie ist keine Aussage über die Berechtigung eines Claims oder eine Auszahlung\./);
 	assert.equal(byClass(list, 'attribution-action').length, 0, 'eindeutig: nichts zu bestaetigen');
 	assert.equal(list.attributionSlots[0].slot.textContent, 'Cover-Zuordnung | Eindeutig · 1:1 · Aave v3 · Core');
@@ -216,7 +220,7 @@ test('H: multi-cover variant: one position, two covers -> confirmation required,
 	assert.deepEqual(dashboard.covers.map((c) => [c.coverId, c.productId, c.status]), [[900001, 97, 'active'], [900002, 97, 'active']]);
 	const list = renderReal(fixture.positionsFixture('multi-cover', dashboard.wallet, now), dashboard);
 	const [core] = byClass(list, 'position-card');
-	assert.match(core.textContent, /Wallet-Cover \| 2 aktive Aave-v3-Covers gefunden \| Cover-Zuordnung \| Bestätigung erforderlich \| Cover zuordnen$/);
+	assert.match(core.textContent, /Wallet-Cover \| 2 aktive Aave-v3-Covers gefunden \| Cover-Zuordnung \| Bestätigung erforderlich \| Cover zuordnen \| Cover-Details ansehen$/);
 	assert.deepEqual(list.attributionSlots.map(({ slot }) => slot.textContent), ['Cover-Zuordnung | Bestätigung erforderlich', 'Cover-Zuordnung | Bestätigung erforderlich']);
 });
 

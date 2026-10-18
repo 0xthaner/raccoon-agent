@@ -463,6 +463,8 @@ test('NEXUS-SCOPE read model carries no purchase, quote, transaction or commissi
 	assert.doesNotMatch(text, /premium|quote|approve|calldata|txHash|transaction|commission|buy|purchase|termsAccepted|proofOfLossUpload/i);
 	for (const file of ['../src/nexus-read-model.mjs', '../src/nexus-read-api.mjs', '../src/positions/nexus-mapping.mjs', '../src/positions/exposure.mjs']) {
 		const source = readFileSync(new URL(file, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
-		assert.doesNotMatch(source, /CoverBroker|buyCover|approve\(|sendTransaction|writeContract|\/v2\/quote|commission/i, file);
+		assert.doesNotMatch(source, /CoverBroker|buyCover|approve\(|sendTransaction|writeContract|commission/i, file);
+		// Seit P3 liest nur die API-Schicht Quotes (readQuote); das Lesemodell selbst bleibt quote-frei.
+		if (!file.endsWith('nexus-read-api.mjs')) assert.doesNotMatch(source, /\/v2\/quote/, file);
 	}
 });

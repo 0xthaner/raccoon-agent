@@ -1,0 +1,23 @@
+{
+	"quote": {
+		"totalCoverAmountInAsset": "1000105426868420486",
+		"annualPrice": "365",
+		"premiumInNXM": "1414375000000000000",
+		"premiumInAsset": "36503848080697347",
+		"refundInNXM": "0",
+		"refundInAsset": "0",
+		"premiumInNXMWithRefund": "1414375000000000000",
+		"premiumInAssetWithRefund": "36503848080697347",
+		"poolAllocationRequests": [
+			{
+				"poolId": "2",
+				"coverAmountInAsset": "1000105426868420486"
+			}
+		],
+		"asset": {
+			"id": 0,
+			"symbol": "ETH",
+			"decimals": 18
+		}
+	}
+}

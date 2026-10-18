@@ -18,6 +18,18 @@
 export const CHAIN_ID = 1;
 export const AAVE_V3_NEXUS_PRODUCT_ID = 97;
 
+/*
+	Referenz-Token fuer die Umrechnung USD -> Cover-Asset (Nexus P3, 18.10.2026).
+	Ihr Preis kommt aus demselben AaveOracle.getAssetsPrices-Aufruf und Block wie
+	die Positionswerte; es gibt dafuer keinen zusaetzlichen Aufruf. Am 18.10.2026
+	live geprueft: alle drei sind Reserven von Aave v3 Ethereum Core.
+*/
+export const REFERENCE_TOKENS = Object.freeze({
+	WETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+	USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+	cbBTC: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf'
+});
+
 export const AAVE_V3_MARKETS = Object.freeze([
 	Object.freeze({
 		deploymentKey: 'aave-v3-ethereum-core',

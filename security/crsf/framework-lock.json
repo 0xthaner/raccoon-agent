@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2x",
+	"crsf_version": "1.0-draft-phase2y",
 	"profile_rules_digest": "59da3e481750b5c7687099ad6c8a4dc9669e65b17141f2826fbcb9e67a847e9f",
 	"controls": {
 		"CR-API-001": {
@@ -1111,6 +1111,97 @@
 			],
 			"properties_digest": "1faa323eb15af08cf5a141229bdf265ef5b6112dd713eb396ecadd7232ef1dce",
 			"derivation_digest": "a887ab092ea58485167244771501d094037b5615f2ad0a509397935e792c1a0d"
+		},
+		"CR-QUOTE-001": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V8.3.1",
+				"V2.2.1"
+			],
+			"properties_digest": "9ca3035cc15540536129a90520f5f22e53d3ef32ffb662a976b737c0e9b94bfa",
+			"derivation_digest": "2496f5fc5f601ff4e95d3a40e708ed3a7278c5df00b88f5454ef10c12df52da6"
+		},
+		"CR-QUOTE-002": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.2.3",
+				"V16.5.3",
+				"V8.2.2"
+			],
+			"properties_digest": "a56da46a4ac6c60c9290665d8e7503a0d514767e22b0092ed23999370453532f",
+			"derivation_digest": "aa30fd507ff1dce69baf7c77d9c4d1934941d32617a5581c9ca19692b23cd7a3"
+		},
+		"CR-QUOTE-003": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.3.2",
+				"V2.2.1"
+			],
+			"properties_digest": "ae49b6127986087a8dd0618fb17e0ced70f9ddcdb5a51af3ca785dec5c670ca8",
+			"derivation_digest": "5abd204fba8cd8dd1a331e28e2c8101097883d3bd105cf9a7b2e454c44760b0e"
+		},
+		"CR-QUOTE-004": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"API10:2023",
+				"V2.2.1",
+				"V15.3.2"
+			],
+			"properties_digest": "30b096d37b63ead99638893485ba8ab3103957ac0a01fa658a007a275a2f8f7b",
+			"derivation_digest": "c4f7633d5ef79ed533f12561a96aebcb1d622e792ce7be1f0e1b8e6f9ee56a9c"
+		},
+		"CR-QUOTE-005": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.3.2",
+				"V16.5.3"
+			],
+			"properties_digest": "6566c1864b036dd44dd4addd6c628fdca9ba958dbda8b13cedf81530550ecf6a",
+			"derivation_digest": "fde3a70e5b432e5afd53acc4b7f7e62a68fc9be1b62de13023541166f1871085"
+		},
+		"CR-QUOTE-006": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V16.5.2",
+				"V16.5.3"
+			],
+			"properties_digest": "d276df2643a5c2cff5d8fd42ad56619e6e936184e5b4d329a2a2419d2d4ac0a9",
+			"derivation_digest": "0941142c1c6a088703b312b90609672c86bcf8f38254aaa5d02b9c6f1cf97051"
+		},
+		"CR-QUOTE-007": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V3.2.2",
+				"V15.3.1"
+			],
+			"properties_digest": "1b96223f60c6cbdae65e8f7c7c07347472cefd6f3ecc7531e0bb9d053b5f8f2a",
+			"derivation_digest": "b473fce8bda87138b8c215a13bc9e1490436dda7d58b4112a605cec88a7bec96"
+		},
+		"CR-QUOTE-008": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"API4:2023",
+				"V2.4.1",
+				"V2.1.3"
+			],
+			"properties_digest": "2f4d75ecce63256876a19a1c50cf2bc9951655dd7f46b7f72933c2a61b3fd73b",
+			"derivation_digest": "fc8c1743a1be760f464cb816bafbbede7ccec3d9d7609fdce24851622d5bab53"
 		},
 		"CR-RESOURCE-001": {
 			"release_class": "RELEASE_BLOCKING",

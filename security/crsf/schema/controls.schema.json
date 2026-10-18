@@ -85,7 +85,8 @@
 						"CR-SUPPLY",
 						"CR-PRIV",
 						"CR-VERIFY",
-						"CR-NEXUS"
+						"CR-NEXUS",
+						"CR-QUOTE"
 					]
 				},
 				"source_refs": {
