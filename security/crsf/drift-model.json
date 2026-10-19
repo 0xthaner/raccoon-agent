@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2za",
+	"crsf_version": "1.0-draft-phase2zb",
 	"rules": [
 		{
 			"pattern": "src/*auth*",
@@ -299,6 +299,14 @@
 			"pattern": "scripts/skip-policy.mjs",
 			"domains": [
 				"CR-VERIFY"
+			]
+		},
+		{
+			"pattern": "src/purchase-intent.mjs",
+			"domains": [
+				"CR-ALLOC",
+				"CR-COMMISSION",
+				"CR-PURCHASE"
 			]
 		}
 	],

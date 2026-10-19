@@ -12584,6 +12584,761 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P1-P4AWALLET",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P1"
+				}
+			],
+			"description": "intent hash omits the wallet (and the owner derived from it)",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "id: `0x${intent.id.replaceAll('-', '')}`, wallet: intent.wallet,",
+					"replace": "id: `0x${intent.id.replaceAll('-', '')}`, wallet: ZERO_ADDRESS,"
+				},
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "owner: ownerOf(intent),",
+					"replace": "owner: ZERO_ADDRESS,"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-HASH every security-critical field and every pin is bound into the intent hash$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P1-P4APRODUCT",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P1"
+				}
+			],
+			"description": "intent hash omits the product",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "productId: BigInt(intent.productId),",
+					"replace": "productId: 97n,"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-HASH every security-critical field and every pin is bound into the intent hash$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P1-P4AAMOUNT",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P1"
+				}
+			],
+			"description": "intent hash omits the amount",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "amountRaw: intent.amountRaw, periodSeconds",
+					"replace": "amountRaw: 0n, periodSeconds"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-HASH every security-critical field and every pin is bound into the intent hash$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P1-P4APERIOD",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P1"
+				}
+			],
+			"description": "intent hash omits the period",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "periodSeconds: periodSecondsOf(intent),",
+					"replace": "periodSeconds: 0n,"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-HASH every security-critical field and every pin is bound into the intent hash$"
+				},
+				{
+					"test": "^P4A-HASH derived values follow the canonical fields: owner is the wallet, period in seconds$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P1-P4AMAXPREM",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P1"
+				}
+			],
+			"description": "intent hash omits the premium ceiling",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "maxPremiumRaw: intent.maxPremiumRaw,",
+					"replace": "maxPremiumRaw: 0n,"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-HASH every security-critical field and every pin is bound into the intent hash$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P1-P4ATERMS",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P1"
+				}
+			],
+			"description": "intent hash omits the terms hash",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "termsHash: intent.termsHash,",
+					"replace": "termsHash: '0x0000000000000000000000000000000000000000000000000000000000000000',"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-HASH every security-critical field and every pin is bound into the intent hash$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P1-P4APOL",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P1"
+				}
+			],
+			"description": "intent hash omits the proof-of-loss CID",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "proofOfLossCid: intent.proofOfLossCid ?? '',",
+					"replace": "proofOfLossCid: '',"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-HASH every security-critical field and every pin is bound into the intent hash$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P1-P4AIMPL",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P1"
+				}
+			],
+			"description": "intent hash omits the Cover implementation pin",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "coverImplementation: pins.coverImplementation,",
+					"replace": "coverImplementation: ZERO_ADDRESS,"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-HASH every security-critical field and every pin is bound into the intent hash$"
+				},
+				{
+					"test": "^P4A-HASH the implementation pin is part of the hash and comes from the verified Cover pin$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P2-P4AEXTRA",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P2"
+				}
+			],
+			"description": "unknown fields (incl. a caller-supplied hash) are accepted",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "for (const key of Object.keys(input)) if (!INTENT_FIELDS.includes(key)) fail(`UNKNOWN_FIELD:${key}`);",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-INVALID extra, derived and caller-supplied hash fields are rejected$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P3-P4ANUMBER",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P3"
+				}
+			],
+			"description": "raw amounts parsed through Number (precision loss)",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "const n = BigInt(value);",
+					"replace": "const n = BigInt(Number(value));"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-INVALID raw amounts are canonical integer strings only, parsed without precision loss$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P4-P4AFETCH",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P4"
+				}
+			],
+			"description": "the pure module gains a network call",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "export const ownerOf = (intent) => intent.wallet;",
+					"replace": "export const ownerOf = (intent) => intent.wallet;\nexport const probe = (url) => fetch(url);"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-PURE the module imports only viem and the local pin constants and has no I/O, clock or transaction surface$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P4-P4AREACH",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P4"
+				}
+			],
+			"description": "runtime code (the Telegram bot) imports the purchase-intent module",
+			"edits": [
+				{
+					"file": "src/bot.mjs",
+					"find": "import { newDashboardAccess, newLinkRequest } from './linking.mjs';",
+					"replace": "import { newDashboardAccess, newLinkRequest } from './linking.mjs';\nimport './purchase-intent.mjs';"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-IMPORT no runtime code imports the purchase-intent module; only tests do$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-COMMISSION-001-P1-P4ARATIO",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-COMMISSION-001",
+					"property": "P1"
+				}
+			],
+			"description": "commission ratio 1000 (the SDK product-type default) accepted",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "if (input.commissionRatio !== COMMISSION_POLICY.ratio) fail('COMMISSION_RATIO');",
+					"replace": "if (input.commissionRatio !== COMMISSION_POLICY.ratio && input.commissionRatio !== 1000) fail('COMMISSION_RATIO');"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-INVALID policy violations never validate and never hash$"
+				},
+				{
+					"test": "^P4A-COMMISSION the policy is fixed to ratio 0 and the zero address; SDK defaults are not inherited$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-COMMISSION-001-P2-P4ADEST",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-COMMISSION-001",
+					"property": "P2"
+				}
+			],
+			"description": "any commission destination accepted",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "if (input.commissionDestination !== COMMISSION_POLICY.destination) fail('COMMISSION_DESTINATION');",
+					"replace": "if (!isAddress(input.commissionDestination, { strict: false })) fail('COMMISSION_DESTINATION');"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-INVALID policy violations never validate and never hash$"
+				},
+				{
+					"test": "^P4A-COMMISSION the policy is fixed to ratio 0 and the zero address; SDK defaults are not inherited$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P1-P4ASKIP",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P1"
+				}
+			],
+			"description": "OPEN -> SUBMITTED allowed (build step skipped)",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "OPEN: Object.freeze(['BUILT', 'EXPIRED', 'CANCELLED']),",
+					"replace": "OPEN: Object.freeze(['BUILT', 'SUBMITTED', 'EXPIRED', 'CANCELLED']),"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-STATE exactly the allowed transitions; everything else is refused$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P2-P4ARESTART",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P2"
+				}
+			],
+			"description": "a terminal state restarts (EXPIRED -> OPEN)",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "EXPIRED: Object.freeze([]),",
+					"replace": "EXPIRED: Object.freeze(['OPEN']),"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-STATE exactly the allowed transitions; everything else is refused$"
+				},
+				{
+					"test": "^P4A-STATE terminal states never restart$"
+				},
+				{
+					"test": "^P4A-EXPIRY OPEN and BUILT expire at expiresAt; time is always passed in$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P3-P4ALATE",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P3"
+				}
+			],
+			"description": "a SUBMITTED intent is treated as expired after expiresAt (late purchase would be ignored)",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "if (status === 'SUBMITTED') return 'AWAIT_CHAIN';",
+					"replace": "if (status === 'SUBMITTED') return isIntentExpired(intent, now) ? 'EXPIRE' : 'AWAIT_CHAIN';"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-STATE a submitted transaction keeps its late on-chain outcome; expiry never ends it$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P4-P4AEXPIRY",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P4"
+				}
+			],
+			"description": "an intent stays usable at expiresAt",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "return now >= intent.expiresAt;",
+					"replace": "return now > intent.expiresAt;"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-EXPIRY OPEN and BUILT expire at expiresAt; time is always passed in$"
+				},
+				{
+					"test": "^P4A-READINESS never reports send or purchase readiness; proof of loss blocks every transaction$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-ALLOC-001-P1-P4AEQUAL",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-ALLOC-001",
+					"property": "P1"
+				}
+			],
+			"description": "allocations must equal the requested amount (rejects the real quote overshoot)",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "if (sum < requested) errors.push('ALLOCATED_BELOW_REQUESTED');",
+					"replace": "if (sum !== requested) errors.push('ALLOCATED_BELOW_REQUESTED');"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-ALLOC the real 1000 USDC quote with overshoot passes; more than requested is allowed$"
+				},
+				{
+					"test": "^P4A-ALLOC allocations below the requested amount, off the quote total or beyond the overshoot cap fail$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-ALLOC-001-P1-P4AUNDER",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-ALLOC-001",
+					"property": "P1"
+				}
+			],
+			"description": "allocations below the requested amount accepted",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "if (sum < requested) errors.push('ALLOCATED_BELOW_REQUESTED');",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-ALLOC allocations below the requested amount, off the quote total or beyond the overshoot cap fail$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-ALLOC-001-P2-P4ACAP",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-ALLOC-001",
+					"property": "P2"
+				}
+			],
+			"description": "overshoot cap removed",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "if (sum * 10000n > requested * BigInt(10000 + overshootBps)) errors.push('OVERSHOOT_TOO_LARGE');",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-ALLOC allocations below the requested amount, off the quote total or beyond the overshoot cap fail$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-ALLOC-001-P3-P4ADUP",
+			"origin": "new (P4A)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-ALLOC-001",
+					"property": "P3"
+				}
+			],
+			"description": "duplicate pool accepted",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "else if (seen.has(poolId)) errors.push(`DUPLICATE_POOL:${i}`);",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-ALLOC malformed allocation lists fail: empty, too many, duplicate pool, zero or non-canonical amounts$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

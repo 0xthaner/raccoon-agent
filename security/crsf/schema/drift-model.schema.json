@@ -51,7 +51,10 @@
 								"CR-PRIV",
 								"CR-VERIFY",
 								"CR-NEXUS",
-								"CR-QUOTE"
+								"CR-QUOTE",
+								"CR-PURCHASE",
+								"CR-COMMISSION",
+								"CR-ALLOC"
 							]
 						},
 						"minItems": 1

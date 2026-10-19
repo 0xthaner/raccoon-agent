@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2za",
+	"crsf_version": "1.0-draft-phase2zb",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -11972,6 +11972,391 @@
 					"satisfied_by": [
 						"EV-NEXUS-SOURCE",
 						"EV-KB-NEXUS-SOURCE"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 3 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 3 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-PURCHASE",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Pure purchase-intent model present in src/purchase-intent.mjs (Nexus P4A); not reachable from any runtime path, no transaction capability.",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"applies_to": [
+				"src/purchase-intent.mjs"
+			],
+			"id": "CR-PURCHASE-003",
+			"title": "Purchase intent canonically binds every security-critical value (P4A model)",
+			"source_refs": [
+				"SRC-ASVS V2.2.1",
+				"SRC-ASVS V2.2.3",
+				"SRC-NEXUS-COVERBROKER",
+				"SRC-NEXUS-COVER"
+			],
+			"external_requirement_ids": [
+				"V2.2.1",
+				"V2.2.3"
+			],
+			"external_requirement": "Input is validated against expected business rules (V2.2.1) and related data items are consistent with each other (V2.2.3).",
+			"coverraccoon_requirement": "A purchase intent exists only as a validated canonical record; its hash (keccak256 over abi.encode, domain coverraccoon.purchase-intent, version 1) binds every security-critical field and the verified broker and Cover implementation pins, so a changed value is a different intent. P4A subset: model, validation and hash only; database immutability follows with the persistence phase.",
+			"threat": "a reviewed purchase is silently replaced by another amount, product, owner, premium ceiling, terms or contract version",
+			"expected_property": "one canonical intent, one hash, every critical field bound",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "the intent hash changes when any security-critical field (wallet/owner, chain, deployment, product, product type, asset, amount, period, quote premium, premium ceiling, quote/capacity/acknowledgement/expiry times, wording, annex, terms hash, proof-of-loss CID, commission ratio and destination, pin version) or any contract pin (broker address and code hash, Cover proxy, implementation and its code hash) changes"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "an intent that violates the model (wrong chain, product, type, deployment, asset, period, premium relation, CID, terms hash, pin version, timing) or carries unknown, derived or caller-supplied hash fields has no hash"
+				},
+				{
+					"id": "P3",
+					"kind": "REQUIREMENT",
+					"text": "raw monetary values are canonical decimal integer strings parsed exactly to BigInt within their uint bounds; no Number conversion"
+				},
+				{
+					"id": "P4",
+					"kind": "REQUIREMENT",
+					"text": "the model module performs no network, database, wallet, file, environment or clock access, emits no transaction-shaped data and is imported by no runtime code"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-PURCHASE-INTENT",
+				"EV-PURCHASE-INTENT"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-PURCHASE-INTENT",
+						"EV-KB-PURCHASE-INTENT"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-PURCHASE-INTENT",
+						"EV-KB-PURCHASE-INTENT"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P3": {
+					"satisfied_by": [
+						"EV-PURCHASE-INTENT",
+						"EV-KB-PURCHASE-INTENT"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P4": {
+					"satisfied_by": [
+						"EV-PURCHASE-INTENT",
+						"EV-KB-PURCHASE-INTENT"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 4 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 4 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-PURCHASE",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Pure purchase-intent model present in src/purchase-intent.mjs (Nexus P4A); not reachable from any runtime path, no transaction capability.",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"applies_to": [
+				"src/purchase-intent.mjs"
+			],
+			"id": "CR-PURCHASE-005",
+			"title": "Purchase-intent state model allows only the defined single-use transitions (P4A model)",
+			"source_refs": [
+				"SRC-ASVS V2.3.1"
+			],
+			"external_requirement_ids": [
+				"V2.3.1"
+			],
+			"external_requirement": "Business logic flows are processed in the expected sequential step order without skipping steps (V2.3.1).",
+			"coverraccoon_requirement": "Intent states OPEN, BUILT, SUBMITTED, CONFIRMED, FAILED, EXPIRED, CANCELLED with exactly the transitions OPEN->BUILT|EXPIRED|CANCELLED, BUILT->SUBMITTED|EXPIRED|CANCELLED, SUBMITTED->CONFIRMED|FAILED; terminal states never restart; a submitted transaction may still be mined, so SUBMITTED neither expires nor is cancelled and a late on-chain outcome stays observable. P4A subset: the pure transition model only; enforcement in the database (atomic single-use under parallel requests, real-system evidence) is a later obligation and not claimed here.",
+			"threat": "a step is skipped, an intent is reused after it ended, or a real late purchase is ignored because the intent was marked expired",
+			"expected_property": "only defined transitions; single use; late outcome kept",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "only the defined transitions are allowed; no step is skipped (no OPEN->SUBMITTED, OPEN->CONFIRMED, BUILT->CONFIRMED)"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "terminal states (CONFIRMED, FAILED, EXPIRED, CANCELLED) have no outgoing transition"
+				},
+				{
+					"id": "P3",
+					"kind": "REQUIREMENT",
+					"text": "SUBMITTED never expires and is never cancelled; a late on-chain outcome remains possible after SUBMITTED and after BUILT"
+				},
+				{
+					"id": "P4",
+					"kind": "REQUIREMENT",
+					"text": "OPEN and BUILT intents are unusable from expiresAt on, judged only against an explicitly passed time"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-PURCHASE-INTENT",
+				"EV-PURCHASE-INTENT"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-PURCHASE-INTENT",
+						"EV-KB-PURCHASE-INTENT"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-PURCHASE-INTENT",
+						"EV-KB-PURCHASE-INTENT"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P3": {
+					"satisfied_by": [
+						"EV-PURCHASE-INTENT",
+						"EV-KB-PURCHASE-INTENT"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P4": {
+					"satisfied_by": [
+						"EV-PURCHASE-INTENT",
+						"EV-KB-PURCHASE-INTENT"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 4 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 4 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-COMMISSION",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Pure purchase-intent model present in src/purchase-intent.mjs (Nexus P4A); not reachable from any runtime path, no transaction capability.",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"applies_to": [
+				"src/purchase-intent.mjs"
+			],
+			"id": "CR-COMMISSION-001",
+			"title": "Commission fixed server-side to zero (P4A policy)",
+			"source_refs": [
+				"SRC-ASVS V2.3.2",
+				"SRC-NEXUS-COVER"
+			],
+			"external_requirement_ids": [
+				"V2.3.2"
+			],
+			"external_requirement": "Business logic limits are implemented as documented (V2.3.2).",
+			"coverraccoon_requirement": "The purchase-intent model accepts only commissionRatio 0 and the zero address as destination (Cover v3.3.0: ratio 0 means no commission transfer, the destination is not read); SDK product-type defaults (type 0: 1000 to the DAO treasury) are never inherited.",
+			"threat": "a commission is added or redirected to an arbitrary address",
+			"expected_property": "ratio 0, destination 0x0, nothing else accepted",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "any commission ratio other than 0 invalidates the intent"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "any commission destination other than the zero address invalidates the intent"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-PURCHASE-INTENT",
+				"EV-PURCHASE-INTENT"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-PURCHASE-INTENT",
+						"EV-KB-PURCHASE-INTENT"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-PURCHASE-INTENT",
+						"EV-KB-PURCHASE-INTENT"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 2 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 2 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-ALLOC",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Pure purchase-intent model present in src/purchase-intent.mjs (Nexus P4A); not reachable from any runtime path, no transaction capability.",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"applies_to": [
+				"src/purchase-intent.mjs"
+			],
+			"id": "CR-ALLOC-001",
+			"title": "Pool allocations validated per verified Cover v3.3.0 semantics",
+			"source_refs": [
+				"SRC-ASVS V2.2.3",
+				"SRC-ASVS V2.3.2",
+				"SRC-NEXUS-COVER"
+			],
+			"external_requirement_ids": [
+				"V2.2.3",
+				"V2.3.2"
+			],
+			"external_requirement": "Related data items are consistent (V2.2.3) and business limits are enforced as documented (V2.3.2).",
+			"coverraccoon_requirement": "Cover v3.3.0 _requestAllocation rounds every allocation up to NXM allocation units, requires only total >= amount and stores the total. CoverRaccoon therefore requires total >= requested (never total == requested), total == the quote total, overshoot at most a versioned cap (100 bps), 1-10 allocations with unique positive pool ids and positive canonical amounts.",
+			"threat": "under-covered purchase, inflated allocation, or a correct quote rejected by an over-strict rule",
+			"expected_property": "allocation rules follow the deployed contract",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "the allocation total must be at least the requested amount and may exceed it; equality with the requested amount is not required (real 1000 USDC quote: 1000192871 passes)"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "the allocation total equals the quote total and exceeds the requested amount by at most the versioned overshoot cap"
+				},
+				{
+					"id": "P3",
+					"kind": "REQUIREMENT",
+					"text": "between 1 and 10 allocations, unique positive pool ids, positive canonical integer amounts"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-PURCHASE-INTENT",
+				"EV-PURCHASE-INTENT"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-PURCHASE-INTENT",
+						"EV-KB-PURCHASE-INTENT"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-PURCHASE-INTENT",
+						"EV-KB-PURCHASE-INTENT"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P3": {
+					"satisfied_by": [
+						"EV-PURCHASE-INTENT",
+						"EV-KB-PURCHASE-INTENT"
 					],
 					"partial_only": [],
 					"insufficient": []

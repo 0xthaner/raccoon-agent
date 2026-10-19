@@ -1918,6 +1918,60 @@
 					"reason": "Framework finding F-2Z-1 fixed (Low). Proof: test/nexus-contract-source.test.mjs (SOURCE-BROKER, SOURCE-COVER, SOURCE-INDEPENDENT, SOURCE-ABI, SOURCE-REGISTRY), mutations MUT-CR-NEXUS-006-P1-2ZBROKERV34 (the old pin), -P1-2ZBROKERIMM, -P2-2ZSWAP, -P2-2ZCOVERV34 KILLED; FIX-F-2Z-1 registered (E4)."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zb",
+			"summary": "Nexus P4A: pure purchase-intent model (validation, canonical hash v1, transition model, allocation and commission rules) in src/purchase-intent.mjs, unreachable at runtime. Controls CR-PURCHASE-003, CR-PURCHASE-005, CR-COMMISSION-001, CR-ALLOC-001 (RELEASE_BLOCKING, E3) with behavioural evidence and 22 KILLED mutations. No endpoint, wallet method, calldata, network call, migration or deployment.",
+			"changes": [
+				{
+					"id": "CR-PURCHASE-003",
+					"kind": "ADDED",
+					"reason": "New control: Purchase intent canonically binds every security-critical value (P4A model). Derivation: Input is validated against expected business rules (V2.2.1) and related data items are consistent with each other (V2.2.3). A purchase intent exists only as a validated canonical record; its hash (keccak256 over abi.encode, domain coverraccoon.purchase-intent, version 1) binds every security-critical field and the verified broker and Cover implementation pins, so a changed value is a different intent. P4A subset: model, validation and hash only; database immutability follows with the persistence phase.",
+					"rationale": "Each property is tested behaviourally against the pure module and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-PURCHASE-005",
+					"kind": "ADDED",
+					"reason": "New control: Purchase-intent state model allows only the defined single-use transitions (P4A model). Derivation: Business logic flows are processed in the expected sequential step order without skipping steps (V2.3.1). Intent states OPEN, BUILT, SUBMITTED, CONFIRMED, FAILED, EXPIRED, CANCELLED with exactly the transitions OPEN->BUILT|EXPIRED|CANCELLED, BUILT->SUBMITTED|EXPIRED|CANCELLED, SUBMITTED->CONFIRMED|FAILED; terminal states never restart; a submitted transaction may still be mined, so SUBMITTED neither expires nor is cancelled and a late on-chain outcome stays observable. P4A subset: the pure transition model only; enforcement in the database (atomic single-use under parallel requests, real-system evidence) is a later obligation and not claimed here.",
+					"rationale": "Each property is tested behaviourally against the pure module and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-COMMISSION-001",
+					"kind": "ADDED",
+					"reason": "New control: Commission fixed server-side to zero (P4A policy). Derivation: Business logic limits are implemented as documented (V2.3.2). The purchase-intent model accepts only commissionRatio 0 and the zero address as destination (Cover v3.3.0: ratio 0 means no commission transfer, the destination is not read); SDK product-type defaults (type 0: 1000 to the DAO treasury) are never inherited.",
+					"rationale": "Each property is tested behaviourally against the pure module and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-ALLOC-001",
+					"kind": "ADDED",
+					"reason": "New control: Pool allocations validated per verified Cover v3.3.0 semantics. Derivation: Related data items are consistent (V2.2.3) and business limits are enforced as documented (V2.3.2). Cover v3.3.0 _requestAllocation rounds every allocation up to NXM allocation units, requires only total >= amount and stores the total. CoverRaccoon therefore requires total >= requested (never total == requested), total == the quote total, overshoot at most a versioned cap (100 bps), 1-10 allocations with unique positive pool ids and positive canonical amounts.",
+					"rationale": "Each property is tested behaviourally against the pure module and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-PURCHASE-005",
+					"kind": "TEST_GAP_RECORDED",
+					"reason": "Deliberately not claimed in P4A: single use of an intent under parallel requests and the database transition guard (atomic compare-and-set, unique transaction hash, idempotent confirmation). It becomes a property of this control in the persistence phase (P4D) together with real-system Postgres evidence at E5, marked in profile.real_system_observation; adding it now without that evidence would only produce a permanently missing release-blocking claim. No purchase path exists, so nothing relies on it yet."
+				},
+				{
+					"id": "EV-NEXUS-QUOTE",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "test QUOTE-SURFACE no longer forbids the field names commissionRatio and commissionDestination in src/purchase-intent.mjs, because the P4A model carries them to pin them to 0 and the zero address (CR-COMMISSION-001); every other pattern (buyCover, CoverBroker., NEXUS_CONTRACTS.CoverBroker, NEXUS_CONTRACTS[, wallet_sendTransaction, eth_sendTransaction, wallet_sendCalls, sendTransaction, writeContract, cover-metadata, encodeFunctionData, .approve() still applies to that file, and the commission names stay forbidden in every other runtime file. Compensation: P4A-IMPORT proves the module is imported by no runtime code; P4A-PURE forbids network, clock and transaction surface in it."
+				},
+				{
+					"id": "drift-model",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "new rule src/purchase-intent.mjs -> CR-ALLOC, CR-COMMISSION, CR-PURCHASE; nothing removed"
+				},
+				{
+					"id": "controls.schema.json+drift-model.schema.json",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "domain enums of controls and drift-model extended by CR-PURCHASE, CR-COMMISSION and CR-ALLOC (Nexus P4A pure purchase-intent model); no other schema change, no threshold or class changed"
+				}
+			]
 		}
 	]
 }

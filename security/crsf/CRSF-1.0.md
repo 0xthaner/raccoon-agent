@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2za
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2zb
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -11,19 +11,19 @@
 - FAIL: 19
 - INFORMATIONAL: 2
 - MISSING_EVIDENCE: 44
-- PASS_AUTOMATED: 72
+- PASS_AUTOMATED: 76
 - PASS_MANUAL: 24
 
 ### Release classes
 
 - INFORMATIONAL: 2
 - MANUAL_ASSURANCE: 30
-- RELEASE_BLOCKING: 68
+- RELEASE_BLOCKING: 72
 - SECURITY_DEBT: 61
 
 ### Release-blocking controls by security status
 
-- PASS_AUTOMATED: 68
+- PASS_AUTOMATED: 72
 
 ### Standard conformance (ASVS 5.0.0, applicable requirements)
 
@@ -265,6 +265,10 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-QUOTE-007 | User-facing quote is informational and cannot trigger wallet methods | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
 | CR-QUOTE-008 | Quote retrieval rate limited per IP, wallet and globally | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
 | CR-NEXUS-006 | Pinned Nexus contracts bound to their verified deployed source | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
+| CR-PURCHASE-003 | Purchase intent canonically binds every security-critical value (P4A model) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E3 |
+| CR-PURCHASE-005 | Purchase-intent state model allows only the defined single-use transitions (P4A model) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E3 |
+| CR-COMMISSION-001 | Commission fixed server-side to zero (P4A policy) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
+| CR-ALLOC-001 | Pool allocations validated per verified Cover v3.3.0 semantics | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
 
 ## 5. Evidence
 
@@ -403,10 +407,12 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-KB-NEXUS-QUOTE | known-bad | E4 | mutation | FULL | yes | Each listed weakening of the quote display is detected by its intended test: client productId, ambiguous mapping, unsupported asset, amount above capacity or exposure, period below 28 or above 365 days, malformed/foreign-product/foreign-asset quote, followed redirect, arbitrary host, stale quote marked fresh, fallback premium on timeout, wallet method from the panel, exposed pools/fee fields, missing global quote budget. |
 | EV-NEXUS-SOURCE | behavioral | E3 | node-test | FULL | yes | Offline against captured on-chain runtimes (eth_getCode identical at three RPCs) and independently recompiled candidate builds: the pinned CoverBroker (v2.12.1) and Cover implementation (v3.3.0) builds differ from the deployed code only inside compiler-declared immutable regions, carry the identical metadata hash and immutable values equal to the pin; the v3.4.0 broker (other program), the v3.4.0 Cover (other metadata) and every cross-substitution do not verify; the deployed broker dispatches exactly its build's 12 functions and none of the v3-only ones (pool, registry, tokenController); sources.json pins both separately, consistent with the code pin and the fixture hashes. |
 | EV-KB-NEXUS-SOURCE | known-bad | E4 | mutation | FULL | yes | The old v3.4.0 broker pin, a wrong broker immutable, the broker pinned to the Cover source, and the Cover pinned to v3.4.0 are each detected by the intended test. |
+| EV-PURCHASE-INTENT | behavioral | E3 | node-test | FULL | yes | Behaviourally, against the pure module: a valid intent validates and hashes stably and independently of key order and wallet spelling; changing any model field or any contract pin changes the hash; every listed policy violation, unknown/derived/caller-hash field and non-canonical raw amount is rejected and has no hash, 2^96-1 and 2^53+1 round-trip exactly; exactly the 8 allowed transitions hold over all 49 pairs, terminal states have none, SUBMITTED expires never and keeps a late outcome; expiry only with an explicit time; readiness is never send-ready and proof of loss blocks every transaction; commission only 0/0x0; the real 1000 USDC quote (1000192871) passes, below-requested, off-total, over-cap, duplicate, zero and oversized lists fail; the module imports only viem and nexus-pinned, touches no network or clock when called, emits no transaction shape, and no file under src, api, web or scripts imports it. |
+| EV-KB-PURCHASE-INTENT | known-bad | E4 | mutation | FULL | yes | Each listed weakening of the hash, validation, integer parsing, purity, reachability, commission policy, transition table, expiry and allocation rules is detected by the intended test. |
 
 ## 6. Mutation cases
 
-349 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+371 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -759,6 +765,28 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-NEXUS-006-P1-2ZBROKERIMM | CR-NEXUS-006.P1 | behavioral | KILLED |
 | MUT-CR-NEXUS-006-P2-2ZSWAP | CR-NEXUS-006.P2 | behavioral | KILLED |
 | MUT-CR-NEXUS-006-P2-2ZCOVERV34 | CR-NEXUS-006.P2 | behavioral | KILLED |
+| MUT-CR-PURCHASE-003-P1-P4AWALLET | CR-PURCHASE-003.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-003-P1-P4APRODUCT | CR-PURCHASE-003.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-003-P1-P4AAMOUNT | CR-PURCHASE-003.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-003-P1-P4APERIOD | CR-PURCHASE-003.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-003-P1-P4AMAXPREM | CR-PURCHASE-003.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-003-P1-P4ATERMS | CR-PURCHASE-003.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-003-P1-P4APOL | CR-PURCHASE-003.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-003-P1-P4AIMPL | CR-PURCHASE-003.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-003-P2-P4AEXTRA | CR-PURCHASE-003.P2 | behavioral | KILLED |
+| MUT-CR-PURCHASE-003-P3-P4ANUMBER | CR-PURCHASE-003.P3 | behavioral | KILLED |
+| MUT-CR-PURCHASE-003-P4-P4AFETCH | CR-PURCHASE-003.P4 | behavioral | KILLED |
+| MUT-CR-PURCHASE-003-P4-P4AREACH | CR-PURCHASE-003.P4 | behavioral | KILLED |
+| MUT-CR-COMMISSION-001-P1-P4ARATIO | CR-COMMISSION-001.P1 | behavioral | KILLED |
+| MUT-CR-COMMISSION-001-P2-P4ADEST | CR-COMMISSION-001.P2 | behavioral | KILLED |
+| MUT-CR-PURCHASE-005-P1-P4ASKIP | CR-PURCHASE-005.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-005-P2-P4ARESTART | CR-PURCHASE-005.P2 | behavioral | KILLED |
+| MUT-CR-PURCHASE-005-P3-P4ALATE | CR-PURCHASE-005.P3 | behavioral | KILLED |
+| MUT-CR-PURCHASE-005-P4-P4AEXPIRY | CR-PURCHASE-005.P4 | behavioral | KILLED |
+| MUT-CR-ALLOC-001-P1-P4AEQUAL | CR-ALLOC-001.P1 | behavioral | KILLED |
+| MUT-CR-ALLOC-001-P1-P4AUNDER | CR-ALLOC-001.P1 | behavioral | KILLED |
+| MUT-CR-ALLOC-001-P2-P4ACAP | CR-ALLOC-001.P2 | behavioral | KILLED |
+| MUT-CR-ALLOC-001-P3-P4ADUP | CR-ALLOC-001.P3 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -781,11 +809,11 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V2.1.1 | L1 | CR-INPUT-009 | NON_CONFORMANT |
 | V2.1.2 | L2 | CR-INPUT-009 | NON_CONFORMANT |
 | V2.1.3 | L2 | CR-RESOURCE-005, CR-QUOTE-008 | NON_CONFORMANT |
-| V2.2.1 | L1 | CR-API-003, CR-NEXUS-001, CR-NEXUS-003, CR-QUOTE-001, CR-QUOTE-003, CR-QUOTE-004 | CONFORMANT |
+| V2.2.1 | L1 | CR-API-003, CR-NEXUS-001, CR-NEXUS-003, CR-QUOTE-001, CR-QUOTE-003, CR-QUOTE-004, CR-PURCHASE-003 | CONFORMANT |
 | V2.2.2 | L1 | CR-API-003 | CONFORMANT |
-| V2.2.3 | L2 | CR-INPUT-010, CR-NEXUS-001, CR-NEXUS-002, CR-QUOTE-002 | CONFORMANT |
-| V2.3.1 | L1 | CR-API-009 | CONFORMANT |
-| V2.3.2 | L2 | CR-CONC-002, CR-QUOTE-003, CR-QUOTE-005 | CONFORMANT |
+| V2.2.3 | L2 | CR-INPUT-010, CR-NEXUS-001, CR-NEXUS-002, CR-QUOTE-002, CR-PURCHASE-003, CR-ALLOC-001 | CONFORMANT |
+| V2.3.1 | L1 | CR-API-009, CR-PURCHASE-005 | CONFORMANT |
+| V2.3.2 | L2 | CR-CONC-002, CR-QUOTE-003, CR-QUOTE-005, CR-COMMISSION-001, CR-ALLOC-001 | CONFORMANT |
 | V2.3.3 | L2 | CR-CONC-001, CR-CONC-004 | CONFORMANT |
 | V2.3.4 | L2 | CR-CONC-002, CR-CONC-003 | CONFORMANT |
 | V2.3.5 | L3 | CR-API-010 | CONFORMANT |
@@ -1001,6 +1029,7 @@ Drift output only prioritises review. security:verify always evaluates every con
 | `security/**` | CR-VERIFY |
 | `scripts/security-*.mjs` | CR-VERIFY |
 | `scripts/skip-policy.mjs` | CR-VERIFY |
+| `src/purchase-intent.mjs` | CR-ALLOC, CR-COMMISSION, CR-PURCHASE |
 
 ## 10. Framework versions
 
@@ -1032,4 +1061,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2x** — Nexus P1+P2: read-only Nexus product/capacity/wording integration and deterministic position -> product mapping. New domain CR-NEXUS with five RELEASE_BLOCKING controls (E3), behavioural evidence and 14 KILLED known-bad mutations; three pinned sources; drift rules for the new files. No purchase flow, no transaction, no deployment; no finding.
 - **1.0-draft-phase2y** — Nexus P3: user-facing cover details and live quote, display only (POST /api/nexus/quote, dashboard cover panel). New domain CR-QUOTE with eight RELEASE_BLOCKING controls (E3), behavioural evidence and 17 KILLED known-bad mutations; source SRC-NEXUS-QUOTE; drift rules. No purchase, approval, transaction, fee or proof-of-loss upload; no deployment; no finding.
 - **1.0-draft-phase2za** — F-2Z-1 (framework/source integrity, Low): the CRSF source for the Nexus contracts named v3.4.0 for all SDK addresses, but the deployed CoverBroker is v2.12.1. Proven by independent recompilation; per-contract pins SRC-NEXUS-COVERBROKER (v2.12.1) and SRC-NEXUS-COVER (v3.3.0 implementation), control CR-NEXUS-006 (RELEASE_BLOCKING, E3) with behavioural evidence and 4 KILLED mutations. No runtime behaviour changed, no contract called, no deployment.
+- **1.0-draft-phase2zb** — Nexus P4A: pure purchase-intent model (validation, canonical hash v1, transition model, allocation and commission rules) in src/purchase-intent.mjs, unreachable at runtime. Controls CR-PURCHASE-003, CR-PURCHASE-005, CR-COMMISSION-001, CR-ALLOC-001 (RELEASE_BLOCKING, E3) with behavioural evidence and 22 KILLED mutations. No endpoint, wallet method, calldata, network call, migration or deployment.
 

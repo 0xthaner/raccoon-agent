@@ -495,7 +495,10 @@ test('QUOTE-SURFACE no purchase surface anywhere in runtime code', () => {
 	for (const file of files) {
 		const code = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 		// NEXUS_CONTRACTS (nexus-pinned.mjs) nennt die CoverBroker-Adresse nur als Referenz; verwendet werden darf sie nirgends.
-		assert.doesNotMatch(code, /buyCover|CoverBroker\s*\.|NEXUS_CONTRACTS\s*\.\s*CoverBroker|NEXUS_CONTRACTS\s*\[|wallet_sendTransaction|eth_sendTransaction|wallet_sendCalls|sendTransaction|writeContract|commissionRatio|commissionDestination|cover-metadata|encodeFunctionData/, file);
+		assert.doesNotMatch(code, /buyCover|CoverBroker\s*\.|NEXUS_CONTRACTS\s*\.\s*CoverBroker|NEXUS_CONTRACTS\s*\[|wallet_sendTransaction|eth_sendTransaction|wallet_sendCalls|sendTransaction|writeContract|cover-metadata|encodeFunctionData/, file);
+		// P4A (19.10.2026): das reine Intent-Modell traegt die Kommissionsfelder, um sie auf 0 / Nulladresse festzulegen.
+		// Es ist von keinem Laufzeitpfad erreichbar (P4A-IMPORT in test/purchase-intent.test.mjs); alle anderen Muster gelten auch dort.
+		if (file !== 'src/purchase-intent.mjs') assert.doesNotMatch(code, /commissionRatio|commissionDestination/, file);
 		assert.doesNotMatch(code, /functionName:\s*'approve'|\.approve\(/, file);
 	}
 });

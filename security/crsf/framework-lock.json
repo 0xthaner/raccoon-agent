@@ -1,7 +1,18 @@
 {
-	"crsf_version": "1.0-draft-phase2za",
+	"crsf_version": "1.0-draft-phase2zb",
 	"profile_rules_digest": "59da3e481750b5c7687099ad6c8a4dc9669e65b17141f2826fbcb9e67a847e9f",
 	"controls": {
+		"CR-ALLOC-001": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.2.3",
+				"V2.3.2"
+			],
+			"properties_digest": "986bcf6f4f27a69efb320f980e7a44647f746ee231620febaf6f5d8bc67d170d",
+			"derivation_digest": "04bb986903d7f1bb14716e1478b6b01b78c3e0d78da29601e8857d120d5e23d2"
+		},
 		"CR-API-001": {
 			"release_class": "RELEASE_BLOCKING",
 			"minimum_evidence_level": "E4",
@@ -372,6 +383,16 @@
 			],
 			"properties_digest": "cd8b5bb464a6f9e7be238f1d9b6c83b8809ea771d6586c0847c2e418d5ac3fc0",
 			"derivation_digest": "1f3348cf94ba9321ea16eb5ad1378f29b3bd76fee0e99cecb8893ac255f0c364"
+		},
+		"CR-COMMISSION-001": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.3.2"
+			],
+			"properties_digest": "75646588da88003b624b150f600d11ad08b93848e68d3cfc75c46b0bdce1ae75",
+			"derivation_digest": "2e08b078de7cf83cd8b437fc1591b0e526cedeef0579242b943b110ea221fe46"
 		},
 		"CR-CONC-001": {
 			"release_class": "RELEASE_BLOCKING",
@@ -1122,6 +1143,27 @@
 			],
 			"properties_digest": "1faa323eb15af08cf5a141229bdf265ef5b6112dd713eb396ecadd7232ef1dce",
 			"derivation_digest": "a887ab092ea58485167244771501d094037b5615f2ad0a509397935e792c1a0d"
+		},
+		"CR-PURCHASE-003": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.2.1",
+				"V2.2.3"
+			],
+			"properties_digest": "205aa5023aed68689fca0f8a17363ad672d46d4425096ee0a3c3328032f61b1d",
+			"derivation_digest": "dcef204be473a2d4ee252a27aafb9cc89ed3c1af77fb81a6a7de45f5f51f0327"
+		},
+		"CR-PURCHASE-005": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.3.1"
+			],
+			"properties_digest": "8edd7764818f9388fa55145b9e3d3a1e0c3c645e37a3767f8062971dfbe4a22f",
+			"derivation_digest": "b5664960432c8258952fa7c3739379811b2e786ce33595c783c996bc038d6318"
 		},
 		"CR-QUOTE-001": {
 			"release_class": "RELEASE_BLOCKING",

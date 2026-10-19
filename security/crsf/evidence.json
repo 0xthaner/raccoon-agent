@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2za",
+	"crsf_version": "1.0-draft-phase2zb",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -8383,6 +8383,198 @@
 			},
 			"control_ids": [
 				"CR-NEXUS-006"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
+			"id": "EV-PURCHASE-INTENT",
+			"control_ids": [
+				"CR-ALLOC-001",
+				"CR-COMMISSION-001",
+				"CR-PURCHASE-003",
+				"CR-PURCHASE-005"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/purchase-intent.test.mjs",
+			"test_or_proof": "test/purchase-intent.test.mjs",
+			"property_proven": "Behaviourally, against the pure module: a valid intent validates and hashes stably and independently of key order and wallet spelling; changing any model field or any contract pin changes the hash; every listed policy violation, unknown/derived/caller-hash field and non-canonical raw amount is rejected and has no hash, 2^96-1 and 2^53+1 round-trip exactly; exactly the 8 allowed transitions hold over all 49 pairs, terminal states have none, SUBMITTED expires never and keeps a late outcome; expiry only with an explicit time; readiness is never send-ready and proof of loss blocks every transaction; commission only 0/0x0; the real 1000 USDC quote (1000192871) passes, below-requested, off-total, over-cap, duplicate, zero and oversized lists fail; the module imports only viem and nexus-pinned, touches no network or clock when called, emits no transaction shape, and no file under src, api, web or scripts imports it.",
+			"property_not_proven": "database enforcement of single use under parallel requests and immutability of stored intents (persistence phase, E5 required then); terms text binding (P4B); revalidation against live quote, capacity and chain state; any transactional behaviour",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-PURCHASE-003",
+					"properties": [
+						"P1",
+						"P2",
+						"P3",
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-PURCHASE-005",
+					"properties": [
+						"P1",
+						"P2",
+						"P3",
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-COMMISSION-001",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-ALLOC-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/purchase-intent.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-PURCHASE-INTENT",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 22 case(s)",
+			"property_proven": "Each listed weakening of the hash, validation, integer parsing, purity, reachability, commission policy, transition table, expiry and allocation rules is detected by the intended test.",
+			"property_not_proven": "weakenings beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-003",
+					"properties": [
+						"P1",
+						"P2",
+						"P3",
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-PURCHASE-003-P1-P4AWALLET, MUT-CR-PURCHASE-003-P1-P4APRODUCT, MUT-CR-PURCHASE-003-P1-P4AAMOUNT, MUT-CR-PURCHASE-003-P1-P4APERIOD, MUT-CR-PURCHASE-003-P1-P4AMAXPREM, MUT-CR-PURCHASE-003-P1-P4ATERMS, MUT-CR-PURCHASE-003-P1-P4APOL, MUT-CR-PURCHASE-003-P1-P4AIMPL, MUT-CR-PURCHASE-003-P2-P4AEXTRA, MUT-CR-PURCHASE-003-P3-P4ANUMBER, MUT-CR-PURCHASE-003-P4-P4AFETCH, MUT-CR-PURCHASE-003-P4-P4AREACH"
+				},
+				{
+					"control": "CR-COMMISSION-001",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-COMMISSION-001-P1-P4ARATIO, MUT-CR-COMMISSION-001-P2-P4ADEST"
+				},
+				{
+					"control": "CR-PURCHASE-005",
+					"properties": [
+						"P1",
+						"P2",
+						"P3",
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-PURCHASE-005-P1-P4ASKIP, MUT-CR-PURCHASE-005-P2-P4ARESTART, MUT-CR-PURCHASE-005-P3-P4ALATE, MUT-CR-PURCHASE-005-P4-P4AEXPIRY"
+				},
+				{
+					"control": "CR-ALLOC-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-ALLOC-001-P1-P4AEQUAL, MUT-CR-ALLOC-001-P1-P4AUNDER, MUT-CR-ALLOC-001-P2-P4ACAP, MUT-CR-ALLOC-001-P3-P4ADUP"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-PURCHASE-003-P1-P4AWALLET",
+					"MUT-CR-PURCHASE-003-P1-P4APRODUCT",
+					"MUT-CR-PURCHASE-003-P1-P4AAMOUNT",
+					"MUT-CR-PURCHASE-003-P1-P4APERIOD",
+					"MUT-CR-PURCHASE-003-P1-P4AMAXPREM",
+					"MUT-CR-PURCHASE-003-P1-P4ATERMS",
+					"MUT-CR-PURCHASE-003-P1-P4APOL",
+					"MUT-CR-PURCHASE-003-P1-P4AIMPL",
+					"MUT-CR-PURCHASE-003-P2-P4AEXTRA",
+					"MUT-CR-PURCHASE-003-P3-P4ANUMBER",
+					"MUT-CR-PURCHASE-003-P4-P4AFETCH",
+					"MUT-CR-PURCHASE-003-P4-P4AREACH",
+					"MUT-CR-COMMISSION-001-P1-P4ARATIO",
+					"MUT-CR-COMMISSION-001-P2-P4ADEST",
+					"MUT-CR-PURCHASE-005-P1-P4ASKIP",
+					"MUT-CR-PURCHASE-005-P2-P4ARESTART",
+					"MUT-CR-PURCHASE-005-P3-P4ALATE",
+					"MUT-CR-PURCHASE-005-P4-P4AEXPIRY",
+					"MUT-CR-ALLOC-001-P1-P4AEQUAL",
+					"MUT-CR-ALLOC-001-P1-P4AUNDER",
+					"MUT-CR-ALLOC-001-P2-P4ACAP",
+					"MUT-CR-ALLOC-001-P3-P4ADUP"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-ALLOC-001",
+				"CR-COMMISSION-001",
+				"CR-PURCHASE-003",
+				"CR-PURCHASE-005"
 			],
 			"coverage": "FULL",
 			"reason_for_partial": null
