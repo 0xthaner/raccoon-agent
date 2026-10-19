@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2y",
+	"crsf_version": "1.0-draft-phase2za",
 	"sources": [
 		{
 			"id": "SRC-ASVS",
@@ -182,8 +182,8 @@
 			"version": "v3.4.0",
 			"date": "2026-10-18 (retrieved)",
 			"url": "https://github.com/NexusMutual/smart-contracts/tree/v3.4.0",
-			"pin": "git tag v3.4.0 = commit 67f531208b693f8edbc6ea46528f164046ed1f0b; MIN_COVER_PERIOD 28 days, MAX_COVER_PERIOD 365 days; mainnet addresses from @nexusmutual/sdk 3.1.1 data/addresses.json (SDK not used, GPL-3.0 review open)",
-			"note": "Reference only; no contract is called in P1/P2."
+			"pin": "git tag v3.4.0 = commit 67f531208b693f8edbc6ea46528f164046ed1f0b; Cover.sol MIN_COVER_PERIOD 28 days, MAX_COVER_PERIOD 365 days (Cover.sol byte-identical in v3.3.0, the deployed Cover implementation, see SRC-NEXUS-COVER); mainnet addresses from @nexusmutual/sdk 3.1.1 data/addresses.json (SDK not used, GPL-3.0 review open). This release is not the CoverBroker source: the deployed CoverBroker is v2.12.1, see SRC-NEXUS-COVERBROKER (F-2Z-1). Until 1.0-draft-phase2y this entry named only v3.4.0 next to all SDK addresses.",
+			"note": "Reference for the Cover period limits only; no contract is called in P1-P3. Per-contract source identity: SRC-NEXUS-COVERBROKER, SRC-NEXUS-COVER."
 		},
 		{
 			"id": "SRC-NEXUS-WORDING",
@@ -204,6 +204,26 @@
 			"url": "https://api.nexusmutual.io/v2/quote",
 			"pin": "unversioned API; pinned by captured responses in test/fixtures/nexus (sha256 quote-97-usdc-1000-30d 0c81004cedb1038ec4b2d2d0852a589f9ffefff94f04d92909c09d987b2cb92e, quote-97-eth-1-365d d7556163bfe7c856509a3fa49a972e96a5048c4627a09939cc32403b8a28d233); query parameters productId, amount, period (days), coverAsset, paymentAsset as used by @nexusmutual/sdk 3.1.1 Quote.getQuote (SDK not used); premium = total x annualPrice[bps] x days / (10000 x 365) observed for USDC/ETH/cbBTC; the API itself accepted period 27 and coverAsset DAI for product 97 on 2026-10-18",
 			"note": "Untrusted third-party data. No expiry and no signature in the response; CoverRaccoon assigns its own 60 s freshness."
+		},
+		{
+			"id": "SRC-NEXUS-COVERBROKER",
+			"org": "Nexus Mutual",
+			"title": "NexusMutual/smart-contracts CoverBroker as deployed at 0xCB2B736652D2dBf7d72e4dB880Cf6B7d99507814",
+			"version": "v2.12.1",
+			"date": "2026-10-18 (verified)",
+			"url": "https://github.com/NexusMutual/smart-contracts/blob/20082c81ec1a01e03cd7748c5bfc0396e74af93d/contracts/external/cover/CoverBroker.sol",
+			"pin": "address 0xCB2B736652D2dBf7d72e4dB880Cf6B7d99507814 (not a proxy); source tag v2.12.1 = commit 20082c81ec1a01e03cd7748c5bfc0396e74af93d (byte-identical sources and runtime at v2.12.0 = 94e1764ec704215a37a60fba2af8290940def5b8; v2.12.1 is the release whose deployments/src/addresses.json introduced this address); solc 0.8.28+commit.7893614a, optimizer runs 200, evmVersion cancun, no libraries; deployed runtime keccak256 0xeb0e42231c9134305a54b102cea19fa29ec57f663a294a35c5bd870d81e9657c, 5245 bytes, metadata ipfs QmYTrtJnwoqumTd33yvNJrL1hb8RNgcCRWhrn9Pqy6ZCJK; match DECLARED_IMMUTABLES_ONLY: 220 differing bytes, all inside the compiler immutableReferences of cover, memberRoles, nxmToken, master, CBOR trailer identical; immutables = on-chain getters (cover 0xcafeac0f..., memberRoles 0x055CC48f..., nxmToken 0xd7c49CEE..., master 0x01BFd826...); creation: compiled creation code + constructor args found in tx 0x10f3551e896d2ffe1473e7a0a0c61191d9635f593e523b514c13f1359ecf9fd1 (block 22375780, 2025-04-29), CREATE2 address reproduced from factory 0xfac7011663910f75cbe1e25539ec2d7529f93c3f with salt 0x...27c9; independent recompilation 2026-10-18: GitHub sources at the commit (import closure) + @openzeppelin/contracts 4.7.3 (npm sha512 = package-lock), official soljson-v0.8.28+commit.7893614a.js (sha256 0x72ef580a6ec5943130028e5294313f24e9435520acc89f8c9dbfd0139d9ae146), optimizer enabled runs 200, settings of hardhat-config/solidity.js at the tag (ENABLE_OPTIMIZER); fixtures runtime-coverbroker-cb2b7366.hex 2b25db29d5c6362eb67a78dba67955e3bdc1d39ef473ea08e027dad351875827, contract-builds.json bca90ebe047e836acab959c967353613758731c58271bce6af827d29bb046ac3",
+			"note": "Untrusted third-party code, verified by recompilation. The v3 CoverBroker (smart-contracts v3.0.0-v3.4.0, Registry-based, ABI in @nexusmutual/deployments 3.2.0) is NOT the code at this address. Sourcify (exact_match) was used only as a pointer."
+		},
+		{
+			"id": "SRC-NEXUS-COVER",
+			"org": "Nexus Mutual",
+			"title": "NexusMutual/smart-contracts Cover implementation behind proxy 0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62",
+			"version": "v3.3.0",
+			"date": "2026-10-18 (verified)",
+			"url": "https://github.com/NexusMutual/smart-contracts/blob/070972503a471b6e14d01213aca4cf41e156c215/contracts/modules/cover/Cover.sol",
+			"pin": "proxy 0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62 (OwnedUpgradeabilityProxy, implementation slot keccak256(\"org.govblocks.proxy.implementation\")) -> implementation 0xcafeafF1a21418f530Feb00C6BAeF07523979C05 (deployed block 24476528, tx 0xb2e2418bde74537a62d68ff63c099ead01a963cc313f54c36d6375a7a6a550f6, 2026-02-17); source tag v3.3.0 = commit 070972503a471b6e14d01213aca4cf41e156c215; solc 0.8.28+commit.7893614a, optimizer runs 200, evmVersion prague; runtime keccak256 0x2ecdeb32b923da39e181ca3fd7f2aa543e7e35e3db146f79327993f3b796a530, 23948 bytes, metadata ipfs QmVvxQParTb5FBNEDYsP4Wjpwj7G5ZqjaRcxSTc5Wwudht; match DECLARED_IMMUTABLES_ONLY (964 bytes, all in immutableReferences; CBOR identical; address immutables equal on-chain getters); v3.4.0 differs only in metadata (IPool.sol); independent recompilation 2026-10-18: GitHub sources at the commit (import closure) + @openzeppelin/contracts 4.7.3 (npm sha512 = package-lock), official soljson-v0.8.28+commit.7893614a.js (sha256 0x72ef580a6ec5943130028e5294313f24e9435520acc89f8c9dbfd0139d9ae146), optimizer enabled runs 200, settings of hardhat-config/solidity.js at the tag (ENABLE_OPTIMIZER); fixtures runtime-cover-impl-cafeaff1.hex 23ca356ed7e3ecf83cb16f914d4afc489fa20c939f12f01228d8193205ecc9a9, contract-builds.json bca90ebe047e836acab959c967353613758731c58271bce6af827d29bb046ac3",
+			"note": "Untrusted third-party code, verified by recompilation. The implementation is upgradeable by Nexus governance; this pin holds only while the proxy points at 0xcafeafF1... and must be re-verified before any transactional use."
 		}
 	],
 	"deferred_sources": [
@@ -280,6 +300,24 @@
 			"change": "ADDED",
 			"id": "SRC-NEXUS-QUOTE",
 			"reason": "pinned basis for the Nexus quote display controls CR-QUOTE-001..008"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2za",
+			"change": "ADDED",
+			"id": "SRC-NEXUS-COVERBROKER",
+			"reason": "F-2Z-1: deployed CoverBroker source pinned separately (v2.12.1), proven by recompilation against the on-chain runtime"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2za",
+			"change": "ADDED",
+			"id": "SRC-NEXUS-COVER",
+			"reason": "F-2Z-1: deployed Cover implementation source pinned separately (v3.3.0), proven by recompilation against the on-chain runtime"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2za",
+			"change": "CORRECTED",
+			"id": "SRC-NEXUS-CONTRACTS",
+			"reason": "F-2Z-1 source-integrity correction: the entry named smart-contracts v3.4.0 next to all SDK mainnet addresses, which implied v3.4.0 for the CoverBroker; the deployed broker is v2.12.1. Pin text now limits the entry to the Cover period limits and points to the per-contract pins. The v3.4.0 period-limit facts are unchanged (Cover.sol identical in v3.3.0). Previous text kept in the 1.0-draft-phase2y history."
 		}
 	],
 	"vendored": [

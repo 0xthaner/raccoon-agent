@@ -1889,6 +1889,35 @@
 					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2za",
+			"summary": "F-2Z-1 (framework/source integrity, Low): the CRSF source for the Nexus contracts named v3.4.0 for all SDK addresses, but the deployed CoverBroker is v2.12.1. Proven by independent recompilation; per-contract pins SRC-NEXUS-COVERBROKER (v2.12.1) and SRC-NEXUS-COVER (v3.3.0 implementation), control CR-NEXUS-006 (RELEASE_BLOCKING, E3) with behavioural evidence and 4 KILLED mutations. No runtime behaviour changed, no contract called, no deployment.",
+			"changes": [
+				{
+					"id": "F-2Z-1",
+					"kind": "NEW_FINDING",
+					"finding_class": "FRAMEWORK",
+					"reason": "Framework source integrity (Low: documentation/pin weakness, no runtime exposure). SRC-NEXUS-CONTRACTS (\"NexusMutual/smart-contracts (Cover.sol cover period limits)\", v3.4.0) listed the @nexusmutual/sdk 3.1.1 mainnet addresses in the same pin, which presented v3.4.0 as the source for every pinned address, including the CoverBroker 0xCB2B736652D2dBf7d72e4dB880Cf6B7d99507814. Demonstrated on 2026-10-18 (read-only): the deployed broker has master()/memberRoles() and no pool()/registry()/tokenController(); the v3.4.0 broker compiles to 4993 bytes vs 5245 deployed; the v2.12.1 broker reproduces the deployed runtime. Exposure: none at runtime - P1-P3 never call, encode for or simulate the broker; the only consumers would have been a future P4 purchase design (approval spender, refund, pool lookup) and reviewers. The period-limit facts the entry was used for (CR-QUOTE-003) are correct: Cover.sol is identical in v3.3.0 (deployed) and v3.4.0."
+				},
+				{
+					"id": "F-2Z-1",
+					"kind": "FRAMEWORK_FIX",
+					"reason": "Per-contract source pins: NEXUS_CONTRACT_SOURCES in src/nexus-pinned.mjs (reference only, unused at runtime) and SRC-NEXUS-COVERBROKER / SRC-NEXUS-COVER in sources.json; SRC-NEXUS-CONTRACTS corrected in place with a change_record entry (CORRECTED), not removed. Captured runtimes and recompiled candidate builds as fixtures; test/nexus-contract-source.test.mjs verifies pin, build and deployed code offline."
+				},
+				{
+					"id": "CR-NEXUS-006",
+					"kind": "ADDED",
+					"reason": "New control: Pinned Nexus contracts bound to their verified deployed source. Derivation: Third-party components are inventoried and verified to come from the expected source (V15.1.2); third-party interfaces are not trusted beyond what is verified (API10:2023). Kept separate from CR-NEXUS-001..005 (read model, locked); it covers the pinned contract identities a later transactional phase will rely on.",
+					"rationale": "Each property is tested behaviourally against captured on-chain code and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "F-2Z-1",
+					"kind": "FINDING_FIXED",
+					"reason": "Framework finding F-2Z-1 fixed (Low). Proof: test/nexus-contract-source.test.mjs (SOURCE-BROKER, SOURCE-COVER, SOURCE-INDEPENDENT, SOURCE-ABI, SOURCE-REGISTRY), mutations MUT-CR-NEXUS-006-P1-2ZBROKERV34 (the old pin), -P1-2ZBROKERIMM, -P2-2ZSWAP, -P2-2ZCOVERV34 KILLED; FIX-F-2Z-1 registered (E4)."
+				}
+			]
 		}
 	]
 }

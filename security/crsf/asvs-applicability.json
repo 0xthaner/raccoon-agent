@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2y",
+	"crsf_version": "1.0-draft-phase2za",
 	"asvs": "5.0.0",
 	"input": "security/crsf/vendor/asvs-5.0.0.flat.json",
 	"input_sha256": "8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311",
@@ -2965,10 +2965,11 @@
 			"applicability": "APPLICABLE",
 			"reason": "",
 			"controls": [
-				"CR-SUPPLY-006"
+				"CR-SUPPLY-006",
+				"CR-NEXUS-006"
 			],
 			"conformance_status": "NOT_DEMONSTRATED",
-			"release_relevance": "SECURITY_DEBT"
+			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
 			"req_id": "V15.1.3",

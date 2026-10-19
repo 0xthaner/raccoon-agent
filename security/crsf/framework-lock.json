@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2y",
+	"crsf_version": "1.0-draft-phase2za",
 	"profile_rules_digest": "59da3e481750b5c7687099ad6c8a4dc9669e65b17141f2826fbcb9e67a847e9f",
 	"controls": {
 		"CR-API-001": {
@@ -982,6 +982,17 @@
 			"properties_digest": "072ba081efbf46259ba6122274fe47a2622caf46819aed1aacb9d90baccc4f59",
 			"derivation_digest": "cda6a80ad358978e586604cbda47e8b6e8ce731be95b87978e514cf806e46c3e"
 		},
+		"CR-NEXUS-006": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V15.1.2",
+				"API10:2023"
+			],
+			"properties_digest": "1b00eea81ed46b20450ae61b14ec9c2a0a61e94d694b8ed8e1abf3425db4f580",
+			"derivation_digest": "33b3a2ee52796587834c67180081ade9f4cbc92637fef13d4f657f9dab7bb161"
+		},
 		"CR-PRIV-001": {
 			"release_class": "SECURITY_DEBT",
 			"minimum_evidence_level": "E3",
@@ -1725,6 +1736,10 @@
 		"F-2W-1": {
 			"finding_class": "FRAMEWORK",
 			"opened_in": "1.0-draft-phase2w"
+		},
+		"F-2Z-1": {
+			"finding_class": "FRAMEWORK",
+			"opened_in": "1.0-draft-phase2za"
 		}
 	}
 }

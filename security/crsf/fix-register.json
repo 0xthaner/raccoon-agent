@@ -3131,6 +3131,41 @@
 			],
 			"evidence_level": "E4",
 			"status": "PROVEN"
+		},
+		{
+			"id": "FIX-F-2Z-1",
+			"classification": "FRAMEWORK_FIX",
+			"tags": [
+				"F-2Z-1"
+			],
+			"origin": "F-2Z-1 (CRSF 2Z, found during P4 design read-only check, fixed in 2Z)",
+			"files": [
+				"src/nexus-pinned.mjs",
+				"security/crsf/sources.json",
+				"test/fixtures/nexus/contract-builds.json",
+				"test/fixtures/nexus/runtime-coverbroker-cb2b7366.hex",
+				"test/fixtures/nexus/runtime-cover-impl-cafeaff1.hex"
+			],
+			"bug": "SRC-NEXUS-CONTRACTS named smart-contracts v3.4.0 next to all SDK mainnet addresses, implying v3.4.0 as the source of the CoverBroker at 0xCB2B...7814; the deployed broker is the v2.12.1 master/memberRoles broker and lacks the v3 pool/registry/tokenController interface that @nexusmutual/deployments 3.2.0 lists for that address",
+			"invariant": "every pinned Nexus contract is bound to the source whose recompiled runtime matches the deployed runtime except compiler-declared immutables (identical metadata, pinned immutable values); broker and Cover are pinned separately and neither can be substituted",
+			"tests": [
+				{
+					"file": "test/nexus-contract-source.test.mjs",
+					"test": "^SOURCE-BROKER the pinned CoverBroker source compiles to the deployed runtime except compiler-declared immutables$"
+				},
+				{
+					"file": "test/nexus-contract-source.test.mjs",
+					"test": "^SOURCE-INDEPENDENT broker and Cover are pinned separately; no other candidate build can stand in for either$"
+				}
+			],
+			"mutations": [
+				"MUT-CR-NEXUS-006-P1-2ZBROKERV34",
+				"MUT-CR-NEXUS-006-P1-2ZBROKERIMM",
+				"MUT-CR-NEXUS-006-P2-2ZSWAP",
+				"MUT-CR-NEXUS-006-P2-2ZCOVERV34"
+			],
+			"evidence_level": "E4",
+			"status": "PROVEN"
 		}
 	],
 	"tag_classifications": [

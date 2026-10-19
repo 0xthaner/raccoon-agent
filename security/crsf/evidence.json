@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2y",
+	"crsf_version": "1.0-draft-phase2za",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -8283,6 +8283,106 @@
 				"CR-QUOTE-006",
 				"CR-QUOTE-007",
 				"CR-QUOTE-008"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
+			"id": "EV-NEXUS-SOURCE",
+			"control_ids": [
+				"CR-NEXUS-006"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/nexus-contract-source.test.mjs",
+			"test_or_proof": "test/nexus-contract-source.test.mjs",
+			"property_proven": "Offline against captured on-chain runtimes (eth_getCode identical at three RPCs) and independently recompiled candidate builds: the pinned CoverBroker (v2.12.1) and Cover implementation (v3.3.0) builds differ from the deployed code only inside compiler-declared immutable regions, carry the identical metadata hash and immutable values equal to the pin; the v3.4.0 broker (other program), the v3.4.0 Cover (other metadata) and every cross-substitution do not verify; the deployed broker dispatches exactly its build's 12 functions and none of the v3-only ones (pool, registry, tokenController); sources.json pins both separately, consistent with the code pin and the fixture hashes.",
+			"property_not_proven": "that the proxy still points at the pinned implementation at a later block (re-verify before transactional use); reproduction of the compilation itself in CI (the build fixture records it; scripts kept out of the repository)",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-NEXUS-006",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/nexus-contract-source.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-NEXUS-SOURCE",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 4 case(s)",
+			"property_proven": "The old v3.4.0 broker pin, a wrong broker immutable, the broker pinned to the Cover source, and the Cover pinned to v3.4.0 are each detected by the intended test.",
+			"property_not_proven": "other conceivable pin weakenings beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-NEXUS-006",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-NEXUS-006-P1-2ZBROKERV34, MUT-CR-NEXUS-006-P1-2ZBROKERIMM, MUT-CR-NEXUS-006-P2-2ZSWAP, MUT-CR-NEXUS-006-P2-2ZCOVERV34"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-NEXUS-006-P1-2ZBROKERV34",
+					"MUT-CR-NEXUS-006-P1-2ZBROKERIMM",
+					"MUT-CR-NEXUS-006-P2-2ZSWAP",
+					"MUT-CR-NEXUS-006-P2-2ZCOVERV34"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-NEXUS-006"
 			],
 			"coverage": "FULL",
 			"reason_for_partial": null

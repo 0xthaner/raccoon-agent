@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2y
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2za
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -11,19 +11,19 @@
 - FAIL: 19
 - INFORMATIONAL: 2
 - MISSING_EVIDENCE: 44
-- PASS_AUTOMATED: 71
+- PASS_AUTOMATED: 72
 - PASS_MANUAL: 24
 
 ### Release classes
 
 - INFORMATIONAL: 2
 - MANUAL_ASSURANCE: 30
-- RELEASE_BLOCKING: 67
+- RELEASE_BLOCKING: 68
 - SECURITY_DEBT: 61
 
 ### Release-blocking controls by security status
 
-- PASS_AUTOMATED: 67
+- PASS_AUTOMATED: 68
 
 ### Standard conformance (ASVS 5.0.0, applicable requirements)
 
@@ -264,6 +264,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-QUOTE-006 | Nexus failures never produce a synthetic premium or availability | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
 | CR-QUOTE-007 | User-facing quote is informational and cannot trigger wallet methods | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
 | CR-QUOTE-008 | Quote retrieval rate limited per IP, wallet and globally | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
+| CR-NEXUS-006 | Pinned Nexus contracts bound to their verified deployed source | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
 
 ## 5. Evidence
 
@@ -400,10 +401,12 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-KB-NEXUS-READ | known-bad | E4 | mutation | FULL | yes | Each listed weakening of the read-only Nexus integration is detected by its intended test: renamed or similar product name, wrong product type, changed wording, wrong chain, Aave v2 as v3, similar protocol key, malformed or fake-high capacity, followed redirect, missing capacity, API timeout, stale data after failure, ambiguous deployment accepted. |
 | EV-NEXUS-QUOTE | behavioral | E3 | node-test | FULL | yes | Offline, real handler with real session/origin/JSON checks, real read model and quote validation against captured Nexus responses: valid USDC and ETH quotes (server-derived productId 97, fixed GET path, no redirect); client productId rejected; ambiguous, unsupported and unavailable positions get a neutral status and no quote request; unsupported assets, amounts above exposure or capacity and periods outside 28..365 rejected before Nexus; malformed, foreign-pool, foreign-asset, mispriced, redirected or timed-out quotes never become a premium; quotes stale after 60 s and never usable; per-IP/wallet/global limits; responses without pools, fees or transaction fields; no purchase surface in runtime code; the cover panel (recording DOM) never calls a wallet method, renders remote strings as text and links only validated Nexus IPFS URLs. |
 | EV-KB-NEXUS-QUOTE | known-bad | E4 | mutation | FULL | yes | Each listed weakening of the quote display is detected by its intended test: client productId, ambiguous mapping, unsupported asset, amount above capacity or exposure, period below 28 or above 365 days, malformed/foreign-product/foreign-asset quote, followed redirect, arbitrary host, stale quote marked fresh, fallback premium on timeout, wallet method from the panel, exposed pools/fee fields, missing global quote budget. |
+| EV-NEXUS-SOURCE | behavioral | E3 | node-test | FULL | yes | Offline against captured on-chain runtimes (eth_getCode identical at three RPCs) and independently recompiled candidate builds: the pinned CoverBroker (v2.12.1) and Cover implementation (v3.3.0) builds differ from the deployed code only inside compiler-declared immutable regions, carry the identical metadata hash and immutable values equal to the pin; the v3.4.0 broker (other program), the v3.4.0 Cover (other metadata) and every cross-substitution do not verify; the deployed broker dispatches exactly its build's 12 functions and none of the v3-only ones (pool, registry, tokenController); sources.json pins both separately, consistent with the code pin and the fixture hashes. |
+| EV-KB-NEXUS-SOURCE | known-bad | E4 | mutation | FULL | yes | The old v3.4.0 broker pin, a wrong broker immutable, the broker pinned to the Cover source, and the Cover pinned to v3.4.0 are each detected by the intended test. |
 
 ## 6. Mutation cases
 
-345 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+349 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -752,6 +755,10 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-QUOTE-007-P1-QTWALLET | CR-QUOTE-007.P1 | behavioral | KILLED |
 | MUT-CR-QUOTE-007-P2-QTEXPOSEDATA | CR-QUOTE-007.P2 | behavioral | KILLED |
 | MUT-CR-QUOTE-008-P1-QTGLOBALRATE | CR-QUOTE-008.P1 | behavioral | KILLED |
+| MUT-CR-NEXUS-006-P1-2ZBROKERV34 | CR-NEXUS-006.P1, CR-NEXUS-006.P3 | behavioral | KILLED |
+| MUT-CR-NEXUS-006-P1-2ZBROKERIMM | CR-NEXUS-006.P1 | behavioral | KILLED |
+| MUT-CR-NEXUS-006-P2-2ZSWAP | CR-NEXUS-006.P2 | behavioral | KILLED |
+| MUT-CR-NEXUS-006-P2-2ZCOVERV34 | CR-NEXUS-006.P2 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -889,7 +896,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V14.3.2 | L2 | CR-PRIV-009 | NOT_DEMONSTRATED |
 | V14.3.3 | L2 | CR-SESSION-005 | CONFORMANT |
 | V15.1.1 | L1 | CR-SUPPLY-005 | NON_CONFORMANT |
-| V15.1.2 | L2 | CR-SUPPLY-006 | NOT_DEMONSTRATED |
+| V15.1.2 | L2 | CR-SUPPLY-006, CR-NEXUS-006 | NOT_DEMONSTRATED |
 | V15.1.3 | L2 | CR-RESOURCE-006 | NON_CONFORMANT |
 | V15.2.1 | L1 | CR-SUPPLY-005 | NON_CONFORMANT |
 | V15.2.2 | L2 | CR-RESOURCE-001, CR-RESOURCE-003, CR-RESOURCE-004, CR-RESOURCE-007, CR-DOC-003 | CONFORMANT |
@@ -942,9 +949,11 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | SRC-ETH-EXECSPECS | [Ethereum execution-specs: crypto/elliptic_curve.py and crypto/hash.py](https://github.com/ethereum/execution-specs/tree/2004296f2ffcbcebcd00f41152d33e8dfda0922a/src/ethereum/crypto) | v2.20.0 | git tag v2.20.0 = 2004296f2ffcbcebcd00f41152d33e8dfda0922a; elliptic_curve.py sha256 216673ca717b6b6fcbc4d11009ed7e5126ed9fe65021834960b68147f660480b; hash.py sha256 a91044ec31477542dfeea97c9480456146332ac64cc0a9b5150264e19bb6440b |
 | SRC-VERCEL-ENC | [Vercel docs: Encryption (HTTPS redirection)](https://vercel.com/docs/cdn-security/encryption) | unversioned web page | unversioned page; pinned by retrieval date + normative quote: "HTTPS redirection is an industry standard and can't be disabled." |
 | SRC-NEXUS-API | [Nexus Mutual public API v2: products, product-types, capacity](https://api.nexusmutual.io/v2/products/97) | v2 (responses of 2026-10-18) | unversioned API; pinned by captured responses in test/fixtures/nexus (sha256 product-97 8382d2eca21ade50ebfa4b33405bc45726a60c1c469d39c8932041645f11fb51, product-type-0 da46bb115687d0ee1e0e250d9d2ff238540d5663eb07c43b206232738b7e7f25, capacity-97 7391051f6d37c0d0b729470ba13acda8311a234c5bc3cf53b45ce4515c2fb44a) and by the identity constants in src/nexus-pinned.mjs |
-| SRC-NEXUS-CONTRACTS | [NexusMutual/smart-contracts (Cover.sol cover period limits)](https://github.com/NexusMutual/smart-contracts/tree/v3.4.0) | v3.4.0 | git tag v3.4.0 = commit 67f531208b693f8edbc6ea46528f164046ed1f0b; MIN_COVER_PERIOD 28 days, MAX_COVER_PERIOD 365 days; mainnet addresses from @nexusmutual/sdk 3.1.1 data/addresses.json (SDK not used, GPL-3.0 review open) |
+| SRC-NEXUS-CONTRACTS | [NexusMutual/smart-contracts (Cover.sol cover period limits)](https://github.com/NexusMutual/smart-contracts/tree/v3.4.0) | v3.4.0 | git tag v3.4.0 = commit 67f531208b693f8edbc6ea46528f164046ed1f0b; Cover.sol MIN_COVER_PERIOD 28 days, MAX_COVER_PERIOD 365 days (Cover.sol byte-identical in v3.3.0, the deployed Cover implementation, see SRC-NEXUS-COVER); mainnet addresses from @nexusmutual/sdk 3.1.1 data/addresses.json (SDK not used, GPL-3.0 review open). This release is not the CoverBroker source: the deployed CoverBroker is v2.12.1, see SRC-NEXUS-COVERBROKER (F-2Z-1). Until 1.0-draft-phase2y this entry named only v3.4.0 next to all SDK addresses. |
 | SRC-NEXUS-WORDING | [Single Protocol Cover wording (product type 0)](https://api.nexusmutual.io/ipfs/QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY) | IPFS QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY | content-addressed IPFS CID QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY; PDF sha256 9d831f51fc158b385d0daaa8aa4ae0294990a8e68f60aa8884611dc39e62003b |
 | SRC-NEXUS-QUOTE | [Nexus Mutual public API v2: quote](https://api.nexusmutual.io/v2/quote) | v2 (responses of 2026-10-18) | unversioned API; pinned by captured responses in test/fixtures/nexus (sha256 quote-97-usdc-1000-30d 0c81004cedb1038ec4b2d2d0852a589f9ffefff94f04d92909c09d987b2cb92e, quote-97-eth-1-365d d7556163bfe7c856509a3fa49a972e96a5048c4627a09939cc32403b8a28d233); query parameters productId, amount, period (days), coverAsset, paymentAsset as used by @nexusmutual/sdk 3.1.1 Quote.getQuote (SDK not used); premium = total x annualPrice[bps] x days / (10000 x 365) observed for USDC/ETH/cbBTC; the API itself accepted period 27 and coverAsset DAI for product 97 on 2026-10-18 |
+| SRC-NEXUS-COVERBROKER | [NexusMutual/smart-contracts CoverBroker as deployed at 0xCB2B736652D2dBf7d72e4dB880Cf6B7d99507814](https://github.com/NexusMutual/smart-contracts/blob/20082c81ec1a01e03cd7748c5bfc0396e74af93d/contracts/external/cover/CoverBroker.sol) | v2.12.1 | address 0xCB2B736652D2dBf7d72e4dB880Cf6B7d99507814 (not a proxy); source tag v2.12.1 = commit 20082c81ec1a01e03cd7748c5bfc0396e74af93d (byte-identical sources and runtime at v2.12.0 = 94e1764ec704215a37a60fba2af8290940def5b8; v2.12.1 is the release whose deployments/src/addresses.json introduced this address); solc 0.8.28+commit.7893614a, optimizer runs 200, evmVersion cancun, no libraries; deployed runtime keccak256 0xeb0e42231c9134305a54b102cea19fa29ec57f663a294a35c5bd870d81e9657c, 5245 bytes, metadata ipfs QmYTrtJnwoqumTd33yvNJrL1hb8RNgcCRWhrn9Pqy6ZCJK; match DECLARED_IMMUTABLES_ONLY: 220 differing bytes, all inside the compiler immutableReferences of cover, memberRoles, nxmToken, master, CBOR trailer identical; immutables = on-chain getters (cover 0xcafeac0f..., memberRoles 0x055CC48f..., nxmToken 0xd7c49CEE..., master 0x01BFd826...); creation: compiled creation code + constructor args found in tx 0x10f3551e896d2ffe1473e7a0a0c61191d9635f593e523b514c13f1359ecf9fd1 (block 22375780, 2025-04-29), CREATE2 address reproduced from factory 0xfac7011663910f75cbe1e25539ec2d7529f93c3f with salt 0x...27c9; independent recompilation 2026-10-18: GitHub sources at the commit (import closure) + @openzeppelin/contracts 4.7.3 (npm sha512 = package-lock), official soljson-v0.8.28+commit.7893614a.js (sha256 0x72ef580a6ec5943130028e5294313f24e9435520acc89f8c9dbfd0139d9ae146), optimizer enabled runs 200, settings of hardhat-config/solidity.js at the tag (ENABLE_OPTIMIZER); fixtures runtime-coverbroker-cb2b7366.hex 2b25db29d5c6362eb67a78dba67955e3bdc1d39ef473ea08e027dad351875827, contract-builds.json bca90ebe047e836acab959c967353613758731c58271bce6af827d29bb046ac3 |
+| SRC-NEXUS-COVER | [NexusMutual/smart-contracts Cover implementation behind proxy 0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62](https://github.com/NexusMutual/smart-contracts/blob/070972503a471b6e14d01213aca4cf41e156c215/contracts/modules/cover/Cover.sol) | v3.3.0 | proxy 0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62 (OwnedUpgradeabilityProxy, implementation slot keccak256("org.govblocks.proxy.implementation")) -> implementation 0xcafeafF1a21418f530Feb00C6BAeF07523979C05 (deployed block 24476528, tx 0xb2e2418bde74537a62d68ff63c099ead01a963cc313f54c36d6375a7a6a550f6, 2026-02-17); source tag v3.3.0 = commit 070972503a471b6e14d01213aca4cf41e156c215; solc 0.8.28+commit.7893614a, optimizer runs 200, evmVersion prague; runtime keccak256 0x2ecdeb32b923da39e181ca3fd7f2aa543e7e35e3db146f79327993f3b796a530, 23948 bytes, metadata ipfs QmVvxQParTb5FBNEDYsP4Wjpwj7G5ZqjaRcxSTc5Wwudht; match DECLARED_IMMUTABLES_ONLY (964 bytes, all in immutableReferences; CBOR identical; address immutables equal on-chain getters); v3.4.0 differs only in metadata (IPool.sol); independent recompilation 2026-10-18: GitHub sources at the commit (import closure) + @openzeppelin/contracts 4.7.3 (npm sha512 = package-lock), official soljson-v0.8.28+commit.7893614a.js (sha256 0x72ef580a6ec5943130028e5294313f24e9435520acc89f8c9dbfd0139d9ae146), optimizer enabled runs 200, settings of hardhat-config/solidity.js at the tag (ENABLE_OPTIMIZER); fixtures runtime-cover-impl-cafeaff1.hex 23ca356ed7e3ecf83cb16f914d4afc489fa20c939f12f01228d8193205ecc9a9, contract-builds.json bca90ebe047e836acab959c967353613758731c58271bce6af827d29bb046ac3 |
 
 ## 9. Drift model
 
@@ -1022,4 +1031,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2w** — Phase 2W: versioned meta-control derivation. CR-VERIFY-004 P1 is computed by the engine from the observed, runtime-verified coverage of every canonical concurrency property (rule OBSERVED_CONCURRENCY_COVERAGE) instead of requiring an evidence item of its own. Minimum level E5, type real-system, property text and derivation of CR-VERIFY-004 unchanged. Six KILLED rule mutations. No application change, no finding. Framework finding F-2W-1 (findings fixture Z6 needed an open release-blocking control; Low, fails closed) found once every release-blocking control was satisfied, recorded and fixed.
 - **1.0-draft-phase2x** — Nexus P1+P2: read-only Nexus product/capacity/wording integration and deterministic position -> product mapping. New domain CR-NEXUS with five RELEASE_BLOCKING controls (E3), behavioural evidence and 14 KILLED known-bad mutations; three pinned sources; drift rules for the new files. No purchase flow, no transaction, no deployment; no finding.
 - **1.0-draft-phase2y** — Nexus P3: user-facing cover details and live quote, display only (POST /api/nexus/quote, dashboard cover panel). New domain CR-QUOTE with eight RELEASE_BLOCKING controls (E3), behavioural evidence and 17 KILLED known-bad mutations; source SRC-NEXUS-QUOTE; drift rules. No purchase, approval, transaction, fee or proof-of-loss upload; no deployment; no finding.
+- **1.0-draft-phase2za** — F-2Z-1 (framework/source integrity, Low): the CRSF source for the Nexus contracts named v3.4.0 for all SDK addresses, but the deployed CoverBroker is v2.12.1. Proven by independent recompilation; per-contract pins SRC-NEXUS-COVERBROKER (v2.12.1) and SRC-NEXUS-COVER (v3.3.0 implementation), control CR-NEXUS-006 (RELEASE_BLOCKING, E3) with behavioural evidence and 4 KILLED mutations. No runtime behaviour changed, no contract called, no deployment.
 

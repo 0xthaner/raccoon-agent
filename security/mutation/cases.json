@@ -12442,6 +12442,148 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-006-P1-2ZBROKERV34",
+			"origin": "new (F-2Z-1)",
+			"evidence_id": "EV-KB-NEXUS-SOURCE",
+			"targets": [
+				{
+					"control": "CR-NEXUS-006",
+					"property": "P1"
+				},
+				{
+					"control": "CR-NEXUS-006",
+					"property": "P3"
+				}
+			],
+			"description": "the old pin: CoverBroker attributed to smart-contracts v3.4.0 (the v3 Registry-based broker and its ABI)",
+			"edits": [
+				{
+					"file": "src/nexus-pinned.mjs",
+					"find": "source: Object.freeze({ repository: 'NexusMutual/smart-contracts', tag: 'v2.12.1', commit: '20082c81ec1a01e03cd7748c5bfc0396e74af93d', contract: 'CoverBroker' }),",
+					"replace": "source: Object.freeze({ repository: 'NexusMutual/smart-contracts', tag: 'v3.4.0', commit: '67f531208b693f8edbc6ea46528f164046ed1f0b', contract: 'CoverBroker' }),"
+				}
+			],
+			"tests": [
+				"test/nexus-contract-source.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SOURCE-BROKER the pinned CoverBroker source compiles to the deployed runtime except compiler-declared immutables$"
+				},
+				{
+					"test": "^SOURCE-ABI the deployed broker dispatches exactly the functions of its pinned build; v3-only ABI entries are absent$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-006-P1-2ZBROKERIMM",
+			"origin": "new (F-2Z-1)",
+			"evidence_id": "EV-KB-NEXUS-SOURCE",
+			"targets": [
+				{
+					"control": "CR-NEXUS-006",
+					"property": "P1"
+				}
+			],
+			"description": "a broker immutable is pinned to a different value (the broker would call another Cover)",
+			"edits": [
+				{
+					"file": "src/nexus-pinned.mjs",
+					"find": "\t\t\tcover: '0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62',",
+					"replace": "\t\t\tcover: '0xCBcbcBCbfa2EDa48a41Da0711E1f3D7B42605Cc9',"
+				}
+			],
+			"tests": [
+				"test/nexus-contract-source.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SOURCE-BROKER the pinned CoverBroker source compiles to the deployed runtime except compiler-declared immutables$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-006-P2-2ZSWAP",
+			"origin": "new (F-2Z-1)",
+			"evidence_id": "EV-KB-NEXUS-SOURCE",
+			"targets": [
+				{
+					"control": "CR-NEXUS-006",
+					"property": "P2"
+				}
+			],
+			"description": "one release substituted for both: the broker pinned to the Cover source",
+			"edits": [
+				{
+					"file": "src/nexus-pinned.mjs",
+					"find": "source: Object.freeze({ repository: 'NexusMutual/smart-contracts', tag: 'v2.12.1', commit: '20082c81ec1a01e03cd7748c5bfc0396e74af93d', contract: 'CoverBroker' }),",
+					"replace": "source: Object.freeze({ repository: 'NexusMutual/smart-contracts', tag: 'v3.3.0', commit: '070972503a471b6e14d01213aca4cf41e156c215', contract: 'Cover' }),"
+				}
+			],
+			"tests": [
+				"test/nexus-contract-source.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SOURCE-BROKER the pinned CoverBroker source compiles to the deployed runtime except compiler-declared immutables$"
+				},
+				{
+					"test": "^SOURCE-INDEPENDENT broker and Cover are pinned separately; no other candidate build can stand in for either$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-006-P2-2ZCOVERV34",
+			"origin": "new (F-2Z-1)",
+			"evidence_id": "EV-KB-NEXUS-SOURCE",
+			"targets": [
+				{
+					"control": "CR-NEXUS-006",
+					"property": "P2"
+				}
+			],
+			"description": "the Cover implementation attributed to v3.4.0 (differs from the deployed implementation in its metadata)",
+			"edits": [
+				{
+					"file": "src/nexus-pinned.mjs",
+					"find": "source: Object.freeze({ repository: 'NexusMutual/smart-contracts', tag: 'v3.3.0', commit: '070972503a471b6e14d01213aca4cf41e156c215', contract: 'Cover' }),",
+					"replace": "source: Object.freeze({ repository: 'NexusMutual/smart-contracts', tag: 'v3.4.0', commit: '67f531208b693f8edbc6ea46528f164046ed1f0b', contract: 'Cover' }),"
+				}
+			],
+			"tests": [
+				"test/nexus-contract-source.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^SOURCE-COVER the pinned Cover implementation source compiles to the deployed runtime except compiler-declared immutables$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }
