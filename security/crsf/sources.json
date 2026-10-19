@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2ze",
+	"crsf_version": "1.0-draft-phase2zf",
 	"sources": [
 		{
 			"id": "SRC-ASVS",
@@ -263,7 +263,17 @@
 			"date": "2026-10-19",
 			"url": "https://etherscan.io/address/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
 			"pin": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 as given in the P4C task; implementation behind the proxy NOT source-pinned, no on-chain read in P4C",
-			"note": "P4C encodes approve(address,uint256) only as an offline template; real use stays blocked until the USDC implementation/source check (CR-PURCHASE-006 P2)."
+			"note": "P4C encodes approve(address,uint256) only as an offline template; real use stays blocked until the USDC implementation/source check (CR-PURCHASE-008 P2)."
+		},
+		{
+			"id": "SRC-NEXUS-BUYCOVER-RECEIPT",
+			"org": "Ethereum mainnet",
+			"title": "Receipt and Cover/CoverNFT state of the CoverBroker product-97 purchase (negative structural fixture)",
+			"version": "block 26219867",
+			"date": "2026-10-19",
+			"url": "https://etherscan.io/tx/0x1bec0316a5e23e34d1e81bd81aab8b38333d67e01b01382a112314823edae031",
+			"pin": "tx 0x1bec0316a5e23e34d1e81bd81aab8b38333d67e01b01382a112314823edae031 in block 26219867 (hash 0xb72af12b1c4af58497cb4942ed6b0cb5295e33be73d739b76779a8bf50e417fa); captured read-only once on 2026-10-19 from two independent providers (eth.drpc.org, mainnet.gateway.tenderly.co) which returned identical values: transaction, receipt with 11 logs, block, implementation slot keccak256(\"org.govblocks.proxy.implementation\") = 0xcafeafF1a21418f530Feb00C6BAeF07523979C05, code hashes of Broker / Cover proxy / implementation at the block (equal to the pins), getCoverData / getCoverReference / getCoverMetadata / ownerOf at the block for cover 5645; test/fixtures/nexus/buycover-receipt-26219867.json; Cover proxy runtime (863 bytes, keccak256 0xd772ae50e8c6515f53b17b60eb2bf13e0d40ec60cc3d2d5dd8d58d78afb8a1e0, identical to the Sourcify exact-match OwnedUpgradeabilityProxy of CoverProducts 0xcafead81) in test/fixtures/nexus/runtime-cover-proxy-cafeac0f.hex",
+			"note": "Not a CoverRaccoon purchase: commissionRatio 1000 to a non-zero destination (visible as a USDC transfer from the Broker), empty ipfsData, owner = sender but not a CoverRaccoon intent. Confirms structurally: CoverBought(5645, 5645, 9301, 97) from the Cover proxy (new cover: originalCoverId = coverId; buyer member 9301 = the Broker), CoverNFT mint 0 -> owner of 5645, stored amount 401085049 >= requested 400000000, start = block timestamp, period 2592000. Used only as a negative / structural example, never as a positive receipt."
 		}
 	],
 	"deferred_sources": [
@@ -382,6 +392,18 @@
 			"change": "ADDED",
 			"id": "SRC-USDC-MAINNET",
 			"reason": "P4C: approval target (CR-PURCHASE-001 P3), address only; implementation pin open (CR-PURCHASE-006)"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zf",
+			"change": "ADDED",
+			"id": "SRC-NEXUS-BUYCOVER-RECEIPT",
+			"reason": "P4E: real mainnet receipt and state at the execution block (two providers), negative/structural fixture for CR-PURCHASE-006"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zf",
+			"change": "CORRECTED",
+			"id": "SRC-USDC-MAINNET",
+			"reason": "note: the open USDC implementation pin moved with the pre-send obligations from CR-PURCHASE-006 P2 to CR-PURCHASE-008 P2 (unchanged, still open)"
 		}
 	],
 	"vendored": [

@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2ze",
+	"crsf_version": "1.0-draft-phase2zf",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -8769,7 +8769,7 @@
 			"artifact": "test/purchase-tx-builder.test.mjs",
 			"test_or_proof": "test/purchase-tx-builder.test.mjs",
 			"property_proven": "Behaviourally, against the pure builder: the local Broker ABI equals the verified v2.12.1 signature (recompilation methodIdentifiers, deployed runtime dispatches 0x7c59cac4) and wrong ABI assumptions change the selector; the approval is exactly USDC.approve(Broker, maxPremiumRaw), value 0, deterministic, never unbounded (MaxUint and above-cover maxima rejected); buyCover decodes (test-own ABI) to exactly the intent/quote-derived fields with value 0, the real overshooting quote is accepted, underflow / mismatch / premium above max / other assets / missing proof-of-loss CID are rejected; calldataHash is deterministic and changes with each bound field; every override field is rejected; only two fixed encodings exist; outputs are never production-ready; no wallet, send, network, DB, clock or unlimited-approval code; no runtime import; transaction encoding exists only in the two P4C modules.",
-			"property_not_proven": "chain state at send time, wallet execution and receipts (CR-PURCHASE-006); the USDC implementation (address only)",
+			"property_not_proven": "chain state at send time and wallet execution (CR-PURCHASE-008); receipts (CR-PURCHASE-006, read-only verifier); the USDC implementation (address only)",
 			"coverage": "PARTIAL",
 			"reason_for_partial": "CR-PURCHASE-002[P1,P2,P4]: covers a subset of sub-properties",
 			"covers": [
@@ -9152,6 +9152,164 @@
 			],
 			"coverage": "PARTIAL",
 			"reason_for_partial": "CR-PURCHASE-005[P10,P11,P5,P6,P7,P8,P9]: mutation cases: MUT-CR-PURCHASE-005-P5-P4DNOACTIVEIDX, MUT-CR-PURCHASE-005-P5-P4DTWOACTIVE, MUT-CR-PURCHASE-005-P5-P4DNOREQKEY, MUT-CR-PURCHASE-005-P5-P4DKEYPAYLOAD, MUT-CR-PURCHASE-005-P6-P4DBUILDSTATUS, MUT-CR-PURCHASE-005-P6-P4DBUILDHASH, MUT-CR-PURCHASE-005-P10-P4DBUILDEXPIRY, MUT-CR-PURCHASE-005-P6-P4DCALLDATAOVERWRITE, MUT-CR-PURCHASE-005-P6-P4DTWOBUILDS, MUT-CR-PURCHASE-005-P7-P4DSUBMITSTATUS, MUT-CR-PURCHASE-005-P10-P4DSUBMITDEADLINE, MUT-CR-PURCHASE-005-P8-P4DNOTXUNIQUE, MUT-CR-PURCHASE-005-P7-P4DTXOVERWRITE, MUT-CR-PURCHASE-005-P9-P4DNOCOVERUNIQUE, MUT-CR-PURCHASE-005-P9-P4DCONFIRMTX, MUT-CR-PURCHASE-005-P11-P4DREOPEN, MUT-CR-PURCHASE-005-P10-P4DSUBMITTEDEXPIRES, MUT-CR-PURCHASE-005-P11-P4DLATEOTHERTX, MUT-CR-PURCHASE-005-P11-P4DLATEFLAG, MUT-CR-PURCHASE-005-P10-P4DOFFBYONE, MUT-CR-PURCHASE-005-P5-P4DOBSZERO, MUT-CR-PURCHASE-005-P5-P4DSERIALCONN; CR-PURCHASE-003[P5,P6]: mutation cases: MUT-CR-PURCHASE-003-P5-P4DAMOUNT, MUT-CR-PURCHASE-003-P5-P4DWALLET, MUT-CR-PURCHASE-003-P5-P4DTERMS, MUT-CR-PURCHASE-003-P5-P4DPOLCID, MUT-CR-PURCHASE-003-P5-P4DCOMMISSION, MUT-CR-PURCHASE-003-P5-P4DINTENTHASH, MUT-CR-PURCHASE-003-P6-P4DANONINSERT, MUT-CR-PURCHASE-003-P6-P4DAUTHUPDATE, MUT-CR-PURCHASE-003-P6-P4DDELETE, MUT-CR-PURCHASE-003-P6-P4DSEARCHPATH"
+		},
+		{
+			"id": "EV-PURCHASE-RECEIPT",
+			"control_ids": [
+				"CR-PURCHASE-006",
+				"CR-PURCHASE-007"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/purchase-receipt.test.mjs",
+			"test_or_proof": "test/purchase-receipt.test.mjs",
+			"property_proven": "Behaviourally, against the read-only verifier with two offline readers. Positive: a SYNTHETIC receipt constructed from the verified ABI (event topics and view selectors recomputed from the source signatures, real pinned runtimes for Broker, Cover proxy and implementation) verifies with every one of 21 checks passed; amount equal to or above the intent and a zero refund are accepted. Negative, each with its own status: missing / pending / reverted transaction, receipt not belonging to the transaction, wrong chain (node and transaction), sender, Broker target, value, calldata hash (incl. an otherwise valid swapped input), selector and non-canonical encoding, decoder policy for owner / product / amount / period / maxPremium / commission / proof-of-loss / coverId, CoverBought missing / foreign emitter / duplicate / wrong product / member / originalCoverId, NFT mint missing / foreign / not a mint / other recipient / other token id, Cover state product / asset / amount below intent / period / start / not original / ownerOf / metadata, third-party USDC payout, Broker / proxy / implementation code and implementation slot drift at the receipt block, too few confirmations (incl. the lower head of two readers), not finalized, zero confirmations refused, block hash differing from the block at that number. Reader B disagreeing on transaction, receipt, logs, block, storage, code, state or chain fails closed in both directions; both readers see the same reads; one reader passed twice is refused; a failure of either reader on any method is TEMPORARY_RPC_FAILURE. Client receipt / logs / cover id / block / from / to / data / value / status are refused and never read. Deterministic over repeated runs. Real mainnet receipt of block 26219867 (two-provider capture, replayed offline): structural relationship of transaction, receipt, block, CoverBought(5645, 5645, 9301, 97), NFT mint, USDC flows and Cover state; the verifier rejects it for exactly commission ratio, commission destination and proof-of-loss CID (never verified). No send, sign, wallet, network, DB or environment code; only eight read methods; no runtime importer; no builder import.",
+			"property_not_proven": "a real CoverRaccoon purchase (none exists; the positive receipt is SYNTHETIC and stays E3); live provider behaviour (readers are offline mocks / replays); the production confirmation policy in use (proposed: finalized and >= 64 confirmations); proof-of-loss content (CR-POL-002); pre-send checks, USDC implementation pin, wallet execution and recording CONFIRMED (CR-PURCHASE-008)",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-PURCHASE-006",
+					"properties": [
+						"P1",
+						"P2",
+						"P3",
+						"P4",
+						"P5",
+						"P6",
+						"P7"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-PURCHASE-007",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/purchase-receipt.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-PURCHASE-RECEIPT",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 32 case(s)",
+			"property_proven": "Each listed weakening of the receipt verifier (client receipt trusted, one reader, disagreement ignored, status / sender / target / value / calldata hash / policy skipped, CoverBought and NFT checks, state amount / period / metadata, proxy implementation, implementation and Broker code hash, zero confirmations, block hash, reader failure as failed transaction, builder import, runtime route import) and of the decoder policy it relies on (product, owner, amount, period, commission, proof-of-loss CID) is detected by the intended test.",
+			"property_not_proven": "weakenings beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-006",
+					"properties": [
+						"P1",
+						"P2",
+						"P3",
+						"P4",
+						"P5",
+						"P6",
+						"P7"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-PURCHASE-006-P7-P4ECLIENTRECEIPT, MUT-CR-PURCHASE-006-P6-P4EONERPC, MUT-CR-PURCHASE-006-P6-P4ENODISAGREE, MUT-CR-PURCHASE-006-P1-P4ENOSTATUS, MUT-CR-PURCHASE-006-P2-P4ENOSENDER, MUT-CR-PURCHASE-006-P2-P4ENOTARGET, MUT-CR-PURCHASE-006-P2-P4ENOVALUE, MUT-CR-PURCHASE-006-P2-P4ENOCALLDATAHASH, MUT-CR-PURCHASE-006-P2-P4ENOPOLICY, MUT-CR-PURCHASE-006-P2-P4EPOLPRODUCT, MUT-CR-PURCHASE-006-P2-P4EPOLOWNER, MUT-CR-PURCHASE-006-P2-P4EPOLAMOUNT, MUT-CR-PURCHASE-006-P2-P4EPOLPERIOD, MUT-CR-PURCHASE-006-P2-P4EPOLCOMMISSION, MUT-CR-PURCHASE-006-P2-P4EPOLCID, MUT-CR-PURCHASE-006-P3-P4ENOCOVERBOUGHT, MUT-CR-PURCHASE-006-P3-P4ECBPRODUCT, MUT-CR-PURCHASE-006-P3-P4ECBMEMBER, MUT-CR-PURCHASE-006-P3-P4ECBCOVERID, MUT-CR-PURCHASE-006-P3-P4ENOMINT, MUT-CR-PURCHASE-006-P3-P4EMINTOWNER, MUT-CR-PURCHASE-006-P4-P4ESTATEAMOUNT, MUT-CR-PURCHASE-006-P4-P4ESTATEPERIOD, MUT-CR-PURCHASE-006-P4-P4EMETADATA, MUT-CR-PURCHASE-006-P5-P4EBROKERCODE, MUT-CR-PURCHASE-006-P6-P4EZEROCONF, MUT-CR-PURCHASE-006-P6-P4EBLOCKHASH, MUT-CR-PURCHASE-006-P6-P4ERPCFAILTX, MUT-CR-PURCHASE-006-P2-P4EBUILDERIMPORT, MUT-CR-PURCHASE-006-P7-P4EROUTEIMPORT"
+				},
+				{
+					"control": "CR-PURCHASE-007",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-PURCHASE-007-P1-P4EPROXYIMPL, MUT-CR-PURCHASE-007-P2-P4EIMPLCODE"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-PURCHASE-006-P7-P4ECLIENTRECEIPT",
+					"MUT-CR-PURCHASE-006-P6-P4EONERPC",
+					"MUT-CR-PURCHASE-006-P6-P4ENODISAGREE",
+					"MUT-CR-PURCHASE-006-P1-P4ENOSTATUS",
+					"MUT-CR-PURCHASE-006-P2-P4ENOSENDER",
+					"MUT-CR-PURCHASE-006-P2-P4ENOTARGET",
+					"MUT-CR-PURCHASE-006-P2-P4ENOVALUE",
+					"MUT-CR-PURCHASE-006-P2-P4ENOCALLDATAHASH",
+					"MUT-CR-PURCHASE-006-P2-P4ENOPOLICY",
+					"MUT-CR-PURCHASE-006-P2-P4EPOLPRODUCT",
+					"MUT-CR-PURCHASE-006-P2-P4EPOLOWNER",
+					"MUT-CR-PURCHASE-006-P2-P4EPOLAMOUNT",
+					"MUT-CR-PURCHASE-006-P2-P4EPOLPERIOD",
+					"MUT-CR-PURCHASE-006-P2-P4EPOLCOMMISSION",
+					"MUT-CR-PURCHASE-006-P2-P4EPOLCID",
+					"MUT-CR-PURCHASE-006-P3-P4ENOCOVERBOUGHT",
+					"MUT-CR-PURCHASE-006-P3-P4ECBPRODUCT",
+					"MUT-CR-PURCHASE-006-P3-P4ECBMEMBER",
+					"MUT-CR-PURCHASE-006-P3-P4ECBCOVERID",
+					"MUT-CR-PURCHASE-006-P3-P4ENOMINT",
+					"MUT-CR-PURCHASE-006-P3-P4EMINTOWNER",
+					"MUT-CR-PURCHASE-006-P4-P4ESTATEAMOUNT",
+					"MUT-CR-PURCHASE-006-P4-P4ESTATEPERIOD",
+					"MUT-CR-PURCHASE-006-P4-P4EMETADATA",
+					"MUT-CR-PURCHASE-007-P1-P4EPROXYIMPL",
+					"MUT-CR-PURCHASE-007-P2-P4EIMPLCODE",
+					"MUT-CR-PURCHASE-006-P5-P4EBROKERCODE",
+					"MUT-CR-PURCHASE-006-P6-P4EZEROCONF",
+					"MUT-CR-PURCHASE-006-P6-P4EBLOCKHASH",
+					"MUT-CR-PURCHASE-006-P6-P4ERPCFAILTX",
+					"MUT-CR-PURCHASE-006-P2-P4EBUILDERIMPORT",
+					"MUT-CR-PURCHASE-006-P7-P4EROUTEIMPORT"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-PURCHASE-006",
+				"CR-PURCHASE-007"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
 		}
 	]
 }

@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2ze",
+	"crsf_version": "1.0-draft-phase2zf",
 	"asvs": "5.0.0",
 	"input": "security/crsf/vendor/asvs-5.0.0.flat.json",
 	"input_sha256": "8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311",
@@ -410,7 +410,9 @@
 				"CR-ALLOC-001",
 				"CR-TERMS-002",
 				"CR-APPROVAL-001",
-				"CR-PURCHASE-006"
+				"CR-PURCHASE-006",
+				"CR-PURCHASE-007",
+				"CR-PURCHASE-008"
 			],
 			"conformance_status": "NOT_DEMONSTRATED",
 			"release_relevance": "RELEASE_BLOCKING"

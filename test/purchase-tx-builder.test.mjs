@@ -248,19 +248,23 @@ function walk(dir) {
 }
 
 test('P4C-IMPORT no runtime code imports the builder or decoder; only P4C tests do', () => {
-	const runtime = [...walk('src'), ...walk('api'), ...walk('web'), ...walk('scripts')].filter((f) => !P4C.includes(f));
+	// P4E (19.10.2026): der unerreichbare Beleg-Pruefer (P4E-IMPORT) nutzt den unabhaengigen DECODER, nie den Builder.
+	const RECEIPT = 'src/purchase-receipt.mjs';
+	const runtime = [...walk('src'), ...walk('api'), ...walk('web'), ...walk('scripts')].filter((f) => !P4C.includes(f) && f !== RECEIPT);
 	assert.ok(runtime.includes('src/bot.mjs') && runtime.some((f) => f.startsWith('api/')) && runtime.some((f) => f.startsWith('web/src/')) && runtime.some((f) => /^src\/agent-/.test(f)));
 	for (const file of runtime) assert.doesNotMatch(readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'), /purchase-tx-(builder|decode)(\.mjs)?['"`]/, file);
+	assert.doesNotMatch(readFileSync(new URL(`../${RECEIPT}`, import.meta.url), 'utf8'), /purchase-tx-builder|build(ExactUsdcApproval|NexusBuyCover)/, RECEIPT);
 	const importing = /(?:from\s*|import\s*\(\s*)['"`][^'"`]*purchase-tx-(builder|decode)\.mjs/;
 	const importers = [...walk('src'), ...walk('test')].filter((f) => importing.test(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8'))).sort();
-	assert.deepEqual(importers, ['test/purchase-tx-builder.test.mjs', 'test/purchase-tx-decode.test.mjs']);
+	assert.deepEqual(importers, [RECEIPT, 'test/purchase-tx-builder.test.mjs', 'test/purchase-tx-decode.test.mjs']);
 });
 
 test('P4C-SURFACE transaction encoding and transaction-shaped objects exist only in the two pure P4C modules', () => {
 	const runtime = [...walk('src'), ...walk('api'), ...walk('web/src'), 'web/index.html', ...walk('scripts')].filter((f) => !P4C.includes(f));
 	for (const file of runtime) {
 		// P4D (19.10.2026): der unerreichbare DB-Helfer (P4D-IMPORT) nimmt den Calldata-Hash entgegen, um ihn zu speichern; alles andere gilt auch dort.
-		const surface = file === 'src/purchase-intent-db.mjs' ? /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|productionReady/ : /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|calldataHash|productionReady/;
+		// P4E (19.10.2026): ebenso der unerreichbare, nur lesende Beleg-Pruefer (P4E-IMPORT), der keccak256(input) gegen ihn vergleicht.
+		const surface = ['src/purchase-intent-db.mjs', 'src/purchase-receipt.mjs'].includes(file) ? /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|productionReady/ : /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|calldataHash|productionReady/;
 		assert.doesNotMatch(code(file), surface, file);
 	}
 });

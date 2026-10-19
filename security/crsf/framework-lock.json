@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2ze",
+	"crsf_version": "1.0-draft-phase2zf",
 	"profile_rules_digest": "0408f5d8ab00e6ec5829051c12ec5713e303de093937be60a5c09d90bf4f1bdc",
 	"controls": {
 		"CR-ALLOC-001": {
@@ -1218,6 +1218,26 @@
 			"derivation_digest": "1e6220f8199f8a59246e110dbe836ee59fd0f4216106a8761a0b184baef166c5"
 		},
 		"CR-PURCHASE-006": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.3.2"
+			],
+			"properties_digest": "b77562a65dee629906f550286aa119155a9365d18d31552c4f1ef7156631d8fe",
+			"derivation_digest": "7476765f28ebd520337b38b45595fe1b133928ef646ba7a1b1b8cf36bcba894a"
+		},
+		"CR-PURCHASE-007": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.3.2"
+			],
+			"properties_digest": "8660a3226deb49094df05785c5cc316b90d2787444fd7622abf022bfbda690c1",
+			"derivation_digest": "02b28eed7e1a16b627ab53d4b9c18e0e211c039dbd861e451d4c1c1162bba8b2"
+		},
+		"CR-PURCHASE-008": {
 			"release_class": "SECURITY_DEBT",
 			"minimum_evidence_level": "E1",
 			"applicability": "APPLICABLE",
@@ -1225,7 +1245,7 @@
 				"V2.3.2"
 			],
 			"properties_digest": "120222d35b09312d0ae58aee4f4536d075d84abe3ab7f52cf4cf295c3c5e393f",
-			"derivation_digest": "b7cc51074894eb898630f0fa62cf34a5cb1ed29f196f44728d357f9379a93858"
+			"derivation_digest": "0d0a9fd34603a23ade523398ff7689fdd6bb5e698a9cfdbc5b30d115be9212b1"
 		},
 		"CR-QUOTE-001": {
 			"release_class": "RELEASE_BLOCKING",

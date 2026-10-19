@@ -2353,6 +2353,154 @@
 					"reason": "new rules src/purchase-intent-db.mjs -> CR-DB, CR-PURCHASE and supabase/migrations/20261019120000_cover_purchase_intents.sql -> CR-CONC, CR-DB, CR-PURCHASE; nothing removed"
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zf",
+			"summary": "Nexus P4E: independent, read-only receipt verifier src/purchase-receipt.mjs (two injected chain readers that must agree, no majority; transaction, receipt, block, confirmations and finality, sender / Broker / value / calldata hash, independent P4C decoder policy, CoverBought, CoverNFT mint, Cover state, Broker / Cover proxy / implementation pins at the execution block; client data never authoritative; no send, sign, wallet, DB or route). CR-PURCHASE-006 reworded into receipt properties P1-P7 and raised to RELEASE_BLOCKING / E3; its former pre-send, USDC, wallet and confirmed-recording obligations move verbatim to the new CR-PURCHASE-008 (SECURITY_DEBT, MISSING_EVIDENCE); new CR-PURCHASE-007 (implementation drift at execution). Evidence E3 (synthetic positive receipt + real negative mainnet receipt, offline) and 32 KILLED mutations. CR-TERMS-002, CR-POL-002 and the USDC implementation pin stay open.",
+			"changes": [
+				{
+					"id": "CR-PURCHASE-006",
+					"kind": "REQUIREMENT_CLARIFICATION",
+					"reason": "Split: the control now states the receipt-verification obligation as seven testable properties (P1 load, P2 transaction vs intent, P3 CoverBought and NFT, P4 Cover state, P5 Broker pin at execution, P6 fail closed on disagreement / reorg / confirmations / reader failure, P7 client data never authoritative); title, applies_to (src/purchase-receipt.mjs), applicability reason, sources, CoverRaccoon requirement, threat and expected property reworded accordingly; release class SECURITY_DEBT -> RELEASE_BLOCKING, minimum level E1 -> E3, automation NO -> YES, required evidence behavioral.",
+					"rationale": "P4E implements the receipt half of the former combined control. Keeping the pre-send, USDC and wallet obligations in the same control would either hide them behind receipt evidence or keep the receipt verifier without a binding obligation; splitting gives the verifier RELEASE_BLOCKING properties with E3 and E4 evidence and keeps the rest visibly open.",
+					"why_not_weakening": "Nothing is dropped: the former P1-P4 move word for word into the new CR-PURCHASE-008 (same derivation, SECURITY_DEBT, MISSING_EVIDENCE), including the requirement that the receipt be verified before CONFIRMED is recorded, which P4E does not wire. CR-PURCHASE-006 itself becomes stricter (RELEASE_BLOCKING, E3 minimum, behavioural evidence, seven properties instead of one).",
+					"before": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "immediately before sending, the Broker runtime code hash and the Cover implementation read from the chain match the pins"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "the USDC implementation behind the proxy is source-pinned"
+							},
+							{
+								"id": "P3",
+								"kind": "REQUIREMENT",
+								"text": "wallet execution exists only through a reviewed path that re-validates the exact bytes with the independent decoder"
+							},
+							{
+								"id": "P4",
+								"kind": "REQUIREMENT",
+								"text": "the purchase receipt is verified against the intent before any state is recorded as confirmed"
+							}
+						],
+						"derivation": {
+							"title": "Pre-send chain validation, wallet execution and receipt verification",
+							"domain": "CR-PURCHASE",
+							"source_refs": [
+								"SRC-ASVS V2.3.2",
+								"SRC-NEXUS-COVERBROKER",
+								"SRC-NEXUS-COVER",
+								"SRC-USDC-MAINNET"
+							],
+							"derivation_type": "EXTERNAL_STANDARD",
+							"external_requirement": "Business logic limits and rules are implemented as documented (V2.3.2).",
+							"coverraccoon_requirement": "Before any real transaction: re-read Broker runtime hash and Cover implementation from the chain right before sending; source-pin the USDC implementation; execute only through a reviewed wallet path that re-validates with the independent decoder; verify the receipt (CoverBought / NFT owner) against the intent.",
+							"applicability_reason": "Obligation for the transaction phases; nothing in P4C sends, reads the chain or verifies receipts. Must become RELEASE_BLOCKING before any real transaction code.",
+							"profile_level": "ASVS_L2",
+							"applies_to": [
+								"src/purchase-tx-builder.mjs",
+								"src/purchase-tx-decode.mjs"
+							],
+							"threat": "a correct offline transaction sent against changed contracts, or a purchase recorded without on-chain proof",
+							"expected_property": "chain-checked execution and receipt",
+							"automation": "NO"
+						}
+					},
+					"after": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "the transaction and its receipt are loaded by the server from two injected chain readers by transaction hash only; a missing transaction, a missing receipt or a failed (reverted) status is never verified, and the receipt must belong to the transaction (transaction hash, block hash and number, sender and target, no removed or foreign logs)"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "the on-chain transaction matches the stored intent: chain 1, sender = intent wallet, target = the pinned CoverBroker, value 0, keccak256(input) = the stored calldata hash, and the independent P4C decoder (never the builder) accepts every decoded buyCover field against the intent (owner, product, asset, amount, period, maxPremium, commission 0 to the zero address, proof-of-loss CID)"
+							},
+							{
+								"id": "P3",
+								"kind": "REQUIREMENT",
+								"text": "exactly one CoverBought emitted by the Cover proxy (product 97, buyer member = the Broker member 9301, originalCoverId = coverId) and exactly one CoverNFT mint (from the zero address to the intent wallet) identify the same cover id"
+							},
+							{
+								"id": "P4",
+								"kind": "REQUIREMENT",
+								"text": "the Cover state read at the receipt block matches: product, cover asset, stored amount at least the intent amount, period = days x 86400, start = the receipt block timestamp, not derived from another cover, CoverNFT ownerOf = intent wallet, and stored metadata = the intent proof-of-loss CID (proves only what is stored on-chain, not the proof-of-loss content)"
+							},
+							{
+								"id": "P5",
+								"kind": "REQUIREMENT",
+								"text": "the Broker runtime code hash at the receipt block equals the pinned v2.12.1 runtime; otherwise the receipt is reported as BROKER_DRIFT_AT_EXECUTION and never verified"
+							},
+							{
+								"id": "P6",
+								"kind": "REQUIREMENT",
+								"text": "any disagreement between the two readers on an authoritative value (chain, transaction, receipt and logs, block, code, storage, state reads), a receipt block hash that differs from the block at that number, fewer confirmations than configured (at least one) or a block that is not finalized when finality is required, and any reader failure fail closed; there is no majority fallback, and a reader failure is never reported as a failed or verified purchase"
+							},
+							{
+								"id": "P7",
+								"kind": "REQUIREMENT",
+								"text": "client-shaped data (receipt, logs, cover id, block number or hash, from, to, data, value, status) is refused and never read; the only future client value is the transaction hash; no runtime route, page or bot imports the verifier"
+							}
+						],
+						"derivation": {
+							"title": "Purchase receipt independently verified on-chain against the intent (P4E, read-only)",
+							"domain": "CR-PURCHASE",
+							"source_refs": [
+								"SRC-ASVS V2.3.2",
+								"SRC-NEXUS-COVERBROKER",
+								"SRC-NEXUS-COVER",
+								"SRC-NEXUS-BUYCOVER-RECEIPT"
+							],
+							"derivation_type": "EXTERNAL_STANDARD",
+							"external_requirement": "Business logic limits and rules are implemented as documented (V2.3.2).",
+							"coverraccoon_requirement": "A submitted purchase counts as verified only if the chain itself, read by the server through two independent readers that must agree on every authoritative value, shows exactly the cover the stored intent describes: the transaction (by hash only) from the intent wallet to the pinned CoverBroker with value 0 and the stored calldata hash, decoded and policy-checked by the independent P4C decoder; a successful receipt in a block that is still the block at that number and has the required confirmations and finality; exactly one CoverBought from the Cover proxy (product 97, buyer member 9301 = the Broker, originalCoverId = coverId) and the CoverNFT mint of that id to the wallet; and the Cover state at that block (product, asset, amount >= intent, period, start = block time, owner, proof-of-loss CID metadata). The Broker and Cover pins are checked at the execution block. Client data is never authoritative.",
+							"applicability_reason": "Read-only receipt verifier present (Nexus P4E, src/purchase-receipt.mjs); not reachable from any runtime path (no API, page or bot), it only reads the chain through two injected readers and never signs, sends, writes the database or calls a wallet.",
+							"profile_level": "ASVS_L2",
+							"applies_to": [
+								"src/purchase-receipt.mjs"
+							],
+							"threat": "a purchase recorded as confirmed without on-chain proof, for another wallet, cover, amount, period or claim basis, or on the strength of a single, lagging or manipulated chain reader or client-supplied receipt",
+							"expected_property": "every receipt fact read independently and matched to the intent; fail closed",
+							"automation": "YES"
+						}
+					}
+				},
+				{
+					"id": "CR-PURCHASE-007",
+					"kind": "ADDED",
+					"reason": "New control: Cover implementation drift at execution disables receipt verification (P4E). Derivation: Business logic limits and rules are implemented as documented (V2.3.2). The Cover contract is an upgradeable OwnedUpgradeabilityProxy; the verified semantics (CoverBought, CoverData, metadata) hold only for the pinned implementation 0xcafeafF1a21418f530Feb00C6BAeF07523979C05 (v3.3.0). A receipt is verified only if, at the receipt block, the proxy implementation slot keccak256(\"org.govblocks.proxy.implementation\") holds exactly that implementation and the proxy and implementation runtime code hashes equal the pins; otherwise PROXY_DRIFT_AT_EXECUTION.",
+					"rationale": "The Cover proxy is upgradeable by governance; the receipt semantics are verified only for the pinned implementation, so drift at the execution block must disable verification. Tested behaviourally and guarded by killed mutations.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-PURCHASE-008",
+					"kind": "ADDED",
+					"reason": "New control: Pre-send chain validation, USDC implementation pin, wallet execution and confirmed-state recording. Carries the former CR-PURCHASE-006 P1-P4 verbatim (derivation unchanged): Before any real transaction: re-read Broker runtime hash and Cover implementation from the chain right before sending; source-pin the USDC implementation; execute only through a reviewed wallet path that re-validates with the independent decoder; verify the receipt (CoverBought / NFT owner) against the intent.",
+					"rationale": "Recorded so the open execution obligations (pre-send pin read, USDC implementation pin, reviewed wallet path, receipt verified before CONFIRMED is recorded) stay visible and cannot be satisfied by the read-only verifier; no evidence is attached.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "EV-PURCHASE-INTENT",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "test P4A-IMPORT: the pure purchase module set also contains src/purchase-receipt.mjs (imports purchase-intent; itself unreachable, P4E-IMPORT); the allowed importing tests also include test/purchase-receipt.test.mjs. Every other runtime file still may not name purchase-intent; P4A behaviour unchanged."
+				},
+				{
+					"id": "EV-PURCHASE-TX-BUILDER",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "test P4C-IMPORT: src/purchase-receipt.mjs may import the independent decoder (never the builder; asserted in P4C-IMPORT, P4E-IMPORT and P4E-STATIC); the importer list is exactly the receipt verifier plus the two P4C tests. test P4C-SURFACE: src/purchase-receipt.mjs may contain the identifier calldataHash (it compares keccak256(input) with the stored hash); every other P4C-SURFACE pattern still applies to it. property_not_proven points wallet execution and send-time chain state to CR-PURCHASE-008 and receipts to CR-PURCHASE-006."
+				},
+				{
+					"id": "drift-model",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "new rule src/purchase-receipt.mjs -> CR-PURCHASE; nothing removed"
+				}
+			]
 		}
 	]
 }

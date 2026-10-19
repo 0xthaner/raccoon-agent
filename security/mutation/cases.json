@@ -16125,6 +16125,1067 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P7-P4ECLIENTRECEIPT",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P7"
+				}
+			],
+			"description": "client-supplied fields are accepted and a client receipt replaces the chain receipt",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\tfor (const key of Object.keys(input)) if (!INPUT_KEYS.includes(key)) errors.push(`CLIENT_FIELD:${key}`);\n",
+					"replace": ""
+				},
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\t\tconst receipt = await rpc.agreed('eth_getTransactionReceipt', [txHash], receiptCore);",
+					"replace": "\t\tconst receipt = input.receipt ? receiptCore(input.receipt) : await rpc.agreed('eth_getTransactionReceipt', [txHash], receiptCore);"
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-CLIENT client-shaped receipt, logs, cover id, block number, from, to, data and value are refused and never read$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P6-P4EONERPC",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P6"
+				}
+			],
+			"description": "only reader A is asked (twice); reader B is never consulted",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "Promise.allSettled([one(rpcA, method, params), one(rpcB, method, params)])",
+					"replace": "Promise.allSettled([one(rpcA, method, params), one(rpcA, method, params)])"
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-TWO-RPC reader B disagreeing on block hash, input, implementation, code, logs or state fails closed without majority$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P6-P4ENODISAGREE",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P6"
+				}
+			],
+			"description": "a disagreement between the readers is ignored and A wins",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\t\t\tif (canonical(ca) !== canonical(cb)) stop('RPC_DISAGREEMENT', `RPC_DISAGREEMENT:${method}`);\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-TWO-RPC reader B disagreeing on block hash, input, implementation, code, logs or state fails closed without majority$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P1-P4ENOSTATUS",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P1"
+				}
+			],
+			"description": "the receipt status is not checked (a reverted transaction can verify)",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\t\tif (receipt.status !== '0x1') stop('TX_FAILED');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-TX missing, pending and reverted transactions are never confirmed$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P2-P4ENOSENDER",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P2"
+				}
+			],
+			"description": "the transaction sender is not compared with the intent wallet",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\t\tif (tx.from !== intent.wallet) stop('WRONG_SENDER');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-CHAIN wrong chain, sender, Broker target or value fail closed$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P2-P4ENOTARGET",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P2"
+				}
+			],
+			"description": "the transaction target is not compared with the pinned Broker",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\t\tif (tx.to !== RECEIPT_PINS.broker) stop('WRONG_TARGET');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-CHAIN wrong chain, sender, Broker target or value fail closed$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P2-P4ENOVALUE",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P2"
+				}
+			],
+			"description": "a non-zero transaction value is accepted",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\t\tif (quantity(tx.value, 'value') !== 0n) stop('WRONG_VALUE');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-CHAIN wrong chain, sender, Broker target or value fail closed$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P2-P4ENOCALLDATAHASH",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P2"
+				}
+			],
+			"description": "keccak256(input) is not compared with the stored calldata_hash",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\t\tif (keccak256(tx.input) !== calldataHash) stop('CALLDATA_HASH_MISMATCH');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-CALLDATA the transaction input must hash to the stored calldata_hash and carry the buyCover selector$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P2-P4ENOPOLICY",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P2"
+				}
+			],
+			"description": "the decoder policy verdict against the intent is ignored",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\t\tif (!policy.ok) stop('CALLDATA_POLICY_MISMATCH', ...policy.errors);\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-POLICY the independent P4C decoder rejects owner, product, amount, period, maxPremium, commission and proof-of-loss mismatches$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P2-P4EPOLPRODUCT",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P2"
+				}
+			],
+			"description": "the decoder accepts another product (the verifier relies on it)",
+			"edits": [
+				{
+					"file": "src/purchase-tx-decode.mjs",
+					"find": "\tif (p.productId !== EXPECTED.productId) errors.push('PRODUCT');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-POLICY the independent P4C decoder rejects owner, product, amount, period, maxPremium, commission and proof-of-loss mismatches$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P2-P4EPOLOWNER",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P2"
+				}
+			],
+			"description": "the decoder accepts another cover owner (the verifier relies on it)",
+			"edits": [
+				{
+					"file": "src/purchase-tx-decode.mjs",
+					"find": "\tif (p.owner !== intent.wallet) errors.push('OWNER');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-POLICY the independent P4C decoder rejects owner, product, amount, period, maxPremium, commission and proof-of-loss mismatches$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P2-P4EPOLAMOUNT",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P2"
+				}
+			],
+			"description": "the decoder accepts another cover amount (the verifier relies on it)",
+			"edits": [
+				{
+					"file": "src/purchase-tx-decode.mjs",
+					"find": "\tif (p.amount !== intent.amountRaw) errors.push('AMOUNT');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-POLICY the independent P4C decoder rejects owner, product, amount, period, maxPremium, commission and proof-of-loss mismatches$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P2-P4EPOLPERIOD",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P2"
+				}
+			],
+			"description": "the decoder accepts another period (the verifier relies on it)",
+			"edits": [
+				{
+					"file": "src/purchase-tx-decode.mjs",
+					"find": "\tif (p.period !== intent.periodDays * 24 * 60 * 60) errors.push('PERIOD');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-POLICY the independent P4C decoder rejects owner, product, amount, period, maxPremium, commission and proof-of-loss mismatches$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P2-P4EPOLCOMMISSION",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P2"
+				}
+			],
+			"description": "the decoder accepts commissionRatio 1000 (the verifier relies on it)",
+			"edits": [
+				{
+					"file": "src/purchase-tx-decode.mjs",
+					"find": "\tif (p.commissionRatio !== EXPECTED.commissionRatio) errors.push('COMMISSION_RATIO');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-POLICY the independent P4C decoder rejects owner, product, amount, period, maxPremium, commission and proof-of-loss mismatches$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P2-P4EPOLCID",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P2"
+				}
+			],
+			"description": "the decoder accepts an empty or other ipfsData (the verifier relies on it)",
+			"edits": [
+				{
+					"file": "src/purchase-tx-decode.mjs",
+					"find": "\telse if (p.ipfsData !== intent.proofOfLossCid) errors.push('PROOF_OF_LOSS_CID');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-POLICY the independent P4C decoder rejects owner, product, amount, period, maxPremium, commission and proof-of-loss mismatches$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P3-P4ENOCOVERBOUGHT",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P3"
+				}
+			],
+			"description": "a receipt without CoverBought is not rejected as missing",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\tif (shaped.length === 0) stop('COVERBOUGHT_MISSING');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-COVERBOUGHT exactly one CoverBought from the Cover proxy with product 97, broker member 9301 and a new cover id$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P3-P4ECBPRODUCT",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P3"
+				}
+			],
+			"description": "the CoverBought product is not compared with the intent",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\tif (productId !== BigInt(intent.productId)) errors.push('COVERBOUGHT_PRODUCT');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-COVERBOUGHT exactly one CoverBought from the Cover proxy with product 97, broker member 9301 and a new cover id$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P3-P4ECBMEMBER",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P3"
+				}
+			],
+			"description": "the CoverBought buyerMemberId is not compared with the Broker member 9301",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\tif (buyerMemberId !== RECEIPT_PINS.brokerMemberId) errors.push('BUYER_MEMBER_ID');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-COVERBOUGHT exactly one CoverBought from the Cover proxy with product 97, broker member 9301 and a new cover id$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P3-P4ECBCOVERID",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P3"
+				}
+			],
+			"description": "originalCoverId may differ from coverId (an edit of another cover passes as new)",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\tif (originalCoverId !== coverId) errors.push('ORIGINAL_COVER_ID');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-COVERBOUGHT exactly one CoverBought from the Cover proxy with product 97, broker member 9301 and a new cover id$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P3-P4ENOMINT",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P3"
+				}
+			],
+			"description": "a receipt without the CoverNFT mint is not rejected as missing",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\tif (transfers.length === 0) stop('NFT_MINT_MISSING');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-NFT the CoverNFT mints the cover id to the intent wallet$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P3-P4EMINTOWNER",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P3"
+				}
+			],
+			"description": "the NFT mint recipient is not compared with the intent wallet",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\tif (topicAddress(t.topics[2]) !== intent.wallet) errors.push('NFT_RECIPIENT');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-NFT the CoverNFT mints the cover id to the intent wallet$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P4-P4ESTATEAMOUNT",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P4"
+				}
+			],
+			"description": "a stored cover amount below the intent amount is accepted",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\t\tif (BigInt(amount) < intent.amountRaw) stateErrors.push('STATE_AMOUNT_BELOW_INTENT');",
+					"replace": "\t\tif (BigInt(amount) < 0n) stateErrors.push('STATE_AMOUNT_BELOW_INTENT');"
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-STATE Cover state at the receipt block matches product, asset, amount, period, start, owner and metadata$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P4-P4ESTATEPERIOD",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P4"
+				}
+			],
+			"description": "the stored period is not compared with intent days x 86400",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\t\tif (BigInt(period) !== BigInt(intent.periodDays) * 86400n) stateErrors.push('STATE_PERIOD');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-STATE Cover state at the receipt block matches product, asset, amount, period, start, owner and metadata$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P4-P4EMETADATA",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P4"
+				}
+			],
+			"description": "the stored cover metadata is not compared with the intent proof-of-loss CID",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "\t\tif (metadata !== intent.proofOfLossCid) stop('POL_METADATA_MISMATCH');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-STATE Cover state at the receipt block matches product, asset, amount, period, start, owner and metadata$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-007-P1-P4EPROXYIMPL",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-007",
+					"property": "P1"
+				}
+			],
+			"description": "the proxy implementation slot at the receipt block is not compared with the pinned implementation",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "|| topicAddress(slot) !== RECEIPT_PINS.coverImplementation) stop('PROXY_DRIFT_AT_EXECUTION', 'PROXY_IMPLEMENTATION');",
+					"replace": ") stop('PROXY_DRIFT_AT_EXECUTION', 'PROXY_IMPLEMENTATION');"
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-PINS Broker code, proxy code, proxy implementation and implementation code are checked at the receipt block$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-007-P2-P4EIMPLCODE",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-007",
+					"property": "P2"
+				}
+			],
+			"description": "the implementation runtime code hash at the receipt block is not compared with the pin",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "!== RECEIPT_PINS.coverImplementationCodeHash) stop('PROXY_DRIFT_AT_EXECUTION', 'IMPLEMENTATION_CODE');",
+					"replace": "=== null) stop('PROXY_DRIFT_AT_EXECUTION', 'IMPLEMENTATION_CODE');"
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-PINS Broker code, proxy code, proxy implementation and implementation code are checked at the receipt block$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P5-P4EBROKERCODE",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P5"
+				}
+			],
+			"description": "the Broker runtime code hash at the receipt block is not compared with the pin",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "!== RECEIPT_PINS.brokerCodeHash) stop('BROKER_DRIFT_AT_EXECUTION');",
+					"replace": "=== null) stop('BROKER_DRIFT_AT_EXECUTION');"
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-PINS Broker code, proxy code, proxy implementation and implementation code are checked at the receipt block$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P6-P4EZEROCONF",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P6"
+				}
+			],
+			"description": "zero confirmations are accepted",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "if (!Number.isSafeInteger(minConfirmations) || minConfirmations < 1)",
+					"replace": "if (!Number.isSafeInteger(minConfirmations) || minConfirmations < 0)"
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-CONFIRM confirmation depth and finality are enforced; zero confirmations are refused$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P6-P4EBLOCKHASH",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P6"
+				}
+			],
+			"description": "the receipt block hash is not compared with the block at that number",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "if (block === null || block.hash !== receipt.blockHash || block.number !== receipt.blockNumber)",
+					"replace": "if (block === null || block.number !== receipt.blockNumber)"
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-REORG a block hash that differs from the block at that number, or between readers, is never confirmed$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P6-P4ERPCFAILTX",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P6"
+				}
+			],
+			"description": "a reader failure is reported as a failed transaction",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "if (failed.length) stop('TEMPORARY_RPC_FAILURE',",
+					"replace": "if (failed.length) stop('TX_FAILED',"
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-RPC-ERROR a reader failure is a temporary failure, never a failed or confirmed purchase$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P2-P4EBUILDERIMPORT",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P2"
+				}
+			],
+			"description": "the verifier imports the transaction builder",
+			"edits": [
+				{
+					"file": "src/purchase-receipt.mjs",
+					"find": "import { decodeNexusBuyCover, validateDecodedAgainstIntent } from './purchase-tx-decode.mjs';",
+					"replace": "import { decodeNexusBuyCover, validateDecodedAgainstIntent } from './purchase-tx-decode.mjs';\nimport './purchase-tx-builder.mjs';"
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-IMPORT only test/purchase-receipt\\.test\\.mjs imports the verifier; the verifier never imports the builder$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-006-P7-P4EROUTEIMPORT",
+			"origin": "new (P4E)",
+			"evidence_id": "EV-KB-PURCHASE-RECEIPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-006",
+					"property": "P7"
+				}
+			],
+			"description": "a runtime route (api/nexus/quote.mjs) imports the verifier",
+			"edits": [
+				{
+					"file": "api/nexus/quote.mjs",
+					"find": "import { getNexusReadModel } from '../../src/nexus-read-model.mjs';",
+					"replace": "import { getNexusReadModel } from '../../src/nexus-read-model.mjs';\nimport { verifyPurchaseReceipt } from '../../src/purchase-receipt.mjs';"
+				}
+			],
+			"tests": [
+				"test/purchase-receipt.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4E-IMPORT only test/purchase-receipt\\.test\\.mjs imports the verifier; the verifier never imports the builder$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }
