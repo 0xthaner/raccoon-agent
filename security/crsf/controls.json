@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zd",
+	"crsf_version": "1.0-draft-phase2ze",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -10372,7 +10372,7 @@
 						"rule": "OBSERVED_CONCURRENCY_COVERAGE",
 						"ok": true,
 						"level": "E5",
-						"properties": 15,
+						"properties": 21,
 						"failing": []
 					}
 				}
@@ -10380,7 +10380,7 @@
 			"conformance_status": "CONFORMANT",
 			"conformance_status_reason": "all 1 requirement properties demonstrated",
 			"security_status": "PASS_AUTOMATED",
-			"security_status_reason": "all 1 sub-properties satisfied at >= E5 (P1 derived by OBSERVED_CONCURRENCY_COVERAGE over 15 properties)",
+			"security_status_reason": "all 1 sub-properties satisfied at >= E5 (P1 derived by OBSERVED_CONCURRENCY_COVERAGE over 21 properties)",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
@@ -11994,7 +11994,7 @@
 		{
 			"domain": "CR-PURCHASE",
 			"applicability": "APPLICABLE",
-			"applicability_reason": "Pure purchase-intent model present in src/purchase-intent.mjs (Nexus P4A); not reachable from any runtime path, no transaction capability.",
+			"applicability_reason": "Pure purchase-intent model in src/purchase-intent.mjs (Nexus P4A) and its local, server-only persistence (P4D migration and narrow helper); neither is reachable from any runtime path, no transaction capability.",
 			"profile_level": "ASVS_L2",
 			"release_class": "RELEASE_BLOCKING",
 			"minimum_evidence_level": "E3",
@@ -12004,7 +12004,9 @@
 			"manual_override_allowed": false,
 			"derivation_type": "EXTERNAL_STANDARD",
 			"applies_to": [
-				"src/purchase-intent.mjs"
+				"src/purchase-intent.mjs",
+				"src/purchase-intent-db.mjs",
+				"supabase/migrations/20261019120000_cover_purchase_intents.sql"
 			],
 			"id": "CR-PURCHASE-003",
 			"title": "Purchase intent canonically binds every security-critical value (P4A model)",
@@ -12019,7 +12021,7 @@
 				"V2.2.3"
 			],
 			"external_requirement": "Input is validated against expected business rules (V2.2.1) and related data items are consistent with each other (V2.2.3).",
-			"coverraccoon_requirement": "A purchase intent exists only as a validated canonical record; its hash (keccak256 over abi.encode, domain coverraccoon.purchase-intent, version 1) binds every security-critical field and the verified broker and Cover implementation pins, so a changed value is a different intent. P4A subset: model, validation and hash only; database immutability follows with the persistence phase.",
+			"coverraccoon_requirement": "A purchase intent exists only as a validated canonical record; its hash (keccak256 over abi.encode, domain coverraccoon.purchase-intent, version 1) binds every security-critical field and the verified broker and Cover implementation pins, so a changed value is a different intent. P4D: the persisted intent (public.cover_purchase_intents, local migration only) stores the server-recomputed hash, keeps every security-critical field immutable after insert (BEFORE UPDATE trigger), sets build/transaction/cover facts once and never clears them, and is reachable only server-side through eight fixed SECURITY DEFINER functions; nothing deletes a row.",
 			"threat": "a reviewed purchase is silently replaced by another amount, product, owner, premium ceiling, terms or contract version",
 			"expected_property": "one canonical intent, one hash, every critical field bound",
 			"properties": [
@@ -12042,13 +12044,25 @@
 					"id": "P4",
 					"kind": "REQUIREMENT",
 					"text": "the model module performs no network, database, wallet, file, environment or clock access, emits no transaction-shaped data and is imported by no runtime code"
+				},
+				{
+					"id": "P5",
+					"kind": "REQUIREMENT",
+					"text": "after insert, no security-critical field of a persisted intent (wallet, chain, deployment, product, product type, asset, amount, period, quote and maximum premium, quote/capacity/acknowledgement/expiry times, wording, annex, terms version and hash, proof-of-loss CID, commission ratio and destination, pin version, intent hash, client request id, creation time) can change, and calldata hash, build time, build deadline, transaction hash, nonce and cover id are set at most once and never overwritten or cleared; the stored intent hash is the P4A hash recomputed by the server, never a caller-supplied one"
+				},
+				{
+					"id": "P6",
+					"kind": "REQUIREMENT",
+					"text": "the intent table is server-only: row level security on, anon and authenticated hold no table or function privilege, service_role only reads the table and executes the eight fixed transition functions (SECURITY DEFINER, pinned search_path, no dynamic SQL), and no role - the owner included - can delete a row"
 				}
 			],
 			"required_evidence_types": [
 				"behavioral"
 			],
 			"current_evidence_ids": [
+				"EV-KB-PURCHASE-DB",
 				"EV-KB-PURCHASE-INTENT",
+				"EV-PURCHASE-DB",
 				"EV-PURCHASE-INTENT"
 			],
 			"property_coverage": {
@@ -12083,26 +12097,43 @@
 					],
 					"partial_only": [],
 					"insufficient": []
+				},
+				"P5": {
+					"satisfied_by": [
+						"EV-PURCHASE-DB",
+						"EV-KB-PURCHASE-DB"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P6": {
+					"satisfied_by": [
+						"EV-PURCHASE-DB",
+						"EV-KB-PURCHASE-DB"
+					],
+					"partial_only": [],
+					"insufficient": []
 				}
 			},
 			"conformance_status": "CONFORMANT",
-			"conformance_status_reason": "all 4 requirement properties demonstrated",
+			"conformance_status_reason": "all 6 requirement properties demonstrated",
 			"security_status": "PASS_AUTOMATED",
-			"security_status_reason": "all 4 sub-properties satisfied at >= E3",
+			"security_status_reason": "all 6 sub-properties satisfied at >= E3",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
 					"behavioral",
-					"known-bad"
+					"known-bad",
+					"real-system"
 				],
-				"independent_classes": 2,
+				"independent_classes": 3,
 				"shared_fixture_groups": []
 			}
 		},
 		{
 			"domain": "CR-PURCHASE",
 			"applicability": "APPLICABLE",
-			"applicability_reason": "Pure purchase-intent model present in src/purchase-intent.mjs (Nexus P4A); not reachable from any runtime path, no transaction capability.",
+			"applicability_reason": "Pure purchase-intent model in src/purchase-intent.mjs (Nexus P4A) and its local, server-only persistence (P4D migration and narrow helper); neither is reachable from any runtime path, no transaction capability.",
 			"profile_level": "ASVS_L2",
 			"release_class": "RELEASE_BLOCKING",
 			"minimum_evidence_level": "E3",
@@ -12112,10 +12143,12 @@
 			"manual_override_allowed": false,
 			"derivation_type": "EXTERNAL_STANDARD",
 			"applies_to": [
-				"src/purchase-intent.mjs"
+				"src/purchase-intent.mjs",
+				"src/purchase-intent-db.mjs",
+				"supabase/migrations/20261019120000_cover_purchase_intents.sql"
 			],
 			"id": "CR-PURCHASE-005",
-			"title": "Purchase-intent state model allows only the defined single-use transitions (P4A model)",
+			"title": "Purchase-intent state model allows only the defined single-use transitions (P4A model, P4D database)",
 			"source_refs": [
 				"SRC-ASVS V2.3.1"
 			],
@@ -12123,7 +12156,7 @@
 				"V2.3.1"
 			],
 			"external_requirement": "Business logic flows are processed in the expected sequential step order without skipping steps (V2.3.1).",
-			"coverraccoon_requirement": "Intent states OPEN, BUILT, SUBMITTED, CONFIRMED, FAILED, EXPIRED, CANCELLED with exactly the transitions OPEN->BUILT|EXPIRED|CANCELLED, BUILT->SUBMITTED|EXPIRED|CANCELLED, SUBMITTED->CONFIRMED|FAILED; terminal states never restart; a submitted transaction may still be mined, so SUBMITTED neither expires nor is cancelled and a late on-chain outcome stays observable. P4A subset: the pure transition model only; enforcement in the database (atomic single-use under parallel requests, real-system evidence) is a later obligation and not claimed here.",
+			"coverraccoon_requirement": "Intent states OPEN, BUILT, SUBMITTED, CONFIRMED, FAILED, EXPIRED, CANCELLED with exactly the transitions OPEN->BUILT|EXPIRED|CANCELLED, BUILT->SUBMITTED|EXPIRED|CANCELLED, SUBMITTED->CONFIRMED|FAILED; terminal states never restart; a submitted transaction may still be mined, so SUBMITTED neither expires nor is cancelled and a late on-chain outcome stays observable. P4D enforces this in the database: each transition is one compare-and-set UPDATE, one active intent per wallet (partial unique index), idempotent creation per (wallet, client request id), one build with a permanently bound calldata hash, one transaction hash per intent and globally, idempotent confirmation with a globally unique cover id, expiry judged against the database clock without any cleanup job, and the only exit from a terminal state is the late confirmation of the same transaction. Verified on a real Postgres with independent connections whose overlap the runner observes.",
 			"threat": "a step is skipped, an intent is reused after it ended, or a real late purchase is ignored because the intent was marked expired",
 			"expected_property": "only defined transitions; single use; late outcome kept",
 			"properties": [
@@ -12135,7 +12168,7 @@
 				{
 					"id": "P2",
 					"kind": "REQUIREMENT",
-					"text": "terminal states (CONFIRMED, FAILED, EXPIRED, CANCELLED) have no outgoing transition"
+					"text": "terminal states (CONFIRMED, FAILED, EXPIRED, CANCELLED) have no outgoing transition in the transition model; the single exception is the dedicated late confirmation of P11 (FAILED->CONFIRMED of the same submitted transaction), which never makes an intent buildable or submittable again"
 				},
 				{
 					"id": "P3",
@@ -12146,13 +12179,50 @@
 					"id": "P4",
 					"kind": "REQUIREMENT",
 					"text": "OPEN and BUILT intents are unusable from expiresAt on, judged only against an explicitly passed time"
+				},
+				{
+					"id": "P5",
+					"kind": "REQUIREMENT",
+					"text": "under concurrent requests on independent database connections a wallet has at most one active (OPEN, BUILT, SUBMITTED) intent, and concurrent creates with one (wallet, client request id) key yield exactly one row: identical retries return it, a changed payload is refused, the key stays bound after the intent ended"
+				},
+				{
+					"id": "P6",
+					"kind": "REQUIREMENT",
+					"text": "under concurrent build requests an OPEN intent is built exactly once, only for its wallet and server-recomputed intent hash, and its calldata hash, once set, is bound permanently and required by submit"
+				},
+				{
+					"id": "P7",
+					"kind": "REQUIREMENT",
+					"text": "under concurrent submit requests a BUILT intent records exactly one transaction hash; an identical retry is idempotent, a different hash conflicts and never overwrites"
+				},
+				{
+					"id": "P8",
+					"kind": "REQUIREMENT",
+					"text": "a transaction hash belongs to at most one intent, also under concurrent submits for different intents"
+				},
+				{
+					"id": "P9",
+					"kind": "REQUIREMENT",
+					"text": "confirmation under concurrent retries is idempotent: one transition, only for exactly the submitted transaction hash, with a cover id that is globally unique and never replaced"
+				},
+				{
+					"id": "P10",
+					"kind": "REQUIREMENT",
+					"text": "an OPEN or BUILT intent can be neither built nor submitted once the database clock reaches expires_at, and a BUILT intent not once it reaches build_deadline (built_at + 120 s, never after expires_at); both bounds are exclusive and need no cleanup job; SUBMITTED never expires"
+				},
+				{
+					"id": "P11",
+					"kind": "REQUIREMENT",
+					"text": "the only exit from a terminal state is the late confirmation FAILED->CONFIRMED for the same transaction hash and calldata hash with a unique cover id, which sets late; EXPIRED, CANCELLED and CONFIRMED are never reopened, also under concurrent late and normal confirmations"
 				}
 			],
 			"required_evidence_types": [
 				"behavioral"
 			],
 			"current_evidence_ids": [
+				"EV-KB-PURCHASE-DB",
 				"EV-KB-PURCHASE-INTENT",
+				"EV-PURCHASE-DB",
 				"EV-PURCHASE-INTENT"
 			],
 			"property_coverage": {
@@ -12187,19 +12257,76 @@
 					],
 					"partial_only": [],
 					"insufficient": []
+				},
+				"P5": {
+					"satisfied_by": [
+						"EV-PURCHASE-DB",
+						"EV-KB-PURCHASE-DB"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P6": {
+					"satisfied_by": [
+						"EV-PURCHASE-DB",
+						"EV-KB-PURCHASE-DB"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P7": {
+					"satisfied_by": [
+						"EV-PURCHASE-DB",
+						"EV-KB-PURCHASE-DB"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P8": {
+					"satisfied_by": [
+						"EV-PURCHASE-DB",
+						"EV-KB-PURCHASE-DB"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P9": {
+					"satisfied_by": [
+						"EV-PURCHASE-DB",
+						"EV-KB-PURCHASE-DB"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P10": {
+					"satisfied_by": [
+						"EV-PURCHASE-DB",
+						"EV-KB-PURCHASE-DB"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P11": {
+					"satisfied_by": [
+						"EV-PURCHASE-DB",
+						"EV-KB-PURCHASE-DB"
+					],
+					"partial_only": [],
+					"insufficient": []
 				}
 			},
 			"conformance_status": "CONFORMANT",
-			"conformance_status_reason": "all 4 requirement properties demonstrated",
+			"conformance_status_reason": "all 11 requirement properties demonstrated",
 			"security_status": "PASS_AUTOMATED",
-			"security_status_reason": "all 4 sub-properties satisfied at >= E3",
+			"security_status_reason": "all 11 sub-properties satisfied at >= E3",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
 					"behavioral",
-					"known-bad"
+					"known-bad",
+					"real-system"
 				],
-				"independent_classes": 2,
+				"independent_classes": 3,
 				"shared_fixture_groups": []
 			}
 		},

@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zd",
+	"crsf_version": "1.0-draft-phase2ze",
 	"rules": [
 		{
 			"pattern": "src/*auth*",
@@ -332,6 +332,21 @@
 			"pattern": "src/purchase-tx-decode.mjs",
 			"domains": [
 				"CR-APPROVAL",
+				"CR-PURCHASE"
+			]
+		},
+		{
+			"pattern": "src/purchase-intent-db.mjs",
+			"domains": [
+				"CR-DB",
+				"CR-PURCHASE"
+			]
+		},
+		{
+			"pattern": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+			"domains": [
+				"CR-CONC",
+				"CR-DB",
 				"CR-PURCHASE"
 			]
 		}

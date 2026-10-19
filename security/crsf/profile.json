@@ -1,6 +1,6 @@
 {
 	"id": "CRSF-1.0/COVER-RACCOON-PROFILE",
-	"crsf_version": "1.0-draft-phase2zd",
+	"crsf_version": "1.0-draft-phase2ze",
 	"asvs_target": {
 		"baseline": "ASVS L2 (all applicable L1 + L2 requirements are in scope)",
 		"selected_l3": [
@@ -329,6 +329,30 @@
 				{
 					"control": "CR-VERIFY-004",
 					"property": "P1"
+				},
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P5"
+				},
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P6"
+				},
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P7"
+				},
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P8"
+				},
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P9"
+				},
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P11"
 				}
 			]
 		}

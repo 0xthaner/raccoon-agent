@@ -17,7 +17,8 @@
 	Funktion im Schema public (aus allen Migrationen) mit feindseligen
 	Text-Argumenten - kein Syntaxfehler, keine fremde Zeile, Werte woertlich; dazu
 	der Katalog: genau die bekannten Funktionen, keine mit EXECUTE oder format(),
-	jede SECURITY DEFINER mit festem search_path, keine Trigger.
+	jede SECURITY DEFINER mit festem search_path, keine Trigger ausser dem
+	P4D-Unveraenderlichkeits-Trigger (KNOWN_TRIGGERS).
 
 	Nur mit Wegwerf-Postgres (M1_DB_TEST_PG_URL / M1_DB_TEST_PG_MODULE), sonst
 	sichtbar uebersprungen.
@@ -116,8 +117,13 @@ const reset = async () => {
 };
 
 // Nach allen Migrationen (consume_dashboard_challenge und consume_telegram_handoff sind entfernt).
-const KNOWN_FUNCTIONS = ['alert_subscriptions_page', 'check_agent_rate_limit', 'consume_wallet_link', 'consume_wallet_link_v2',
-	'link_wallet_to_chat_limited', 'lock_chat_wallets', 'revoke_dashboard_sessions_atomic', 'upsert_position_attribution_limited'];
+// Nexus P4D (19.10.2026): dazu die Kauf-Intent-Funktionen und ihr Guard-Trigger (feste Parameter, kein EXECUTE).
+const KNOWN_FUNCTIONS = ['alert_subscriptions_page', 'cancel_cover_purchase_intent', 'check_agent_rate_limit', 'consume_wallet_link', 'consume_wallet_link_v2',
+	'cover_purchase_intent_json', 'cover_purchase_intents_guard', 'create_cover_purchase_intent', 'expire_cover_purchase_intent',
+	'link_wallet_to_chat_limited', 'lock_chat_wallets', 'mark_cover_purchase_intent_built', 'mark_cover_purchase_intent_confirmed', 'mark_cover_purchase_intent_failed',
+	'mark_cover_purchase_intent_late_confirmed', 'mark_cover_purchase_intent_submitted', 'revoke_dashboard_sessions_atomic', 'upsert_position_attribution_limited'];
+/** Der einzige Trigger in public: P4D-Unveraenderlichkeit (BEFORE UPDATE OR DELETE), selbst ohne dynamisches SQL. */
+const KNOWN_TRIGGERS = ['cover_purchase_intents.cover_purchase_intents_guard'];
 
 test('INPUT-DB-PG', { skip, timeout: 300_000 }, async (t) => {
 	await setup();
@@ -259,6 +265,29 @@ test('INPUT-DB-PG', { skip, timeout: 300_000 }, async (t) => {
 				assert.ok(page.value.rows.every((r) => r.chat_id === VICTIM_CHAT), `${label}: page returned foreign rows`);
 				const upsert = await safely(`${label} upsert_position_attribution_limited`, () => call('upsert_position_attribution_limited', [VICTIM_WALLET, 'aave', 'v3', v, 97, 1, new Date().toISOString()]));
 				assert.equal(upsert.error, '23514', `${label}: deployment key not constrained`);
+				// Nexus P4D: jede Kauf-Intent-Funktion mit feindseligem Text in jedem Textparameter - abgelehnt, nie angelegt oder geaendert.
+				const id = crypto.randomUUID(), h = `0x${'ab'.repeat(32)}`;
+				const p4d = [
+					['mark_cover_purchase_intent_built', [id, v, v, v]], ['mark_cover_purchase_intent_built', [id, v, h, h]],
+					['mark_cover_purchase_intent_submitted', [id, v, v, v, 1]], ['mark_cover_purchase_intent_submitted', [id, v, h, h, 1]],
+					['mark_cover_purchase_intent_confirmed', [id, v, 1]], ['mark_cover_purchase_intent_failed', [id, v, v]], ['mark_cover_purchase_intent_failed', [id, h, v]],
+					['mark_cover_purchase_intent_late_confirmed', [id, v, v, 1]], ['cancel_cover_purchase_intent', [id, v, v]], ['cancel_cover_purchase_intent', [id, v, 'USER_CANCELLED']]
+				];
+				for (const [fn, args] of p4d) {
+					const r = await safely(`${label} ${fn}`, () => call(fn, args));
+					assert.ok(r.error || r.value?.status === 'rejected', `${label}: ${fn} accepted adversarial text ${JSON.stringify(r.value)}`);
+				}
+				for (const field of ['wallet', 'deployment', 'wording', 'terms_version', 'pol', 'pin', 'destination', 'terms_hash']) {
+					const created = await safely(`${label} create_cover_purchase_intent ${field}`, () => sql.query(`select public.create_cover_purchase_intent(p_id => $1, p_wallet => $2, p_chain_id => 1, p_deployment_key => $3,
+						p_product_id => 97, p_product_type_id => 0, p_cover_asset_id => 6::smallint, p_amount_raw => 1000, p_period_days => 30::smallint, p_quote_premium_raw => 1, p_max_premium_raw => 1,
+						p_quote_fetched_at => now() - interval '10 seconds', p_capacity_fetched_at => now() - interval '10 seconds', p_wording_cid => $4, p_annex_cid => null, p_terms_version => $5,
+						p_terms_hash => $6, p_proof_of_loss_cid => $7, p_commission_ratio => 0::smallint, p_commission_destination => $8, p_pin_version => $9, p_intent_hash => $10,
+						p_acknowledged_at => now() - interval '5 seconds', p_expires_at => now() + interval '5 minutes', p_client_request_id => $11) as r`,
+					[crypto.randomUUID(), field === 'wallet' ? v : '0x' + 'c7'.repeat(20), field === 'deployment' ? v : 'aave-v3-ethereum-core', field === 'wording' ? v : 'QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY',
+						field === 'terms_version' ? v : 'coverraccoon.terms/1', field === 'terms_hash' ? v : h, field === 'pol' ? v : null, field === 'destination' ? v : '0x0000000000000000000000000000000000000000',
+						field === 'pin' ? v : 'nexus-pin-1:broker-v2.12.1:cover-v3.3.0', `0x${(i * 8 + field.length).toString(16).padStart(64, '0')}`, crypto.randomUUID()]).then((res) => res.rows[0].r));
+					assert.ok(created.error || created.value?.status === 'rejected', `${label}: create accepted adversarial ${field} ${JSON.stringify(created.value)}`);
+				}
 			}
 			// Mit echtem Code: die Wallet aus dem Argument wird woertlich (kleingeschrieben) gespeichert, nur im Chat des Codes.
 			for (const [i, v] of ADVERSARIAL.entries()) {
@@ -279,7 +308,7 @@ test('INPUT-DB-PG', { skip, timeout: 300_000 }, async (t) => {
 			assert.deepEqual(victim, [{ chat_id: VICTIM_CHAT, wallet: VICTIM_WALLET, label: 'Victim' }], 'victim chat changed');
 		});
 
-		await t.test('INPUT-DB-PG P2 catalog: exactly the known functions, none with EXECUTE or format(), SECURITY DEFINER with fixed search_path, no triggers', async () => {
+		await t.test('INPUT-DB-PG P2 catalog: exactly the known functions, none with EXECUTE or format(), SECURITY DEFINER with fixed search_path, only the known trigger', async () => {
 			const { rows } = await sql.query(`select p.proname, p.prosrc, p.prosecdef, p.proconfig, l.lanname from pg_proc p
 				join pg_namespace n on n.oid = p.pronamespace join pg_language l on l.oid = p.prolang where n.nspname = 'public' order by 1`);
 			assert.deepEqual([...new Set(rows.map((r) => r.proname))], KNOWN_FUNCTIONS, 'callable function inventory changed');
@@ -290,7 +319,7 @@ test('INPUT-DB-PG', { skip, timeout: 300_000 }, async (t) => {
 				assert.doesNotMatch(code, /\b(format|quote_ident|quote_literal|quote_nullable)\s*\(/i, `${r.proname}: SQL text construction`);
 				if (r.prosecdef) assert.ok((r.proconfig ?? []).some((c) => /^search_path=/.test(c)), `${r.proname}: SECURITY DEFINER without fixed search_path`);
 			}
-			assert.equal((await sql.query("select count(*)::int as n from pg_trigger g join pg_class c on c.oid = g.tgrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and not g.tgisinternal")).rows[0].n, 0, 'trigger in public');
+			assert.deepEqual((await sql.query("select c.relname || '.' || g.tgname as t from pg_trigger g join pg_class c on c.oid = g.tgrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and not g.tgisinternal order by 1")).rows.map((r) => r.t), KNOWN_TRIGGERS, 'trigger in public');
 			assert.equal((await sql.query('select count(*)::int as n from pg_event_trigger')).rows[0].n, 0, 'event trigger');
 		});
 	} finally {

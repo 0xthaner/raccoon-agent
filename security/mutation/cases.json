@@ -14985,6 +14985,1146 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P5-P4DNOACTIVEIDX",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P5"
+				}
+			],
+			"description": "the partial unique index for one active intent per wallet is a plain index",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "create unique index if not exists cover_purchase_intents_one_active on public.cover_purchase_intents (wallet) where status in ('OPEN', 'BUILT', 'SUBMITTED');",
+					"replace": "create index if not exists cover_purchase_intents_one_active on public.cover_purchase_intents (wallet) where status in ('OPEN', 'BUILT', 'SUBMITTED');"
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db-concurrency.test.mjs",
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-CONC-A 40 concurrent creates for one wallet leave exactly one active intent$"
+				},
+				{
+					"test": "^P4D-CREATE a created intent is OPEN with the server-computed P4A hash; retries are idempotent, a reused key with other data is refused$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P5-P4DTWOACTIVE",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P5"
+				}
+			],
+			"description": "a SUBMITTED intent no longer counts as active, so a wallet can hold two",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "create unique index if not exists cover_purchase_intents_one_active on public.cover_purchase_intents (wallet) where status in ('OPEN', 'BUILT', 'SUBMITTED');",
+					"replace": "create unique index if not exists cover_purchase_intents_one_active on public.cover_purchase_intents (wallet) where status in ('OPEN', 'BUILT');"
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-ACTIVE a wallet with a BUILT or SUBMITTED intent cannot open a second one; a terminal intent frees the wallet$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P5-P4DNOREQKEY",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P5"
+				}
+			],
+			"description": "UNIQUE (wallet, client_request_id) removed",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "\tconstraint cover_purchase_intents_request_key unique (wallet, client_request_id),\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-IDEMPOTENCY a key stays bound after its intent ended: never a second row for the same key$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P5-P4DKEYPAYLOAD",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P5"
+				}
+			],
+			"description": "the same idempotency key with a changed payload returns the stored intent instead of failing closed",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "    return jsonb_build_object('status', 'conflict', 'code', 'IDEMPOTENCY_KEY_REUSED');",
+					"replace": "    return jsonb_build_object('status', 'existing', 'intent', public.cover_purchase_intent_json(saved));"
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs",
+				"test/purchase-intent-db-concurrency.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-CREATE a created intent is OPEN with the server-computed P4A hash; retries are idempotent, a reused key with other data is refused$"
+				},
+				{
+					"test": "^P4D-CONC-A2 concurrent retries with one idempotency key: one row, identical retries get it back, a changed payload is refused \\(no last write wins\\)$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P6-P4DBUILDSTATUS",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P6"
+				}
+			],
+			"description": "build no longer requires status OPEN",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "     and i.status = 'OPEN'\n     and i.calldata_hash is null\n     and i.built_at is null\n",
+					"replace": "     and i.calldata_hash is null\n     and i.built_at is null\n"
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-BUILD only an OPEN intent is built: a cancelled one is refused$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P6-P4DBUILDHASH",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P6"
+				}
+			],
+			"description": "build no longer compares the server-recomputed intent hash",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "     and i.intent_hash = ihash\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-HASH tampered intent data cannot reuse a valid hash: the hash is recomputed from the stored data$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P10-P4DBUILDEXPIRY",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P10"
+				}
+			],
+			"description": "build no longer checks expiry or the remaining build window",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "     and now() < i.expires_at\n     and now() + interval '120 seconds' <= i.expires_at\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-EXPIRY usable only while now\\(\\) < expires_at and now\\(\\) < build_deadline \\(both bounds exclusive\\)$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P6-P4DCALLDATAOVERWRITE",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P6"
+				}
+			],
+			"description": "calldata_hash may be overwritten after it was set",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "  if old.calldata_hash is not null and new.calldata_hash is distinct from old.calldata_hash then raise exception 'cover_purchase_intents: calldata_hash is set once'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-IMMUTABLE every security-critical field and every once-set value is fixed after it is written$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P6-P4DTWOBUILDS",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P6"
+				}
+			],
+			"description": "a BUILT intent can be built again with other calldata",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "     and i.status = 'OPEN'\n     and i.calldata_hash is null\n     and i.built_at is null\n",
+					"replace": "     and i.status in ('OPEN', 'BUILT')\n"
+				},
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "  if old.calldata_hash is not null and new.calldata_hash is distinct from old.calldata_hash then raise exception 'cover_purchase_intents: calldata_hash is set once'; end if;\n  if old.built_at is not null and new.built_at is distinct from old.built_at then raise exception 'cover_purchase_intents: built_at is set once'; end if;\n  if old.build_deadline is not null and new.build_deadline is distinct from old.build_deadline then raise exception 'cover_purchase_intents: build_deadline is set once'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db-concurrency.test.mjs",
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-CONC-B 40 concurrent builds with different calldata: exactly one build, its calldata hash is the bound one$"
+				},
+				{
+					"test": "^P4D-FLOW build, submit and confirm each happen once; exact retries are idempotent, different values conflict$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P7-P4DSUBMITSTATUS",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P7"
+				}
+			],
+			"description": "submit no longer requires status BUILT",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "       and i.status = 'BUILT'\n       and i.calldata_hash = chash\n       and i.tx_hash is null\n",
+					"replace": "       and i.calldata_hash = chash\n       and i.tx_hash is null\n"
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-LATE expired, cancelled and confirmed intents are never reopened$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P10-P4DSUBMITDEADLINE",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P10"
+				}
+			],
+			"description": "submit no longer checks build_deadline",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "       and now() < i.build_deadline\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-EXPIRY usable only while now\\(\\) < expires_at and now\\(\\) < build_deadline \\(both bounds exclusive\\)$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P8-P4DNOTXUNIQUE",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P8"
+				}
+			],
+			"description": "UNIQUE (tx_hash) removed",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "\tconstraint cover_purchase_intents_tx_hash_key unique (tx_hash),\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db-concurrency.test.mjs",
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-CONC-D one tx hash submitted concurrently for 40 different intents has exactly one owner$"
+				},
+				{
+					"test": "^P4D-UNIQUE a tx hash and a cover id belong to one intent only$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P7-P4DTXOVERWRITE",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P7"
+				}
+			],
+			"description": "a second tx hash overwrites the first on a SUBMITTED intent",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "       and i.status = 'BUILT'\n       and i.calldata_hash = chash\n       and i.tx_hash is null\n",
+					"replace": "       and i.status in ('BUILT', 'SUBMITTED')\n       and i.calldata_hash = chash\n"
+				},
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "  if old.tx_hash is not null and new.tx_hash is distinct from old.tx_hash then raise exception 'cover_purchase_intents: tx_hash is set once'; end if;\n  if old.tx_nonce is not null and new.tx_nonce is distinct from old.tx_nonce then raise exception 'cover_purchase_intents: tx_nonce is set once'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db-concurrency.test.mjs",
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-CONC-C 40 concurrent submits with different tx hashes: exactly one tx hash is recorded$"
+				},
+				{
+					"test": "^P4D-FLOW build, submit and confirm each happen once; exact retries are idempotent, different values conflict$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P9-P4DNOCOVERUNIQUE",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P9"
+				}
+			],
+			"description": "UNIQUE (cover_id) removed",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "\tconstraint cover_purchase_intents_cover_id_key unique (cover_id),\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs",
+				"test/purchase-intent-db-concurrency.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-UNIQUE a tx hash and a cover id belong to one intent only$"
+				},
+				{
+					"test": "^P4D-CONC-F a concurrent mix of late and normal confirmations assigns at most one cover id per intent and each cover id to one intent$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P9-P4DCONFIRMTX",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P9"
+				}
+			],
+			"description": "confirm accepts a tx hash other than the submitted one",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "       and i.status = 'SUBMITTED'\n       and i.tx_hash = p_tx_hash\n",
+					"replace": "       and i.status = 'SUBMITTED'\n"
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-FLOW build, submit and confirm each happen once; exact retries are idempotent, different values conflict$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P11-P4DREOPEN",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P11"
+				}
+			],
+			"description": "CANCELLED and EXPIRED may return to OPEN",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "      (old.status = 'OPEN' and new.status in ('BUILT', 'EXPIRED', 'CANCELLED'))",
+					"replace": "      (old.status in ('CANCELLED', 'EXPIRED') and new.status = 'OPEN')\n      or (old.status = 'OPEN' and new.status in ('BUILT', 'EXPIRED', 'CANCELLED'))"
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-LATE expired, cancelled and confirmed intents are never reopened$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P10-P4DSUBMITTEDEXPIRES",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P10"
+				}
+			],
+			"description": "SUBMITTED may expire (trigger, state check and expire helper)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "      or (old.status = 'SUBMITTED' and new.status in ('CONFIRMED', 'FAILED'))",
+					"replace": "      or (old.status = 'SUBMITTED' and new.status in ('CONFIRMED', 'FAILED', 'EXPIRED'))"
+				},
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "\t\tor (status = 'EXPIRED' and tx_hash is null and cover_id is null",
+					"replace": "\t\tor (status = 'EXPIRED' and cover_id is null"
+				},
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "     and ((i.status = 'OPEN' and i.expires_at <= now()) or (i.status = 'BUILT' and (i.expires_at <= now() or i.build_deadline <= now())))\n  returning * into saved;",
+					"replace": "     and ((i.status = 'OPEN' and i.expires_at <= now()) or (i.status = 'BUILT' and (i.expires_at <= now() or i.build_deadline <= now())) or i.status = 'SUBMITTED')\n  returning * into saved;"
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-LATE expired, cancelled and confirmed intents are never reopened$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P11-P4DLATEOTHERTX",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P11"
+				}
+			],
+			"description": "late confirmation accepts another transaction than the submitted one",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "       and i.status = 'FAILED'\n       and i.tx_hash = p_tx_hash\n",
+					"replace": "       and i.status = 'FAILED'\n"
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-LATE FAILED keeps the transaction evidence; only the same transaction can confirm late, once$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P11-P4DLATEFLAG",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P11"
+				}
+			],
+			"description": "FAILED -> CONFIRMED without setting late (trigger accepts it)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "set status = 'CONFIRMED', cover_id = p_cover_id, late = true, status_reason = 'LATE_CONFIRMATION', updated_at = now()",
+					"replace": "set status = 'CONFIRMED', cover_id = p_cover_id, updated_at = now(), status_reason = null"
+				},
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "      or (old.status = 'FAILED' and new.status = 'CONFIRMED' and new.late and not old.late)",
+					"replace": "      or (old.status = 'FAILED' and new.status = 'CONFIRMED')"
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-LATE FAILED keeps the transaction evidence; only the same transaction can confirm late, once$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P5-P4DAMOUNT",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P5"
+				}
+			],
+			"description": "amount_raw may be updated after insert",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "  if new.amount_raw is distinct from old.amount_raw then raise exception 'cover_purchase_intents: amount_raw is immutable'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-IMMUTABLE every security-critical field and every once-set value is fixed after it is written$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P5-P4DWALLET",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P5"
+				}
+			],
+			"description": "wallet may be updated after insert",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "  if new.wallet is distinct from old.wallet then raise exception 'cover_purchase_intents: wallet is immutable'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-IMMUTABLE every security-critical field and every once-set value is fixed after it is written$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P5-P4DTERMS",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P5"
+				}
+			],
+			"description": "terms_hash may be updated after insert",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "  if new.terms_hash is distinct from old.terms_hash then raise exception 'cover_purchase_intents: terms_hash is immutable'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-IMMUTABLE every security-critical field and every once-set value is fixed after it is written$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P5-P4DPOLCID",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P5"
+				}
+			],
+			"description": "proof_of_loss_cid may be updated after insert",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "  if new.proof_of_loss_cid is distinct from old.proof_of_loss_cid then raise exception 'cover_purchase_intents: proof_of_loss_cid is immutable'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-IMMUTABLE every security-critical field and every once-set value is fixed after it is written$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P5-P4DCOMMISSION",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P5"
+				}
+			],
+			"description": "commission_ratio may be updated after insert (trigger line and the zero check removed)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "  if new.commission_ratio is distinct from old.commission_ratio then raise exception 'cover_purchase_intents: commission_ratio is immutable'; end if;\n",
+					"replace": ""
+				},
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "commission_ratio smallint not null check (commission_ratio = 0),",
+					"replace": "commission_ratio smallint not null check (commission_ratio >= 0),"
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-IMMUTABLE every security-critical field and every once-set value is fixed after it is written$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P5-P4DINTENTHASH",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P5"
+				}
+			],
+			"description": "intent_hash may be updated after insert",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "  if new.intent_hash is distinct from old.intent_hash then raise exception 'cover_purchase_intents: intent_hash is immutable'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-IMMUTABLE every security-critical field and every once-set value is fixed after it is written$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P6-P4DANONINSERT",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P6"
+				}
+			],
+			"description": "anon is granted INSERT on the intent table",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "grant select on table public.cover_purchase_intents to service_role;\n",
+					"replace": "grant select on table public.cover_purchase_intents to service_role;\ngrant insert on table public.cover_purchase_intents to anon;\n"
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-RLS anon and authenticated have no direct access; service_role only reads the table and calls the eight functions$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P6-P4DAUTHUPDATE",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P6"
+				}
+			],
+			"description": "authenticated is granted SELECT and UPDATE on the intent table",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "grant select on table public.cover_purchase_intents to service_role;\n",
+					"replace": "grant select on table public.cover_purchase_intents to service_role;\ngrant select, update on table public.cover_purchase_intents to authenticated;\n"
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-RLS anon and authenticated have no direct access; service_role only reads the table and calls the eight functions$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P6-P4DDELETE",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P6"
+				}
+			],
+			"description": "the guard lets DELETE through",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "    raise exception 'cover_purchase_intents: rows are never deleted';\n",
+					"replace": "    return old;\n"
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-DEFINER the writing functions are SECURITY DEFINER with a pinned search_path and no dynamic SQL; no delete path exists$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-003-P6-P4DSEARCHPATH",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P6"
+				}
+			],
+			"description": "a SECURITY DEFINER function without a pinned search_path",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "create or replace function public.mark_cover_purchase_intent_failed(p_id uuid, p_tx_hash text, p_reason text)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = public, pg_temp\n",
+					"replace": "create or replace function public.mark_cover_purchase_intent_failed(p_id uuid, p_tx_hash text, p_reason text)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\n"
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-DEFINER the writing functions are SECURITY DEFINER with a pinned search_path and no dynamic SQL; no delete path exists$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P10-P4DOFFBYONE",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P10"
+				}
+			],
+			"description": "submit is still allowed at exactly build_deadline (<= instead of <)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261019120000_cover_purchase_intents.sql",
+					"find": "       and now() < i.build_deadline\n",
+					"replace": "       and now() <= i.build_deadline\n"
+				}
+			],
+			"tests": [
+				"test/purchase-intent-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4D-EXPIRY usable only while now\\(\\) < expires_at and now\\(\\) < build_deadline \\(both bounds exclusive\\)$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P5-P4DOBSZERO",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P5"
+				}
+			],
+			"description": "the runner observer accepts zero overlap and one busy connection as concurrency",
+			"edits": [
+				{
+					"file": "security/crsf/lib/pg-observer.mjs",
+					"find": "d.authenticated >= 2 && d.max_busy >= min_concurrent_connections && d.overlap_events >= min_overlap_events",
+					"replace": "d.authenticated >= 2 && d.max_busy >= 0 && d.overlap_events >= 0"
+				}
+			],
+			"tests": [
+				"test/crsf-real-system-observation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^E5-OBS observer: strictly sequential statements on several connections are not concurrency, overlapping ones are$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P5-P4DSERIALCONN",
+			"origin": "new (P4D)",
+			"evidence_id": "EV-KB-PURCHASE-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P5"
+				}
+			],
+			"description": "the runner observer credits serial statements of a single connection as concurrent execution",
+			"edits": [
+				{
+					"file": "security/crsf/lib/pg-observer.mjs",
+					"find": "d.authenticated >= 2 && d.max_busy >= min_concurrent_connections && d.overlap_events >= min_overlap_events",
+					"replace": "d.authenticated >= 1 && d.completed >= min_concurrent_connections"
+				}
+			],
+			"tests": [
+				"test/crsf-real-system-observation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^E5-OBS observer: strictly sequential statements on several connections are not concurrency, overlapping ones are$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

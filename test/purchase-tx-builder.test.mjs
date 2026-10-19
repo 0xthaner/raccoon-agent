@@ -259,6 +259,8 @@ test('P4C-IMPORT no runtime code imports the builder or decoder; only P4C tests 
 test('P4C-SURFACE transaction encoding and transaction-shaped objects exist only in the two pure P4C modules', () => {
 	const runtime = [...walk('src'), ...walk('api'), ...walk('web/src'), 'web/index.html', ...walk('scripts')].filter((f) => !P4C.includes(f));
 	for (const file of runtime) {
-		assert.doesNotMatch(code(file), /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|calldataHash|productionReady/, file);
+		// P4D (19.10.2026): der unerreichbare DB-Helfer (P4D-IMPORT) nimmt den Calldata-Hash entgegen, um ihn zu speichern; alles andere gilt auch dort.
+		const surface = file === 'src/purchase-intent-db.mjs' ? /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|productionReady/ : /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|calldataHash|productionReady/;
+		assert.doesNotMatch(code(file), surface, file);
 	}
 });

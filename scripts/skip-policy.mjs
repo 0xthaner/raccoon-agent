@@ -4,7 +4,7 @@
 	Ausgelagert aus scripts/run-tests-guarded.mjs (CRSF Phase 2A), damit
 	`npm run security:verify` exakt dieselbe Liste benutzt und die beiden nicht
 	auseinanderlaufen. Inhalt unveraendert: nur die Postgres-Integrationstests
-	(M1, H2, L1, L5, REVOKE, DBPRIV, DASHBOARD-LOGIN, INPUT-DB-PG, RL, LOCKS), jeweils exakt mit Datei und Name, und nur solange kein
+	(M1, H2, L1, L5, REVOKE, DBPRIV, DASHBOARD-LOGIN, INPUT-DB-PG, RL, LOCKS, PURCHASE-DB, PURCHASE-DB-CONC), jeweils exakt mit Datei und Name, und nur solange kein
 	Wegwerf-Postgres konfiguriert ist. Ist M1_DB_TEST_PG_URL gesetzt und ein Test
 	wird trotzdem uebersprungen, ist das ein Fehler wie jeder andere Skip.
 
@@ -44,6 +44,9 @@ export const ALLOWED_SKIPS = new Map([
 	// CRSF Phase 2V: CR-RESOURCE-002 (Rate-Limit-Zaehler) und CR-CONC-006 (Advisory-Sperren) gegen echtes Postgres.
 	['test/rate-limit-atomic-db.test.mjs :: RL-DB', (env) => !env.M1_DB_TEST_PG_URL],
 	['test/advisory-locks-db.test.mjs :: LOCKS-DB', (env) => !env.M1_DB_TEST_PG_URL],
+	// Nexus P4D: Kauf-Intents (Unveraenderlichkeit, Rechte, Einmal-Nutzung unter echter Gleichzeitigkeit), derselbe Wegwerf-Postgres.
+	['test/purchase-intent-db.test.mjs :: PURCHASE-DB', (env) => !env.M1_DB_TEST_PG_URL],
+	['test/purchase-intent-db-concurrency.test.mjs :: PURCHASE-DB-CONC', (env) => !env.M1_DB_TEST_PG_URL],
 	// CRSF Phase 2R: historische Korrekturen cad24d4 und b647281 mit der echten Vercel-CLI.
 	['test/vercel-cli-local.test.mjs :: VERCEL-CLI cad24d4 the real CLI upload set excludes .env and .env.* (except .env.example)', vercelCliMissing],
 	['test/vercel-cli-local.test.mjs :: VERCEL-CLI b647281 vercel build runs the installCommand of vercel.json and it refuses a lockfile that does not match', vercelCliMissing],

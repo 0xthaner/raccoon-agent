@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zd",
+	"crsf_version": "1.0-draft-phase2ze",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -697,7 +697,7 @@
 			"source": "repository",
 			"artifact": "test/db-privileges-db.test.mjs",
 			"test_or_proof": "test/db-privileges-db.test.mjs (DBPRIV-DB, disposable Postgres, Supabase default grants emulated, all migrations)",
-			"property_proven": "RLS on every public table; anon/authenticated hold no table privilege and really get 42501 on read/insert/delete of every table; no role can CREATE in public; function EXECUTE matches the allowlist exactly (5 runtime RPCs + legacy consume_wallet_link for service_role only; internal helpers for nobody; PUBLIC nowhere); SECURITY DEFINER set and pinned search_path",
+			"property_proven": "RLS on every public table; anon/authenticated hold no table privilege and really get 42501 on read/insert/delete of every table; no role can CREATE in public; function EXECUTE matches the allowlist exactly (5 runtime RPCs + legacy consume_wallet_link + the 8 P4D purchase-intent functions, which have no runtime caller, for service_role only; internal helpers incl. the P4D trigger and JSON helper for nobody; PUBLIC nowhere); SECURITY DEFINER set and pinned search_path",
 			"property_not_proven": "the production database itself (emulated Supabase defaults, not supabase_admin-owned objects; production state stays EV-PROD-DB, manual)",
 			"coverage": "FULL",
 			"reason_for_partial": null,
@@ -6882,7 +6882,7 @@
 			"source": "repository",
 			"artifact": "test/input-db-adversarial-db.test.mjs",
 			"test_or_proof": "test/input-db-adversarial-db.test.mjs",
-			"property_proven": "disposable Postgres with every migration; real src/db.mjs and supabase-js, each PostgREST request translated into one statement with bound parameters (test-support/pg-postgrest.mjs). P1: adversarial lookups, updates and deletes match nothing, change no row outside their own keys (content hash of every table) and either succeed or fail with a data error (22P02/22007/23514), never a syntax or object error; adversarial values are stored and read back literally (events, labels, rate keys, link rows, challenges); per-chat LIKE patterns are anchored on the delimiter (chat 1 never touches 10, 12 or 100, on forget and on link); at the helper boundary each of chats 1, 10, 12, 100 (number and string) reads and forgets only its own remembered wallet, all 38 out-of-domain ids read nothing and delete nothing, and link cleanup for a link row with a wildcard chat id (%, _, 1%, 1_) deletes nothing while chat 10 cleans only chat 10. P2: every callable function (alert_subscriptions_page, check_agent_rate_limit, consume_wallet_link, consume_wallet_link_v2, link_wallet_to_chat_limited, lock_chat_wallets, revoke_dashboard_sessions_atomic, upsert_position_attribution_limited) called with adversarial text: no syntax error, no foreign row, values stored literally in the code's chat only, malformed wallets/deployment keys rejected by checks; catalog: exactly these functions, plpgsql/sql only, no EXECUTE, format() or quote_* in any body, SECURITY DEFINER functions with a fixed search_path, no triggers or event triggers.",
+			"property_proven": "disposable Postgres with every migration; real src/db.mjs and supabase-js, each PostgREST request translated into one statement with bound parameters (test-support/pg-postgrest.mjs). P1: adversarial lookups, updates and deletes match nothing, change no row outside their own keys (content hash of every table) and either succeed or fail with a data error (22P02/22007/23514), never a syntax or object error; adversarial values are stored and read back literally (events, labels, rate keys, link rows, challenges); per-chat LIKE patterns are anchored on the delimiter (chat 1 never touches 10, 12 or 100, on forget and on link); at the helper boundary each of chats 1, 10, 12, 100 (number and string) reads and forgets only its own remembered wallet, all 38 out-of-domain ids read nothing and delete nothing, and link cleanup for a link row with a wildcard chat id (%, _, 1%, 1_) deletes nothing while chat 10 cleans only chat 10. P2: every callable function (alert_subscriptions_page, check_agent_rate_limit, consume_wallet_link, consume_wallet_link_v2, link_wallet_to_chat_limited, lock_chat_wallets, revoke_dashboard_sessions_atomic, upsert_position_attribution_limited) called with adversarial text, and the P4D purchase-intent functions (create, build, submit, confirm, fail, late-confirm, cancel) with adversarial text in every text parameter: always rejected, nothing created or changed: no syntax error, no foreign row, values stored literally in the code's chat only, malformed wallets/deployment keys rejected by checks; catalog: exactly these functions plus the P4D expire helper, trigger function and JSON helper, plpgsql/sql only, no EXECUTE, format() or quote_* in any body, SECURITY DEFINER functions with a fixed search_path, no trigger except the P4D immutability trigger cover_purchase_intents_guard, no event triggers.",
 			"property_not_proven": "real PostgREST (modelled by test-support/pg-postgrest.mjs, which binds every filter value as a parameter; a real PostgREST end-to-end run is not claimed); the migration-time DO blocks of 20260924170000 build GRANT/REVOKE statements with format(%I / regprocedure) from catalog names only (no application input; not callable); search_path hardening with pg_temp last is CR-DB-003 (SECURITY_DEBT, unchanged)",
 			"coverage": "FULL",
 			"reason_for_partial": null,
@@ -8401,9 +8401,9 @@
 			"artifact": "test/purchase-intent.test.mjs",
 			"test_or_proof": "test/purchase-intent.test.mjs",
 			"property_proven": "Behaviourally, against the pure module: a valid intent validates and hashes stably and independently of key order and wallet spelling; changing any model field or any contract pin changes the hash; every listed policy violation, unknown/derived/caller-hash field and non-canonical raw amount is rejected and has no hash, 2^96-1 and 2^53+1 round-trip exactly; exactly the 8 allowed transitions hold over all 49 pairs, terminal states have none, SUBMITTED expires never and keeps a late outcome; expiry only with an explicit time; readiness is never send-ready and proof of loss blocks every transaction; commission only 0/0x0; the real 1000 USDC quote (1000192871) passes, below-requested, off-total, over-cap, duplicate, zero and oversized lists fail; the module imports only viem and nexus-pinned, touches no network or clock when called, emits no transaction shape, and no file under src, api, web or scripts imports it.",
-			"property_not_proven": "database enforcement of single use under parallel requests and immutability of stored intents (persistence phase, E5 required then); terms text binding (P4B); revalidation against live quote, capacity and chain state; any transactional behaviour",
-			"coverage": "FULL",
-			"reason_for_partial": null,
+			"property_not_proven": "database enforcement of single use and immutability (P4D: EV-PURCHASE-DB, E5); terms text binding (P4B); revalidation against live quote, capacity and chain state; any transactional behaviour",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-003[P1,P2,P3,P4]: covers a subset of sub-properties; CR-PURCHASE-005[P1,P2,P3,P4]: covers a subset of sub-properties",
 			"covers": [
 				{
 					"control": "CR-PURCHASE-003",
@@ -8576,8 +8576,8 @@
 				"CR-PURCHASE-003",
 				"CR-PURCHASE-005"
 			],
-			"coverage": "FULL",
-			"reason_for_partial": null
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-003[P1,P2,P3,P4]: mutation cases: MUT-CR-PURCHASE-003-P1-P4AWALLET, MUT-CR-PURCHASE-003-P1-P4APRODUCT, MUT-CR-PURCHASE-003-P1-P4AAMOUNT, MUT-CR-PURCHASE-003-P1-P4APERIOD, MUT-CR-PURCHASE-003-P1-P4AMAXPREM, MUT-CR-PURCHASE-003-P1-P4ATERMS, MUT-CR-PURCHASE-003-P1-P4APOL, MUT-CR-PURCHASE-003-P1-P4AIMPL, MUT-CR-PURCHASE-003-P2-P4AEXTRA, MUT-CR-PURCHASE-003-P3-P4ANUMBER, MUT-CR-PURCHASE-003-P4-P4AFETCH, MUT-CR-PURCHASE-003-P4-P4AREACH; CR-PURCHASE-005[P1,P2,P3,P4]: mutation cases: MUT-CR-PURCHASE-005-P1-P4ASKIP, MUT-CR-PURCHASE-005-P2-P4ARESTART, MUT-CR-PURCHASE-005-P3-P4ALATE, MUT-CR-PURCHASE-005-P4-P4AEXPIRY"
 		},
 		{
 			"id": "EV-PURCHASE-TERMS",
@@ -8989,6 +8989,169 @@
 			],
 			"coverage": "FULL",
 			"reason_for_partial": null
+		},
+		{
+			"id": "EV-PURCHASE-DB",
+			"control_ids": [
+				"CR-PURCHASE-003",
+				"CR-PURCHASE-005"
+			],
+			"type": "real-system",
+			"level": "E5",
+			"source": "repository",
+			"artifact": "test/purchase-intent-db.test.mjs",
+			"test_or_proof": "test/purchase-intent-db.test.mjs, test/purchase-intent-db-concurrency.test.mjs",
+			"property_proven": "Disposable Postgres with every migration and emulated Supabase default privileges; the real helper src/purchase-intent-db.mjs over a supabase-js-shaped rpc adapter (one bound statement per call). Immutability: every listed critical field and every once-set value is refused by the trigger (also by the owner), values are never cleared, late only false->true; the stored hash equals the P4A hash of the stored data and tampered data cannot build. Transitions: build, submit, confirm, fail, late-confirm, cancel and expire each act once with idempotent exact retries and fail-closed different values; OPEN->SUBMITTED, terminal->OPEN, SUBMITTED->EXPIRED and FAILED->CONFIRMED without late are refused by the trigger; SUBMITTED is never cancelled or expired. Expiry at exactly now() and build_deadline at exactly now() refuse, now()+1 us works; a stale active intent is closed when its wallet creates a new one. Access: RLS on, anon/authenticated 42501 on every table operation and function, service_role reads and calls exactly the eight functions, cannot write directly, nobody deletes; SECURITY DEFINER with pinned search_path, no EXECUTE/format()/DELETE in any body. Concurrency: six races of 40 independent connections, each held in an open transaction at an advisory-lock barrier that is released only after the database reports 40 waiting backends with 40 distinct PIDs: one active intent per wallet, one row per idempotency key (no last write wins), one build, one transaction hash, one owner per transaction hash, idempotent confirmations, at most one cover id per intent and one intent per cover id in a mixed late/normal race.",
+			"property_not_proven": "the production database (the migration is not applied anywhere but the disposable Postgres); chain facts (the cover id and transaction outcome are inputs, receipt verification is CR-PURCHASE-006); wallet execution; real PostgREST",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-003[P5,P6]: covers a subset of sub-properties; CR-PURCHASE-005[P5,P6,P7,P8,P9,P10,P11]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-003",
+					"properties": [
+						"P5",
+						"P6"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-PURCHASE-005",
+					"properties": [
+						"P5",
+						"P6",
+						"P7",
+						"P8",
+						"P9",
+						"P10",
+						"P11"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"disposable Postgres 17 (M1_DB_TEST_PG_URL)"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "raw-pg",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/purchase-intent-db.test.mjs",
+					"test/purchase-intent-db-concurrency.test.mjs"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-PURCHASE-DB",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 32 case(s)",
+			"property_proven": "Each listed weakening of the active-intent index, idempotency key, build/submit/confirm/late conditions, once-set fields, transition trigger, immutable fields, privileges, delete guard, search_path, expiry boundary and runner observer (zero overlap accepted, serial statements of one connection credited) is detected by the intended test.",
+			"property_not_proven": "weakenings beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-005",
+					"properties": [
+						"P10",
+						"P11",
+						"P5",
+						"P6",
+						"P7",
+						"P8",
+						"P9"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-PURCHASE-005-P5-P4DNOACTIVEIDX, MUT-CR-PURCHASE-005-P5-P4DTWOACTIVE, MUT-CR-PURCHASE-005-P5-P4DNOREQKEY, MUT-CR-PURCHASE-005-P5-P4DKEYPAYLOAD, MUT-CR-PURCHASE-005-P6-P4DBUILDSTATUS, MUT-CR-PURCHASE-005-P6-P4DBUILDHASH, MUT-CR-PURCHASE-005-P10-P4DBUILDEXPIRY, MUT-CR-PURCHASE-005-P6-P4DCALLDATAOVERWRITE, MUT-CR-PURCHASE-005-P6-P4DTWOBUILDS, MUT-CR-PURCHASE-005-P7-P4DSUBMITSTATUS, MUT-CR-PURCHASE-005-P10-P4DSUBMITDEADLINE, MUT-CR-PURCHASE-005-P8-P4DNOTXUNIQUE, MUT-CR-PURCHASE-005-P7-P4DTXOVERWRITE, MUT-CR-PURCHASE-005-P9-P4DNOCOVERUNIQUE, MUT-CR-PURCHASE-005-P9-P4DCONFIRMTX, MUT-CR-PURCHASE-005-P11-P4DREOPEN, MUT-CR-PURCHASE-005-P10-P4DSUBMITTEDEXPIRES, MUT-CR-PURCHASE-005-P11-P4DLATEOTHERTX, MUT-CR-PURCHASE-005-P11-P4DLATEFLAG, MUT-CR-PURCHASE-005-P10-P4DOFFBYONE, MUT-CR-PURCHASE-005-P5-P4DOBSZERO, MUT-CR-PURCHASE-005-P5-P4DSERIALCONN"
+				},
+				{
+					"control": "CR-PURCHASE-003",
+					"properties": [
+						"P5",
+						"P6"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-PURCHASE-003-P5-P4DAMOUNT, MUT-CR-PURCHASE-003-P5-P4DWALLET, MUT-CR-PURCHASE-003-P5-P4DTERMS, MUT-CR-PURCHASE-003-P5-P4DPOLCID, MUT-CR-PURCHASE-003-P5-P4DCOMMISSION, MUT-CR-PURCHASE-003-P5-P4DINTENTHASH, MUT-CR-PURCHASE-003-P6-P4DANONINSERT, MUT-CR-PURCHASE-003-P6-P4DAUTHUPDATE, MUT-CR-PURCHASE-003-P6-P4DDELETE, MUT-CR-PURCHASE-003-P6-P4DSEARCHPATH"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node",
+				"postgres"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-PURCHASE-005-P5-P4DNOACTIVEIDX",
+					"MUT-CR-PURCHASE-005-P5-P4DTWOACTIVE",
+					"MUT-CR-PURCHASE-005-P5-P4DNOREQKEY",
+					"MUT-CR-PURCHASE-005-P5-P4DKEYPAYLOAD",
+					"MUT-CR-PURCHASE-005-P6-P4DBUILDSTATUS",
+					"MUT-CR-PURCHASE-005-P6-P4DBUILDHASH",
+					"MUT-CR-PURCHASE-005-P10-P4DBUILDEXPIRY",
+					"MUT-CR-PURCHASE-005-P6-P4DCALLDATAOVERWRITE",
+					"MUT-CR-PURCHASE-005-P6-P4DTWOBUILDS",
+					"MUT-CR-PURCHASE-005-P7-P4DSUBMITSTATUS",
+					"MUT-CR-PURCHASE-005-P10-P4DSUBMITDEADLINE",
+					"MUT-CR-PURCHASE-005-P8-P4DNOTXUNIQUE",
+					"MUT-CR-PURCHASE-005-P7-P4DTXOVERWRITE",
+					"MUT-CR-PURCHASE-005-P9-P4DNOCOVERUNIQUE",
+					"MUT-CR-PURCHASE-005-P9-P4DCONFIRMTX",
+					"MUT-CR-PURCHASE-005-P11-P4DREOPEN",
+					"MUT-CR-PURCHASE-005-P10-P4DSUBMITTEDEXPIRES",
+					"MUT-CR-PURCHASE-005-P11-P4DLATEOTHERTX",
+					"MUT-CR-PURCHASE-005-P11-P4DLATEFLAG",
+					"MUT-CR-PURCHASE-003-P5-P4DAMOUNT",
+					"MUT-CR-PURCHASE-003-P5-P4DWALLET",
+					"MUT-CR-PURCHASE-003-P5-P4DTERMS",
+					"MUT-CR-PURCHASE-003-P5-P4DPOLCID",
+					"MUT-CR-PURCHASE-003-P5-P4DCOMMISSION",
+					"MUT-CR-PURCHASE-003-P5-P4DINTENTHASH",
+					"MUT-CR-PURCHASE-003-P6-P4DANONINSERT",
+					"MUT-CR-PURCHASE-003-P6-P4DAUTHUPDATE",
+					"MUT-CR-PURCHASE-003-P6-P4DDELETE",
+					"MUT-CR-PURCHASE-003-P6-P4DSEARCHPATH",
+					"MUT-CR-PURCHASE-005-P10-P4DOFFBYONE",
+					"MUT-CR-PURCHASE-005-P5-P4DOBSZERO",
+					"MUT-CR-PURCHASE-005-P5-P4DSERIALCONN"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-PURCHASE-003",
+				"CR-PURCHASE-005"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-005[P10,P11,P5,P6,P7,P8,P9]: mutation cases: MUT-CR-PURCHASE-005-P5-P4DNOACTIVEIDX, MUT-CR-PURCHASE-005-P5-P4DTWOACTIVE, MUT-CR-PURCHASE-005-P5-P4DNOREQKEY, MUT-CR-PURCHASE-005-P5-P4DKEYPAYLOAD, MUT-CR-PURCHASE-005-P6-P4DBUILDSTATUS, MUT-CR-PURCHASE-005-P6-P4DBUILDHASH, MUT-CR-PURCHASE-005-P10-P4DBUILDEXPIRY, MUT-CR-PURCHASE-005-P6-P4DCALLDATAOVERWRITE, MUT-CR-PURCHASE-005-P6-P4DTWOBUILDS, MUT-CR-PURCHASE-005-P7-P4DSUBMITSTATUS, MUT-CR-PURCHASE-005-P10-P4DSUBMITDEADLINE, MUT-CR-PURCHASE-005-P8-P4DNOTXUNIQUE, MUT-CR-PURCHASE-005-P7-P4DTXOVERWRITE, MUT-CR-PURCHASE-005-P9-P4DNOCOVERUNIQUE, MUT-CR-PURCHASE-005-P9-P4DCONFIRMTX, MUT-CR-PURCHASE-005-P11-P4DREOPEN, MUT-CR-PURCHASE-005-P10-P4DSUBMITTEDEXPIRES, MUT-CR-PURCHASE-005-P11-P4DLATEOTHERTX, MUT-CR-PURCHASE-005-P11-P4DLATEFLAG, MUT-CR-PURCHASE-005-P10-P4DOFFBYONE, MUT-CR-PURCHASE-005-P5-P4DOBSZERO, MUT-CR-PURCHASE-005-P5-P4DSERIALCONN; CR-PURCHASE-003[P5,P6]: mutation cases: MUT-CR-PURCHASE-003-P5-P4DAMOUNT, MUT-CR-PURCHASE-003-P5-P4DWALLET, MUT-CR-PURCHASE-003-P5-P4DTERMS, MUT-CR-PURCHASE-003-P5-P4DPOLCID, MUT-CR-PURCHASE-003-P5-P4DCOMMISSION, MUT-CR-PURCHASE-003-P5-P4DINTENTHASH, MUT-CR-PURCHASE-003-P6-P4DANONINSERT, MUT-CR-PURCHASE-003-P6-P4DAUTHUPDATE, MUT-CR-PURCHASE-003-P6-P4DDELETE, MUT-CR-PURCHASE-003-P6-P4DSEARCHPATH"
 		}
 	]
 }
