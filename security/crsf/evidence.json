@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zb",
+	"crsf_version": "1.0-draft-phase2zc",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -8575,6 +8575,183 @@
 				"CR-COMMISSION-001",
 				"CR-PURCHASE-003",
 				"CR-PURCHASE-005"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
+			"id": "EV-PURCHASE-TERMS",
+			"control_ids": [
+				"CR-TERMS-001"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/purchase-terms.test.mjs",
+			"test_or_proof": "test/purchase-terms.test.mjs",
+			"property_proven": "Behaviourally, against the pure module: the terms hash is deterministic over a fixed ABI layout and independent of wallet spelling; it changes with every bound text reference, wording, annex, wallet and intent id; unknown, superseded and wrong-category references, missing acknowledgements, booleans and caller hashes are rejected; a stored record with a wrong hash is invalid; text versions are pinned by digest; unconfirmed Nexus texts have no wording and block readiness (BLOCKED_NEXUS_TEXT before BLOCKED_SOURCE_PIN before READY_MODEL_ONLY), and no readiness means buy; the hash validates in and binds the P4A intent, whose transactional readiness stays BLOCKED_PROOF_OF_LOSS; the module has no I/O, signing or transaction surface.",
+			"property_not_proven": "the content of the Nexus-required texts (CR-TERMS-002); display of the texts to the user and capture of the acknowledgement (later UI phase)",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-TERMS-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/purchase-terms.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-PURCHASE-POL",
+			"control_ids": [
+				"CR-POL-001"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/purchase-proof-of-loss.test.mjs",
+			"test_or_proof": "test/purchase-proof-of-loss.test.mjs",
+			"property_proven": "Behaviourally, against the pure module: the payload is built from the wallet only and is exactly { creatorAddress, proofOfLoss: [address entry with the wallet] }; creator, address or owner other than the wallet, a second address or entry, other entry types, named personal / credential / file / free-text fields and any unknown field are rejected; a locally valid payload stays BLOCKED_NEXUS_CONFIRMATION with the open questions listed; the module imports only the P4A module, contains no network, upload, signature, hashing or CID code, does not call fetch when used, and no runtime file imports it.",
+			"property_not_proven": "Nexus server semantics and claim validity (CR-POL-002); the transmission itself (not implemented)",
+			"coverage": "FULL",
+			"reason_for_partial": null,
+			"covers": [
+				{
+					"control": "CR-POL-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3",
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/purchase-proof-of-loss.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-PURCHASE-TERMS-POL",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 18 case(s)",
+			"property_proven": "Each listed weakening of the terms hash binding, text version resolution, readiness gate, wallet binding, minimality, purity and reachability is detected by the intended test.",
+			"property_not_proven": "weakenings beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-TERMS-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-TERMS-001-P1-P4BWORDING, MUT-CR-TERMS-001-P1-P4BANNEX, MUT-CR-TERMS-001-P1-P4BWALLET, MUT-CR-TERMS-001-P1-P4BINTENT, MUT-CR-TERMS-001-P1-P4BPOS, MUT-CR-TERMS-001-P1-P4BCOUNTRY, MUT-CR-TERMS-001-P1-P4BMEMBER, MUT-CR-TERMS-001-P2-P4BVERSION, MUT-CR-TERMS-001-P3-P4BUNRESOLVED"
+				},
+				{
+					"control": "CR-POL-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3",
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-POL-001-P2-P4BCREATOR, MUT-CR-POL-001-P2-P4BADDRESS, MUT-CR-POL-001-P1-P4BSECOND, MUT-CR-POL-001-P3-P4BFREETEXT, MUT-CR-POL-001-P3-P4BEXTRA, MUT-CR-POL-001-P4-P4BFAKECID, MUT-CR-POL-001-P4-P4BPOST, MUT-CR-POL-001-P4-P4BEIP712, MUT-CR-POL-001-P4-P4BREACH"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-TERMS-001-P1-P4BWORDING",
+					"MUT-CR-TERMS-001-P1-P4BANNEX",
+					"MUT-CR-TERMS-001-P1-P4BWALLET",
+					"MUT-CR-TERMS-001-P1-P4BINTENT",
+					"MUT-CR-TERMS-001-P1-P4BPOS",
+					"MUT-CR-TERMS-001-P1-P4BCOUNTRY",
+					"MUT-CR-TERMS-001-P1-P4BMEMBER",
+					"MUT-CR-TERMS-001-P2-P4BVERSION",
+					"MUT-CR-TERMS-001-P3-P4BUNRESOLVED",
+					"MUT-CR-POL-001-P2-P4BCREATOR",
+					"MUT-CR-POL-001-P2-P4BADDRESS",
+					"MUT-CR-POL-001-P1-P4BSECOND",
+					"MUT-CR-POL-001-P3-P4BFREETEXT",
+					"MUT-CR-POL-001-P3-P4BEXTRA",
+					"MUT-CR-POL-001-P4-P4BFAKECID",
+					"MUT-CR-POL-001-P4-P4BPOST",
+					"MUT-CR-POL-001-P4-P4BEIP712",
+					"MUT-CR-POL-001-P4-P4BREACH"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-POL-001",
+				"CR-TERMS-001"
 			],
 			"coverage": "FULL",
 			"reason_for_partial": null

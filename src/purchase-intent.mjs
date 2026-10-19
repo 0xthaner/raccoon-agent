@@ -78,14 +78,17 @@ export function parseRawUint(value, { max = UINT256_MAX, positive = false } = {}
 }
 
 const isSafeTimestamp = (t) => Number.isSafeInteger(t) && t > 0 && t < TIMESTAMP_MAX;
-const isCid = (c) => typeof c === 'string' && (CID_V0.test(c) || CID_V1_BASE32.test(c));
+export const isCid = (c) => typeof c === 'string' && (CID_V0.test(c) || CID_V1_BASE32.test(c));
 
-function normalizeWallet(value) {
+/** Kanonische Wallet: Kleinschreibung; gemischte Schreibweise nur mit gueltiger EIP-55-Pruefsumme. null bei ungueltig. */
+export function normalizeWallet(value) {
 	if (typeof value !== 'string' || !/^0x[0-9a-fA-F]{40}$/.test(value)) return null;
 	// gemischte Schreibweise nur mit gueltiger EIP-55-Pruefsumme
 	if (value !== value.toLowerCase() && value.slice(2) !== value.slice(2).toUpperCase() && !isAddress(value, { strict: true })) return null;
 	return value.toLowerCase();
 }
+
+export const isIntentId = (value) => typeof value === 'string' && UUID.test(value);
 
 /**
  * Prueft einen Intent gegen das P4A-Modell. Liefert { ok: true, intent } mit kanonischen Werten

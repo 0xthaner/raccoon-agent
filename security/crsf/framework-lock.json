@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zb",
+	"crsf_version": "1.0-draft-phase2zc",
 	"profile_rules_digest": "59da3e481750b5c7687099ad6c8a4dc9669e65b17141f2826fbcb9e67a847e9f",
 	"controls": {
 		"CR-ALLOC-001": {
@@ -1014,6 +1014,27 @@
 			"properties_digest": "1b00eea81ed46b20450ae61b14ec9c2a0a61e94d694b8ed8e1abf3425db4f580",
 			"derivation_digest": "33b3a2ee52796587834c67180081ade9f4cbc92637fef13d4f657f9dab7bb161"
 		},
+		"CR-POL-001": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V14.2.6"
+			],
+			"properties_digest": "db096b025003eb777d53094d450b3e5a7a0e0ce8daaef74833d69193856a3ff8",
+			"derivation_digest": "a701ade6bf0af3a506d9421c73aee5c5dcbd9f2a4bdd0437291066ed6221ab58"
+		},
+		"CR-POL-002": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V14.2.3",
+				"V14.2.7"
+			],
+			"properties_digest": "e4a6dab44c4757af6881ea305a1820f37e19159427af5a0e61553bbee8f6a4ac",
+			"derivation_digest": "169c33a63c1a6eacd96f5c3fba9b7de509d1ee93e77864ce61519768f83406a1"
+		},
 		"CR-PRIV-001": {
 			"release_class": "SECURITY_DEBT",
 			"minimum_evidence_level": "E3",
@@ -1599,6 +1620,26 @@
 			],
 			"properties_digest": "63f854093bbebcb2a24b7c08f32f1cf0ae0a7fea1cd9c4e05f2e105be47be7bf",
 			"derivation_digest": "dda2cba7d56ac04c0825eb0f351d113dd73a83bc6a7793bc8903694d79353a8e"
+		},
+		"CR-TERMS-001": {
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.2.3"
+			],
+			"properties_digest": "dcc585d1b145db2a1a402bb76344ba3b6ff56332c4f557457e803596b1fbc81a",
+			"derivation_digest": "289a1eed29add581ac62fa068b8099f64af73464103f17a9f6bcfb3f386f4826"
+		},
+		"CR-TERMS-002": {
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"applicability": "APPLICABLE",
+			"external_requirement_ids": [
+				"V2.3.2"
+			],
+			"properties_digest": "a753444dc014c6069fd805a6fa306d611733db0ec4f9976e86a9900748729405",
+			"derivation_digest": "ee4a5cafef4856d3c44eb7c8f3d37aefce87a5b995768ea86726044b75010858"
 		},
 		"CR-TLS-001": {
 			"release_class": "MANUAL_ASSURANCE",

@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zb",
+	"crsf_version": "1.0-draft-phase2zc",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -12375,6 +12375,366 @@
 				"independent_classes": 2,
 				"shared_fixture_groups": []
 			}
+		},
+		{
+			"domain": "CR-TERMS",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Pure module present (Nexus P4B); not reachable from any runtime path, no transmission and no transaction capability.",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-TERMS-001",
+			"title": "Purchase acknowledgements bound to exact text versions, documents, wallet and intent",
+			"applies_to": [
+				"src/purchase-terms.mjs"
+			],
+			"source_refs": [
+				"SRC-ASVS V2.2.3",
+				"SRC-NEXUS-WORDING"
+			],
+			"external_requirement_ids": [
+				"V2.2.3"
+			],
+			"external_requirement": "Related data items are consistent with each other (V2.2.3).",
+			"coverraccoon_requirement": "An acknowledgement is a canonical record of exact versioned text references (id@version of the CoverRaccoon explanation, Nexus distributor disclosure, restricted-country and membership-at-claim texts), the wording and annex CIDs, the wallet and the intent id; its terms hash (keccak256 over abi.encode, domain coverraccoon.terms, version 1) is recomputed, never taken from the caller, and is what the purchase intent binds. Unconfirmed Nexus texts have no wording and block every readiness beyond the model.",
+			"threat": "a user is held to terms other than those shown, or unconfirmed wording is presented as Nexus wording",
+			"expected_property": "exact text versions bound; unresolved texts block",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "the terms hash changes with any of the bound text version references, the wording CID, the annex CID, the wallet or the intent id"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "an unknown, superseded or wrong-category text reference, a missing acknowledgement, a bare boolean or a caller-supplied terms hash is rejected; published text versions are immutable"
+				},
+				{
+					"id": "P3",
+					"kind": "REQUIREMENT",
+					"text": "a required text whose source status is NEXUS_CONFIRMATION_REQUIRED (or that has no wording) prevents every readiness beyond the model; no result means ready to buy"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-PURCHASE-TERMS-POL",
+				"EV-PURCHASE-TERMS"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-PURCHASE-TERMS",
+						"EV-KB-PURCHASE-TERMS-POL"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-PURCHASE-TERMS",
+						"EV-KB-PURCHASE-TERMS-POL"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P3": {
+					"satisfied_by": [
+						"EV-PURCHASE-TERMS",
+						"EV-KB-PURCHASE-TERMS-POL"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 3 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 3 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-TERMS",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Obligation recorded for the purchase phases; evidence can only come from Nexus. No purchase path exists; must become RELEASE_BLOCKING before any real transaction code.",
+			"profile_level": "ASVS_L2",
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"automation": "NO",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-TERMS-002",
+			"title": "Nexus-required purchase texts confirmed by Nexus",
+			"applies_to": [
+				"src/purchase-terms.mjs"
+			],
+			"source_refs": [
+				"SRC-ASVS V2.3.2",
+				"SRC-NEXUS-WORDING"
+			],
+			"external_requirement_ids": [
+				"V2.3.2"
+			],
+			"external_requirement": "Business logic limits and rules are implemented as documented (V2.3.2).",
+			"coverraccoon_requirement": "Before any real purchase: Nexus confirms the mandatory distributor / point-of-sale wording, the restricted-country acknowledgement (wording and jurisdiction source) and the acceptability of the membership-at-claim text; the deployed Claims contract is pinned.",
+			"threat": "purchases made under incomplete or wrong distributor terms",
+			"expected_property": "texts confirmed, sources pinned",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "Nexus has confirmed the mandatory distributor / point-of-sale wording and it is recorded as a new text version"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "Nexus has confirmed the restricted-country acknowledgement and its jurisdiction source"
+				},
+				{
+					"id": "P3",
+					"kind": "REQUIREMENT",
+					"text": "the membership-at-claim text is accepted by Nexus and the deployed Claims contract source is pinned"
+				}
+			],
+			"required_evidence_types": [
+				"static",
+				"config",
+				"manual"
+			],
+			"current_evidence_ids": [],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P3": {
+					"satisfied_by": [],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status_reason": "P1 unsatisfied; P2 unsatisfied; P3 unsatisfied",
+			"security_status": "MISSING_EVIDENCE",
+			"security_status_reason": "P1 unsatisfied; P2 unsatisfied; P3 unsatisfied",
+			"deviation_ids": [],
+			"independence": null
+		},
+		{
+			"domain": "CR-POL",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Pure module present (Nexus P4B); not reachable from any runtime path, no transmission and no transaction capability.",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-POL-001",
+			"title": "Proof-of-loss payload bound to the authenticated wallet and minimal (P4B, local only)",
+			"applies_to": [
+				"src/purchase-proof-of-loss.mjs"
+			],
+			"source_refs": [
+				"SRC-ASVS V14.2.6",
+				"SRC-NEXUS-SDK"
+			],
+			"external_requirement_ids": [
+				"V14.2.6"
+			],
+			"external_requirement": "Only the minimum required sensitive data is processed (V14.2.6).",
+			"coverraccoon_requirement": "For product 97 the proof-of-loss payload is built only from the authenticated wallet: creatorAddress == wallet == the single proof-of-loss address == cover owner; no label, free text, credential, file, identity data or second address; built and checked locally only, with no transmission, upload, signature, storage or CID.",
+			"threat": "claim evidence bound to a wrong or third-party address, or personal data collected beyond need",
+			"expected_property": "one wallet, nothing else, nothing sent",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "the payload contains exactly one proof-of-loss entry of type address with exactly one address: the authenticated wallet"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "creatorAddress, the proof-of-loss address and the cover owner all equal the authenticated wallet"
+				},
+				{
+					"id": "P3",
+					"kind": "REQUIREMENT",
+					"text": "no additional personal, sensitive or free-form content is accepted (name, email, IP, user agent, API key, notes, free text, files, CSV, labels, further wallets, unknown fields)"
+				},
+				{
+					"id": "P4",
+					"kind": "REQUIREMENT",
+					"text": "the module performs no network, upload, signature or storage operation, creates no CID and is imported by no runtime code"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-PURCHASE-TERMS-POL",
+				"EV-PURCHASE-POL"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-PURCHASE-POL",
+						"EV-KB-PURCHASE-TERMS-POL"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-PURCHASE-POL",
+						"EV-KB-PURCHASE-TERMS-POL"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P3": {
+					"satisfied_by": [
+						"EV-PURCHASE-POL",
+						"EV-KB-PURCHASE-TERMS-POL"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P4": {
+					"satisfied_by": [
+						"EV-PURCHASE-POL",
+						"EV-KB-PURCHASE-TERMS-POL"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 4 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 4 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-POL",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Obligation recorded for the purchase phases; evidence can only come from Nexus. No purchase path exists; must become RELEASE_BLOCKING before any real transaction code.",
+			"profile_level": "ASVS_L2",
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"automation": "NO",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-POL-002",
+			"title": "Proof-of-loss server semantics and claim validity confirmed by Nexus",
+			"applies_to": [
+				"src/purchase-proof-of-loss.mjs"
+			],
+			"source_refs": [
+				"SRC-ASVS V14.2.3",
+				"SRC-ASVS V14.2.7",
+				"SRC-NEXUS-SDK",
+				"SRC-NEXUS-POL-BLOG"
+			],
+			"external_requirement_ids": [
+				"V14.2.3",
+				"V14.2.7"
+			],
+			"external_requirement": "Sensitive data goes to third parties only as required and under known protection (V14.2.3); retention is defined (V14.2.7).",
+			"coverraccoon_requirement": "Before any real purchase Nexus answers: claim validity of an empty ipfsData for product 97; whether a distributor may create metadata without the wallet signing; whether creatorAddress must equal the buyer/owner; idempotency and retries of POST /v2/cover-metadata; retention, deletion and encryption of the stored data.",
+			"threat": "a cover is bought that cannot be claimed, or user data is stored under unknown terms",
+			"expected_property": "server semantics and claim validity confirmed",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "Nexus has confirmed whether a product 97 cover without proof-of-loss metadata is claimable"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "Nexus has confirmed whether a distributor may create proof-of-loss metadata for a wallet without its signature and whether creatorAddress must equal the cover owner"
+				},
+				{
+					"id": "P3",
+					"kind": "REQUIREMENT",
+					"text": "Nexus has documented idempotency and retry semantics of metadata creation"
+				},
+				{
+					"id": "P4",
+					"kind": "REQUIREMENT",
+					"text": "Nexus has documented retention, deletion and encryption of proof-of-loss data"
+				}
+			],
+			"required_evidence_types": [
+				"static",
+				"config",
+				"manual"
+			],
+			"current_evidence_ids": [],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P3": {
+					"satisfied_by": [],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P4": {
+					"satisfied_by": [],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status_reason": "P1 unsatisfied; P2 unsatisfied; P3 unsatisfied; P4 unsatisfied",
+			"security_status": "MISSING_EVIDENCE",
+			"security_status_reason": "P1 unsatisfied; P2 unsatisfied; P3 unsatisfied; P4 unsatisfied",
+			"deviation_ids": [],
+			"independence": null
 		}
 	]
 }

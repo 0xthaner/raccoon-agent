@@ -89,7 +89,9 @@
 						"CR-QUOTE",
 						"CR-PURCHASE",
 						"CR-COMMISSION",
-						"CR-ALLOC"
+						"CR-ALLOC",
+						"CR-TERMS",
+						"CR-POL"
 					]
 				},
 				"source_refs": {

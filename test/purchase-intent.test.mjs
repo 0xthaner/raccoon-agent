@@ -315,15 +315,18 @@ function walk(dir) {
 	return out;
 }
 
+/** Die reinen Kauf-Module (P4A, P4B); sie duerfen einander importieren, Laufzeitcode keins. */
+const PURE_PURCHASE = [SRC, 'src/purchase-terms.mjs', 'src/purchase-proof-of-loss.mjs'];
+
 test('P4A-IMPORT no runtime code imports the purchase-intent module; only tests do', () => {
-	const runtime = [...walk('src'), ...walk('api'), ...walk('web'), ...walk('scripts')].filter((f) => f !== SRC && !f.startsWith('web/dist'));
+	const runtime = [...walk('src'), ...walk('api'), ...walk('web'), ...walk('scripts')].filter((f) => !PURE_PURCHASE.includes(f) && !f.startsWith('web/dist'));
 	assert.ok(runtime.some((f) => f.startsWith('api/')) && runtime.some((f) => f.startsWith('web/src/')) && runtime.includes('src/bot.mjs'), 'the scan covers api, web, bot');
 	for (const file of runtime) {
 		const text = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 		assert.doesNotMatch(text, /purchase-intent(\.mjs)?['"`]/, file);
 	}
-	// importiert (statisch oder dynamisch) wird es nur von diesem Test; andere Tests duerfen den Pfad nennen
+	// importiert (statisch oder dynamisch) wird es nur von Tests der reinen Kauf-Module; andere Tests duerfen den Pfad nennen
 	const importing = /(?:from\s*|import\s*\(\s*)['"`][^'"`]*purchase-intent\.mjs/;
 	const testers = walk('test').filter((f) => importing.test(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')));
-	assert.deepEqual(testers, ['test/purchase-intent.test.mjs']);
+	assert.deepEqual(testers, ['test/purchase-intent.test.mjs', 'test/purchase-terms.test.mjs']);
 });

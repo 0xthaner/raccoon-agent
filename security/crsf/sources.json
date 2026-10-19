@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zb",
+	"crsf_version": "1.0-draft-phase2zc",
 	"sources": [
 		{
 			"id": "SRC-ASVS",
@@ -224,6 +224,26 @@
 			"url": "https://github.com/NexusMutual/smart-contracts/blob/070972503a471b6e14d01213aca4cf41e156c215/contracts/modules/cover/Cover.sol",
 			"pin": "proxy 0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62 (OwnedUpgradeabilityProxy, implementation slot keccak256(\"org.govblocks.proxy.implementation\")) -> implementation 0xcafeafF1a21418f530Feb00C6BAeF07523979C05 (deployed block 24476528, tx 0xb2e2418bde74537a62d68ff63c099ead01a963cc313f54c36d6375a7a6a550f6, 2026-02-17); source tag v3.3.0 = commit 070972503a471b6e14d01213aca4cf41e156c215; solc 0.8.28+commit.7893614a, optimizer runs 200, evmVersion prague; runtime keccak256 0x2ecdeb32b923da39e181ca3fd7f2aa543e7e35e3db146f79327993f3b796a530, 23948 bytes, metadata ipfs QmVvxQParTb5FBNEDYsP4Wjpwj7G5ZqjaRcxSTc5Wwudht; match DECLARED_IMMUTABLES_ONLY (964 bytes, all in immutableReferences; CBOR identical; address immutables equal on-chain getters); v3.4.0 differs only in metadata (IPool.sol); independent recompilation 2026-10-18: GitHub sources at the commit (import closure) + @openzeppelin/contracts 4.7.3 (npm sha512 = package-lock), official soljson-v0.8.28+commit.7893614a.js (sha256 0x72ef580a6ec5943130028e5294313f24e9435520acc89f8c9dbfd0139d9ae146), optimizer enabled runs 200, settings of hardhat-config/solidity.js at the tag (ENABLE_OPTIMIZER); fixtures runtime-cover-impl-cafeaff1.hex 23ca356ed7e3ecf83cb16f914d4afc489fa20c939f12f01228d8193205ecc9a9, contract-builds.json bca90ebe047e836acab959c967353613758731c58271bce6af827d29bb046ac3",
 			"note": "Untrusted third-party code, verified by recompilation. The implementation is upgradeable by Nexus governance; this pin holds only while the proxy points at 0xcafeafF1... and must be re-verified before any transactional use."
+		},
+		{
+			"id": "SRC-NEXUS-SDK",
+			"org": "Nexus Mutual",
+			"title": "@nexusmutual/sdk (cover metadata / proof-of-loss client code)",
+			"version": "3.1.1",
+			"date": "2026-10-18 (downloaded), 2026-10-19 (read)",
+			"url": "https://www.npmjs.com/package/@nexusmutual/sdk/v/3.1.1",
+			"pin": "npm tarball nexusmutual-sdk-3.1.1.tgz sha512-1DKvkt1RO5dsJrROtGAG18ktRSLLyB9RWF3i+nF6wL8CyIRwLUj+RI3kd+2STc1XMHGocAQnwy23DiXm+bYuJQ== (sha256 06d59bcc3063d9a72dbbfbad94d40323c65c57cd77398ee740cbd27a83937c5f), dist/index.js sha256 b0235a26abe3fccb7d84a3d4ace3454457baed068fa0dff8c33055eab3bdc186; read: CoverMetadataInput { creatorAddress, proofOfLoss?: [{ type, content }], publicData? }, ProofOfLossEntry type address content [{ address, label? }], createCoverMetadata POST /cover-metadata (creatorAddress lowercased) -> { cid }, view/edit with x-auth-signature / x-auth-payload (EIP-712 domain \"Nexus Mutual App\" 1.0.0, Authentication { timestamp, message }), coverMetadataRef { version \"1.0\", coverMetadata: uuid }",
+			"note": "OBSERVED_SDK: client code, not Nexus server semantics. Not used or imported (GPL-3.0 review open); only the payload shape is followed. Nothing is sent."
+		},
+		{
+			"id": "SRC-NEXUS-POL-BLOG",
+			"org": "Nexus Mutual",
+			"title": "Upfront Proof of Loss (blog)",
+			"version": "retrieved 2026-10-19",
+			"date": "2026-10-19",
+			"url": "https://nexusmutual.io/blog/upfront-proof-of-loss",
+			"pin": "unversioned web page, not content-pinned; read 2026-10-19: covered wallet details entered in a private field at purchase, stored in an offchain database, visible and editable only by the wallet holder (sign-to-reveal)",
+			"note": "OBSERVED_PUBLIC_NEXUS_CONTENT: no API schema, no retention or deletion terms, nothing about distributors."
 		}
 	],
 	"deferred_sources": [
@@ -318,6 +338,18 @@
 			"change": "CORRECTED",
 			"id": "SRC-NEXUS-CONTRACTS",
 			"reason": "F-2Z-1 source-integrity correction: the entry named smart-contracts v3.4.0 next to all SDK mainnet addresses, which implied v3.4.0 for the CoverBroker; the deployed broker is v2.12.1. Pin text now limits the entry to the Cover period limits and points to the per-contract pins. The v3.4.0 period-limit facts are unchanged (Cover.sol identical in v3.3.0). Previous text kept in the 1.0-draft-phase2y history."
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zc",
+			"change": "ADDED",
+			"id": "SRC-NEXUS-SDK",
+			"reason": "P4B: payload shape of the proof-of-loss preparation (CR-POL-001) and open server questions (CR-POL-002)"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zc",
+			"change": "ADDED",
+			"id": "SRC-NEXUS-POL-BLOG",
+			"reason": "P4B: public Nexus statement on proof-of-loss storage, recorded as observation only (CR-POL-002)"
 		}
 	],
 	"vendored": [

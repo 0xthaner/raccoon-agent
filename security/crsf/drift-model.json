@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zb",
+	"crsf_version": "1.0-draft-phase2zc",
 	"rules": [
 		{
 			"pattern": "src/*auth*",
@@ -307,6 +307,18 @@
 				"CR-ALLOC",
 				"CR-COMMISSION",
 				"CR-PURCHASE"
+			]
+		},
+		{
+			"pattern": "src/purchase-terms.mjs",
+			"domains": [
+				"CR-TERMS"
+			]
+		},
+		{
+			"pattern": "src/purchase-proof-of-loss.mjs",
+			"domains": [
+				"CR-POL"
 			]
 		}
 	],

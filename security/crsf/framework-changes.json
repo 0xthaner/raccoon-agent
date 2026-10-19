@@ -1972,6 +1972,55 @@
 					"reason": "domain enums of controls and drift-model extended by CR-PURCHASE, CR-COMMISSION and CR-ALLOC (Nexus P4A pure purchase-intent model); no other schema change, no threshold or class changed"
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zc",
+			"summary": "Nexus P4B: versioned purchase acknowledgement texts and terms hash (src/purchase-terms.mjs), local proof-of-loss payload preparation (src/purchase-proof-of-loss.mjs), both pure and unreachable at runtime. CR-TERMS-001 and CR-POL-001 (RELEASE_BLOCKING, E3) with behavioural evidence and 18 KILLED mutations; CR-TERMS-002 and CR-POL-002 (SECURITY_DEBT, MISSING_EVIDENCE) hold what only Nexus can confirm. Nothing transmitted, signed, uploaded or stored; no CID generated.",
+			"changes": [
+				{
+					"id": "CR-TERMS-001",
+					"kind": "ADDED",
+					"reason": "New control: Purchase acknowledgements bound to exact text versions, documents, wallet and intent. Derivation: Related data items are consistent with each other (V2.2.3). An acknowledgement is a canonical record of exact versioned text references (id@version of the CoverRaccoon explanation, Nexus distributor disclosure, restricted-country and membership-at-claim texts), the wording and annex CIDs, the wallet and the intent id; its terms hash (keccak256 over abi.encode, domain coverraccoon.terms, version 1) is recomputed, never taken from the caller, and is what the purchase intent binds. Unconfirmed Nexus texts have no wording and block every readiness beyond the model.",
+					"rationale": "Each property is tested behaviourally against the pure module and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-TERMS-002",
+					"kind": "ADDED",
+					"reason": "New control: Nexus-required purchase texts confirmed by Nexus. Derivation: Business logic limits and rules are implemented as documented (V2.3.2). Before any real purchase: Nexus confirms the mandatory distributor / point-of-sale wording, the restricted-country acknowledgement (wording and jurisdiction source) and the acceptability of the membership-at-claim text; the deployed Claims contract is pinned.",
+					"rationale": "Recorded so the open Nexus dependency is visible and cannot be satisfied by local tests; no evidence is attached.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-POL-001",
+					"kind": "ADDED",
+					"reason": "New control: Proof-of-loss payload bound to the authenticated wallet and minimal (P4B, local only). Derivation: Only the minimum required sensitive data is processed (V14.2.6). For product 97 the proof-of-loss payload is built only from the authenticated wallet: creatorAddress == wallet == the single proof-of-loss address == cover owner; no label, free text, credential, file, identity data or second address; built and checked locally only, with no transmission, upload, signature, storage or CID.",
+					"rationale": "Each property is tested behaviourally against the pure module and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-POL-002",
+					"kind": "ADDED",
+					"reason": "New control: Proof-of-loss server semantics and claim validity confirmed by Nexus. Derivation: Sensitive data goes to third parties only as required and under known protection (V14.2.3); retention is defined (V14.2.7). Before any real purchase Nexus answers: claim validity of an empty ipfsData for product 97; whether a distributor may create metadata without the wallet signing; whether creatorAddress must equal the buyer/owner; idempotency and retries of POST /v2/cover-metadata; retention, deletion and encryption of the stored data.",
+					"rationale": "Recorded so the open Nexus dependency is visible and cannot be satisfied by local tests; no evidence is attached.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "EV-PURCHASE-INTENT",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "test P4A-IMPORT now treats the pure purchase modules src/purchase-intent.mjs, src/purchase-terms.mjs and src/purchase-proof-of-loss.mjs as one set: they may import each other, every other file under src, api, web and scripts still may not name any of them, and only the purchase tests may import purchase-intent (now test/purchase-intent.test.mjs and test/purchase-terms.test.mjs). src/purchase-intent.mjs additionally exports its existing normalizeWallet, isCid and an isIntentId check so the P4B modules share one normalisation; no behaviour changed, all P4A tests and mutations unchanged."
+				},
+				{
+					"id": "controls.schema.json+drift-model.schema.json",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "domain enums of controls and drift-model extended by CR-TERMS and CR-POL (Nexus P4B); no other schema change"
+				},
+				{
+					"id": "drift-model",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "new rules src/purchase-terms.mjs -> CR-TERMS, src/purchase-proof-of-loss.mjs -> CR-POL; nothing removed"
+				}
+			]
 		}
 	]
 }

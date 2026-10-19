@@ -54,7 +54,9 @@
 								"CR-QUOTE",
 								"CR-PURCHASE",
 								"CR-COMMISSION",
-								"CR-ALLOC"
+								"CR-ALLOC",
+								"CR-TERMS",
+								"CR-POL"
 							]
 						},
 						"minItems": 1

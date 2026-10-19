@@ -13339,6 +13339,617 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-TERMS-001-P1-P4BWORDING",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-TERMS-001",
+					"property": "P1"
+				}
+			],
+			"description": "terms hash omits the wording CID",
+			"edits": [
+				{
+					"file": "src/purchase-terms.mjs",
+					"find": "const all = { ...values, domain: TERMS_DOMAIN,",
+					"replace": "const all = { ...values, wordingCid: '', domain: TERMS_DOMAIN,"
+				}
+			],
+			"tests": [
+				"test/purchase-terms.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-TERMS-HASH wording, annex, wallet, intent and every acknowledgement ID are bound$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-TERMS-001-P1-P4BANNEX",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-TERMS-001",
+					"property": "P1"
+				}
+			],
+			"description": "terms hash omits the annex CID",
+			"edits": [
+				{
+					"file": "src/purchase-terms.mjs",
+					"find": "annexCid: values.annexCid ?? '',",
+					"replace": "annexCid: '',"
+				}
+			],
+			"tests": [
+				"test/purchase-terms.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-TERMS-HASH wording, annex, wallet, intent and every acknowledgement ID are bound$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-TERMS-001-P1-P4BWALLET",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-TERMS-001",
+					"property": "P1"
+				}
+			],
+			"description": "terms hash omits the wallet",
+			"edits": [
+				{
+					"file": "src/purchase-terms.mjs",
+					"find": "const all = { ...values, domain: TERMS_DOMAIN,",
+					"replace": "const all = { ...values, wallet: '0x0000000000000000000000000000000000000000', domain: TERMS_DOMAIN,"
+				}
+			],
+			"tests": [
+				"test/purchase-terms.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-TERMS-HASH wording, annex, wallet, intent and every acknowledgement ID are bound$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-TERMS-001-P1-P4BINTENT",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-TERMS-001",
+					"property": "P1"
+				}
+			],
+			"description": "terms hash omits the intent id",
+			"edits": [
+				{
+					"file": "src/purchase-terms.mjs",
+					"find": "intentId: `0x${values.intentId.replaceAll('-', '')}` };",
+					"replace": "intentId: '0x00000000000000000000000000000000' };"
+				}
+			],
+			"tests": [
+				"test/purchase-terms.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-TERMS-HASH wording, annex, wallet, intent and every acknowledgement ID are bound$"
+				},
+				{
+					"test": "^P4B-CROSS the P4B terms hash validates in the P4A intent, binds it, and readiness stays blocked$"
+				},
+				{
+					"test": "^P4B-TERMS-RECORD the terms hash is recomputed, never trusted from the caller$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-TERMS-001-P1-P4BPOS",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-TERMS-001",
+					"property": "P1"
+				}
+			],
+			"description": "terms hash omits the Nexus distributor disclosure id",
+			"edits": [
+				{
+					"file": "src/purchase-terms.mjs",
+					"find": "const all = { ...values, domain: TERMS_DOMAIN,",
+					"replace": "const all = { ...values, nexusPosDisclosureId: '', domain: TERMS_DOMAIN,"
+				}
+			],
+			"tests": [
+				"test/purchase-terms.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-TERMS-HASH wording, annex, wallet, intent and every acknowledgement ID are bound$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-TERMS-001-P1-P4BCOUNTRY",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-TERMS-001",
+					"property": "P1"
+				}
+			],
+			"description": "terms hash omits the restricted-country acknowledgement id",
+			"edits": [
+				{
+					"file": "src/purchase-terms.mjs",
+					"find": "const all = { ...values, domain: TERMS_DOMAIN,",
+					"replace": "const all = { ...values, restrictedCountryAckId: '', domain: TERMS_DOMAIN,"
+				}
+			],
+			"tests": [
+				"test/purchase-terms.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-TERMS-HASH wording, annex, wallet, intent and every acknowledgement ID are bound$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-TERMS-001-P1-P4BMEMBER",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-TERMS-001",
+					"property": "P1"
+				}
+			],
+			"description": "terms hash omits the membership-at-claim acknowledgement id",
+			"edits": [
+				{
+					"file": "src/purchase-terms.mjs",
+					"find": "const all = { ...values, domain: TERMS_DOMAIN,",
+					"replace": "const all = { ...values, membershipAtClaimAckId: '', domain: TERMS_DOMAIN,"
+				}
+			],
+			"tests": [
+				"test/purchase-terms.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-TERMS-HASH wording, annex, wallet, intent and every acknowledgement ID are bound$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-TERMS-001-P2-P4BVERSION",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-TERMS-001",
+					"property": "P2"
+				}
+			],
+			"description": "an unknown acknowledgement version is accepted (resolved by id only)",
+			"edits": [
+				{
+					"file": "src/purchase-terms.mjs",
+					"find": "const definition = typeof value === 'string' ? byRef.get(value) : undefined;",
+					"replace": "const definition = typeof value === 'string' ? TERMS_TEXTS.find((t) => t.id === value.split('@')[0]) : undefined;"
+				},
+				{
+					"file": "src/purchase-terms.mjs",
+					"find": "if (CURRENT_TEXT_REFS[category] !== value) return { ok: false, error: 'SUPERSEDED_VERSION' };",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-terms.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-TERMS-TEXT unknown, superseded or wrong-category text references are rejected$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-TERMS-001-P3-P4BUNRESOLVED",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-TERMS-001",
+					"property": "P3"
+				}
+			],
+			"description": "an unresolved Nexus disclosure is treated as resolved",
+			"edits": [
+				{
+					"file": "src/purchase-terms.mjs",
+					"find": "const nexus = required.filter((d) => d.statuses.includes('NEXUS_CONFIRMATION_REQUIRED') || (d.category !== 'COVERRACCOON_EXPLANATION' && d.text === null));",
+					"replace": "const nexus = [];"
+				}
+			],
+			"tests": [
+				"test/purchase-terms.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-TERMS-READINESS unresolved Nexus texts block; never ready to buy$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-POL-001-P2-P4BCREATOR",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-POL-001",
+					"property": "P2"
+				}
+			],
+			"description": "creatorAddress may differ from the wallet",
+			"edits": [
+				{
+					"file": "src/purchase-proof-of-loss.mjs",
+					"find": "if (creator !== session) errors.push('CREATOR_NOT_WALLET');",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-proof-of-loss.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-POL-BINDING creator, address and owner must all be the authenticated wallet$"
+				},
+				{
+					"test": "^P4B-POL-READINESS a locally valid payload stays blocked on Nexus confirmation; never ready for purchase$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-POL-001-P2-P4BADDRESS",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-POL-001",
+					"property": "P2"
+				}
+			],
+			"description": "the proof-of-loss address may differ from the wallet",
+			"edits": [
+				{
+					"file": "src/purchase-proof-of-loss.mjs",
+					"find": "if (address !== session) errors.push('ADDRESS_NOT_WALLET');",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-proof-of-loss.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-POL-BINDING creator, address and owner must all be the authenticated wallet$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-POL-001-P1-P4BSECOND",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-POL-001",
+					"property": "P1"
+				}
+			],
+			"description": "a second address is accepted",
+			"edits": [
+				{
+					"file": "src/purchase-proof-of-loss.mjs",
+					"find": "content.length !== PROOF_OF_LOSS_POLICY.addressesPerPayload",
+					"replace": "content.length < 1"
+				}
+			],
+			"tests": [
+				"test/purchase-proof-of-loss.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-POL-MINIMAL a second address, another entry or another type is rejected$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-POL-001-P3-P4BFREETEXT",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-POL-001",
+					"property": "P3"
+				}
+			],
+			"description": "a freeText field is no longer rejected as personal content",
+			"edits": [
+				{
+					"file": "src/purchase-proof-of-loss.mjs",
+					"find": "'notes', 'note', 'freeText', 'free_text',",
+					"replace": "'notes', 'note', 'free_text',"
+				}
+			],
+			"tests": [
+				"test/purchase-proof-of-loss.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-POL-PII personal, free-text, file and credential fields are rejected by name$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-POL-001-P3-P4BEXTRA",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-POL-001",
+					"property": "P3"
+				}
+			],
+			"description": "an arbitrary extra top-level field is accepted",
+			"edits": [
+				{
+					"file": "src/purchase-proof-of-loss.mjs",
+					"find": "if (!exactKeys(payload, ['creatorAddress', 'proofOfLoss'])) errors.push('PAYLOAD_SHAPE');",
+					"replace": "if (!payload || typeof payload !== 'object') errors.push('PAYLOAD_SHAPE');"
+				}
+			],
+			"tests": [
+				"test/purchase-proof-of-loss.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-POL-SHAPE any unknown field anywhere makes the payload invalid$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-POL-001-P4-P4BFAKECID",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-POL-001",
+					"property": "P4"
+				}
+			],
+			"description": "a fake CID is generated locally for the payload",
+			"edits": [
+				{
+					"file": "src/purchase-proof-of-loss.mjs",
+					"find": "return { ok: true, payload: Object.freeze({ creatorAddress: address,",
+					"replace": "return { ok: true, cid: `Qm${address.slice(2, 46)}`, payload: Object.freeze({ creatorAddress: address,"
+				}
+			],
+			"tests": [
+				"test/purchase-proof-of-loss.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-POL-BUILD the payload is exactly the wallet as creator and as the only address$"
+				},
+				{
+					"test": "^P4B-POL-PURE no network, upload, signature, storage or CID in the proof-of-loss module$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-POL-001-P4-P4BPOST",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-POL-001",
+					"property": "P4"
+				}
+			],
+			"description": "a network POST of the payload to Nexus is added",
+			"edits": [
+				{
+					"file": "src/purchase-proof-of-loss.mjs",
+					"find": "export const PROOF_OF_LOSS_STATUS =",
+					"replace": "export const submitProofOfLoss = (payload) => fetch('https://api.nexusmutual.io/v2/cover-metadata', { method: 'POST', body: JSON.stringify(payload) });\nexport const PROOF_OF_LOSS_STATUS ="
+				}
+			],
+			"tests": [
+				"test/purchase-proof-of-loss.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-POL-PURE no network, upload, signature, storage or CID in the proof-of-loss module$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-POL-001-P4-P4BEIP712",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-POL-001",
+					"property": "P4"
+				}
+			],
+			"description": "EIP-712 authentication signing is added",
+			"edits": [
+				{
+					"file": "src/purchase-proof-of-loss.mjs",
+					"find": "export const PROOF_OF_LOSS_STATUS =",
+					"replace": "export const signAuth = (client, message) => client.signTypedData({ domain: { name: 'Nexus Mutual App', version: '1.0.0' }, types: { Authentication: [] }, primaryType: 'Authentication', message });\nexport const PROOF_OF_LOSS_STATUS ="
+				}
+			],
+			"tests": [
+				"test/purchase-proof-of-loss.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-POL-PURE no network, upload, signature, storage or CID in the proof-of-loss module$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-POL-001-P4-P4BREACH",
+			"origin": "new (P4B)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-POL-001",
+					"property": "P4"
+				}
+			],
+			"description": "runtime code (the Telegram bot) imports the proof-of-loss module",
+			"edits": [
+				{
+					"file": "src/bot.mjs",
+					"find": "import { newDashboardAccess, newLinkRequest } from './linking.mjs';",
+					"replace": "import { newDashboardAccess, newLinkRequest } from './linking.mjs';\nimport './purchase-proof-of-loss.mjs';"
+				}
+			],
+			"tests": [
+				"test/purchase-proof-of-loss.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-IMPORT no runtime code imports the terms or proof-of-loss module; only pure purchase modules and their tests do$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

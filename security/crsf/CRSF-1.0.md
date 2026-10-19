@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2zb
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2zc
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -10,28 +10,28 @@
 
 - FAIL: 19
 - INFORMATIONAL: 2
-- MISSING_EVIDENCE: 44
-- PASS_AUTOMATED: 76
+- MISSING_EVIDENCE: 46
+- PASS_AUTOMATED: 78
 - PASS_MANUAL: 24
 
 ### Release classes
 
 - INFORMATIONAL: 2
 - MANUAL_ASSURANCE: 30
-- RELEASE_BLOCKING: 72
-- SECURITY_DEBT: 61
+- RELEASE_BLOCKING: 74
+- SECURITY_DEBT: 63
 
 ### Release-blocking controls by security status
 
-- PASS_AUTOMATED: 72
+- PASS_AUTOMATED: 74
 
 ### Standard conformance (ASVS 5.0.0, applicable requirements)
 
 - ACCEPTED_PLATFORM_DEVIATION: 1
 - ACCEPTED_PROTOCOL_DEVIATION: 2
-- CONFORMANT: 82
+- CONFORMANT: 79
 - NON_CONFORMANT: 21
-- NOT_DEMONSTRATED: 56
+- NOT_DEMONSTRATED: 59
 
 ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Profile: ASVS L2 (all applicable L1 + L2 requirements are in scope); selected L3: V6.7.2, V15.4.2, V15.4.3, V7.5.3, V3.5.8, V14.2.6, V14.2.7, V8.3.2, V2.3.5.
 
@@ -269,6 +269,10 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-PURCHASE-005 | Purchase-intent state model allows only the defined single-use transitions (P4A model) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E3 |
 | CR-COMMISSION-001 | Commission fixed server-side to zero (P4A policy) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
 | CR-ALLOC-001 | Pool allocations validated per verified Cover v3.3.0 semantics | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
+| CR-TERMS-001 | Purchase acknowledgements bound to exact text versions, documents, wallet and intent | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
+| CR-TERMS-002 | Nexus-required purchase texts confirmed by Nexus | SECURITY_DEBT | E1 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied; P2 unsatisfied; P3 unsatisfied |
+| CR-POL-001 | Proof-of-loss payload bound to the authenticated wallet and minimal (P4B, local only) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E3 |
+| CR-POL-002 | Proof-of-loss server semantics and claim validity confirmed by Nexus | SECURITY_DEBT | E1 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied; P2 unsatisfied; P3 unsatisfied; P4 unsatisfied |
 
 ## 5. Evidence
 
@@ -409,10 +413,13 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-KB-NEXUS-SOURCE | known-bad | E4 | mutation | FULL | yes | The old v3.4.0 broker pin, a wrong broker immutable, the broker pinned to the Cover source, and the Cover pinned to v3.4.0 are each detected by the intended test. |
 | EV-PURCHASE-INTENT | behavioral | E3 | node-test | FULL | yes | Behaviourally, against the pure module: a valid intent validates and hashes stably and independently of key order and wallet spelling; changing any model field or any contract pin changes the hash; every listed policy violation, unknown/derived/caller-hash field and non-canonical raw amount is rejected and has no hash, 2^96-1 and 2^53+1 round-trip exactly; exactly the 8 allowed transitions hold over all 49 pairs, terminal states have none, SUBMITTED expires never and keeps a late outcome; expiry only with an explicit time; readiness is never send-ready and proof of loss blocks every transaction; commission only 0/0x0; the real 1000 USDC quote (1000192871) passes, below-requested, off-total, over-cap, duplicate, zero and oversized lists fail; the module imports only viem and nexus-pinned, touches no network or clock when called, emits no transaction shape, and no file under src, api, web or scripts imports it. |
 | EV-KB-PURCHASE-INTENT | known-bad | E4 | mutation | FULL | yes | Each listed weakening of the hash, validation, integer parsing, purity, reachability, commission policy, transition table, expiry and allocation rules is detected by the intended test. |
+| EV-PURCHASE-TERMS | behavioral | E3 | node-test | FULL | yes | Behaviourally, against the pure module: the terms hash is deterministic over a fixed ABI layout and independent of wallet spelling; it changes with every bound text reference, wording, annex, wallet and intent id; unknown, superseded and wrong-category references, missing acknowledgements, booleans and caller hashes are rejected; a stored record with a wrong hash is invalid; text versions are pinned by digest; unconfirmed Nexus texts have no wording and block readiness (BLOCKED_NEXUS_TEXT before BLOCKED_SOURCE_PIN before READY_MODEL_ONLY), and no readiness means buy; the hash validates in and binds the P4A intent, whose transactional readiness stays BLOCKED_PROOF_OF_LOSS; the module has no I/O, signing or transaction surface. |
+| EV-PURCHASE-POL | behavioral | E3 | node-test | FULL | yes | Behaviourally, against the pure module: the payload is built from the wallet only and is exactly { creatorAddress, proofOfLoss: [address entry with the wallet] }; creator, address or owner other than the wallet, a second address or entry, other entry types, named personal / credential / file / free-text fields and any unknown field are rejected; a locally valid payload stays BLOCKED_NEXUS_CONFIRMATION with the open questions listed; the module imports only the P4A module, contains no network, upload, signature, hashing or CID code, does not call fetch when used, and no runtime file imports it. |
+| EV-KB-PURCHASE-TERMS-POL | known-bad | E4 | mutation | FULL | yes | Each listed weakening of the terms hash binding, text version resolution, readiness gate, wallet binding, minimality, purity and reachability is detected by the intended test. |
 
 ## 6. Mutation cases
 
-371 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+389 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -787,6 +794,24 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-ALLOC-001-P1-P4AUNDER | CR-ALLOC-001.P1 | behavioral | KILLED |
 | MUT-CR-ALLOC-001-P2-P4ACAP | CR-ALLOC-001.P2 | behavioral | KILLED |
 | MUT-CR-ALLOC-001-P3-P4ADUP | CR-ALLOC-001.P3 | behavioral | KILLED |
+| MUT-CR-TERMS-001-P1-P4BWORDING | CR-TERMS-001.P1 | behavioral | KILLED |
+| MUT-CR-TERMS-001-P1-P4BANNEX | CR-TERMS-001.P1 | behavioral | KILLED |
+| MUT-CR-TERMS-001-P1-P4BWALLET | CR-TERMS-001.P1 | behavioral | KILLED |
+| MUT-CR-TERMS-001-P1-P4BINTENT | CR-TERMS-001.P1 | behavioral | KILLED |
+| MUT-CR-TERMS-001-P1-P4BPOS | CR-TERMS-001.P1 | behavioral | KILLED |
+| MUT-CR-TERMS-001-P1-P4BCOUNTRY | CR-TERMS-001.P1 | behavioral | KILLED |
+| MUT-CR-TERMS-001-P1-P4BMEMBER | CR-TERMS-001.P1 | behavioral | KILLED |
+| MUT-CR-TERMS-001-P2-P4BVERSION | CR-TERMS-001.P2 | behavioral | KILLED |
+| MUT-CR-TERMS-001-P3-P4BUNRESOLVED | CR-TERMS-001.P3 | behavioral | KILLED |
+| MUT-CR-POL-001-P2-P4BCREATOR | CR-POL-001.P2 | behavioral | KILLED |
+| MUT-CR-POL-001-P2-P4BADDRESS | CR-POL-001.P2 | behavioral | KILLED |
+| MUT-CR-POL-001-P1-P4BSECOND | CR-POL-001.P1 | behavioral | KILLED |
+| MUT-CR-POL-001-P3-P4BFREETEXT | CR-POL-001.P3 | behavioral | KILLED |
+| MUT-CR-POL-001-P3-P4BEXTRA | CR-POL-001.P3 | behavioral | KILLED |
+| MUT-CR-POL-001-P4-P4BFAKECID | CR-POL-001.P4 | behavioral | KILLED |
+| MUT-CR-POL-001-P4-P4BPOST | CR-POL-001.P4 | behavioral | KILLED |
+| MUT-CR-POL-001-P4-P4BEIP712 | CR-POL-001.P4 | behavioral | KILLED |
+| MUT-CR-POL-001-P4-P4BREACH | CR-POL-001.P4 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -811,9 +836,9 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V2.1.3 | L2 | CR-RESOURCE-005, CR-QUOTE-008 | NON_CONFORMANT |
 | V2.2.1 | L1 | CR-API-003, CR-NEXUS-001, CR-NEXUS-003, CR-QUOTE-001, CR-QUOTE-003, CR-QUOTE-004, CR-PURCHASE-003 | CONFORMANT |
 | V2.2.2 | L1 | CR-API-003 | CONFORMANT |
-| V2.2.3 | L2 | CR-INPUT-010, CR-NEXUS-001, CR-NEXUS-002, CR-QUOTE-002, CR-PURCHASE-003, CR-ALLOC-001 | CONFORMANT |
+| V2.2.3 | L2 | CR-INPUT-010, CR-NEXUS-001, CR-NEXUS-002, CR-QUOTE-002, CR-PURCHASE-003, CR-ALLOC-001, CR-TERMS-001 | CONFORMANT |
 | V2.3.1 | L1 | CR-API-009, CR-PURCHASE-005 | CONFORMANT |
-| V2.3.2 | L2 | CR-CONC-002, CR-QUOTE-003, CR-QUOTE-005, CR-COMMISSION-001, CR-ALLOC-001 | CONFORMANT |
+| V2.3.2 | L2 | CR-CONC-002, CR-QUOTE-003, CR-QUOTE-005, CR-COMMISSION-001, CR-ALLOC-001, CR-TERMS-002 | NOT_DEMONSTRATED |
 | V2.3.3 | L2 | CR-CONC-001, CR-CONC-004 | CONFORMANT |
 | V2.3.4 | L2 | CR-CONC-002, CR-CONC-003 | CONFORMANT |
 | V2.3.5 | L3 | CR-API-010 | CONFORMANT |
@@ -916,10 +941,10 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V14.1.2 | L2 | CR-PRIV-006 | NOT_DEMONSTRATED |
 | V14.2.1 | L1 | CR-PRIV-004 | NON_CONFORMANT |
 | V14.2.2 | L2 | CR-PRIV-007 | NOT_DEMONSTRATED |
-| V14.2.3 | L2 | CR-PRIV-003 | CONFORMANT |
+| V14.2.3 | L2 | CR-PRIV-003, CR-POL-002 | NOT_DEMONSTRATED |
 | V14.2.4 | L2 | CR-PRIV-006 | NOT_DEMONSTRATED |
-| V14.2.6 | L3 | CR-API-007, CR-PRIV-001 | NOT_DEMONSTRATED |
-| V14.2.7 | L3 | CR-PRIV-002 | CONFORMANT |
+| V14.2.6 | L3 | CR-API-007, CR-PRIV-001, CR-POL-001 | NOT_DEMONSTRATED |
+| V14.2.7 | L3 | CR-PRIV-002, CR-POL-002 | NOT_DEMONSTRATED |
 | V14.3.1 | L1 | CR-PRIV-008 | NOT_DEMONSTRATED |
 | V14.3.2 | L2 | CR-PRIV-009 | NOT_DEMONSTRATED |
 | V14.3.3 | L2 | CR-SESSION-005 | CONFORMANT |
@@ -982,6 +1007,8 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | SRC-NEXUS-QUOTE | [Nexus Mutual public API v2: quote](https://api.nexusmutual.io/v2/quote) | v2 (responses of 2026-10-18) | unversioned API; pinned by captured responses in test/fixtures/nexus (sha256 quote-97-usdc-1000-30d 0c81004cedb1038ec4b2d2d0852a589f9ffefff94f04d92909c09d987b2cb92e, quote-97-eth-1-365d d7556163bfe7c856509a3fa49a972e96a5048c4627a09939cc32403b8a28d233); query parameters productId, amount, period (days), coverAsset, paymentAsset as used by @nexusmutual/sdk 3.1.1 Quote.getQuote (SDK not used); premium = total x annualPrice[bps] x days / (10000 x 365) observed for USDC/ETH/cbBTC; the API itself accepted period 27 and coverAsset DAI for product 97 on 2026-10-18 |
 | SRC-NEXUS-COVERBROKER | [NexusMutual/smart-contracts CoverBroker as deployed at 0xCB2B736652D2dBf7d72e4dB880Cf6B7d99507814](https://github.com/NexusMutual/smart-contracts/blob/20082c81ec1a01e03cd7748c5bfc0396e74af93d/contracts/external/cover/CoverBroker.sol) | v2.12.1 | address 0xCB2B736652D2dBf7d72e4dB880Cf6B7d99507814 (not a proxy); source tag v2.12.1 = commit 20082c81ec1a01e03cd7748c5bfc0396e74af93d (byte-identical sources and runtime at v2.12.0 = 94e1764ec704215a37a60fba2af8290940def5b8; v2.12.1 is the release whose deployments/src/addresses.json introduced this address); solc 0.8.28+commit.7893614a, optimizer runs 200, evmVersion cancun, no libraries; deployed runtime keccak256 0xeb0e42231c9134305a54b102cea19fa29ec57f663a294a35c5bd870d81e9657c, 5245 bytes, metadata ipfs QmYTrtJnwoqumTd33yvNJrL1hb8RNgcCRWhrn9Pqy6ZCJK; match DECLARED_IMMUTABLES_ONLY: 220 differing bytes, all inside the compiler immutableReferences of cover, memberRoles, nxmToken, master, CBOR trailer identical; immutables = on-chain getters (cover 0xcafeac0f..., memberRoles 0x055CC48f..., nxmToken 0xd7c49CEE..., master 0x01BFd826...); creation: compiled creation code + constructor args found in tx 0x10f3551e896d2ffe1473e7a0a0c61191d9635f593e523b514c13f1359ecf9fd1 (block 22375780, 2025-04-29), CREATE2 address reproduced from factory 0xfac7011663910f75cbe1e25539ec2d7529f93c3f with salt 0x...27c9; independent recompilation 2026-10-18: GitHub sources at the commit (import closure) + @openzeppelin/contracts 4.7.3 (npm sha512 = package-lock), official soljson-v0.8.28+commit.7893614a.js (sha256 0x72ef580a6ec5943130028e5294313f24e9435520acc89f8c9dbfd0139d9ae146), optimizer enabled runs 200, settings of hardhat-config/solidity.js at the tag (ENABLE_OPTIMIZER); fixtures runtime-coverbroker-cb2b7366.hex 2b25db29d5c6362eb67a78dba67955e3bdc1d39ef473ea08e027dad351875827, contract-builds.json bca90ebe047e836acab959c967353613758731c58271bce6af827d29bb046ac3 |
 | SRC-NEXUS-COVER | [NexusMutual/smart-contracts Cover implementation behind proxy 0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62](https://github.com/NexusMutual/smart-contracts/blob/070972503a471b6e14d01213aca4cf41e156c215/contracts/modules/cover/Cover.sol) | v3.3.0 | proxy 0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62 (OwnedUpgradeabilityProxy, implementation slot keccak256("org.govblocks.proxy.implementation")) -> implementation 0xcafeafF1a21418f530Feb00C6BAeF07523979C05 (deployed block 24476528, tx 0xb2e2418bde74537a62d68ff63c099ead01a963cc313f54c36d6375a7a6a550f6, 2026-02-17); source tag v3.3.0 = commit 070972503a471b6e14d01213aca4cf41e156c215; solc 0.8.28+commit.7893614a, optimizer runs 200, evmVersion prague; runtime keccak256 0x2ecdeb32b923da39e181ca3fd7f2aa543e7e35e3db146f79327993f3b796a530, 23948 bytes, metadata ipfs QmVvxQParTb5FBNEDYsP4Wjpwj7G5ZqjaRcxSTc5Wwudht; match DECLARED_IMMUTABLES_ONLY (964 bytes, all in immutableReferences; CBOR identical; address immutables equal on-chain getters); v3.4.0 differs only in metadata (IPool.sol); independent recompilation 2026-10-18: GitHub sources at the commit (import closure) + @openzeppelin/contracts 4.7.3 (npm sha512 = package-lock), official soljson-v0.8.28+commit.7893614a.js (sha256 0x72ef580a6ec5943130028e5294313f24e9435520acc89f8c9dbfd0139d9ae146), optimizer enabled runs 200, settings of hardhat-config/solidity.js at the tag (ENABLE_OPTIMIZER); fixtures runtime-cover-impl-cafeaff1.hex 23ca356ed7e3ecf83cb16f914d4afc489fa20c939f12f01228d8193205ecc9a9, contract-builds.json bca90ebe047e836acab959c967353613758731c58271bce6af827d29bb046ac3 |
+| SRC-NEXUS-SDK | [@nexusmutual/sdk (cover metadata / proof-of-loss client code)](https://www.npmjs.com/package/@nexusmutual/sdk/v/3.1.1) | 3.1.1 | npm tarball nexusmutual-sdk-3.1.1.tgz sha512-1DKvkt1RO5dsJrROtGAG18ktRSLLyB9RWF3i+nF6wL8CyIRwLUj+RI3kd+2STc1XMHGocAQnwy23DiXm+bYuJQ== (sha256 06d59bcc3063d9a72dbbfbad94d40323c65c57cd77398ee740cbd27a83937c5f), dist/index.js sha256 b0235a26abe3fccb7d84a3d4ace3454457baed068fa0dff8c33055eab3bdc186; read: CoverMetadataInput { creatorAddress, proofOfLoss?: [{ type, content }], publicData? }, ProofOfLossEntry type address content [{ address, label? }], createCoverMetadata POST /cover-metadata (creatorAddress lowercased) -> { cid }, view/edit with x-auth-signature / x-auth-payload (EIP-712 domain "Nexus Mutual App" 1.0.0, Authentication { timestamp, message }), coverMetadataRef { version "1.0", coverMetadata: uuid } |
+| SRC-NEXUS-POL-BLOG | [Upfront Proof of Loss (blog)](https://nexusmutual.io/blog/upfront-proof-of-loss) | retrieved 2026-10-19 | unversioned web page, not content-pinned; read 2026-10-19: covered wallet details entered in a private field at purchase, stored in an offchain database, visible and editable only by the wallet holder (sign-to-reveal) |
 
 ## 9. Drift model
 
@@ -1030,6 +1057,8 @@ Drift output only prioritises review. security:verify always evaluates every con
 | `scripts/security-*.mjs` | CR-VERIFY |
 | `scripts/skip-policy.mjs` | CR-VERIFY |
 | `src/purchase-intent.mjs` | CR-ALLOC, CR-COMMISSION, CR-PURCHASE |
+| `src/purchase-terms.mjs` | CR-TERMS |
+| `src/purchase-proof-of-loss.mjs` | CR-POL |
 
 ## 10. Framework versions
 
@@ -1062,4 +1091,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2y** — Nexus P3: user-facing cover details and live quote, display only (POST /api/nexus/quote, dashboard cover panel). New domain CR-QUOTE with eight RELEASE_BLOCKING controls (E3), behavioural evidence and 17 KILLED known-bad mutations; source SRC-NEXUS-QUOTE; drift rules. No purchase, approval, transaction, fee or proof-of-loss upload; no deployment; no finding.
 - **1.0-draft-phase2za** — F-2Z-1 (framework/source integrity, Low): the CRSF source for the Nexus contracts named v3.4.0 for all SDK addresses, but the deployed CoverBroker is v2.12.1. Proven by independent recompilation; per-contract pins SRC-NEXUS-COVERBROKER (v2.12.1) and SRC-NEXUS-COVER (v3.3.0 implementation), control CR-NEXUS-006 (RELEASE_BLOCKING, E3) with behavioural evidence and 4 KILLED mutations. No runtime behaviour changed, no contract called, no deployment.
 - **1.0-draft-phase2zb** — Nexus P4A: pure purchase-intent model (validation, canonical hash v1, transition model, allocation and commission rules) in src/purchase-intent.mjs, unreachable at runtime. Controls CR-PURCHASE-003, CR-PURCHASE-005, CR-COMMISSION-001, CR-ALLOC-001 (RELEASE_BLOCKING, E3) with behavioural evidence and 22 KILLED mutations. No endpoint, wallet method, calldata, network call, migration or deployment.
+- **1.0-draft-phase2zc** — Nexus P4B: versioned purchase acknowledgement texts and terms hash (src/purchase-terms.mjs), local proof-of-loss payload preparation (src/purchase-proof-of-loss.mjs), both pure and unreachable at runtime. CR-TERMS-001 and CR-POL-001 (RELEASE_BLOCKING, E3) with behavioural evidence and 18 KILLED mutations; CR-TERMS-002 and CR-POL-002 (SECURITY_DEBT, MISSING_EVIDENCE) hold what only Nexus can confirm. Nothing transmitted, signed, uploaded or stored; no CID generated.
 

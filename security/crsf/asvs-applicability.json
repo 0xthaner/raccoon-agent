@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zb",
+	"crsf_version": "1.0-draft-phase2zc",
 	"asvs": "5.0.0",
 	"input": "security/crsf/vendor/asvs-5.0.0.flat.json",
 	"input_sha256": "8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311",
@@ -376,7 +376,8 @@
 				"CR-NEXUS-002",
 				"CR-QUOTE-002",
 				"CR-PURCHASE-003",
-				"CR-ALLOC-001"
+				"CR-ALLOC-001",
+				"CR-TERMS-001"
 			],
 			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
@@ -403,9 +404,10 @@
 				"CR-QUOTE-003",
 				"CR-QUOTE-005",
 				"CR-COMMISSION-001",
-				"CR-ALLOC-001"
+				"CR-ALLOC-001",
+				"CR-TERMS-002"
 			],
-			"conformance_status": "CONFORMANT",
+			"conformance_status": "NOT_DEMONSTRATED",
 			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
@@ -2864,9 +2866,10 @@
 			"applicability": "APPLICABLE",
 			"reason": "",
 			"controls": [
-				"CR-PRIV-003"
+				"CR-PRIV-003",
+				"CR-POL-002"
 			],
-			"conformance_status": "CONFORMANT",
+			"conformance_status": "NOT_DEMONSTRATED",
 			"release_relevance": "SECURITY_DEBT"
 		},
 		{
@@ -2896,10 +2899,11 @@
 			"reason": "",
 			"controls": [
 				"CR-API-007",
-				"CR-PRIV-001"
+				"CR-PRIV-001",
+				"CR-POL-001"
 			],
 			"conformance_status": "NOT_DEMONSTRATED",
-			"release_relevance": "SECURITY_DEBT"
+			"release_relevance": "RELEASE_BLOCKING"
 		},
 		{
 			"req_id": "V14.2.7",
@@ -2907,9 +2911,10 @@
 			"applicability": "APPLICABLE",
 			"reason": "",
 			"controls": [
-				"CR-PRIV-002"
+				"CR-PRIV-002",
+				"CR-POL-002"
 			],
-			"conformance_status": "CONFORMANT",
+			"conformance_status": "NOT_DEMONSTRATED",
 			"release_relevance": "SECURITY_DEBT"
 		},
 		{
