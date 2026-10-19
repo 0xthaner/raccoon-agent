@@ -490,15 +490,20 @@ test('QUOTE-NOPURCHASE responses carry no pools, contract data, fees or transact
 });
 
 const walk = (dir) => readdirSync(new URL(`../${dir}/`, import.meta.url)).flatMap((f) => (statSync(new URL(`../${dir}/${f}`, import.meta.url)).isDirectory() ? walk(`${dir}/${f}`) : /\.(m?js|html)$/.test(f) ? [`${dir}/${f}`] : []));
+const OFFLINE_TX = ['src/purchase-tx-builder.mjs', 'src/purchase-tx-decode.mjs'];
 test('QUOTE-SURFACE no purchase surface anywhere in runtime code', () => {
 	const files = [...walk('src'), ...walk('api'), ...walk('web/src'), 'web/index.html'];
 	for (const file of files) {
 		const code = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+		assert.doesNotMatch(code, /wallet_sendTransaction|eth_sendTransaction|wallet_sendCalls|sendTransaction|writeContract|cover-metadata|NEXUS_CONTRACTS\s*\.\s*CoverBroker|NEXUS_CONTRACTS\s*\[|\.approve\(/, file);
+		// P4C (19.10.2026): nur die zwei reinen, unerreichbaren Offline-Module kodieren buyCover und approve
+		// (P4C-IMPORT / P4C-SURFACE in test/purchase-tx-builder.test.mjs); Senden bleibt auch dort ausgeschlossen.
+		if (OFFLINE_TX.includes(file)) continue;
 		// NEXUS_CONTRACTS (nexus-pinned.mjs) nennt die CoverBroker-Adresse nur als Referenz; verwendet werden darf sie nirgends.
-		assert.doesNotMatch(code, /buyCover|CoverBroker\s*\.|NEXUS_CONTRACTS\s*\.\s*CoverBroker|NEXUS_CONTRACTS\s*\[|wallet_sendTransaction|eth_sendTransaction|wallet_sendCalls|sendTransaction|writeContract|cover-metadata|encodeFunctionData/, file);
+		assert.doesNotMatch(code, /buyCover|CoverBroker\s*\.|encodeFunctionData/, file);
 		// P4A (19.10.2026): das reine Intent-Modell traegt die Kommissionsfelder, um sie auf 0 / Nulladresse festzulegen.
 		// Es ist von keinem Laufzeitpfad erreichbar (P4A-IMPORT in test/purchase-intent.test.mjs); alle anderen Muster gelten auch dort.
 		if (file !== 'src/purchase-intent.mjs') assert.doesNotMatch(code, /commissionRatio|commissionDestination/, file);
-		assert.doesNotMatch(code, /functionName:\s*'approve'|\.approve\(/, file);
+		assert.doesNotMatch(code, /functionName:\s*'approve'/, file);
 	}
 });

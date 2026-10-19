@@ -2021,6 +2021,60 @@
 					"reason": "new rules src/purchase-terms.mjs -> CR-TERMS, src/purchase-proof-of-loss.mjs -> CR-POL; nothing removed"
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zd",
+			"summary": "Nexus P4C: offline transaction builder (src/purchase-tx-builder.mjs: exact USDC approval, CoverBroker v2.12.1 buyCover) and independent decoder (src/purchase-tx-decode.mjs), both pure and unreachable at runtime; outputs are never production-ready. CR-PURCHASE-001, CR-PURCHASE-002, CR-APPROVAL-001 (RELEASE_BLOCKING, E3) with behavioural evidence, a real mainnet decode-only fixture and 30 KILLED mutations; CR-PURCHASE-006 (SECURITY_DEBT, MISSING_EVIDENCE) holds pre-send chain validation, USDC implementation pin, wallet execution and receipt verification. CR-TERMS-002 and CR-POL-002 unchanged.",
+			"changes": [
+				{
+					"id": "CR-PURCHASE-001",
+					"kind": "ADDED",
+					"reason": "New control: Purchase transactions fixed to the verified Broker, buyCover selector and USDC approval target (P4C offline). Derivation: Related data items are consistent with each other (V2.2.3). buyCover is encoded only for the verified CoverBroker (v2.12.1, runtime hash pinned) with the locally pinned v2.12.1 ABI and selector 0x7c59cac4; the approval is encoded only against the USDC contract with the Broker as spender. Neither target nor ABI can come from the caller.",
+					"rationale": "Each property is tested behaviourally against the pure modules and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-PURCHASE-002",
+					"kind": "ADDED",
+					"reason": "New control: buyCover fields derived only from the validated intent and quote; independently decoded (P4C offline). Derivation: Input is validated against expected business rules (V2.2.1); related data items are consistent with each other (V2.2.3). coverId 0, owner = intent wallet, product 97, cover and payment asset 6, amount, period (days x 86400), maxPremiumInAsset = intent.maxPremiumRaw, commission 0 / zero address, ipfsData = the intent-bound proof-of-loss CID (never empty), allocations = the validated quote allocations. The caller supplies only the intent and the quote data; no transaction field, ABI or function. A separate decoder re-parses the bytes and compares every field; the builder and decoder are reachable from no runtime path.",
+					"rationale": "Each property is tested behaviourally against the pure modules and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-APPROVAL-001",
+					"kind": "ADDED",
+					"reason": "New control: USDC approval exact: maxPremium to the Broker only (P4C offline). Derivation: Business logic limits are implemented as documented (V2.3.2). The Broker (v2.12.1 _buyCoverErc20Payment) pulls exactly maxPremiumInAsset from the buyer; the only approval is USDC.approve(Broker, intent.maxPremiumRaw), bounded by the cover amount. No unlimited approval, increaseAllowance, permit, permit2 or NFT approval.",
+					"rationale": "Each property is tested behaviourally against the pure modules and guarded by known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "CR-PURCHASE-006",
+					"kind": "ADDED",
+					"reason": "New control: Pre-send chain validation, wallet execution and receipt verification. Derivation: Business logic limits and rules are implemented as documented (V2.3.2). Before any real transaction: re-read Broker runtime hash and Cover implementation from the chain right before sending; source-pin the USDC implementation; execute only through a reviewed wallet path that re-validates with the independent decoder; verify the receipt (CoverBought / NFT owner) against the intent.",
+					"rationale": "Recorded so the open execution obligations are visible and cannot be satisfied by offline tests; no evidence is attached.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "EV-NEXUS-QUOTE",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "test QUOTE-SURFACE: src/purchase-tx-builder.mjs and src/purchase-tx-decode.mjs (pure, unreachable, P4C) may contain buyCover, CoverBroker address use, encodeFunctionData and functionName approve; every other runtime file is scanned unchanged. The send / sign / wallet / cover-metadata / .approve( / NEXUS_CONTRACTS patterns still apply to the P4C modules too. Compensated by P4C-IMPORT, P4C-SURFACE and P4C-PURE (test/purchase-tx-builder.test.mjs) and mutations MUT-CR-PURCHASE-002-P4-P4CBOT / -P4CAPI / -P4CSEND."
+				},
+				{
+					"id": "EV-PURCHASE-INTENT",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "test P4A-IMPORT: the pure purchase module set now also contains src/purchase-tx-builder.mjs and src/purchase-tx-decode.mjs (both import purchase-intent); the allowed importing tests now also include test/purchase-tx-builder.test.mjs and test/purchase-tx-decode.test.mjs. Every other runtime file still may not name purchase-intent; P4A behaviour unchanged."
+				},
+				{
+					"id": "controls.schema.json+drift-model.schema.json",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "domain enums of controls and drift-model extended by CR-APPROVAL (Nexus P4C); no other schema change"
+				},
+				{
+					"id": "drift-model",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "new rules src/purchase-tx-builder.mjs and src/purchase-tx-decode.mjs -> CR-APPROVAL, CR-PURCHASE; nothing removed"
+				}
+			]
 		}
 	]
 }

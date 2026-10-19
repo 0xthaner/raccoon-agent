@@ -56,7 +56,8 @@
 								"CR-COMMISSION",
 								"CR-ALLOC",
 								"CR-TERMS",
-								"CR-POL"
+								"CR-POL",
+								"CR-APPROVAL"
 							]
 						},
 						"minItems": 1

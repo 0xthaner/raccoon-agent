@@ -13950,6 +13950,1041 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-001-P1-P4CBROKER",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-001",
+					"property": "P1"
+				}
+			],
+			"description": "buyCover sent to another contract than the verified Broker",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "to: BROKER_ADDRESS, value: 0n, data, intentId",
+					"replace": "to: '0x0000000000000000000000000000000000000001', value: 0n, data, intentId"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY every buyCover field derives from the intent and the quote; exact Broker, selector, value 0$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-001-P3-P4CAPPROVETARGET",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-001",
+					"property": "P3"
+				}
+			],
+			"description": "the approval is sent to the Broker instead of USDC",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "kind: 'USDC_APPROVAL', chainId: NEXUS_CHAIN_ID, to: USDC_ADDRESS,",
+					"replace": "kind: 'USDC_APPROVAL', chainId: NEXUS_CHAIN_ID, to: BROKER_ADDRESS,"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-APPROVAL exact USDC\\.approve\\(Broker, maxPremiumRaw\\), value 0, no gas or nonce$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-APPROVAL-001-P2-P4CSPENDER",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-APPROVAL-001",
+					"property": "P2"
+				}
+			],
+			"description": "the approval spender is not the Broker",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "args: [BROKER_ADDRESS, amount]",
+					"replace": "args: [USDC_ADDRESS, amount]"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-APPROVAL exact USDC\\.approve\\(Broker, maxPremiumRaw\\), value 0, no gas or nonce$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-APPROVAL-001-P3-P4CMAXUINT",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-APPROVAL-001",
+					"property": "P3"
+				}
+			],
+			"description": "the approval amount is MaxUint256 (unlimited)",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "args: [BROKER_ADDRESS, amount]",
+					"replace": "args: [BROKER_ADDRESS, (1n << 256n) - 1n]"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-APPROVAL exact USDC\\.approve\\(Broker, maxPremiumRaw\\), value 0, no gas or nonce$"
+				},
+				{
+					"test": "^P4C-PURE no wallet, network, DB, clock, environment or unlimited-approval code in the P4C modules$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-APPROVAL-001-P1-P4COVERAPPROVE",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-APPROVAL-001",
+					"property": "P1"
+				}
+			],
+			"description": "the approval amount exceeds maxPremiumRaw",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "args: [BROKER_ADDRESS, amount]",
+					"replace": "args: [BROKER_ADDRESS, amount + 1n]"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-APPROVAL exact USDC\\.approve\\(Broker, maxPremiumRaw\\), value 0, no gas or nonce$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-001-P2-P4CSELECTOR",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-001",
+					"property": "P2"
+				}
+			],
+			"description": "the buyCover selector is changed",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "to: BROKER_ADDRESS, value: 0n, data, intentId",
+					"replace": "to: BROKER_ADDRESS, value: 0n, data: `0x7c59cac5${data.slice(10)}`, intentId"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY every buyCover field derives from the intent and the quote; exact Broker, selector, value 0$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P1-P4CCOVERID",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P1"
+				}
+			],
+			"description": "coverId is not 0 (edits an existing cover)",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "coverId: 0n,",
+					"replace": "coverId: 1n,"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY every buyCover field derives from the intent and the quote; exact Broker, selector, value 0$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P1-P4COWNER",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P1"
+				}
+			],
+			"description": "the cover owner is not the intent wallet",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "owner: intent.wallet,",
+					"replace": "owner: '0x0000000000000000000000000000000000000001',"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY every buyCover field derives from the intent and the quote; exact Broker, selector, value 0$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P1-P4CPRODUCT",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P1"
+				}
+			],
+			"description": "another product id is encoded",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "productId: MVP_PRODUCT_ID,",
+					"replace": "productId: 98,"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY every buyCover field derives from the intent and the quote; exact Broker, selector, value 0$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P1-P4CCOVERASSET",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P1"
+				}
+			],
+			"description": "another cover asset is encoded",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "coverAsset: USDC_ASSET_ID,",
+					"replace": "coverAsset: 7,"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY every buyCover field derives from the intent and the quote; exact Broker, selector, value 0$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P1-P4CPAYASSET",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P1"
+				}
+			],
+			"description": "another payment asset is encoded",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "paymentAsset: USDC_ASSET_ID,",
+					"replace": "paymentAsset: 0,"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY every buyCover field derives from the intent and the quote; exact Broker, selector, value 0$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P1-P4CAMOUNT",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P1"
+				}
+			],
+			"description": "the cover amount is increased",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "amount: intent.amountRaw,",
+					"replace": "amount: intent.amountRaw + 1n,"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY every buyCover field derives from the intent and the quote; exact Broker, selector, value 0$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P1-P4CPERIOD",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P1"
+				}
+			],
+			"description": "the period is changed",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "period: intent.periodDays * 86400,",
+					"replace": "period: intent.periodDays * 86400 + 86400,"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY every buyCover field derives from the intent and the quote; exact Broker, selector, value 0$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P1-P4CMAXPREMIUM",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P1"
+				}
+			],
+			"description": "maxPremiumInAsset is raised above the intent",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "maxPremiumInAsset: intent.maxPremiumRaw,",
+					"replace": "maxPremiumInAsset: intent.maxPremiumRaw * 2n,"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY every buyCover field derives from the intent and the quote; exact Broker, selector, value 0$"
+				},
+				{
+					"test": "^P4C-BUY-PREMIUM a quote premium above maxPremium is rejected; maxPremium is never raised$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P1-P4CCOMMRATIO",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P1"
+				}
+			],
+			"description": "commissionRatio 1000 is encoded",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "commissionRatio: COMMISSION_POLICY.ratio,",
+					"replace": "commissionRatio: 1000,"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY every buyCover field derives from the intent and the quote; exact Broker, selector, value 0$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P1-P4CCOMMDEST",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P1"
+				}
+			],
+			"description": "a non-zero commission destination is encoded",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "commissionDestination: COMMISSION_POLICY.destination,",
+					"replace": "commissionDestination: intent.wallet,"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY every buyCover field derives from the intent and the quote; exact Broker, selector, value 0$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P1-P4CEMPTYPOL",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P1"
+				}
+			],
+			"description": "a missing proof-of-loss CID is encoded as empty ipfsData",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "if (intent.proofOfLossCid === null) errors.push('PROOF_OF_LOSS_CID_MISSING');",
+					"replace": ""
+				},
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "ipfsData: intent.proofOfLossCid\n",
+					"replace": "ipfsData: intent.proofOfLossCid ?? ''\n"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY-POL without an externally supplied proof-of-loss CID nothing is built; output is never production-ready$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P1-P4CPOLCID",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P1"
+				}
+			],
+			"description": "another CID than the intent-bound proof-of-loss CID is encoded",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "ipfsData: intent.proofOfLossCid\n",
+					"replace": "ipfsData: intent.wordingCid\n"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY every buyCover field derives from the intent and the quote; exact Broker, selector, value 0$"
+				},
+				{
+					"test": "^P4C-BUY-POL without an externally supplied proof-of-loss CID nothing is built; output is never production-ready$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P1-P4CALLOC",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P1"
+				}
+			],
+			"description": "an allocation amount differs from the quote",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "coverAmountInAsset: BigInt(a.coverAmountInAsset) }));",
+					"replace": "coverAmountInAsset: BigInt(a.coverAmountInAsset) + 1n }));"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY every buyCover field derives from the intent and the quote; exact Broker, selector, value 0$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P1-P4CSUMEQ",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P1"
+				}
+			],
+			"description": "allocation sum == requested amount is wrongly required",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "if (intent.proofOfLossCid === null) errors.push('PROOF_OF_LOSS_CID_MISSING');",
+					"replace": "if (allocation.ok && allocation.totalRaw !== intent.amountRaw) errors.push('ALLOCATION_NOT_AMOUNT');\n\tif (intent.proofOfLossCid === null) errors.push('PROOF_OF_LOSS_CID_MISSING');"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY every buyCover field derives from the intent and the quote; exact Broker, selector, value 0$"
+				},
+				{
+					"test": "^P4C-BUY-ALLOC the real quote overshoot is accepted; underflow, mismatch and malformed allocations are rejected$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P2-P4CANYTO",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P2"
+				}
+			],
+			"description": "a caller-supplied `to` is accepted",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "const shape = inputErrors(input, ['intent', 'quote']);",
+					"replace": "const shape = inputErrors(input, ['intent', 'quote']).filter((e) => e !== 'UNKNOWN_INPUT:to');"
+				},
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "to: BROKER_ADDRESS, value: 0n, data, intentId",
+					"replace": "to: input.to ?? BROKER_ADDRESS, value: 0n, data, intentId"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY-OVERRIDE no top-level or quote field can override an authoritative parameter$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P2-P4CANYDATA",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P2"
+				}
+			],
+			"description": "caller-supplied calldata is accepted",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "const shape = inputErrors(input, ['intent', 'quote']);",
+					"replace": "const shape = inputErrors(input, ['intent', 'quote']).filter((e) => e !== 'UNKNOWN_INPUT:data');"
+				},
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "to: BROKER_ADDRESS, value: 0n, data, intentId",
+					"replace": "to: BROKER_ADDRESS, value: 0n, data: input.data ?? data, intentId"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-BUY-OVERRIDE no top-level or quote field can override an authoritative parameter$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P2-P4CGENERIC",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P2"
+				}
+			],
+			"description": "a generic builder taking a caller ABI and function name is exported",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "const QUOTE_FIELDS =",
+					"replace": "export function buildTransaction({ to, abi, functionName, args }) { return { to, value: 0n, data: encodeFunctionData({ abi, functionName, args }) }; }\nconst QUOTE_FIELDS ="
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-EXPORTS exactly two transaction kinds; no generic builder$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P3-P4CDECOWNER",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P3"
+				}
+			],
+			"description": "the decoder skips the owner check",
+			"edits": [
+				{
+					"file": "src/purchase-tx-decode.mjs",
+					"find": "if (p.owner !== intent.wallet) errors.push('OWNER');",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-tx-decode.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-DECODE changed buyCover fields are each rejected for their own reason$"
+				},
+				{
+					"test": "^P4C-REAL CoverRaccoon policy rejects the real purchase for the intended reasons$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P3-P4CDECCOMM",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P3"
+				}
+			],
+			"description": "the decoder skips the commission ratio check",
+			"edits": [
+				{
+					"file": "src/purchase-tx-decode.mjs",
+					"find": "if (p.commissionRatio !== EXPECTED.commissionRatio) errors.push('COMMISSION_RATIO');",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-tx-decode.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-DECODE changed buyCover fields are each rejected for their own reason$"
+				},
+				{
+					"test": "^P4C-REAL CoverRaccoon policy rejects the real purchase for the intended reasons$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P3-P4CDECTRUST",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P3"
+				}
+			],
+			"description": "the decoder trusts builder metadata instead of decoding",
+			"edits": [
+				{
+					"file": "src/purchase-tx-decode.mjs",
+					"find": "const selector = typeof tx?.data === 'string'",
+					"replace": "if (tx?.kind && tx?.calldataHash && tx?.intentId === checked.intent.id) return result([]);\n\tconst selector = typeof tx?.data === 'string'"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-decode.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-DECODE every single-bit change of the calldata is rejected$"
+				},
+				{
+					"test": "^P4C-DECODE changed buyCover fields are each rejected for their own reason$"
+				},
+				{
+					"test": "^P4C-DECODE changed target, value, selector, chain, metadata or encoding are rejected$"
+				},
+				{
+					"test": "^P4C-DECODE-APPROVAL spender, amount, unlimited amount and target are checked exactly$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P4-P4CBOT",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P4"
+				}
+			],
+			"description": "the Telegram bot imports the transaction builder",
+			"edits": [
+				{
+					"file": "src/bot.mjs",
+					"find": "import { newDashboardAccess, newLinkRequest } from './linking.mjs';",
+					"replace": "import { newDashboardAccess, newLinkRequest } from './linking.mjs';\nimport './purchase-tx-builder.mjs';"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-IMPORT no runtime code imports the builder or decoder; only P4C tests do$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P4-P4CAPI",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P4"
+				}
+			],
+			"description": "the quote API imports the transaction builder",
+			"edits": [
+				{
+					"file": "api/nexus/quote.mjs",
+					"find": "import { resolveDashboardSession } from '../../src/dashboard-auth.mjs';",
+					"replace": "import { resolveDashboardSession } from '../../src/dashboard-auth.mjs';\nimport '../../src/purchase-tx-builder.mjs';"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-IMPORT no runtime code imports the builder or decoder; only P4C tests do$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-002-P4-P4CSEND",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-002",
+					"property": "P4"
+				}
+			],
+			"description": "a wallet send method is introduced",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "const QUOTE_FIELDS =",
+					"replace": "export const sendPurchase = (provider, tx) => provider.request({ method: 'eth_sendTransaction', params: [tx] });\nconst QUOTE_FIELDS ="
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-PURE no wallet, network, DB, clock, environment or unlimited-approval code in the P4C modules$"
+				},
+				{
+					"test": "^P4C-EXPORTS exactly two transaction kinds; no generic builder$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-001-P2-P4CWRONGABI",
+			"origin": "new (P4C)",
+			"evidence_id": "EV-KB-PURCHASE-TX",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-001",
+					"property": "P2"
+				}
+			],
+			"description": "a wrong Broker ABI (amount as uint256) is substituted",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "{ name: 'amount', type: 'uint96' },",
+					"replace": "{ name: 'amount', type: 'uint256' },"
+				}
+			],
+			"tests": [
+				"test/purchase-tx-builder.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4C-ABI the local Broker ABI is exactly the verified v2\\.12\\.1 buyCover and yields 0x7c59cac4$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

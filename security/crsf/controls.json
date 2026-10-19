@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zc",
+	"crsf_version": "1.0-draft-phase2zd",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -12699,6 +12699,397 @@
 					"id": "P4",
 					"kind": "REQUIREMENT",
 					"text": "Nexus has documented retention, deletion and encryption of proof-of-loss data"
+				}
+			],
+			"required_evidence_types": [
+				"static",
+				"config",
+				"manual"
+			],
+			"current_evidence_ids": [],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P3": {
+					"satisfied_by": [],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P4": {
+					"satisfied_by": [],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "NOT_DEMONSTRATED",
+			"conformance_status_reason": "P1 unsatisfied; P2 unsatisfied; P3 unsatisfied; P4 unsatisfied",
+			"security_status": "MISSING_EVIDENCE",
+			"security_status_reason": "P1 unsatisfied; P2 unsatisfied; P3 unsatisfied; P4 unsatisfied",
+			"deviation_ids": [],
+			"independence": null
+		},
+		{
+			"domain": "CR-PURCHASE",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Pure offline module present (Nexus P4C); not reachable from any runtime path; it produces bytes only, nothing is sent or signed.",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-PURCHASE-001",
+			"title": "Purchase transactions fixed to the verified Broker, buyCover selector and USDC approval target (P4C offline)",
+			"applies_to": [
+				"src/purchase-tx-builder.mjs",
+				"src/purchase-tx-decode.mjs"
+			],
+			"source_refs": [
+				"SRC-ASVS V2.2.3",
+				"SRC-NEXUS-COVERBROKER",
+				"SRC-USDC-MAINNET"
+			],
+			"external_requirement_ids": [
+				"V2.2.3"
+			],
+			"external_requirement": "Related data items are consistent with each other (V2.2.3).",
+			"coverraccoon_requirement": "buyCover is encoded only for the verified CoverBroker (v2.12.1, runtime hash pinned) with the locally pinned v2.12.1 ABI and selector 0x7c59cac4; the approval is encoded only against the USDC contract with the Broker as spender. Neither target nor ABI can come from the caller.",
+			"threat": "funds approved or sent to an attacker-chosen contract, or calldata built against a wrong ABI",
+			"expected_property": "fixed targets, verified selector",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "the buyCover transaction target is exactly the verified CoverBroker address"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "the buyCover selector is exactly 0x7c59cac4 from the pinned v2.12.1 ABI, which matches the independent recompilation; a wrong ABI changes the selector"
+				},
+				{
+					"id": "P3",
+					"kind": "REQUIREMENT",
+					"text": "the approval transaction target is exactly the USDC contract and its spender exactly the verified CoverBroker"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-PURCHASE-TX",
+				"EV-PURCHASE-TX-BUILDER"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-PURCHASE-TX-BUILDER",
+						"EV-KB-PURCHASE-TX"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-PURCHASE-TX-BUILDER",
+						"EV-KB-PURCHASE-TX"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P3": {
+					"satisfied_by": [
+						"EV-PURCHASE-TX-BUILDER",
+						"EV-KB-PURCHASE-TX"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 3 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 3 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-PURCHASE",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Pure offline module present (Nexus P4C); not reachable from any runtime path; it produces bytes only, nothing is sent or signed.",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-PURCHASE-002",
+			"title": "buyCover fields derived only from the validated intent and quote; independently decoded (P4C offline)",
+			"applies_to": [
+				"src/purchase-tx-builder.mjs",
+				"src/purchase-tx-decode.mjs"
+			],
+			"source_refs": [
+				"SRC-ASVS V2.2.1",
+				"SRC-ASVS V2.2.3",
+				"SRC-NEXUS-COVERBROKER",
+				"SRC-NEXUS-COVER",
+				"SRC-NEXUS-BUYCOVER-TX"
+			],
+			"external_requirement_ids": [
+				"V2.2.1",
+				"V2.2.3"
+			],
+			"external_requirement": "Input is validated against expected business rules (V2.2.1); related data items are consistent with each other (V2.2.3).",
+			"coverraccoon_requirement": "coverId 0, owner = intent wallet, product 97, cover and payment asset 6, amount, period (days x 86400), maxPremiumInAsset = intent.maxPremiumRaw, commission 0 / zero address, ipfsData = the intent-bound proof-of-loss CID (never empty), allocations = the validated quote allocations. The caller supplies only the intent and the quote data; no transaction field, ABI or function. A separate decoder re-parses the bytes and compares every field; the builder and decoder are reachable from no runtime path.",
+			"threat": "a cover bought for another owner, amount, price, commission or claim basis than the user acknowledged",
+			"expected_property": "every field derived and independently re-checked",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "every authoritative buyCover field is derived from the validated P4A intent and the validated quote input; an empty proof-of-loss is never encoded"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "no caller-supplied transaction field (to, data, value, abi, selector, functionName, spender, owner, commission, product, asset) is accepted and no generic builder exists"
+				},
+				{
+					"id": "P3",
+					"kind": "REQUIREMENT",
+					"text": "an independent decoder re-parses the calldata, requires canonical encoding and compares every field semantically; any changed field or bit is rejected"
+				},
+				{
+					"id": "P4",
+					"kind": "REQUIREMENT",
+					"text": "the builder and decoder are imported by no runtime code (api, web, bot, agent) and contain no wallet, send, signing, network, DB or clock access"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-PURCHASE-TX",
+				"EV-PURCHASE-TX-BUILDER",
+				"EV-PURCHASE-TX-DECODE"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-PURCHASE-TX-BUILDER",
+						"EV-KB-PURCHASE-TX"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-PURCHASE-TX-BUILDER",
+						"EV-KB-PURCHASE-TX"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P3": {
+					"satisfied_by": [
+						"EV-PURCHASE-TX-DECODE",
+						"EV-KB-PURCHASE-TX"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P4": {
+					"satisfied_by": [
+						"EV-PURCHASE-TX-BUILDER",
+						"EV-KB-PURCHASE-TX"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 4 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 4 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-APPROVAL",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Pure offline module present (Nexus P4C); not reachable from any runtime path; it produces bytes only, nothing is sent or signed.",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-APPROVAL-001",
+			"title": "USDC approval exact: maxPremium to the Broker only (P4C offline)",
+			"applies_to": [
+				"src/purchase-tx-builder.mjs",
+				"src/purchase-tx-decode.mjs"
+			],
+			"source_refs": [
+				"SRC-ASVS V2.3.2",
+				"SRC-NEXUS-COVERBROKER",
+				"SRC-USDC-MAINNET"
+			],
+			"external_requirement_ids": [
+				"V2.3.2"
+			],
+			"external_requirement": "Business logic limits are implemented as documented (V2.3.2).",
+			"coverraccoon_requirement": "The Broker (v2.12.1 _buyCoverErc20Payment) pulls exactly maxPremiumInAsset from the buyer; the only approval is USDC.approve(Broker, intent.maxPremiumRaw), bounded by the cover amount. No unlimited approval, increaseAllowance, permit, permit2 or NFT approval.",
+			"threat": "a standing unlimited allowance that a compromised or changed spender can drain",
+			"expected_property": "exact, bounded approval",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "the approval amount equals intent.maxPremiumRaw exactly"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "the approval spender is exactly the verified CoverBroker"
+				},
+				{
+					"id": "P3",
+					"kind": "REQUIREMENT",
+					"text": "no unlimited approval (MaxUint256 or above the cover amount) and no alternative approval mechanism is encoded"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-KB-PURCHASE-TX",
+				"EV-PURCHASE-TX-BUILDER",
+				"EV-PURCHASE-TX-DECODE"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-PURCHASE-TX-BUILDER",
+						"EV-PURCHASE-TX-DECODE",
+						"EV-KB-PURCHASE-TX"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-PURCHASE-TX-BUILDER",
+						"EV-PURCHASE-TX-DECODE",
+						"EV-KB-PURCHASE-TX"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P3": {
+					"satisfied_by": [
+						"EV-PURCHASE-TX-BUILDER",
+						"EV-PURCHASE-TX-DECODE",
+						"EV-KB-PURCHASE-TX"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 3 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 3 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-PURCHASE",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Obligation for the transaction phases; nothing in P4C sends, reads the chain or verifies receipts. Must become RELEASE_BLOCKING before any real transaction code.",
+			"profile_level": "ASVS_L2",
+			"release_class": "SECURITY_DEBT",
+			"minimum_evidence_level": "E1",
+			"automation": "NO",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-PURCHASE-006",
+			"title": "Pre-send chain validation, wallet execution and receipt verification",
+			"applies_to": [
+				"src/purchase-tx-builder.mjs",
+				"src/purchase-tx-decode.mjs"
+			],
+			"source_refs": [
+				"SRC-ASVS V2.3.2",
+				"SRC-NEXUS-COVERBROKER",
+				"SRC-NEXUS-COVER",
+				"SRC-USDC-MAINNET"
+			],
+			"external_requirement_ids": [
+				"V2.3.2"
+			],
+			"external_requirement": "Business logic limits and rules are implemented as documented (V2.3.2).",
+			"coverraccoon_requirement": "Before any real transaction: re-read Broker runtime hash and Cover implementation from the chain right before sending; source-pin the USDC implementation; execute only through a reviewed wallet path that re-validates with the independent decoder; verify the receipt (CoverBought / NFT owner) against the intent.",
+			"threat": "a correct offline transaction sent against changed contracts, or a purchase recorded without on-chain proof",
+			"expected_property": "chain-checked execution and receipt",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "immediately before sending, the Broker runtime code hash and the Cover implementation read from the chain match the pins"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "the USDC implementation behind the proxy is source-pinned"
+				},
+				{
+					"id": "P3",
+					"kind": "REQUIREMENT",
+					"text": "wallet execution exists only through a reviewed path that re-validates the exact bytes with the independent decoder"
+				},
+				{
+					"id": "P4",
+					"kind": "REQUIREMENT",
+					"text": "the purchase receipt is verified against the intent before any state is recorded as confirmed"
 				}
 			],
 			"required_evidence_types": [

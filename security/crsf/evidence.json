@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zc",
+	"crsf_version": "1.0-draft-phase2zd",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -8752,6 +8752,240 @@
 			"control_ids": [
 				"CR-POL-001",
 				"CR-TERMS-001"
+			],
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
+			"id": "EV-PURCHASE-TX-BUILDER",
+			"control_ids": [
+				"CR-APPROVAL-001",
+				"CR-PURCHASE-001",
+				"CR-PURCHASE-002"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/purchase-tx-builder.test.mjs",
+			"test_or_proof": "test/purchase-tx-builder.test.mjs",
+			"property_proven": "Behaviourally, against the pure builder: the local Broker ABI equals the verified v2.12.1 signature (recompilation methodIdentifiers, deployed runtime dispatches 0x7c59cac4) and wrong ABI assumptions change the selector; the approval is exactly USDC.approve(Broker, maxPremiumRaw), value 0, deterministic, never unbounded (MaxUint and above-cover maxima rejected); buyCover decodes (test-own ABI) to exactly the intent/quote-derived fields with value 0, the real overshooting quote is accepted, underflow / mismatch / premium above max / other assets / missing proof-of-loss CID are rejected; calldataHash is deterministic and changes with each bound field; every override field is rejected; only two fixed encodings exist; outputs are never production-ready; no wallet, send, network, DB, clock or unlimited-approval code; no runtime import; transaction encoding exists only in the two P4C modules.",
+			"property_not_proven": "chain state at send time, wallet execution and receipts (CR-PURCHASE-006); the USDC implementation (address only)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-002[P1,P2,P4]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-PURCHASE-002",
+					"properties": [
+						"P1",
+						"P2",
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-APPROVAL-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/purchase-tx-builder.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-PURCHASE-TX-DECODE",
+			"control_ids": [
+				"CR-APPROVAL-001",
+				"CR-PURCHASE-002"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/purchase-tx-decode.test.mjs",
+			"test_or_proof": "test/purchase-tx-decode.test.mjs",
+			"property_proven": "Behaviourally, against the independent decoder (which does not import the builder): builder outputs validate; every single-bit change of either calldata is rejected; each changed buyCover field fails with its own reason; changed target, value, selector, chain, metadata, extra transaction fields, trailing bytes and intent binding are rejected; empty proof-of-loss is never accepted; approval spender / amount / MaxUint / target are exact; the real mainnet purchase of block 26219867 (hash recomputed offline) decodes structurally and is rejected by CoverRaccoon policy for exactly commission ratio, commission destination and missing proof-of-loss.",
+			"property_not_proven": "decoding of transactions read from a wallet or the chain at send time (no such path exists)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-002[P3]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-002",
+					"properties": [
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-APPROVAL-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/purchase-tx-decode.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-PURCHASE-TX",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 30 case(s)",
+			"property_proven": "Each listed weakening of target, selector, ABI, approval, field derivation, override rejection, decoder checks, purity and reachability is detected by the intended test.",
+			"property_not_proven": "weakenings beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-PURCHASE-001-P1-P4CBROKER, MUT-CR-PURCHASE-001-P3-P4CAPPROVETARGET, MUT-CR-PURCHASE-001-P2-P4CSELECTOR, MUT-CR-PURCHASE-001-P2-P4CWRONGABI"
+				},
+				{
+					"control": "CR-APPROVAL-001",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-APPROVAL-001-P2-P4CSPENDER, MUT-CR-APPROVAL-001-P3-P4CMAXUINT, MUT-CR-APPROVAL-001-P1-P4COVERAPPROVE"
+				},
+				{
+					"control": "CR-PURCHASE-002",
+					"properties": [
+						"P1",
+						"P2",
+						"P3",
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-PURCHASE-002-P1-P4CCOVERID, MUT-CR-PURCHASE-002-P1-P4COWNER, MUT-CR-PURCHASE-002-P1-P4CPRODUCT, MUT-CR-PURCHASE-002-P1-P4CCOVERASSET, MUT-CR-PURCHASE-002-P1-P4CPAYASSET, MUT-CR-PURCHASE-002-P1-P4CAMOUNT, MUT-CR-PURCHASE-002-P1-P4CPERIOD, MUT-CR-PURCHASE-002-P1-P4CMAXPREMIUM, MUT-CR-PURCHASE-002-P1-P4CCOMMRATIO, MUT-CR-PURCHASE-002-P1-P4CCOMMDEST, MUT-CR-PURCHASE-002-P1-P4CEMPTYPOL, MUT-CR-PURCHASE-002-P1-P4CPOLCID, MUT-CR-PURCHASE-002-P1-P4CALLOC, MUT-CR-PURCHASE-002-P1-P4CSUMEQ, MUT-CR-PURCHASE-002-P2-P4CANYTO, MUT-CR-PURCHASE-002-P2-P4CANYDATA, MUT-CR-PURCHASE-002-P2-P4CGENERIC, MUT-CR-PURCHASE-002-P3-P4CDECOWNER, MUT-CR-PURCHASE-002-P3-P4CDECCOMM, MUT-CR-PURCHASE-002-P3-P4CDECTRUST, MUT-CR-PURCHASE-002-P4-P4CBOT, MUT-CR-PURCHASE-002-P4-P4CAPI, MUT-CR-PURCHASE-002-P4-P4CSEND"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-PURCHASE-001-P1-P4CBROKER",
+					"MUT-CR-PURCHASE-001-P3-P4CAPPROVETARGET",
+					"MUT-CR-APPROVAL-001-P2-P4CSPENDER",
+					"MUT-CR-APPROVAL-001-P3-P4CMAXUINT",
+					"MUT-CR-APPROVAL-001-P1-P4COVERAPPROVE",
+					"MUT-CR-PURCHASE-001-P2-P4CSELECTOR",
+					"MUT-CR-PURCHASE-002-P1-P4CCOVERID",
+					"MUT-CR-PURCHASE-002-P1-P4COWNER",
+					"MUT-CR-PURCHASE-002-P1-P4CPRODUCT",
+					"MUT-CR-PURCHASE-002-P1-P4CCOVERASSET",
+					"MUT-CR-PURCHASE-002-P1-P4CPAYASSET",
+					"MUT-CR-PURCHASE-002-P1-P4CAMOUNT",
+					"MUT-CR-PURCHASE-002-P1-P4CPERIOD",
+					"MUT-CR-PURCHASE-002-P1-P4CMAXPREMIUM",
+					"MUT-CR-PURCHASE-002-P1-P4CCOMMRATIO",
+					"MUT-CR-PURCHASE-002-P1-P4CCOMMDEST",
+					"MUT-CR-PURCHASE-002-P1-P4CEMPTYPOL",
+					"MUT-CR-PURCHASE-002-P1-P4CPOLCID",
+					"MUT-CR-PURCHASE-002-P1-P4CALLOC",
+					"MUT-CR-PURCHASE-002-P1-P4CSUMEQ",
+					"MUT-CR-PURCHASE-002-P2-P4CANYTO",
+					"MUT-CR-PURCHASE-002-P2-P4CANYDATA",
+					"MUT-CR-PURCHASE-002-P2-P4CGENERIC",
+					"MUT-CR-PURCHASE-002-P3-P4CDECOWNER",
+					"MUT-CR-PURCHASE-002-P3-P4CDECCOMM",
+					"MUT-CR-PURCHASE-002-P3-P4CDECTRUST",
+					"MUT-CR-PURCHASE-002-P4-P4CBOT",
+					"MUT-CR-PURCHASE-002-P4-P4CAPI",
+					"MUT-CR-PURCHASE-002-P4-P4CSEND",
+					"MUT-CR-PURCHASE-001-P2-P4CWRONGABI"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-APPROVAL-001",
+				"CR-PURCHASE-001",
+				"CR-PURCHASE-002"
 			],
 			"coverage": "FULL",
 			"reason_for_partial": null

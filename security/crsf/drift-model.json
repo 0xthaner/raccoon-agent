@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zc",
+	"crsf_version": "1.0-draft-phase2zd",
 	"rules": [
 		{
 			"pattern": "src/*auth*",
@@ -319,6 +319,20 @@
 			"pattern": "src/purchase-proof-of-loss.mjs",
 			"domains": [
 				"CR-POL"
+			]
+		},
+		{
+			"pattern": "src/purchase-tx-builder.mjs",
+			"domains": [
+				"CR-APPROVAL",
+				"CR-PURCHASE"
+			]
+		},
+		{
+			"pattern": "src/purchase-tx-decode.mjs",
+			"domains": [
+				"CR-APPROVAL",
+				"CR-PURCHASE"
 			]
 		}
 	],

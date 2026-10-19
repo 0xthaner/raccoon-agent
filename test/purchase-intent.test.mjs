@@ -315,8 +315,8 @@ function walk(dir) {
 	return out;
 }
 
-/** Die reinen Kauf-Module (P4A, P4B); sie duerfen einander importieren, Laufzeitcode keins. */
-const PURE_PURCHASE = [SRC, 'src/purchase-terms.mjs', 'src/purchase-proof-of-loss.mjs'];
+/** Die reinen Kauf-Module (P4A, P4B, P4C); sie duerfen einander importieren, Laufzeitcode keins. */
+const PURE_PURCHASE = [SRC, 'src/purchase-terms.mjs', 'src/purchase-proof-of-loss.mjs', 'src/purchase-tx-builder.mjs', 'src/purchase-tx-decode.mjs'];
 
 test('P4A-IMPORT no runtime code imports the purchase-intent module; only tests do', () => {
 	const runtime = [...walk('src'), ...walk('api'), ...walk('web'), ...walk('scripts')].filter((f) => !PURE_PURCHASE.includes(f) && !f.startsWith('web/dist'));
@@ -328,5 +328,5 @@ test('P4A-IMPORT no runtime code imports the purchase-intent module; only tests 
 	// importiert (statisch oder dynamisch) wird es nur von Tests der reinen Kauf-Module; andere Tests duerfen den Pfad nennen
 	const importing = /(?:from\s*|import\s*\(\s*)['"`][^'"`]*purchase-intent\.mjs/;
 	const testers = walk('test').filter((f) => importing.test(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')));
-	assert.deepEqual(testers, ['test/purchase-intent.test.mjs', 'test/purchase-terms.test.mjs']);
+	assert.deepEqual(testers, ['test/purchase-intent.test.mjs', 'test/purchase-terms.test.mjs', 'test/purchase-tx-builder.test.mjs', 'test/purchase-tx-decode.test.mjs']);
 });

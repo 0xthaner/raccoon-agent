@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2zc
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2zd
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -10,20 +10,20 @@
 
 - FAIL: 19
 - INFORMATIONAL: 2
-- MISSING_EVIDENCE: 46
-- PASS_AUTOMATED: 78
+- MISSING_EVIDENCE: 47
+- PASS_AUTOMATED: 81
 - PASS_MANUAL: 24
 
 ### Release classes
 
 - INFORMATIONAL: 2
 - MANUAL_ASSURANCE: 30
-- RELEASE_BLOCKING: 74
-- SECURITY_DEBT: 63
+- RELEASE_BLOCKING: 77
+- SECURITY_DEBT: 64
 
 ### Release-blocking controls by security status
 
-- PASS_AUTOMATED: 74
+- PASS_AUTOMATED: 77
 
 ### Standard conformance (ASVS 5.0.0, applicable requirements)
 
@@ -273,6 +273,10 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-TERMS-002 | Nexus-required purchase texts confirmed by Nexus | SECURITY_DEBT | E1 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied; P2 unsatisfied; P3 unsatisfied |
 | CR-POL-001 | Proof-of-loss payload bound to the authenticated wallet and minimal (P4B, local only) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E3 |
 | CR-POL-002 | Proof-of-loss server semantics and claim validity confirmed by Nexus | SECURITY_DEBT | E1 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied; P2 unsatisfied; P3 unsatisfied; P4 unsatisfied |
+| CR-PURCHASE-001 | Purchase transactions fixed to the verified Broker, buyCover selector and USDC approval target (P4C offline) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
+| CR-PURCHASE-002 | buyCover fields derived only from the validated intent and quote; independently decoded (P4C offline) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 4 sub-properties satisfied at >= E3 |
+| CR-APPROVAL-001 | USDC approval exact: maxPremium to the Broker only (P4C offline) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
+| CR-PURCHASE-006 | Pre-send chain validation, wallet execution and receipt verification | SECURITY_DEBT | E1 | **MISSING_EVIDENCE** | NOT_DEMONSTRATED | P1 unsatisfied; P2 unsatisfied; P3 unsatisfied; P4 unsatisfied |
 
 ## 5. Evidence
 
@@ -416,10 +420,13 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-PURCHASE-TERMS | behavioral | E3 | node-test | FULL | yes | Behaviourally, against the pure module: the terms hash is deterministic over a fixed ABI layout and independent of wallet spelling; it changes with every bound text reference, wording, annex, wallet and intent id; unknown, superseded and wrong-category references, missing acknowledgements, booleans and caller hashes are rejected; a stored record with a wrong hash is invalid; text versions are pinned by digest; unconfirmed Nexus texts have no wording and block readiness (BLOCKED_NEXUS_TEXT before BLOCKED_SOURCE_PIN before READY_MODEL_ONLY), and no readiness means buy; the hash validates in and binds the P4A intent, whose transactional readiness stays BLOCKED_PROOF_OF_LOSS; the module has no I/O, signing or transaction surface. |
 | EV-PURCHASE-POL | behavioral | E3 | node-test | FULL | yes | Behaviourally, against the pure module: the payload is built from the wallet only and is exactly { creatorAddress, proofOfLoss: [address entry with the wallet] }; creator, address or owner other than the wallet, a second address or entry, other entry types, named personal / credential / file / free-text fields and any unknown field are rejected; a locally valid payload stays BLOCKED_NEXUS_CONFIRMATION with the open questions listed; the module imports only the P4A module, contains no network, upload, signature, hashing or CID code, does not call fetch when used, and no runtime file imports it. |
 | EV-KB-PURCHASE-TERMS-POL | known-bad | E4 | mutation | FULL | yes | Each listed weakening of the terms hash binding, text version resolution, readiness gate, wallet binding, minimality, purity and reachability is detected by the intended test. |
+| EV-PURCHASE-TX-BUILDER | behavioral | E3 | node-test | PARTIAL | yes | Behaviourally, against the pure builder: the local Broker ABI equals the verified v2.12.1 signature (recompilation methodIdentifiers, deployed runtime dispatches 0x7c59cac4) and wrong ABI assumptions change the selector; the approval is exactly USDC.approve(Broker, maxPremiumRaw), value 0, deterministic, never unbounded (MaxUint and above-cover maxima rejected); buyCover decodes (test-own ABI) to exactly the intent/quote-derived fields with value 0, the real overshooting quote is accepted, underflow / mismatch / premium above max / other assets / missing proof-of-loss CID are rejected; calldataHash is deterministic and changes with each bound field; every override field is rejected; only two fixed encodings exist; outputs are never production-ready; no wallet, send, network, DB, clock or unlimited-approval code; no runtime import; transaction encoding exists only in the two P4C modules. |
+| EV-PURCHASE-TX-DECODE | behavioral | E3 | node-test | PARTIAL | yes | Behaviourally, against the independent decoder (which does not import the builder): builder outputs validate; every single-bit change of either calldata is rejected; each changed buyCover field fails with its own reason; changed target, value, selector, chain, metadata, extra transaction fields, trailing bytes and intent binding are rejected; empty proof-of-loss is never accepted; approval spender / amount / MaxUint / target are exact; the real mainnet purchase of block 26219867 (hash recomputed offline) decodes structurally and is rejected by CoverRaccoon policy for exactly commission ratio, commission destination and missing proof-of-loss. |
+| EV-KB-PURCHASE-TX | known-bad | E4 | mutation | FULL | yes | Each listed weakening of target, selector, ABI, approval, field derivation, override rejection, decoder checks, purity and reachability is detected by the intended test. |
 
 ## 6. Mutation cases
 
-389 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+419 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -812,6 +819,36 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-POL-001-P4-P4BPOST | CR-POL-001.P4 | behavioral | KILLED |
 | MUT-CR-POL-001-P4-P4BEIP712 | CR-POL-001.P4 | behavioral | KILLED |
 | MUT-CR-POL-001-P4-P4BREACH | CR-POL-001.P4 | behavioral | KILLED |
+| MUT-CR-PURCHASE-001-P1-P4CBROKER | CR-PURCHASE-001.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-001-P3-P4CAPPROVETARGET | CR-PURCHASE-001.P3 | behavioral | KILLED |
+| MUT-CR-APPROVAL-001-P2-P4CSPENDER | CR-APPROVAL-001.P2 | behavioral | KILLED |
+| MUT-CR-APPROVAL-001-P3-P4CMAXUINT | CR-APPROVAL-001.P3 | behavioral | KILLED |
+| MUT-CR-APPROVAL-001-P1-P4COVERAPPROVE | CR-APPROVAL-001.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-001-P2-P4CSELECTOR | CR-PURCHASE-001.P2 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P1-P4CCOVERID | CR-PURCHASE-002.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P1-P4COWNER | CR-PURCHASE-002.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P1-P4CPRODUCT | CR-PURCHASE-002.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P1-P4CCOVERASSET | CR-PURCHASE-002.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P1-P4CPAYASSET | CR-PURCHASE-002.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P1-P4CAMOUNT | CR-PURCHASE-002.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P1-P4CPERIOD | CR-PURCHASE-002.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P1-P4CMAXPREMIUM | CR-PURCHASE-002.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P1-P4CCOMMRATIO | CR-PURCHASE-002.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P1-P4CCOMMDEST | CR-PURCHASE-002.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P1-P4CEMPTYPOL | CR-PURCHASE-002.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P1-P4CPOLCID | CR-PURCHASE-002.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P1-P4CALLOC | CR-PURCHASE-002.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P1-P4CSUMEQ | CR-PURCHASE-002.P1 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P2-P4CANYTO | CR-PURCHASE-002.P2 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P2-P4CANYDATA | CR-PURCHASE-002.P2 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P2-P4CGENERIC | CR-PURCHASE-002.P2 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P3-P4CDECOWNER | CR-PURCHASE-002.P3 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P3-P4CDECCOMM | CR-PURCHASE-002.P3 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P3-P4CDECTRUST | CR-PURCHASE-002.P3 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P4-P4CBOT | CR-PURCHASE-002.P4 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P4-P4CAPI | CR-PURCHASE-002.P4 | behavioral | KILLED |
+| MUT-CR-PURCHASE-002-P4-P4CSEND | CR-PURCHASE-002.P4 | behavioral | KILLED |
+| MUT-CR-PURCHASE-001-P2-P4CWRONGABI | CR-PURCHASE-001.P2 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -834,11 +871,11 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V2.1.1 | L1 | CR-INPUT-009 | NON_CONFORMANT |
 | V2.1.2 | L2 | CR-INPUT-009 | NON_CONFORMANT |
 | V2.1.3 | L2 | CR-RESOURCE-005, CR-QUOTE-008 | NON_CONFORMANT |
-| V2.2.1 | L1 | CR-API-003, CR-NEXUS-001, CR-NEXUS-003, CR-QUOTE-001, CR-QUOTE-003, CR-QUOTE-004, CR-PURCHASE-003 | CONFORMANT |
+| V2.2.1 | L1 | CR-API-003, CR-NEXUS-001, CR-NEXUS-003, CR-QUOTE-001, CR-QUOTE-003, CR-QUOTE-004, CR-PURCHASE-003, CR-PURCHASE-002 | CONFORMANT |
 | V2.2.2 | L1 | CR-API-003 | CONFORMANT |
-| V2.2.3 | L2 | CR-INPUT-010, CR-NEXUS-001, CR-NEXUS-002, CR-QUOTE-002, CR-PURCHASE-003, CR-ALLOC-001, CR-TERMS-001 | CONFORMANT |
+| V2.2.3 | L2 | CR-INPUT-010, CR-NEXUS-001, CR-NEXUS-002, CR-QUOTE-002, CR-PURCHASE-003, CR-ALLOC-001, CR-TERMS-001, CR-PURCHASE-001, CR-PURCHASE-002 | CONFORMANT |
 | V2.3.1 | L1 | CR-API-009, CR-PURCHASE-005 | CONFORMANT |
-| V2.3.2 | L2 | CR-CONC-002, CR-QUOTE-003, CR-QUOTE-005, CR-COMMISSION-001, CR-ALLOC-001, CR-TERMS-002 | NOT_DEMONSTRATED |
+| V2.3.2 | L2 | CR-CONC-002, CR-QUOTE-003, CR-QUOTE-005, CR-COMMISSION-001, CR-ALLOC-001, CR-TERMS-002, CR-APPROVAL-001, CR-PURCHASE-006 | NOT_DEMONSTRATED |
 | V2.3.3 | L2 | CR-CONC-001, CR-CONC-004 | CONFORMANT |
 | V2.3.4 | L2 | CR-CONC-002, CR-CONC-003 | CONFORMANT |
 | V2.3.5 | L3 | CR-API-010 | CONFORMANT |
@@ -1009,6 +1046,8 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | SRC-NEXUS-COVER | [NexusMutual/smart-contracts Cover implementation behind proxy 0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62](https://github.com/NexusMutual/smart-contracts/blob/070972503a471b6e14d01213aca4cf41e156c215/contracts/modules/cover/Cover.sol) | v3.3.0 | proxy 0xcafeac0fF5dA0A2777d915531bfA6B29d282Ee62 (OwnedUpgradeabilityProxy, implementation slot keccak256("org.govblocks.proxy.implementation")) -> implementation 0xcafeafF1a21418f530Feb00C6BAeF07523979C05 (deployed block 24476528, tx 0xb2e2418bde74537a62d68ff63c099ead01a963cc313f54c36d6375a7a6a550f6, 2026-02-17); source tag v3.3.0 = commit 070972503a471b6e14d01213aca4cf41e156c215; solc 0.8.28+commit.7893614a, optimizer runs 200, evmVersion prague; runtime keccak256 0x2ecdeb32b923da39e181ca3fd7f2aa543e7e35e3db146f79327993f3b796a530, 23948 bytes, metadata ipfs QmVvxQParTb5FBNEDYsP4Wjpwj7G5ZqjaRcxSTc5Wwudht; match DECLARED_IMMUTABLES_ONLY (964 bytes, all in immutableReferences; CBOR identical; address immutables equal on-chain getters); v3.4.0 differs only in metadata (IPool.sol); independent recompilation 2026-10-18: GitHub sources at the commit (import closure) + @openzeppelin/contracts 4.7.3 (npm sha512 = package-lock), official soljson-v0.8.28+commit.7893614a.js (sha256 0x72ef580a6ec5943130028e5294313f24e9435520acc89f8c9dbfd0139d9ae146), optimizer enabled runs 200, settings of hardhat-config/solidity.js at the tag (ENABLE_OPTIMIZER); fixtures runtime-cover-impl-cafeaff1.hex 23ca356ed7e3ecf83cb16f914d4afc489fa20c939f12f01228d8193205ecc9a9, contract-builds.json bca90ebe047e836acab959c967353613758731c58271bce6af827d29bb046ac3 |
 | SRC-NEXUS-SDK | [@nexusmutual/sdk (cover metadata / proof-of-loss client code)](https://www.npmjs.com/package/@nexusmutual/sdk/v/3.1.1) | 3.1.1 | npm tarball nexusmutual-sdk-3.1.1.tgz sha512-1DKvkt1RO5dsJrROtGAG18ktRSLLyB9RWF3i+nF6wL8CyIRwLUj+RI3kd+2STc1XMHGocAQnwy23DiXm+bYuJQ== (sha256 06d59bcc3063d9a72dbbfbad94d40323c65c57cd77398ee740cbd27a83937c5f), dist/index.js sha256 b0235a26abe3fccb7d84a3d4ace3454457baed068fa0dff8c33055eab3bdc186; read: CoverMetadataInput { creatorAddress, proofOfLoss?: [{ type, content }], publicData? }, ProofOfLossEntry type address content [{ address, label? }], createCoverMetadata POST /cover-metadata (creatorAddress lowercased) -> { cid }, view/edit with x-auth-signature / x-auth-payload (EIP-712 domain "Nexus Mutual App" 1.0.0, Authentication { timestamp, message }), coverMetadataRef { version "1.0", coverMetadata: uuid } |
 | SRC-NEXUS-POL-BLOG | [Upfront Proof of Loss (blog)](https://nexusmutual.io/blog/upfront-proof-of-loss) | retrieved 2026-10-19 | unversioned web page, not content-pinned; read 2026-10-19: covered wallet details entered in a private field at purchase, stored in an offchain database, visible and editable only by the wallet holder (sign-to-reveal) |
+| SRC-NEXUS-BUYCOVER-TX | [CoverBroker product-97 purchase transaction (decode-only negative fixture)](https://etherscan.io/tx/0x1bec0316a5e23e34d1e81bd81aab8b38333d67e01b01382a112314823edae031) | block 26219867 | tx 0x1bec0316a5e23e34d1e81bd81aab8b38333d67e01b01382a112314823edae031, captured read-only once (eth_getTransactionByHash, publicnode); test/fixtures/nexus/buycover-tx-26219867.json keeps the signed fields and the test recomputes the transaction hash offline |
+| SRC-USDC-MAINNET | [USDC on Ethereum mainnet (address only)](https://etherscan.io/address/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) | address pin | 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 as given in the P4C task; implementation behind the proxy NOT source-pinned, no on-chain read in P4C |
 
 ## 9. Drift model
 
@@ -1059,6 +1098,8 @@ Drift output only prioritises review. security:verify always evaluates every con
 | `src/purchase-intent.mjs` | CR-ALLOC, CR-COMMISSION, CR-PURCHASE |
 | `src/purchase-terms.mjs` | CR-TERMS |
 | `src/purchase-proof-of-loss.mjs` | CR-POL |
+| `src/purchase-tx-builder.mjs` | CR-APPROVAL, CR-PURCHASE |
+| `src/purchase-tx-decode.mjs` | CR-APPROVAL, CR-PURCHASE |
 
 ## 10. Framework versions
 
@@ -1092,4 +1133,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2za** — F-2Z-1 (framework/source integrity, Low): the CRSF source for the Nexus contracts named v3.4.0 for all SDK addresses, but the deployed CoverBroker is v2.12.1. Proven by independent recompilation; per-contract pins SRC-NEXUS-COVERBROKER (v2.12.1) and SRC-NEXUS-COVER (v3.3.0 implementation), control CR-NEXUS-006 (RELEASE_BLOCKING, E3) with behavioural evidence and 4 KILLED mutations. No runtime behaviour changed, no contract called, no deployment.
 - **1.0-draft-phase2zb** — Nexus P4A: pure purchase-intent model (validation, canonical hash v1, transition model, allocation and commission rules) in src/purchase-intent.mjs, unreachable at runtime. Controls CR-PURCHASE-003, CR-PURCHASE-005, CR-COMMISSION-001, CR-ALLOC-001 (RELEASE_BLOCKING, E3) with behavioural evidence and 22 KILLED mutations. No endpoint, wallet method, calldata, network call, migration or deployment.
 - **1.0-draft-phase2zc** — Nexus P4B: versioned purchase acknowledgement texts and terms hash (src/purchase-terms.mjs), local proof-of-loss payload preparation (src/purchase-proof-of-loss.mjs), both pure and unreachable at runtime. CR-TERMS-001 and CR-POL-001 (RELEASE_BLOCKING, E3) with behavioural evidence and 18 KILLED mutations; CR-TERMS-002 and CR-POL-002 (SECURITY_DEBT, MISSING_EVIDENCE) hold what only Nexus can confirm. Nothing transmitted, signed, uploaded or stored; no CID generated.
+- **1.0-draft-phase2zd** — Nexus P4C: offline transaction builder (src/purchase-tx-builder.mjs: exact USDC approval, CoverBroker v2.12.1 buyCover) and independent decoder (src/purchase-tx-decode.mjs), both pure and unreachable at runtime; outputs are never production-ready. CR-PURCHASE-001, CR-PURCHASE-002, CR-APPROVAL-001 (RELEASE_BLOCKING, E3) with behavioural evidence, a real mainnet decode-only fixture and 30 KILLED mutations; CR-PURCHASE-006 (SECURITY_DEBT, MISSING_EVIDENCE) holds pre-send chain validation, USDC implementation pin, wallet execution and receipt verification. CR-TERMS-002 and CR-POL-002 unchanged.
 

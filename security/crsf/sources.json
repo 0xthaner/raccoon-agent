@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zc",
+	"crsf_version": "1.0-draft-phase2zd",
 	"sources": [
 		{
 			"id": "SRC-ASVS",
@@ -244,6 +244,26 @@
 			"url": "https://nexusmutual.io/blog/upfront-proof-of-loss",
 			"pin": "unversioned web page, not content-pinned; read 2026-10-19: covered wallet details entered in a private field at purchase, stored in an offchain database, visible and editable only by the wallet holder (sign-to-reveal)",
 			"note": "OBSERVED_PUBLIC_NEXUS_CONTENT: no API schema, no retention or deletion terms, nothing about distributors."
+		},
+		{
+			"id": "SRC-NEXUS-BUYCOVER-TX",
+			"org": "Ethereum mainnet",
+			"title": "CoverBroker product-97 purchase transaction (decode-only negative fixture)",
+			"version": "block 26219867",
+			"date": "2026-10-19",
+			"url": "https://etherscan.io/tx/0x1bec0316a5e23e34d1e81bd81aab8b38333d67e01b01382a112314823edae031",
+			"pin": "tx 0x1bec0316a5e23e34d1e81bd81aab8b38333d67e01b01382a112314823edae031, captured read-only once (eth_getTransactionByHash, publicnode); test/fixtures/nexus/buycover-tx-26219867.json keeps the signed fields and the test recomputes the transaction hash offline",
+			"note": "Not a CoverRaccoon intent: third-party owner, commissionRatio 1000 with a non-zero destination, empty ipfsData. Used only to prove structural decoding and policy rejection."
+		},
+		{
+			"id": "SRC-USDC-MAINNET",
+			"org": "Circle",
+			"title": "USDC on Ethereum mainnet (address only)",
+			"version": "address pin",
+			"date": "2026-10-19",
+			"url": "https://etherscan.io/address/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+			"pin": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 as given in the P4C task; implementation behind the proxy NOT source-pinned, no on-chain read in P4C",
+			"note": "P4C encodes approve(address,uint256) only as an offline template; real use stays blocked until the USDC implementation/source check (CR-PURCHASE-006 P2)."
 		}
 	],
 	"deferred_sources": [
@@ -350,6 +370,18 @@
 			"change": "ADDED",
 			"id": "SRC-NEXUS-POL-BLOG",
 			"reason": "P4B: public Nexus statement on proof-of-loss storage, recorded as observation only (CR-POL-002)"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zd",
+			"change": "ADDED",
+			"id": "SRC-NEXUS-BUYCOVER-TX",
+			"reason": "P4C: decode-only real mainnet fixture for CR-PURCHASE-002 P3"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zd",
+			"change": "ADDED",
+			"id": "SRC-USDC-MAINNET",
+			"reason": "P4C: approval target (CR-PURCHASE-001 P3), address only; implementation pin open (CR-PURCHASE-006)"
 		}
 	],
 	"vendored": [
