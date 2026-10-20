@@ -102,7 +102,7 @@ test('P4C-APPROVAL exact USDC.approve(Broker, maxPremiumRaw), value 0, no gas or
 	// P4G (20.10.2026): der Builder bleibt offline und kennt nur die USDC-Adresse; Pin und Pre-Send-Pruefung leistet P4F extern.
 	assert.equal(B.USDC_PIN_STATUS, 'BUILDER_ADDRESS_ONLY_PIN_EXTERNAL_P4F');
 	assert.equal(B.BUILDER_CAPABILITY, 'OFFLINE_ONLY');
-	assert.deepEqual({ ...B.EXTERNAL_REQUIRED_CONTROLS }, { USDC_PIN: 'SATISFIED_BY_P4F', PRE_SEND_CHAIN_VALIDATION: 'SATISFIED_BY_P4F', RECEIPT_BEFORE_CONFIRMATION: 'SATISFIED_BY_P4G', WALLET_ORCHESTRATION: 'UNRESOLVED', TERMS: 'UNRESOLVED', PROOF_OF_LOSS: 'UNRESOLVED' });
+	assert.deepEqual({ ...B.EXTERNAL_REQUIRED_CONTROLS }, { USDC_PIN: 'SATISFIED_BY_P4F', PRE_SEND_CHAIN_VALIDATION: 'SATISFIED_BY_P4F', RECEIPT_BEFORE_CONFIRMATION: 'SATISFIED_BY_P4G', RUNTIME_LOADER: 'SATISFIED_BY_P4H', EXECUTION_SESSION_BINDING: 'SATISFIED_BY_P4H', WALLET_ORCHESTRATION: 'UNRESOLVED', TERMS: 'UNRESOLVED', PROOF_OF_LOSS: 'UNRESOLVED' });
 	assert.ok(tx.blockers.includes('WALLET_ORCHESTRATION_UNRESOLVED'));
 	assert.deepEqual(approval(), r, 'deterministic');
 	assert.ok(Object.isFrozen(tx));
@@ -253,14 +253,16 @@ function walk(dir) {
 test('P4C-IMPORT no runtime code imports the builder or decoder; only P4C tests do', () => {
 	// P4E (19.10.2026): der unerreichbare Beleg-Pruefer (P4E-IMPORT) nutzt den unabhaengigen DECODER, nie den Builder.
 	const RECEIPT = 'src/purchase-receipt.mjs';
-	const runtime = [...walk('src'), ...walk('api'), ...walk('web'), ...walk('scripts')].filter((f) => !P4C.includes(f) && f !== RECEIPT);
+	const SESSION = 'src/purchase-execution-session.mjs';
+	const runtime = [...walk('src'), ...walk('api'), ...walk('web'), ...walk('scripts')].filter((f) => !P4C.includes(f) && f !== RECEIPT && f !== SESSION);
 	assert.ok(runtime.includes('src/bot.mjs') && runtime.some((f) => f.startsWith('api/')) && runtime.some((f) => f.startsWith('web/src/')) && runtime.some((f) => /^src\/agent-/.test(f)));
 	for (const file of runtime) assert.doesNotMatch(readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'), /purchase-tx-(builder|decode)(\.mjs)?['"`]/, file);
-	assert.doesNotMatch(readFileSync(new URL(`../${RECEIPT}`, import.meta.url), 'utf8'), /purchase-tx-builder|build(ExactUsdcApproval|NexusBuyCover)/, RECEIPT);
+	for (const f of [RECEIPT, SESSION]) assert.doesNotMatch(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8'), /purchase-tx-builder|build(ExactUsdcApproval|NexusBuyCover)/, f);
 	const importing = /(?:from\s*|import\s*\(\s*)['"`][^'"`]*purchase-tx-(builder|decode)\.mjs/;
 	const importers = [...walk('src'), ...walk('test')].filter((f) => importing.test(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8'))).sort();
 	// P4G (20.10.2026): der P4G-Test liest die Blocker-Aussage des Builders (P4G-P4C-MODEL); das P4G-Modul selbst importiert ihn nie (P4G-STATIC).
-	assert.deepEqual(importers, [RECEIPT, 'test/purchase-confirmation.test.mjs', 'test/purchase-tx-builder.test.mjs', 'test/purchase-tx-decode.test.mjs']);
+	// P4H (20.10.2026): die unerreichbare Ausfuehrungs-Sitzung (P4H-SESSION-IMPORT) nutzt nur den DECODER (P4H-SESSION-STATIC); ihr Test liest das Builder-Modell (P4H-P4C-MODEL).
+	assert.deepEqual(importers, [SESSION, RECEIPT, 'test/purchase-confirmation.test.mjs', 'test/purchase-execution-session.test.mjs', 'test/purchase-tx-builder.test.mjs', 'test/purchase-tx-decode.test.mjs']);
 });
 
 test('P4C-SURFACE transaction encoding and transaction-shaped objects exist only in the two pure P4C modules', () => {
@@ -270,7 +272,10 @@ test('P4C-SURFACE transaction encoding and transaction-shaped objects exist only
 		// P4E (19.10.2026): ebenso der unerreichbare, nur lesende Beleg-Pruefer (P4E-IMPORT), der keccak256(input) gegen ihn vergleicht.
 		// P4F (20.10.2026): ebenso der unerreichbare, nur lesende Pre-Send-Pruefer (P4F-IMPORT), der nur das Format des gespeicherten Hashes prueft.
 		// P4G (20.10.2026): ebenso die unerreichbare Bestaetigungs-Orchestrierung (P4G-IMPORT), die den gespeicherten Hash an P4E weiterreicht.
-		const surface = ['src/purchase-intent-db.mjs', 'src/purchase-receipt.mjs', 'src/purchase-pre-send.mjs', 'src/purchase-confirmation.mjs'].includes(file) ? /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|productionReady/ : /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|calldataHash|productionReady/;
+		// P4H (20.10.2026): ebenso der unerreichbare Lader (P4H-LOADER-IMPORT), der den Hash nur liest und auf Format prueft.
+		// Die unerreichbare Ausfuehrungs-Sitzung (P4H-SESSION-IMPORT) benennt zusaetzlich die zwei Decoder-Arten; Kodieren, Selektoren, approve und productionReady bleiben auch dort ausgeschlossen.
+		if (file === 'src/purchase-execution-session.mjs') { assert.doesNotMatch(code(file), /encodeFunctionData|buyCover|7c59cac4|095ea7b3|functionName:\s*'approve'|\.approve\(|productionReady/, file); continue; }
+		const surface = ['src/purchase-intent-db.mjs', 'src/purchase-receipt.mjs', 'src/purchase-pre-send.mjs', 'src/purchase-confirmation.mjs', 'src/purchase-runtime-loader.mjs'].includes(file) ? /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|productionReady/ : /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|calldataHash|productionReady/;
 		assert.doesNotMatch(code(file), surface, file);
 	}
 });

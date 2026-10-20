@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zh",
+	"crsf_version": "1.0-draft-phase2zi",
 	"profile_rules_digest": "0408f5d8ab00e6ec5829051c12ec5713e303de093937be60a5c09d90bf4f1bdc",
 	"controls": {
 		"CR-ALLOC-001": {
@@ -1244,8 +1244,8 @@
 			"external_requirement_ids": [
 				"V2.3.2"
 			],
-			"properties_digest": "e6a4309be75a0ef318ce31cbf1e2ddb6b6931683dfeb3c1dd6ab1fdbd572c786",
-			"derivation_digest": "ee47f53e01eb0d659f02be77a4546a93b7c1a78c4947954cdd7810ec9b10d3a4"
+			"properties_digest": "b3985d2da96545d0dff585a7b4a0d1fc4b4dd47182a5b358a8eee77823893b6a",
+			"derivation_digest": "3d664fe62859fe43e867425c7efa2f5e36f2a3856dd676b8e227183b5c74f060"
 		},
 		"CR-QUOTE-001": {
 			"release_class": "RELEASE_BLOCKING",

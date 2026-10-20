@@ -446,11 +446,13 @@ test('P4F-STATIC the pre-send verifier has no send, sign, wallet, network, DB-mu
 
 test('P4F-IMPORT only test/purchase-pre-send.test.mjs imports the pre-send verifier; no API route exists', () => {
 	const MODULE = 'src/purchase-pre-send.mjs';
-	const runtime = [...walk('src'), ...walk('api'), ...walk('web'), ...walk('scripts')].filter((f) => f !== MODULE && !f.startsWith('web/dist'));
+	// P4H (20.10.2026): die unerreichbare Ausfuehrungs-Sitzung (P4H-SESSION-IMPORT) ruft den Pruefer fuer genau den geladenen Intent.
+	const SESSION = 'src/purchase-execution-session.mjs';
+	const runtime = [...walk('src'), ...walk('api'), ...walk('web'), ...walk('scripts')].filter((f) => f !== MODULE && f !== SESSION && !f.startsWith('web/dist'));
 	assert.ok(runtime.includes('src/bot.mjs') && runtime.some((f) => f.startsWith('api/')) && runtime.some((f) => f.startsWith('web/src/')) && runtime.some((f) => /^src\/agent-/.test(f)));
 	for (const file of runtime) assert.doesNotMatch(read(file), /purchase-pre-send(\.mjs)?['"`]|verifyPurchasePreSend/, file);
 	const importing = /(?:from\s*|import\s*\(\s*)['"`][^'"`]*purchase-pre-send\.mjs/;
-	assert.deepEqual([...walk('src'), ...walk('api'), ...walk('test'), ...walk('test-support')].filter((f) => importing.test(read(f))).sort(), ['test/purchase-pre-send.test.mjs']);
+	assert.deepEqual([...walk('src'), ...walk('api'), ...walk('test'), ...walk('test-support')].filter((f) => importing.test(read(f))).sort(), [SESSION, 'test/purchase-execution-session.test.mjs', 'test/purchase-pre-send.test.mjs']);
 	assert.deepEqual(walk('api').filter((f) => /pre-?send|receipt|purchase|buy|intent/i.test(f)), [], 'no pre-send or purchase route');
 	// der Pre-Send-Pruefer verbindet den Beleg-Pruefer nicht mit markConfirmed (Orchestrierung bleibt offen)
 	assert.doesNotMatch(read(MODULE), /verifyPurchaseReceipt|purchase-receipt/);

@@ -19204,6 +19204,1042 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HOPEN",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the loader accepts an OPEN intent",
+			"edits": [
+				{
+					"file": "src/purchase-runtime-loader.mjs",
+					"find": "\tif (p.status !== 'BUILT') stop('INVALID_STATUS', `STATUS:${p.status}`);",
+					"replace": "\tif (p.status !== 'BUILT' && p.status !== 'OPEN') stop('INVALID_STATUS', `STATUS:${p.status}`);"
+				}
+			],
+			"tests": [
+				"test/purchase-runtime-loader.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-LOAD-STATUS only BUILT without tx_hash and cover_id is loadable$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HSUBMITTED",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the loader accepts a SUBMITTED intent",
+			"edits": [
+				{
+					"file": "src/purchase-runtime-loader.mjs",
+					"find": "\tif (p.status !== 'BUILT') stop('INVALID_STATUS', `STATUS:${p.status}`);",
+					"replace": "\tif (p.status !== 'BUILT' && p.status !== 'SUBMITTED') stop('INVALID_STATUS', `STATUS:${p.status}`);"
+				}
+			],
+			"tests": [
+				"test/purchase-runtime-loader.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-LOAD-STATUS only BUILT without tx_hash and cover_id is loadable$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HTRUSTHASH",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the loader trusts the stored intent hash without the P4A recomputation",
+			"edits": [
+				{
+					"file": "src/purchase-runtime-loader.mjs",
+					"find": "\tif (computePurchaseIntentHash(p.intent) !== p.intentHash) stop('PERSISTED_RECORD_INVALID', 'INTENT_HASH_MISMATCH');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-runtime-loader.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-LOAD-HASH the stored intent hash must equal the P4A recomputation; the calldata hash must be bytes32$"
+				},
+				{
+					"test": "^P4H-RECHECK a loaded model is re-validated in full at every later step; edits and the clock are not trusted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HCALLDATAFMT",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the loader accepts a malformed calldata hash",
+			"edits": [
+				{
+					"file": "src/purchase-runtime-loader.mjs",
+					"find": "\tif (typeof p.calldataHash !== 'string' || !HASH.test(p.calldataHash)) stop",
+					"replace": "\tif (typeof p.calldataHash !== 'string') stop"
+				}
+			],
+			"tests": [
+				"test/purchase-runtime-loader.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-LOAD-HASH the stored intent hash must equal the P4A recomputation; the calldata hash must be bytes32$"
+				},
+				{
+					"test": "^P4H-RECHECK a loaded model is re-validated in full at every later step; edits and the clock are not trusted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HNOEXPIRY",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the loader ignores the intent expiry",
+			"edits": [
+				{
+					"file": "src/purchase-runtime-loader.mjs",
+					"find": "\tif (!(now < p.expiresAt)) stop('INTENT_EXPIRED');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-runtime-loader.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-LOAD-EXPIRY expires_at and build_deadline are exclusive bounds; no extension$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HNODEADLINE",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the loader ignores the build deadline",
+			"edits": [
+				{
+					"file": "src/purchase-runtime-loader.mjs",
+					"find": "\tif (!(now < p.buildDeadline)) stop('BUILD_DEADLINE_EXPIRED');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-runtime-loader.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-LOAD-EXPIRY expires_at and build_deadline are exclusive bounds; no extension$"
+				},
+				{
+					"test": "^P4H-RECHECK a loaded model is re-validated in full at every later step; edits and the clock are not trusted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HCALLERWALLET",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "a caller-supplied wallet replaces the intent wallet in the session",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "const CREATE_KEYS = Object.freeze(['purchase', 'preSendVerdict', 'transaction', 'now', 'sessionId']);",
+					"replace": "const CREATE_KEYS = Object.freeze(['purchase', 'preSendVerdict', 'transaction', 'now', 'sessionId', 'wallet']);"
+				},
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "wallet: intent.wallet, chainId: 1,",
+					"replace": "wallet: input.wallet ?? intent.wallet, chainId: 1,"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-CLIENT the caller cannot inject wallet, transaction fields, hashes, block or block hash$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HCALLERDATA",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "caller-supplied data replace the server-built bytes in the session",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "const CREATE_KEYS = Object.freeze(['purchase', 'preSendVerdict', 'transaction', 'now', 'sessionId']);",
+					"replace": "const CREATE_KEYS = Object.freeze(['purchase', 'preSendVerdict', 'transaction', 'now', 'sessionId', 'data']);"
+				},
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "value: 0n, data: transaction.data,",
+					"replace": "value: 0n, data: input.data ?? transaction.data,"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-CLIENT the caller cannot inject wallet, transaction fields, hashes, block or block hash$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HCALLERBLOCK",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "a caller-supplied verified block replaces the P4F block in the session",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "const CREATE_KEYS = Object.freeze(['purchase', 'preSendVerdict', 'transaction', 'now', 'sessionId']);",
+					"replace": "const CREATE_KEYS = Object.freeze(['purchase', 'preSendVerdict', 'transaction', 'now', 'sessionId', 'verifiedAtBlock']);"
+				},
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "verifiedAtBlock: preSendVerdict.verifiedAtBlock,",
+					"replace": "verifiedAtBlock: input.verifiedAtBlock ?? preSendVerdict.verifiedAtBlock,"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-CLIENT the caller cannot inject wallet, transaction fields, hashes, block or block hash$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HNOPRESEND",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "PRE_SEND_VERIFIED is not required (ok true suffices)",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "\tif (v.ok !== true || v.status !== 'PRE_SEND_VERIFIED') errors",
+					"replace": "\tif (v.ok !== true) errors"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-PRESEND only a complete PRE_SEND_VERIFIED verdict with block, block hash and the pins creates a session$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HDISAGREE",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "an RPC_DISAGREEMENT verdict is accepted",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "\tif (v.ok !== true || v.status !== 'PRE_SEND_VERIFIED') errors",
+					"replace": "\tif (v.ok !== true || (v.status !== 'PRE_SEND_VERIFIED' && v.status !== 'RPC_DISAGREEMENT')) errors"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-PRESEND only a complete PRE_SEND_VERIFIED verdict with block, block hash and the pins creates a session$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HNODECODE",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the independent decoder is skipped",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "\tif (!tx || typeof tx !== 'object' || Array.isArray(tx)) return { status: 'TRANSACTION_REJECTED', errors: ['TX_NOT_OBJECT'] };\n",
+					"replace": "\tif (tx && typeof tx === 'object') return null;\n\tif (!tx || typeof tx !== 'object' || Array.isArray(tx)) return { status: 'TRANSACTION_REJECTED', errors: ['TX_NOT_OBJECT'] };\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-DECODE the bytes are decoded independently and checked field by field; buyCover must match the persisted calldata hash$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HTRUSTBUILDER",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "builder output metadata (calldataHash) is trusted instead of decoding",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "\tconst extra = Object.keys(tx).filter((k) => !TX_KEYS.includes(k));\n",
+					"replace": "\tif (tx.calldataHash !== undefined && tx.calldataHash === purchase.calldataHash) return null;\n\tconst extra = Object.keys(tx).filter((k) => !TX_KEYS.includes(k) && !['calldataHash', 'productionReady', 'blockers'].includes(k));\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-DECODE the bytes are decoded independently and checked field by field; buyCover must match the persisted calldata hash$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HHASHINTENT",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the session hash omits intentId",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "uuidBytes(s.intentId)",
+					"replace": "uuidBytes('00000000-0000-4000-8000-000000000000')"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-HASH the session hash is a fixed ABI encoding under a versioned domain; every bound field changes it$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HHASHCALLDATA",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the session hash omits calldataHash",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "s.intentHash, s.calldataHash,",
+					"replace": "s.intentHash, `0x${'0'.repeat(64)}`,"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-HASH the session hash is a fixed ABI encoding under a versioned domain; every bound field changes it$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HHASHWALLET",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the session hash omits the wallet",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "s.wallet, BigInt(s.chainId)",
+					"replace": "'0x0000000000000000000000000000000000000000', BigInt(s.chainId)"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-HASH the session hash is a fixed ABI encoding under a versioned domain; every bound field changes it$"
+				},
+				{
+					"test": "^P4H-SESSION-USE single use is modelled honestly \\(not persisted\\): tampered, expired and consumed sessions are not usable$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HHASHTARGET",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the session hash omits the target",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "s.to, s.value",
+					"replace": "'0x0000000000000000000000000000000000000000', s.value"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-HASH the session hash is a fixed ABI encoding under a versioned domain; every bound field changes it$"
+				},
+				{
+					"test": "^P4H-SESSION-USE single use is modelled honestly \\(not persisted\\): tampered, expired and consumed sessions are not usable$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HHASHDATA",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the session hash omits the data",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "s.value, s.data,",
+					"replace": "s.value, '0x',"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-HASH the session hash is a fixed ABI encoding under a versioned domain; every bound field changes it$"
+				},
+				{
+					"test": "^P4H-SESSION-USE single use is modelled honestly \\(not persisted\\): tampered, expired and consumed sessions are not usable$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HHASHBLOCK",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the session hash omits the verified block",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "s.data, s.verifiedAtBlock, s.verifiedAtBlockHash",
+					"replace": "s.data, 0n, s.verifiedAtBlockHash"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-HASH the session hash is a fixed ABI encoding under a versioned domain; every bound field changes it$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HHASHBLOCKHASH",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the session hash omits the verified block hash",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "s.verifiedAtBlock, s.verifiedAtBlockHash, BigInt",
+					"replace": "s.verifiedAtBlock, `0x${'0'.repeat(64)}`, BigInt"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-HASH the session hash is a fixed ABI encoding under a versioned domain; every bound field changes it$"
+				},
+				{
+					"test": "^P4H-SESSION-USE single use is modelled honestly \\(not persisted\\): tampered, expired and consumed sessions are not usable$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HHASHEXPIRY",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the session hash omits the expiry",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "BigInt(s.expiresAt)",
+					"replace": "0n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-HASH the session hash is a fixed ABI encoding under a versioned domain; every bound field changes it$"
+				},
+				{
+					"test": "^P4H-SESSION-TTL the session lives at most 30 s and never past build_deadline or expires_at; without a window there is no session$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HTTL60",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the session lifetime exceeds 30 s",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "export const SESSION_TTL_SECONDS = 30;",
+					"replace": "export const SESSION_TTL_SECONDS = 60;"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION a BUILT intent, a real PRE_SEND_VERIFIED verdict and independently decoded bytes give one short session; nothing is sent$"
+				},
+				{
+					"test": "^P4H-SESSION-TTL the session lives at most 30 s and never past build_deadline or expires_at; without a window there is no session$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HTTLDEADLINE",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the session expiry ignores build_deadline",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "Math.min(now + SESSION_TTL_SECONDS, purchase.buildDeadline, purchase.expiresAt)",
+					"replace": "Math.min(now + SESSION_TTL_SECONDS, purchase.expiresAt)"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-TTL the session lives at most 30 s and never past build_deadline or expires_at; without a window there is no session$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HTTLEXPIRYEQ1",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the session expiry ignores the intent expiry (redundant layer)",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "Math.min(now + SESSION_TTL_SECONDS, purchase.buildDeadline, purchase.expiresAt)",
+					"replace": "Math.min(now + SESSION_TTL_SECONDS, purchase.buildDeadline)"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs",
+				"test/purchase-runtime-loader.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [],
+			"expected_result": "EQUIVALENT",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"equivalence": {
+				"kind": "REDUNDANT_LAYER",
+				"proof": "createExecutionSession re-runs recheckPurchase before computing the expiry; it requires purchase.expiresAt === intent.expiresAt and rejects (BUILD_WINDOW) every purchase whose buildDeadline lies after expiresAt. So for every purchase that reaches Math.min, buildDeadline <= expiresAt and min(now + 30, buildDeadline, expiresAt) == min(now + 30, buildDeadline). The bound itself is proven by MUT-CR-PURCHASE-008-P6-P4HDEADLINEAFTEREXPIRY (KILLED)."
+			}
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HDEADLINEAFTEREXPIRY",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the loader accepts a build deadline after the intent expiry (the session could then outlive the intent)",
+			"edits": [
+				{
+					"file": "src/purchase-runtime-loader.mjs",
+					"find": " || p.buildDeadline > p.expiresAt) stop",
+					"replace": ") stop"
+				}
+			],
+			"tests": [
+				"test/purchase-runtime-loader.test.mjs",
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-LOAD-HASH the stored intent hash must equal the P4A recomputation; the calldata hash must be bytes32$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HWALLETSEND",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "a wallet send method appears in the session module",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "const HASH = /^0x[0-9a-f]{64}$/;\n",
+					"replace": "const HASH = /^0x[0-9a-f]{64}$/;\nexport const SEND_METHOD = 'eth_sendTransaction';\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-STATIC no wallet, send, sign, provider or builder surface; the decoder and P4F are the only judges$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HAPIIMPORT",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "a public API route imports the session module",
+			"edits": [
+				{
+					"file": "api/nexus/quote.mjs",
+					"find": "import { resolveDashboardSession } from '../../src/dashboard-auth.mjs';\n",
+					"replace": "import { resolveDashboardSession } from '../../src/dashboard-auth.mjs';\nimport { prepareExecutionSession } from '../../src/purchase-execution-session.mjs';\nexport const PREPARE = prepareExecutionSession;\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-SESSION-IMPORT only the P4H tests import the session module; no purchase, wallet or execution route exists$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HREADY",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "the offline builder marks its output production-ready",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "productionReady: false, blockers: PRODUCTION_BLOCKERS",
+					"replace": "productionReady: true, blockers: PRODUCTION_BLOCKERS"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-P4C-MODEL the builder stays never production-ready; loader and session binding are listed, wallet orchestration stays unresolved$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HANONEXEC",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-LOADER-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "anon may execute the read function",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020120000_cover_purchase_intent_execution_read.sql",
+					"find": "grant execute on function public.get_cover_purchase_intent_for_execution(uuid) to service_role;",
+					"replace": "grant execute on function public.get_cover_purchase_intent_for_execution(uuid) to service_role;\ngrant execute on function public.get_cover_purchase_intent_for_execution(uuid) to anon;"
+				}
+			],
+			"tests": [
+				"test/purchase-runtime-loader-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-DB-PRIVILEGES only service_role may execute the read function; it is an invoker read with a pinned search_path and introduces no write right$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P6-P4HAUTHEXEC",
+			"origin": "new (P4H)",
+			"evidence_id": "EV-KB-PURCHASE-LOADER-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P6"
+				}
+			],
+			"description": "authenticated may execute the read function",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020120000_cover_purchase_intent_execution_read.sql",
+					"find": "grant execute on function public.get_cover_purchase_intent_for_execution(uuid) to service_role;",
+					"replace": "grant execute on function public.get_cover_purchase_intent_for_execution(uuid) to service_role;\ngrant execute on function public.get_cover_purchase_intent_for_execution(uuid) to authenticated;"
+				}
+			],
+			"tests": [
+				"test/purchase-runtime-loader-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4H-DB-PRIVILEGES only service_role may execute the read function; it is an invoker read with a pinned search_path and introduces no write right$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

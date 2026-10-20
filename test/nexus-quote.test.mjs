@@ -503,7 +503,8 @@ test('QUOTE-SURFACE no purchase surface anywhere in runtime code', () => {
 		assert.doesNotMatch(code, /buyCover|CoverBroker\s*\.|encodeFunctionData/, file);
 		// P4A (19.10.2026): das reine Intent-Modell traegt die Kommissionsfelder, um sie auf 0 / Nulladresse festzulegen.
 		// Es ist von keinem Laufzeitpfad erreichbar (P4A-IMPORT in test/purchase-intent.test.mjs); alle anderen Muster gelten auch dort.
-		if (file !== 'src/purchase-intent.mjs') assert.doesNotMatch(code, /commissionRatio|commissionDestination/, file);
+		// P4H (20.10.2026): ebenso der unerreichbare Lader (P4H-LOADER-IMPORT), der die gespeicherten Spalten auf genau diese P4A-Felder abbildet.
+		if (file !== 'src/purchase-intent.mjs' && file !== 'src/purchase-runtime-loader.mjs') assert.doesNotMatch(code, /commissionRatio|commissionDestination/, file);
 		assert.doesNotMatch(code, /functionName:\s*'approve'/, file);
 	}
 });

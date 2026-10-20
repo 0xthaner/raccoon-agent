@@ -120,6 +120,8 @@ const reset = async () => {
 // Nexus P4D (19.10.2026): dazu die Kauf-Intent-Funktionen und ihr Guard-Trigger (feste Parameter, kein EXECUTE).
 const KNOWN_FUNCTIONS = ['alert_subscriptions_page', 'cancel_cover_purchase_intent', 'check_agent_rate_limit', 'consume_wallet_link', 'consume_wallet_link_v2',
 	'cover_purchase_intent_json', 'cover_purchase_intents_guard', 'create_cover_purchase_intent', 'expire_cover_purchase_intent',
+	// Nexus P4H (20.10.2026): feste Lesefunktion, SECURITY INVOKER, sql, nur service_role (test/purchase-runtime-loader-db.test.mjs).
+	'get_cover_purchase_intent_for_execution',
 	'link_wallet_to_chat_limited', 'lock_chat_wallets', 'mark_cover_purchase_intent_built', 'mark_cover_purchase_intent_confirmed', 'mark_cover_purchase_intent_failed',
 	'mark_cover_purchase_intent_late_confirmed', 'mark_cover_purchase_intent_submitted', 'revoke_dashboard_sessions_atomic', 'upsert_position_attribution_limited'];
 /** Der einzige Trigger in public: P4D-Unveraenderlichkeit (BEFORE UPDATE OR DELETE), selbst ohne dynamisches SQL. */

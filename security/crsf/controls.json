@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zh",
+	"crsf_version": "1.0-draft-phase2zi",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -13404,7 +13404,7 @@
 				"V2.3.2"
 			],
 			"external_requirement": "Business logic limits and rules are implemented as documented (V2.3.2).",
-			"applicability_reason": "Obligation for the transaction phases. P4F adds the read-only pre-send verifier (src/purchase-pre-send.mjs) and the independent USDC pin; P4G adds the server-side receipt-to-confirmation orchestration (src/purchase-confirmation.mjs). None of them is reachable from any runtime path. Nothing sends, signs or calls a wallet. Must become RELEASE_BLOCKING before any real transaction code.",
+			"applicability_reason": "Obligation for the transaction phases. P4F adds the read-only pre-send verifier (src/purchase-pre-send.mjs) and the independent USDC pin; P4G adds the server-side receipt-to-confirmation orchestration (src/purchase-confirmation.mjs); P4H adds the server-only runtime loader (src/purchase-runtime-loader.mjs, fixed read function get_cover_purchase_intent_for_execution, service_role only) and the short-lived execution-session binding (src/purchase-execution-session.mjs). None of them is reachable from any runtime path. Nothing sends, signs or calls a wallet. Must become RELEASE_BLOCKING before any real transaction code.",
 			"release_class": "SECURITY_DEBT",
 			"minimum_evidence_level": "E3",
 			"automation": "PARTIAL",
@@ -13416,7 +13416,10 @@
 				"src/purchase-intent-db.mjs",
 				"src/purchase-receipt.mjs",
 				"src/purchase-pre-send.mjs",
-				"src/purchase-confirmation.mjs"
+				"src/purchase-confirmation.mjs",
+				"src/purchase-runtime-loader.mjs",
+				"src/purchase-execution-session.mjs",
+				"supabase/migrations/20261020120000_cover_purchase_intent_execution_read.sql"
 			],
 			"source_refs": [
 				"SRC-ASVS V2.3.2",
@@ -13426,7 +13429,7 @@
 				"SRC-USDC-FIATTOKEN-V2-2",
 				"SRC-NEXUS-PRE-SEND-STATE"
 			],
-			"coverraccoon_requirement": "Before any real transaction: a read-only pre-send verifier re-reads, at one block agreed by two independent readers, the Broker runtime, the Cover proxy runtime, implementation slot and implementation runtime, and the USDC proxy runtime, implementation slot and implementation runtime, and passes only if all equal the pins and the server-loaded intent is BUILT, unexpired, before its build deadline and hash-consistent; the USDC implementation is source-pinned (address, slot, runtime, recompiled source with understood approve semantics); execution happens only through a reviewed wallet path that runs this verifier immediately before the wallet request, binds the verified block to the session and re-validates the exact bytes with the independent decoder; an intent becomes CONFIRMED only through a server-side orchestration that loads the persisted SUBMITTED intent by id alone, runs the independent receipt verifier fresh on its persisted tx_hash and calldata_hash with two readers and the production finality policy, and calls the narrow SUBMITTED -> CONFIRMED transition only with the verifier's cover id; the offline builder never claims to be production-ready.",
+			"coverraccoon_requirement": "Before any real transaction: a read-only pre-send verifier re-reads, at one block agreed by two independent readers, the Broker runtime, the Cover proxy runtime, implementation slot and implementation runtime, and the USDC proxy runtime, implementation slot and implementation runtime, and passes only if all equal the pins and the server-loaded intent is BUILT, unexpired, before its build deadline and hash-consistent; the USDC implementation is source-pinned (address, slot, runtime, recompiled source with understood approve semantics); execution happens only through a reviewed wallet path that runs this verifier immediately before the wallet request, binds the verified block to the session and re-validates the exact bytes with the independent decoder; an intent becomes CONFIRMED only through a server-side orchestration that loads the persisted SUBMITTED intent by id alone, runs the independent receipt verifier fresh on its persisted tx_hash and calldata_hash with two readers and the production finality policy, and calls the narrow SUBMITTED -> CONFIRMED transition only with the verifier's cover id; before any wallet request, a server-only loader reads the BUILT intent by id alone through one fixed service_role read function and a short-lived execution session (at most 30 s, never past build_deadline or expires_at) binds that exact intent, the P4F-verified block and block hash and the independently decoded bytes under a fixed-ABI hash, with no client-supplied transaction fact; the offline builder never claims to be production-ready.",
 			"threat": "a correct offline transaction sent against changed contracts, or a purchase recorded without on-chain proof",
 			"expected_property": "chain-checked execution and receipt",
 			"properties": [
@@ -13454,6 +13457,11 @@
 					"id": "P5",
 					"kind": "REQUIREMENT",
 					"text": "the offline transaction builder declares its capability as OFFLINE_ONLY and never marks an output production-ready; its production blockers name the open wallet orchestration, Nexus texts and proof-of-loss, and the controls it relies on outside itself (USDC pin and pre-send chain validation by the pre-send verifier, receipt-before-confirmation by the orchestration; wallet orchestration, terms and proof-of-loss unresolved) are listed explicitly instead of being deleted"
+				},
+				{
+					"id": "P6",
+					"kind": "REQUIREMENT",
+					"text": "technical binding before wallet execution (not wallet execution itself, which stays P3): a server-only loader reads exactly one intent by id through one fixed, service_role-only, SECURITY INVOKER read function with a pinned search_path (no PUBLIC, anon or authenticated execute, no write right) and accepts it only if it belongs to that id, is BUILT without tx_hash and cover_id, has a bytes32 calldata hash and an intent hash equal to the P4A recomputation, a valid build window, and now < build_deadline and now < expires_at (no repair); an execution session is created only from such a purchase, a complete P4F PRE_SEND_VERIFIED verdict for exactly that purchase (block, block hash, all checks, the pins) and bytes accepted by the independent P4C decoder (exact USDC approval to the Broker for maxPremium, or buyCover whose keccak256 equals the persisted calldata hash and whose fields match the intent), never builder output; the caller supplies only the intent id (no wallet, transaction field, hash, block or block hash); the session lives min(now + 30 s, build_deadline, expires_at) and is refused without a positive window; its executionSessionHash is keccak256 of a fixed ABI encoding under domain coverraccoon.execution-session version 1 over session id, intent id, intent hash, calldata hash, wallet, chain id, kind, target, value, data, verified block, block hash and expiry; single use is modelled but not persisted (labelled MODEL_ONLY_NOT_PERSISTED) and the time-of-check residual is stated; nothing in the module sends, signs or reaches a wallet, and no runtime code imports it"
 				}
 			],
 			"required_evidence_types": [
@@ -13461,10 +13469,15 @@
 			],
 			"current_evidence_ids": [
 				"EV-KB-PURCHASE-CONFIRMATION",
+				"EV-KB-PURCHASE-EXECUTION-SESSION",
+				"EV-KB-PURCHASE-LOADER-DB",
 				"EV-KB-PURCHASE-PRE-SEND",
 				"EV-PURCHASE-CONFIRMATION",
 				"EV-PURCHASE-CONFIRMATION-DB",
-				"EV-PURCHASE-PRE-SEND"
+				"EV-PURCHASE-EXECUTION-SESSION",
+				"EV-PURCHASE-LOADER-DB",
+				"EV-PURCHASE-PRE-SEND",
+				"EV-PURCHASE-RUNTIME-LOADER"
 			],
 			"property_coverage": {
 				"P1": {
@@ -13501,6 +13514,17 @@
 					"satisfied_by": [
 						"EV-PURCHASE-CONFIRMATION",
 						"EV-KB-PURCHASE-CONFIRMATION"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P6": {
+					"satisfied_by": [
+						"EV-PURCHASE-RUNTIME-LOADER",
+						"EV-PURCHASE-EXECUTION-SESSION",
+						"EV-PURCHASE-LOADER-DB",
+						"EV-KB-PURCHASE-EXECUTION-SESSION",
+						"EV-KB-PURCHASE-LOADER-DB"
 					],
 					"partial_only": [],
 					"insufficient": []

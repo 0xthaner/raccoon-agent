@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zh",
+	"crsf_version": "1.0-draft-phase2zi",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -9606,6 +9606,271 @@
 			],
 			"coverage": "PARTIAL",
 			"reason_for_partial": "CR-PURCHASE-008[P4,P5]: mutation cases: MUT-CR-PURCHASE-008-P4-P4GNOVERIFY, MUT-CR-PURCHASE-008-P4-P4GOKFALSE, MUT-CR-PURCHASE-008-P4-P4GNOTVERIFIEDSTATUS, MUT-CR-PURCHASE-008-P4-P4GCALLERCOVERID, MUT-CR-PURCHASE-008-P4-P4GCALLERTXHASH, MUT-CR-PURCHASE-008-P4-P4GCALLERCALLDATA, MUT-CR-PURCHASE-008-P4-P4GBUILT, MUT-CR-PURCHASE-008-P4-P4GFAILEDNORMAL, MUT-CR-PURCHASE-008-P4-P4GRPCDISAGREE, MUT-CR-PURCHASE-008-P4-P4GRPCTEMP, MUT-CR-PURCHASE-008-P4-P4GLOWCONF, MUT-CR-PURCHASE-008-P4-P4GNOFINAL, MUT-CR-PURCHASE-008-P4-P4GTXNOTFOUND, MUT-CR-PURCHASE-008-P4-P4GRECEIPTMISMATCH, MUT-CR-PURCHASE-008-P4-P4GNOTXBIND, MUT-CR-PURCHASE-008-P4-P4GNOCALLDATABIND, MUT-CR-PURCHASE-008-P4-P4GCACHE, MUT-CR-PURCHASE-008-P4-P4GBUILDER, MUT-CR-PURCHASE-008-P4-P4GGENERICDB, MUT-CR-PURCHASE-008-P4-P4GAPIIMPORT, MUT-CR-PURCHASE-008-P4-P4GWALLETSEND, MUT-CR-PURCHASE-008-P4-P4GMARKFAILED, MUT-CR-PURCHASE-008-P4-P4GCROSSINTENT, MUT-CR-PURCHASE-008-P4-P4GCONFLICTOK, MUT-CR-PURCHASE-008-P5-P4GP4CREADY, MUT-CR-PURCHASE-008-P5-P4GP4CBLOCKERS, MUT-CR-PURCHASE-008-P5-P4GP4CWALLETOK, MUT-CR-PURCHASE-008-P4-P4GLATEOK, MUT-CR-PURCHASE-008-P4-P4GNOINTENTHASH, MUT-CR-PURCHASE-008-P4-P4GNOTNARROWRECORD"
+		},
+		{
+			"id": "EV-PURCHASE-RUNTIME-LOADER",
+			"control_ids": [
+				"CR-PURCHASE-008"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/purchase-runtime-loader.test.mjs",
+			"test_or_proof": "test/purchase-runtime-loader.test.mjs",
+			"property_proven": "Behaviourally, over the exact answer shape of the fixed read function: an exact BUILT row loads into the canonical P4A intent with the stored and recomputed intent hash, calldata hash, build times and expiry, frozen; NOT_FOUND; OPEN, SUBMITTED, CONFIRMED, FAILED, EXPIRED, CANCELLED and malformed statuses refused; tx_hash or cover_id set refused; a wrong, malformed or upper-case intent hash, changed amount or max premium (hash mismatch), missing, short or upper-case calldata hash, no proof-of-loss CID, another terms version, another row id, missing build times, a build window over 120 s, before built_at or after expires_at refused; extra or missing columns and malformed answers refused without repair; expires_at and build_deadline exclusive, no extension; every caller copy (wallet, txHash, calldataHash, intentHash, status, to, data, value, abi, selector, spender, amount, period, coverId, verifiedAtBlock, verifiedAtBlockHash, sessionHash, intent, purchase, deadlines) and malformed ids refused before any read; a repository with any extra method refused; a DB exception is DB_UNAVAILABLE; a loaded model is re-validated in full later (edits and the clock not trusted). Static: one import (purchase-intent), one repository call, no write, wallet, network, environment or clock; the P4D helper calls exactly the fixed function; only the session module and tests import the loader.",
+			"property_not_proven": "the wallet execution path (CR-PURCHASE-008 P3, does not exist): no wallet request, signature or broadcast, and single use is not enforced (modelled only, MODEL_ONLY_NOT_PERSISTED); the time between verifiedAtBlock and mining (proxy upgrade, USDC pause, reorg) is a residual, re-checked only afterwards by P4E; live provider behaviour (P4F readers are offline replays of block 26230166); the read function is not applied to production; Nexus texts and proof-of-loss (CR-TERMS-002, CR-POL-002)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-008[P6]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-008",
+					"properties": [
+						"P6"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/purchase-runtime-loader.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-PURCHASE-EXECUTION-SESSION",
+			"control_ids": [
+				"CR-PURCHASE-008"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/purchase-execution-session.test.mjs",
+			"test_or_proof": "test/purchase-execution-session.test.mjs",
+			"property_proven": "Behaviourally, with the REAL P4F verifier over the REAL chain state of block 26230166 (two offline readers, test-support/purchase-pre-send-world.mjs), the REAL P4C decoder and a SYNTHETIC intent: a BUILT intent loaded through the fixed loader, a PRE_SEND_VERIFIED verdict and the exact buyCover bytes (keccak256 equal to the persisted calldata hash) or the exact USDC approval (Broker, maxPremium) give one frozen session with the bound fields, verifiedAtBlock / block hash of the replayed block, expiry now + 30 s, singleUse true, MODEL_ONLY_NOT_PERSISTED, the TOCTOU statement and no key, signature, provider or wallet client; only P4F read methods are used. Refused: forged or incomplete verdicts (ok false, other status, ok true with RPC_DISAGREEMENT, errors, a missing check, missing / zero / non-bigint block, missing / short / upper-case block hash, missing or wrong pins) and real P4F rejections (RPC_DISAGREEMENT, broker drift, temporary reader failure, wrong chain); other bytes than built (CALLDATA_HASH_MISMATCH), bytes that match the stored hash but not the intent (owner), other target, value, chain or kind, builder metadata (calldataHash, productionReady, blockers), gas or from, wrong spender, amount, unlimited approval, appended bytes; no window at or after build_deadline or expires_at; every caller copy at the boundary (refused before any load or chain read) and in the pure step; edited purchase models. The hash equals an independent ABI re-encoding and changes with every bound field; expiry tampering, consumed and expired sessions are not usable. Static: no wallet, send, sign, builder, encoding, network, environment, clock, randomness or JSON surface, one P4F call, one decode per kind; no runtime importer, route or cron. The builder statement lists RUNTIME_LOADER and EXECUTION_SESSION_BINDING as SATISFIED_BY_P4H, keeps WALLET_ORCHESTRATION, TERMS, PROOF_OF_LOSS unresolved and every output productionReady false.",
+			"property_not_proven": "the wallet execution path (CR-PURCHASE-008 P3, does not exist): no wallet request, signature or broadcast, and single use is not enforced (modelled only, MODEL_ONLY_NOT_PERSISTED); the time between verifiedAtBlock and mining (proxy upgrade, USDC pause, reorg) is a residual, re-checked only afterwards by P4E; live provider behaviour (P4F readers are offline replays of block 26230166); the read function is not applied to production; Nexus texts and proof-of-loss (CR-TERMS-002, CR-POL-002)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-008[P6]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-008",
+					"properties": [
+						"P6"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/purchase-execution-session.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-PURCHASE-LOADER-DB",
+			"control_ids": [
+				"CR-PURCHASE-008"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/purchase-runtime-loader-db.test.mjs",
+			"test_or_proof": "test/purchase-runtime-loader-db.test.mjs",
+			"property_proven": "Against a disposable Postgres with all migrations: an intent created and built through the real P4D functions is read by get_cover_purchase_intent_for_execution and loaded exactly (P4A intent equal, stored intent hash equal to the recomputation, calldata hash, BUILT, no tx_hash, no cover_id, built_at rounded up and build_deadline down); the answer carries only the fixed columns; OPEN, SUBMITTED and unknown ids are not loadable; anon, authenticated and PUBLIC have no EXECUTE (calls fail with 42501), service_role has; the function is SECURITY INVOKER, STABLE, search_path public, pg_temp, without dynamic SQL or writes, and no role gains INSERT, UPDATE, DELETE or TRUNCATE on the table.",
+			"property_not_proven": "the wallet execution path (CR-PURCHASE-008 P3, does not exist): no wallet request, signature or broadcast, and single use is not enforced (modelled only, MODEL_ONLY_NOT_PERSISTED); the time between verifiedAtBlock and mining (proxy upgrade, USDC pause, reorg) is a residual, re-checked only afterwards by P4E; live provider behaviour (P4F readers are offline replays of block 26230166); the read function is not applied to production; Nexus texts and proof-of-loss (CR-TERMS-002, CR-POL-002)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-008[P6]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-008",
+					"properties": [
+						"P6"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"disposable Postgres"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "raw-pg",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/purchase-runtime-loader-db.test.mjs"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-PURCHASE-EXECUTION-SESSION",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 28 case(s)",
+			"property_proven": "Each listed weakening of the loader (OPEN or SUBMITTED accepted, stored intent hash trusted, malformed calldata hash, expiry or build deadline ignored, a deadline after the expiry accepted) and of the session (caller wallet, data or block used, PRE_SEND_VERIFIED not required, a disagreement verdict accepted, decoder skipped, builder metadata trusted, the hash omitting intent id, calldata hash, wallet, target, data, block, block hash or expiry, TTL over 30 s, expiry ignoring build_deadline, a wallet send method, a public API importer, a production-ready builder) is detected by the intended test (27 KILLED). One case is declared EQUIVALENT with proof (the session expiry ignoring expires_at is a redundant layer behind the loader's build-window check, itself KILLED).",
+			"property_not_proven": "weakenings beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-008",
+					"properties": [
+						"P6"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-PURCHASE-008-P6-P4HOPEN, MUT-CR-PURCHASE-008-P6-P4HSUBMITTED, MUT-CR-PURCHASE-008-P6-P4HTRUSTHASH, MUT-CR-PURCHASE-008-P6-P4HCALLDATAFMT, MUT-CR-PURCHASE-008-P6-P4HNOEXPIRY, MUT-CR-PURCHASE-008-P6-P4HNODEADLINE, MUT-CR-PURCHASE-008-P6-P4HCALLERWALLET, MUT-CR-PURCHASE-008-P6-P4HCALLERDATA, MUT-CR-PURCHASE-008-P6-P4HCALLERBLOCK, MUT-CR-PURCHASE-008-P6-P4HNOPRESEND, MUT-CR-PURCHASE-008-P6-P4HDISAGREE, MUT-CR-PURCHASE-008-P6-P4HNODECODE, MUT-CR-PURCHASE-008-P6-P4HTRUSTBUILDER, MUT-CR-PURCHASE-008-P6-P4HHASHINTENT, MUT-CR-PURCHASE-008-P6-P4HHASHCALLDATA, MUT-CR-PURCHASE-008-P6-P4HHASHWALLET, MUT-CR-PURCHASE-008-P6-P4HHASHTARGET, MUT-CR-PURCHASE-008-P6-P4HHASHDATA, MUT-CR-PURCHASE-008-P6-P4HHASHBLOCK, MUT-CR-PURCHASE-008-P6-P4HHASHBLOCKHASH, MUT-CR-PURCHASE-008-P6-P4HHASHEXPIRY, MUT-CR-PURCHASE-008-P6-P4HTTL60, MUT-CR-PURCHASE-008-P6-P4HTTLDEADLINE, MUT-CR-PURCHASE-008-P6-P4HTTLEXPIRYEQ1, MUT-CR-PURCHASE-008-P6-P4HDEADLINEAFTEREXPIRY, MUT-CR-PURCHASE-008-P6-P4HWALLETSEND, MUT-CR-PURCHASE-008-P6-P4HAPIIMPORT, MUT-CR-PURCHASE-008-P6-P4HREADY"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-PURCHASE-008-P6-P4HOPEN",
+					"MUT-CR-PURCHASE-008-P6-P4HSUBMITTED",
+					"MUT-CR-PURCHASE-008-P6-P4HTRUSTHASH",
+					"MUT-CR-PURCHASE-008-P6-P4HCALLDATAFMT",
+					"MUT-CR-PURCHASE-008-P6-P4HNOEXPIRY",
+					"MUT-CR-PURCHASE-008-P6-P4HNODEADLINE",
+					"MUT-CR-PURCHASE-008-P6-P4HCALLERWALLET",
+					"MUT-CR-PURCHASE-008-P6-P4HCALLERDATA",
+					"MUT-CR-PURCHASE-008-P6-P4HCALLERBLOCK",
+					"MUT-CR-PURCHASE-008-P6-P4HNOPRESEND",
+					"MUT-CR-PURCHASE-008-P6-P4HDISAGREE",
+					"MUT-CR-PURCHASE-008-P6-P4HNODECODE",
+					"MUT-CR-PURCHASE-008-P6-P4HTRUSTBUILDER",
+					"MUT-CR-PURCHASE-008-P6-P4HHASHINTENT",
+					"MUT-CR-PURCHASE-008-P6-P4HHASHCALLDATA",
+					"MUT-CR-PURCHASE-008-P6-P4HHASHWALLET",
+					"MUT-CR-PURCHASE-008-P6-P4HHASHTARGET",
+					"MUT-CR-PURCHASE-008-P6-P4HHASHDATA",
+					"MUT-CR-PURCHASE-008-P6-P4HHASHBLOCK",
+					"MUT-CR-PURCHASE-008-P6-P4HHASHBLOCKHASH",
+					"MUT-CR-PURCHASE-008-P6-P4HHASHEXPIRY",
+					"MUT-CR-PURCHASE-008-P6-P4HTTL60",
+					"MUT-CR-PURCHASE-008-P6-P4HTTLDEADLINE",
+					"MUT-CR-PURCHASE-008-P6-P4HTTLEXPIRYEQ1",
+					"MUT-CR-PURCHASE-008-P6-P4HDEADLINEAFTEREXPIRY",
+					"MUT-CR-PURCHASE-008-P6-P4HWALLETSEND",
+					"MUT-CR-PURCHASE-008-P6-P4HAPIIMPORT",
+					"MUT-CR-PURCHASE-008-P6-P4HREADY"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-PURCHASE-008"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-008[P6]: mutation cases: MUT-CR-PURCHASE-008-P6-P4HOPEN, MUT-CR-PURCHASE-008-P6-P4HSUBMITTED, MUT-CR-PURCHASE-008-P6-P4HTRUSTHASH, MUT-CR-PURCHASE-008-P6-P4HCALLDATAFMT, MUT-CR-PURCHASE-008-P6-P4HNOEXPIRY, MUT-CR-PURCHASE-008-P6-P4HNODEADLINE, MUT-CR-PURCHASE-008-P6-P4HCALLERWALLET, MUT-CR-PURCHASE-008-P6-P4HCALLERDATA, MUT-CR-PURCHASE-008-P6-P4HCALLERBLOCK, MUT-CR-PURCHASE-008-P6-P4HNOPRESEND, MUT-CR-PURCHASE-008-P6-P4HDISAGREE, MUT-CR-PURCHASE-008-P6-P4HNODECODE, MUT-CR-PURCHASE-008-P6-P4HTRUSTBUILDER, MUT-CR-PURCHASE-008-P6-P4HHASHINTENT, MUT-CR-PURCHASE-008-P6-P4HHASHCALLDATA, MUT-CR-PURCHASE-008-P6-P4HHASHWALLET, MUT-CR-PURCHASE-008-P6-P4HHASHTARGET, MUT-CR-PURCHASE-008-P6-P4HHASHDATA, MUT-CR-PURCHASE-008-P6-P4HHASHBLOCK, MUT-CR-PURCHASE-008-P6-P4HHASHBLOCKHASH, MUT-CR-PURCHASE-008-P6-P4HHASHEXPIRY, MUT-CR-PURCHASE-008-P6-P4HTTL60, MUT-CR-PURCHASE-008-P6-P4HTTLDEADLINE, MUT-CR-PURCHASE-008-P6-P4HTTLEXPIRYEQ1, MUT-CR-PURCHASE-008-P6-P4HDEADLINEAFTEREXPIRY, MUT-CR-PURCHASE-008-P6-P4HWALLETSEND, MUT-CR-PURCHASE-008-P6-P4HAPIIMPORT, MUT-CR-PURCHASE-008-P6-P4HREADY"
+		},
+		{
+			"id": "EV-KB-PURCHASE-LOADER-DB",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 2 case(s)",
+			"property_proven": "Granting EXECUTE on the read function to anon or to authenticated is detected by P4H-DB-PRIVILEGES against the real database.",
+			"property_not_proven": "weakenings beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-008",
+					"properties": [
+						"P6"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-PURCHASE-008-P6-P4HANONEXEC, MUT-CR-PURCHASE-008-P6-P4HAUTHEXEC"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node",
+				"postgres"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "raw-pg",
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-PURCHASE-008-P6-P4HANONEXEC",
+					"MUT-CR-PURCHASE-008-P6-P4HAUTHEXEC"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-PURCHASE-008"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-008[P6]: mutation cases: MUT-CR-PURCHASE-008-P6-P4HANONEXEC, MUT-CR-PURCHASE-008-P6-P4HAUTHEXEC"
 		}
 	]
 }

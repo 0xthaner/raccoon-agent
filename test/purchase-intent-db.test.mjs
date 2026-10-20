@@ -20,6 +20,8 @@ const I = await import('../src/purchase-intent.mjs');
 
 const FUNCTIONS = ['create_cover_purchase_intent', 'mark_cover_purchase_intent_built', 'mark_cover_purchase_intent_submitted', 'mark_cover_purchase_intent_confirmed', 'mark_cover_purchase_intent_failed', 'mark_cover_purchase_intent_late_confirmed', 'cancel_cover_purchase_intent', 'expire_cover_purchase_intent'];
 const INTERNAL = ['cover_purchase_intents_guard', 'cover_purchase_intent_json'];
+/** P4H (20.10.2026): eine feste Lesefunktion (SECURITY INVOKER, nur service_role), getestet in test/purchase-runtime-loader-db.test.mjs. */
+const READ = ['get_cover_purchase_intent_for_execution'];
 
 test('PURCHASE-DB', { skip, timeout: 600_000 }, async (t) => {
 	const db = await openPurchaseDb('p4d');
@@ -308,13 +310,13 @@ test('PURCHASE-DB', { skip, timeout: 600_000 }, async (t) => {
 		assert.equal(await asRole('service_role', 'delete from public.cover_purchase_intents'), '42501');
 		const callable = [];
 		for (const fn of await fns()) if ((await sql.query(`select has_function_privilege('service_role', $1::oid, 'EXECUTE') as x`, [fn.oid])).rows[0].x) callable.push(fn.proname);
-		assert.deepEqual(callable.sort(), [...FUNCTIONS].sort());
+		assert.deepEqual(callable.sort(), [...FUNCTIONS, ...READ].sort());
 		for (const helper of INTERNAL) { const fn = (await fns()).find((f) => f.proname === helper); assert.equal(await asRole('service_role', `select public.${helper}(${nullArgs(fn)})`), '42501', helper); }
 	});
 
 	await t.test('P4D-DEFINER the writing functions are SECURITY DEFINER with a pinned search_path and no dynamic SQL; no delete path exists', async () => {
 		const all = await fns();
-		assert.deepEqual(all.map((f) => f.proname).sort(), [...FUNCTIONS, ...INTERNAL].sort(), 'no further function on the table (no delete helper)');
+		assert.deepEqual(all.map((f) => f.proname).sort(), [...FUNCTIONS, ...READ, ...INTERNAL].sort(), 'no further function on the table (no delete helper)');
 		assert.deepEqual(all.filter((f) => f.prosecdef).map((f) => f.proname).sort(), [...FUNCTIONS].sort());
 		for (const fn of all) {
 			assert.ok((fn.proconfig ?? []).includes('search_path=public, pg_temp'), `${fn.proname} pins search_path`);
@@ -349,7 +351,7 @@ test('P4D-IMPORT no runtime code imports the purchase-intent DB helper; only the
 	assert.ok(runtime.includes('src/bot.mjs') && runtime.includes('src/db.mjs') && runtime.some((f) => f.startsWith('api/')) && runtime.some((f) => f.startsWith('web/src/')));
 	for (const file of runtime) assert.doesNotMatch(read(file), /purchase-intent-db(\.mjs)?['"`]|cover_purchase_intent/, file);
 	const importing = /(?:from\s*|import\s*\(\s*)['"`][^'"`]*purchase-intent-db\.mjs/;
-	assert.deepEqual([...walk('src'), ...walk('test'), ...walk('test-support')].filter((f) => importing.test(read(f))).sort(), ['test/purchase-confirmation-db.test.mjs', 'test/purchase-intent-db-concurrency.test.mjs', 'test/purchase-intent-db.test.mjs']);
+	assert.deepEqual([...walk('src'), ...walk('test'), ...walk('test-support')].filter((f) => importing.test(read(f))).sort(), ['test/purchase-confirmation-db.test.mjs', 'test/purchase-intent-db-concurrency.test.mjs', 'test/purchase-intent-db.test.mjs', 'test/purchase-runtime-loader-db.test.mjs', 'test/purchase-runtime-loader.test.mjs']);
 });
 
 test('P4D-NOROUTE there is no purchase route, page or wallet call for intents', () => {
@@ -367,9 +369,9 @@ test('P4D-NOEXEC the P4D persistence code contains no transaction execution, wal
 		assert.doesNotMatch(text, /eth_sendTransaction|eth_sendRawTransaction|wallet_sendCalls|sendTransaction|writeContract|signTransaction|WalletConnect|walletconnect|safe-global|execTransaction|encodeFunctionData|buyCover|\.approve\(|fetch\(|https?:\/\//, file);
 	}
 	const helper = read('src/purchase-intent-db.mjs');
-	assert.deepEqual([...helper.matchAll(/^export\s+(?:async\s+)?(?:function|const)\s+(\w+)/gm)].map((m) => m[1]).sort(), ['CANCEL_REASONS', 'FAILURE_REASONS', 'TERMS_VERSION', 'cancelIntent', 'createIntent', 'expireIntent', 'markBuilt', 'markConfirmed', 'markFailed', 'markLateConfirmed', 'markSubmitted']);
+	assert.deepEqual([...helper.matchAll(/^export\s+(?:async\s+)?(?:function|const)\s+(\w+)/gm)].map((m) => m[1]).sort(), ['CANCEL_REASONS', 'FAILURE_REASONS', 'TERMS_VERSION', 'cancelIntent', 'createIntent', 'expireIntent', 'loadIntentForExecution', 'markBuilt', 'markConfirmed', 'markFailed', 'markLateConfirmed', 'markSubmitted']);
 	assert.doesNotMatch(helper, /updateIntent|executeSql|genericRpc|\.from\(|\.query\(|process\.env/);
-	assert.deepEqual([...helper.matchAll(/call\(client, '([a-z_]+)'/g)].map((m) => m[1]).sort(), [...FUNCTIONS].sort(), 'each helper calls exactly one fixed function');
+	assert.deepEqual([...helper.matchAll(/call\(client, '([a-z_]+)'/g)].map((m) => m[1]).sort(), [...FUNCTIONS, ...READ].sort(), 'each helper calls exactly one fixed function');
 	// einzig erlaubt: `grant execute on function ... to service_role`; kein EXECUTE als dynamisches SQL, kein Schreibrecht auf die Tabelle
 	const migration = read('supabase/migrations/20261019120000_cover_purchase_intents.sql');
 	assert.doesNotMatch(migration.replace(/^grant execute on function public\.[a-z_]+\([^)]*\) to service_role;$/gm, '').replace(/^for each row execute function public\.cover_purchase_intents_guard\(\);$/m, ''), /\bexecute\b|grant\s+(insert|update|delete|truncate|all)/i);

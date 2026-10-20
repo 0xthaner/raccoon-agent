@@ -2,7 +2,9 @@
 	NEXUS P4D: SCHMALER DATENBANK-HELFER FUER KAUF-INTENTS (19.10.2026).
 
 	Genau acht Operationen, je EIN Aufruf genau einer festen Funktion aus
-	supabase/migrations/20261019120000_cover_purchase_intents.sql. Kein
+	supabase/migrations/20261019120000_cover_purchase_intents.sql, dazu seit P4H
+	(20.10.2026) genau ein Lesezugriff (loadIntentForExecution) auf die feste
+	Funktion aus 20261020120000_cover_purchase_intent_execution_read.sql. Kein
 	generisches Update, kein SQL, kein frei waehlbarer RPC-Name. Der Aufrufer
 	uebergibt einen Client mit rpc(name, args) (supabase-js mit service_role);
 	dieses Modul liest keine Umgebung und baut keine Verbindung auf.
@@ -106,4 +108,9 @@ export async function cancelIntent(client, { id, wallet, reason = 'USER_CANCELLE
 /** Optionales Aufraeumen OPEN/BUILT -> EXPIRED; keine Sicherheitseigenschaft haengt daran. */
 export async function expireIntent(client, { id }) {
 	return call(client, 'expire_cover_purchase_intent', { p_id: wantId(id) });
+}
+
+/** P4H: genau ein Intent per exakter id, nur lesend; die Pruefung uebernimmt src/purchase-runtime-loader.mjs. */
+export async function loadIntentForExecution(client, { id }) {
+	return call(client, 'get_cover_purchase_intent_for_execution', { p_id: wantId(id) });
 }
