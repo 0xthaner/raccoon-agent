@@ -3299,6 +3299,274 @@
 					"reason": "two exact-name allowed skips (PURCHASE-SESSION-DB, PURCHASE-SESSION-DB-CONC), only while M1_DB_TEST_PG_URL is unset; with Postgres configured a skip is an error."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zk",
+			"summary": "Nexus P4J: the wallet execution protocol after a consumed P4I session, without any wallet call: a local-only table public.cover_purchase_execution_attempts (supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql, not applied to any hosted database) with eight states (AUTHORIZED, WALLET_REQUEST_STARTED, UNCERTAIN, ABORTED_NO_TX, TX_HASH_OBSERVED, SUBMITTED, APPROVAL_VERIFIED, APPROVAL_FAILED), forward-only, one attempt per consumed session, a write-ahead compare-and-set won once before any wallet request, explicit rejection separated from ambiguous provider results, chain reconciliation with a 30-minute quiet period, tx hash binding, one busy attempt per wallet, buyCover submission to P4D with the bound hash only, approval separated from the purchase; eight service_role SECURITY DEFINER functions, no table right for anyone, no new trigger and no replaced function on the P4D or P4I tables; narrow helper src/purchase-execution-attempt-db.mjs and pure model src/purchase-execution-protocol.mjs (no runtime importer). CR-PURCHASE-005 gains P13 (concurrency claim, observed by the runner) with E5 evidence (six races of 40 independent connections, barrier-proven overlap) and E4 (33 KILLED). Nothing sends, signs or reaches a wallet; no route, cron or command. CR-PURCHASE-008 P3 (reviewed wallet execution) stays unsatisfied, so CR-PURCHASE-008 stays MISSING_EVIDENCE / SECURITY_DEBT; CR-TERMS-002 and CR-POL-002 unchanged.",
+			"changes": [
+				{
+					"id": "CR-PURCHASE-005",
+					"kind": "PROPERTY_ADDED",
+					"reason": "P4J: P13 (wallet execution protocol and failure/retry state machine under concurrency) added and marked as a concurrency claim in profile.real_system_observation; applies_to, applicability reason and CoverRaccoon requirement extended to the protocol, the attempt store and its migration. P1-P12 unchanged.",
+					"rationale": "P4I made the session single-use but left open what happens between the consumption and the purchase submission (crash, rejection, timeout, lost answer, two tabs, approval before buyCover). P4J fixes that protocol in the database and in a pure model before any wallet code exists; it governs the same purchase lifecycle as CR-PURCHASE-005 and is a concurrency claim that needs runner-observed E5 evidence, which this satisfied release-blocking control can carry. It is not the reviewed wallet execution of CR-PURCHASE-008 P3, which stays unsatisfied.",
+					"why_not_weakening": "P1-P12 are unchanged word for word; one property is added, the release class (RELEASE_BLOCKING), minimum level, automation and applicability stay; the derivation only grows by the new files, and the meta rule CR-VERIFY-004 now also requires P13 to be observed concurrently in every verify run.",
+					"before": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "only the defined transitions are allowed; no step is skipped (no OPEN->SUBMITTED, OPEN->CONFIRMED, BUILT->CONFIRMED)"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "terminal states (CONFIRMED, FAILED, EXPIRED, CANCELLED) have no outgoing transition in the transition model; the single exception is the dedicated late confirmation of P11 (FAILED->CONFIRMED of the same submitted transaction), which never makes an intent buildable or submittable again"
+							},
+							{
+								"id": "P3",
+								"kind": "REQUIREMENT",
+								"text": "SUBMITTED never expires and is never cancelled; a late on-chain outcome remains possible after SUBMITTED and after BUILT"
+							},
+							{
+								"id": "P4",
+								"kind": "REQUIREMENT",
+								"text": "OPEN and BUILT intents are unusable from expiresAt on, judged only against an explicitly passed time"
+							},
+							{
+								"id": "P5",
+								"kind": "REQUIREMENT",
+								"text": "under concurrent requests on independent database connections a wallet has at most one active (OPEN, BUILT, SUBMITTED) intent, and concurrent creates with one (wallet, client request id) key yield exactly one row: identical retries return it, a changed payload is refused, the key stays bound after the intent ended"
+							},
+							{
+								"id": "P6",
+								"kind": "REQUIREMENT",
+								"text": "under concurrent build requests an OPEN intent is built exactly once, only for its wallet and server-recomputed intent hash, and its calldata hash, once set, is bound permanently and required by submit"
+							},
+							{
+								"id": "P7",
+								"kind": "REQUIREMENT",
+								"text": "under concurrent submit requests a BUILT intent records exactly one transaction hash; an identical retry is idempotent, a different hash conflicts and never overwrites"
+							},
+							{
+								"id": "P8",
+								"kind": "REQUIREMENT",
+								"text": "a transaction hash belongs to at most one intent, also under concurrent submits for different intents"
+							},
+							{
+								"id": "P9",
+								"kind": "REQUIREMENT",
+								"text": "confirmation under concurrent retries is idempotent: one transition, only for exactly the submitted transaction hash, with a cover id that is globally unique and never replaced"
+							},
+							{
+								"id": "P10",
+								"kind": "REQUIREMENT",
+								"text": "an OPEN or BUILT intent can be neither built nor submitted once the database clock reaches expires_at, and a BUILT intent not once it reaches build_deadline (built_at + 120 s, never after expires_at); both bounds are exclusive and need no cleanup job; SUBMITTED never expires"
+							},
+							{
+								"id": "P11",
+								"kind": "REQUIREMENT",
+								"text": "the only exit from a terminal state is the late confirmation FAILED->CONFIRMED for the same transaction hash and calldata hash with a unique cover id, which sets late; EXPIRED, CANCELLED and CONFIRMED are never reopened, also under concurrent late and normal confirmations"
+							},
+							{
+								"id": "P12",
+								"kind": "REQUIREMENT",
+								"text": "under concurrent requests on independent database connections a P4H execution session is a durable single-use capability: it is stored only through one service_role SECURITY DEFINER create function (no direct table right for anyone, RLS on, no delete or truncate path) with the session hash recomputed by the server helper from the canonical P4H fields (a supplied hash that does not match is refused, a stored hash belongs to exactly one session), only for an intent that is BUILT without tx hash and cover id with the same wallet, intent hash and calldata hash, for at most 30 s of the database clock and never past build_deadline or expires_at; its facts (intent, hashes, wallet, chain, kind, target pinned per kind, value 0, bytes, verified block and block hash, created_at, expires_at) never change and expires_at is never extended; an intent has at most one open session (an expired, never consumed one is superseded atomically by the next and never usable again) and at most one consumed session per transaction kind; a session is consumed at most once by one compare-and-set UPDATE that requires the expected session hash and intent id, consumed_at null, now() < expires_at (exactly at expires_at refused, no cleanup job) and the intent still BUILT without tx hash or cover id, with matching hashes and wallet, before build_deadline and expires_at; the same consumer request id gets the same consumed record back, any other request ALREADY_CONSUMED; consumed_at and the request id are set once and never cleared; the caller supplies only identifiers and the idempotency key; nothing sends, signs or reaches a wallet and no runtime code imports the store"
+							}
+						],
+						"derivation": {
+							"title": "Purchase-intent state model allows only the defined single-use transitions (P4A model, P4D database)",
+							"domain": "CR-PURCHASE",
+							"source_refs": [
+								"SRC-ASVS V2.3.1"
+							],
+							"derivation_type": "EXTERNAL_STANDARD",
+							"external_requirement": "Business logic flows are processed in the expected sequential step order without skipping steps (V2.3.1).",
+							"coverraccoon_requirement": "Intent states OPEN, BUILT, SUBMITTED, CONFIRMED, FAILED, EXPIRED, CANCELLED with exactly the transitions OPEN->BUILT|EXPIRED|CANCELLED, BUILT->SUBMITTED|EXPIRED|CANCELLED, SUBMITTED->CONFIRMED|FAILED; terminal states never restart; a submitted transaction may still be mined, so SUBMITTED neither expires nor is cancelled and a late on-chain outcome stays observable. P4D enforces this in the database: each transition is one compare-and-set UPDATE, one active intent per wallet (partial unique index), idempotent creation per (wallet, client request id), one build with a permanently bound calldata hash, one transaction hash per intent and globally, idempotent confirmation with a globally unique cover id, expiry judged against the database clock without any cleanup job, and the only exit from a terminal state is the late confirmation of the same transaction. P4I makes the short P4H execution session a durable single-use capability: stored with a server-recomputed hash, immutable, one open session per intent, one consumed session per intent and transaction kind, consumed by one compare-and-set UPDATE with expiry and intent state checked in SQL and an idempotent replay only for the same consumer request id. Verified on a real Postgres with independent connections whose overlap the runner observes.",
+							"applicability_reason": "Pure purchase-intent model in src/purchase-intent.mjs (Nexus P4A) and its local, server-only persistence (P4D migration and narrow helper); neither is reachable from any runtime path, no transaction capability; P4I adds the local, server-only persistence of the execution session (supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql, helper src/purchase-execution-session-db.mjs), equally unreachable.",
+							"profile_level": "ASVS_L2",
+							"applies_to": [
+								"src/purchase-intent.mjs",
+								"src/purchase-intent-db.mjs",
+								"supabase/migrations/20261019120000_cover_purchase_intents.sql",
+								"src/purchase-execution-session-db.mjs",
+								"supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql"
+							],
+							"threat": "a step is skipped, an intent is reused after it ended, or a real late purchase is ignored because the intent was marked expired",
+							"expected_property": "only defined transitions; single use; late outcome kept",
+							"automation": "YES"
+						},
+						"minimum_evidence_level": "E3",
+						"automation": "YES"
+					},
+					"after": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "only the defined transitions are allowed; no step is skipped (no OPEN->SUBMITTED, OPEN->CONFIRMED, BUILT->CONFIRMED)"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "terminal states (CONFIRMED, FAILED, EXPIRED, CANCELLED) have no outgoing transition in the transition model; the single exception is the dedicated late confirmation of P11 (FAILED->CONFIRMED of the same submitted transaction), which never makes an intent buildable or submittable again"
+							},
+							{
+								"id": "P3",
+								"kind": "REQUIREMENT",
+								"text": "SUBMITTED never expires and is never cancelled; a late on-chain outcome remains possible after SUBMITTED and after BUILT"
+							},
+							{
+								"id": "P4",
+								"kind": "REQUIREMENT",
+								"text": "OPEN and BUILT intents are unusable from expiresAt on, judged only against an explicitly passed time"
+							},
+							{
+								"id": "P5",
+								"kind": "REQUIREMENT",
+								"text": "under concurrent requests on independent database connections a wallet has at most one active (OPEN, BUILT, SUBMITTED) intent, and concurrent creates with one (wallet, client request id) key yield exactly one row: identical retries return it, a changed payload is refused, the key stays bound after the intent ended"
+							},
+							{
+								"id": "P6",
+								"kind": "REQUIREMENT",
+								"text": "under concurrent build requests an OPEN intent is built exactly once, only for its wallet and server-recomputed intent hash, and its calldata hash, once set, is bound permanently and required by submit"
+							},
+							{
+								"id": "P7",
+								"kind": "REQUIREMENT",
+								"text": "under concurrent submit requests a BUILT intent records exactly one transaction hash; an identical retry is idempotent, a different hash conflicts and never overwrites"
+							},
+							{
+								"id": "P8",
+								"kind": "REQUIREMENT",
+								"text": "a transaction hash belongs to at most one intent, also under concurrent submits for different intents"
+							},
+							{
+								"id": "P9",
+								"kind": "REQUIREMENT",
+								"text": "confirmation under concurrent retries is idempotent: one transition, only for exactly the submitted transaction hash, with a cover id that is globally unique and never replaced"
+							},
+							{
+								"id": "P10",
+								"kind": "REQUIREMENT",
+								"text": "an OPEN or BUILT intent can be neither built nor submitted once the database clock reaches expires_at, and a BUILT intent not once it reaches build_deadline (built_at + 120 s, never after expires_at); both bounds are exclusive and need no cleanup job; SUBMITTED never expires"
+							},
+							{
+								"id": "P11",
+								"kind": "REQUIREMENT",
+								"text": "the only exit from a terminal state is the late confirmation FAILED->CONFIRMED for the same transaction hash and calldata hash with a unique cover id, which sets late; EXPIRED, CANCELLED and CONFIRMED are never reopened, also under concurrent late and normal confirmations"
+							},
+							{
+								"id": "P12",
+								"kind": "REQUIREMENT",
+								"text": "under concurrent requests on independent database connections a P4H execution session is a durable single-use capability: it is stored only through one service_role SECURITY DEFINER create function (no direct table right for anyone, RLS on, no delete or truncate path) with the session hash recomputed by the server helper from the canonical P4H fields (a supplied hash that does not match is refused, a stored hash belongs to exactly one session), only for an intent that is BUILT without tx hash and cover id with the same wallet, intent hash and calldata hash, for at most 30 s of the database clock and never past build_deadline or expires_at; its facts (intent, hashes, wallet, chain, kind, target pinned per kind, value 0, bytes, verified block and block hash, created_at, expires_at) never change and expires_at is never extended; an intent has at most one open session (an expired, never consumed one is superseded atomically by the next and never usable again) and at most one consumed session per transaction kind; a session is consumed at most once by one compare-and-set UPDATE that requires the expected session hash and intent id, consumed_at null, now() < expires_at (exactly at expires_at refused, no cleanup job) and the intent still BUILT without tx hash or cover id, with matching hashes and wallet, before build_deadline and expires_at; the same consumer request id gets the same consumed record back, any other request ALREADY_CONSUMED; consumed_at and the request id are set once and never cleared; the caller supplies only identifiers and the idempotency key; nothing sends, signs or reaches a wallet and no runtime code imports the store"
+							},
+							{
+								"id": "P13",
+								"kind": "REQUIREMENT",
+								"text": "under concurrent requests on independent database connections the step after a consumed P4I session is a durable, forward-only execution attempt that a later wallet step must follow (no wallet is called in this phase): exactly one attempt per consumed session, opened only by the consuming request (the same request gets it back, any other is refused); the wallet may be called only by the single winner of the compare-and-set AUTHORIZED -> WALLET_REQUEST_STARTED (write-ahead), only before the session expires and while the intent is BUILT and before its build deadline - every repeat, tab or retry gets ALREADY_STARTED; wallet invocation is at most once per attempt where enforceable and exactly-once is not claimed; an explicit rejection (4001) before any tx hash ends the attempt as ABORTED_NO_TX without marking the purchase FAILED or SUBMITTED; a timeout, network error or any other answer is UNCERTAIN, never \"no broadcast\" and never success, and UNCERTAIN never restarts and never accepts a later wallet answer - it resolves only by chain reconciliation (a found transaction that matches from, to, value, data and chain exactly) or, after a 30-minute quiet period and the finality depth with evidence (scanned block, wallet nonce), RECONCILED_NO_TX; the nonce is evidence, never authorization; a wallet has at most one attempt in WALLET_REQUEST_STARTED, UNCERTAIN or TX_HASH_OBSERVED, so no other wallet request for it starts, not even through a new intent; a tx hash is bound once to attempt, session, intent and kind (same hash idempotent, another a conflict, a hash bound elsewhere refused, a replacement never replaces the first binding); only a buyCover attempt moves the intent to P4D SUBMITTED, atomically and with the bound hash (never one from the caller); approval and buyCover are separate authorities - an approval never submits or confirms the purchase, it is settled by an independently read allowance of at least max_premium_raw, a buyCover attempt after a consumed approval needs that verified approval and a pre-send verified from that block on, and no approval follows a consumed buyCover; the attempt state never moves backwards, the tx hash, kind, session, intent, wallet and request bindings never change, nothing is deleted or truncated; RLS on, no table right for anyone, eight service_role SECURITY DEFINER functions without dynamic SQL; the SIWE wallet, intent wallet, session wallet and transaction from must be equal and an adapter may not alter any request field; no runtime code imports the protocol or the attempt store"
+							}
+						],
+						"derivation": {
+							"title": "Purchase-intent state model allows only the defined single-use transitions (P4A model, P4D database)",
+							"domain": "CR-PURCHASE",
+							"source_refs": [
+								"SRC-ASVS V2.3.1"
+							],
+							"derivation_type": "EXTERNAL_STANDARD",
+							"external_requirement": "Business logic flows are processed in the expected sequential step order without skipping steps (V2.3.1).",
+							"coverraccoon_requirement": "Intent states OPEN, BUILT, SUBMITTED, CONFIRMED, FAILED, EXPIRED, CANCELLED with exactly the transitions OPEN->BUILT|EXPIRED|CANCELLED, BUILT->SUBMITTED|EXPIRED|CANCELLED, SUBMITTED->CONFIRMED|FAILED; terminal states never restart; a submitted transaction may still be mined, so SUBMITTED neither expires nor is cancelled and a late on-chain outcome stays observable. P4D enforces this in the database: each transition is one compare-and-set UPDATE, one active intent per wallet (partial unique index), idempotent creation per (wallet, client request id), one build with a permanently bound calldata hash, one transaction hash per intent and globally, idempotent confirmation with a globally unique cover id, expiry judged against the database clock without any cleanup job, and the only exit from a terminal state is the late confirmation of the same transaction. P4I makes the short P4H execution session a durable single-use capability: stored with a server-recomputed hash, immutable, one open session per intent, one consumed session per intent and transaction kind, consumed by one compare-and-set UPDATE with expiry and intent state checked in SQL and an idempotent replay only for the same consumer request id. P4J defines the durable protocol from a consumed session to P4D SUBMITTED: one attempt per session, a write-ahead won once before any wallet request, explicit rejection, ambiguous provider results (UNCERTAIN, chain reconciliation only), tx hash binding, one busy attempt per wallet, and approval separated from the purchase. Verified on a real Postgres with independent connections whose overlap the runner observes.",
+							"applicability_reason": "Pure purchase-intent model in src/purchase-intent.mjs (Nexus P4A) and its local, server-only persistence (P4D migration and narrow helper); neither is reachable from any runtime path, no transaction capability; P4I adds the local, server-only persistence of the execution session (supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql, helper src/purchase-execution-session-db.mjs), equally unreachable; P4J adds the local, server-only wallet execution protocol (supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql, helper src/purchase-execution-attempt-db.mjs, pure model src/purchase-execution-protocol.mjs), equally unreachable and without any wallet call.",
+							"profile_level": "ASVS_L2",
+							"applies_to": [
+								"src/purchase-intent.mjs",
+								"src/purchase-intent-db.mjs",
+								"supabase/migrations/20261019120000_cover_purchase_intents.sql",
+								"src/purchase-execution-session-db.mjs",
+								"supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+								"src/purchase-execution-protocol.mjs",
+								"src/purchase-execution-attempt-db.mjs",
+								"supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql"
+							],
+							"threat": "a step is skipped, an intent is reused after it ended, or a real late purchase is ignored because the intent was marked expired",
+							"expected_property": "only defined transitions; single use; late outcome kept",
+							"automation": "YES"
+						},
+						"minimum_evidence_level": "E3",
+						"automation": "YES"
+					}
+				},
+				{
+					"id": "PROFILE",
+					"kind": "PROFILE_EXTENDED",
+					"reason": "concurrency.properties extended by CR-PURCHASE-005 P13 (its text claims concurrency); thresholds (min_concurrent_connections 2, min_overlap_events 2) unchanged."
+				},
+				{
+					"id": "EV-PURCHASE-ATTEMPT-DB",
+					"kind": "ADDED",
+					"reason": "real-system E5 evidence for CR-PURCHASE-005 P13 (test/purchase-execution-attempt-db.test.mjs and test/purchase-execution-attempt-db-concurrency.test.mjs against a disposable Postgres, and the always-running test/purchase-execution-protocol.test.mjs for the pure protocol and reach, 40 independent connections per race)",
+					"rationale": "the execution protocol needs real-database evidence with runner-observed overlap",
+					"why_not_weakening": "New evidence and an added property only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "EV-KB-PURCHASE-ATTEMPT",
+					"kind": "ADDED",
+					"reason": "known-bad E4 evidence: 12 mutation cases of the pure protocol, its reach and the E5 runner observer, each KILLED by the intended test",
+					"rationale": "outcome classification, recovery, purchase effect, nonce, adapter and SIWE binding, unreachability and the E5 observation must be detected when weakened",
+					"why_not_weakening": "New evidence and an added property only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "EV-KB-PURCHASE-ATTEMPT-DB",
+					"kind": "ADDED",
+					"reason": "known-bad E4 evidence: 21 mutation cases against the real database (21 KILLED)",
+					"rationale": "every listed weakening of the attempt table and functions must be detected",
+					"why_not_weakening": "New evidence and an added property only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "EV-PURCHASE-TX-BUILDER",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "P4C-SURFACE: src/purchase-execution-protocol.mjs and src/purchase-execution-attempt-db.mjs get the rule of the session modules (they may name the transaction kinds); encoding, selectors, buyCover, approve and productionReady stay forbidden there."
+				},
+				{
+					"id": "EV-PURCHASE-INTENT",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "P4A-IMPORT: the allowed importing tests also include test/purchase-execution-attempt-db.test.mjs. Every runtime file still may not name purchase-intent."
+				},
+				{
+					"id": "EV-PURCHASE-DB",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "P4D-IMPORT: test/purchase-execution-attempt-db.test.mjs may import the P4D helper (to build BUILT intents of a given wallet and cancel them). Runtime files still may not name it or cover_purchase_intent."
+				},
+				{
+					"id": "EV-PURCHASE-SESSION-DB",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "P4I-IMPORT: test-support/purchase-execution-attempt-pg.mjs and test/purchase-execution-attempt-db.test.mjs may import the session store (to persist and consume real sessions). Runtime files still may not name it, cover_purchase_execution_session or its operations; the new src modules are runtime files for this check and pass it."
+				},
+				{
+					"id": "EV-DBPRIV-DB",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "DBPRIV allowlist: PURCHASE_ATTEMPT_RPCS (the eight P4J functions) join the functions service_role may execute and the SECURITY DEFINER set; INTERNAL_HELPERS gain cover_purchase_execution_attempt_json and cover_purchase_execution_attempts_guard (no role executes them). anon, authenticated and PUBLIC still execute nothing; RLS and API-role table checks unchanged and cover the new table."
+				},
+				{
+					"id": "EV-INPUT-DB-PG",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "INPUT-DB-PG P2 catalog: KNOWN_FUNCTIONS gain the eight P4J functions, the JSON helper and the trigger function; KNOWN_TRIGGERS gain cover_purchase_execution_attempts_guard and cover_purchase_execution_attempts_no_truncate. The catalog checks (sql or plpgsql, no EXECUTE, no SQL text construction, definer only with a fixed search_path) apply to them unchanged."
+				},
+				{
+					"id": "drift-model",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "new rules src/purchase-execution-protocol.mjs -> CR-PURCHASE, src/purchase-execution-attempt-db.mjs -> CR-DB, CR-PURCHASE and supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql -> CR-CONC, CR-DB, CR-PURCHASE; nothing removed"
+				},
+				{
+					"id": "scripts/skip-policy.mjs",
+					"kind": "TEST_INFRA",
+					"reason": "two exact-name allowed skips (PURCHASE-ATTEMPT-DB, PURCHASE-ATTEMPT-DB-CONC), only while M1_DB_TEST_PG_URL is unset; with Postgres configured a skip is an error."
+				},
+				{
+					"id": "EV-PURCHASE-SESSION-DB",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "Test timing only: P4I-DB-EXPIRY uses a 5 s session (was 2 s), P4I-CONC-SUPERSEDE and the single-session expiry race 4 s (were 1 s and 2 s), the forty-session expiry race a common expiry 15 s ahead (was 3 s). expiresAt rounds the JS clock down, so the real window of a 1-2 s session was 0-2 s; under the load of concurrently running Postgres evidence groups (larger since P4J) persisting could run past it and fail before the asserted property (observed once as KILLED_OTHER of the EQUIVALENT case MUT-CR-PURCHASE-005-P12-P4INOTXHASHEQ1 in a full verify; that case SURVIVED twice in isolation). Every assertion is unchanged: exactly at expires_at refused, never consumed at or after expiry, superseded once; the P4J tests use 4 s instead of 1 s for the same reason."
+				}
+			]
 		}
 	]
 }

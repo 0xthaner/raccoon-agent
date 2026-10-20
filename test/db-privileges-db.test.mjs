@@ -44,10 +44,17 @@ const PURCHASE_READ_RPCS = ['get_cover_purchase_intent_for_execution'];
  * test/purchase-execution-session-db*.test.mjs.
  */
 const PURCHASE_SESSION_RPCS = ['consume_cover_purchase_execution_session', 'create_cover_purchase_execution_session'];
+/**
+ * Nexus P4J (20.10.2026): durable execution attempts after a consumed session. service_role only, SECURITY DEFINER
+ * (no direct table right for anyone), no runtime caller yet (P4J-IMPORT); behaviour in test/purchase-execution-attempt-db*.test.mjs.
+ */
+const PURCHASE_ATTEMPT_RPCS = ['bind_cover_purchase_execution_attempt_tx_hash', 'mark_cover_purchase_execution_attempt_uncertain', 'open_cover_purchase_execution_attempt',
+	'reconcile_cover_purchase_execution_attempt_no_tx', 'reject_cover_purchase_execution_attempt', 'settle_cover_purchase_approval_attempt', 'start_cover_purchase_execution_attempt',
+	'submit_cover_purchase_execution_attempt'];
 /** Internal helpers called only by other functions or as a trigger: no role may execute them. */
-const INTERNAL_HELPERS = ['cover_purchase_execution_session_json', 'cover_purchase_execution_sessions_guard', 'cover_purchase_intent_json', 'cover_purchase_intents_guard', 'link_wallet_to_chat_limited', 'lock_chat_wallets'];
+const INTERNAL_HELPERS = ['cover_purchase_execution_attempt_json', 'cover_purchase_execution_attempts_guard', 'cover_purchase_execution_session_json', 'cover_purchase_execution_sessions_guard', 'cover_purchase_intent_json', 'cover_purchase_intents_guard', 'link_wallet_to_chat_limited', 'lock_chat_wallets'];
 /** Current SECURITY DEFINER set; a new definer function must be added here deliberately. */
-const SECURITY_DEFINER = ['alert_subscriptions_page', 'check_agent_rate_limit', 'consume_wallet_link', 'consume_wallet_link_v2', 'link_wallet_to_chat_limited', 'lock_chat_wallets', ...PURCHASE_SERVICE_RPCS, ...PURCHASE_SESSION_RPCS];
+const SECURITY_DEFINER = ['alert_subscriptions_page', 'check_agent_rate_limit', 'consume_wallet_link', 'consume_wallet_link_v2', 'link_wallet_to_chat_limited', 'lock_chat_wallets', ...PURCHASE_SERVICE_RPCS, ...PURCHASE_SESSION_RPCS, ...PURCHASE_ATTEMPT_RPCS];
 
 let pg, dbUrl, c;
 
@@ -148,7 +155,7 @@ test('DBPRIV-DB', { skip, timeout: 300_000 }, async (t) => {
 	await t.test('DBPRIV: function execute rights match the allowlist exactly', async () => {
 		const fns = await functions();
 		const names = fns.map((f) => f.proname).sort();
-		assert.deepEqual(names, [...RUNTIME_RPCS, ...LEGACY_SERVICE_RPCS, ...PURCHASE_SERVICE_RPCS, ...PURCHASE_READ_RPCS, ...PURCHASE_SESSION_RPCS, ...INTERNAL_HELPERS].sort(), 'no unknown public function');
+		assert.deepEqual(names, [...RUNTIME_RPCS, ...LEGACY_SERVICE_RPCS, ...PURCHASE_SERVICE_RPCS, ...PURCHASE_READ_RPCS, ...PURCHASE_SESSION_RPCS, ...PURCHASE_ATTEMPT_RPCS, ...INTERNAL_HELPERS].sort(), 'no unknown public function');
 		const service = [];
 		for (const fn of fns) {
 			for (const role of API_ROLES) {
@@ -159,7 +166,7 @@ test('DBPRIV-DB', { skip, timeout: 300_000 }, async (t) => {
 			assert.equal(publicExec, false, `PUBLIC may not execute ${fn.sig}`);
 			if ((await c.query(`select has_function_privilege('service_role', $1::oid, 'EXECUTE') as x`, [fn.oid])).rows[0].x) service.push(fn.proname);
 		}
-		assert.deepEqual(service.sort(), [...RUNTIME_RPCS, ...LEGACY_SERVICE_RPCS, ...PURCHASE_SERVICE_RPCS, ...PURCHASE_READ_RPCS, ...PURCHASE_SESSION_RPCS].sort(), 'service_role reaches exactly the runtime RPCs (+ the documented legacy one, the P4D purchase-intent functions, the P4H read and the P4I session functions)');
+		assert.deepEqual(service.sort(), [...RUNTIME_RPCS, ...LEGACY_SERVICE_RPCS, ...PURCHASE_SERVICE_RPCS, ...PURCHASE_READ_RPCS, ...PURCHASE_SESSION_RPCS, ...PURCHASE_ATTEMPT_RPCS].sort(), 'service_role reaches exactly the runtime RPCs (+ the documented legacy one, the P4D purchase-intent functions, the P4H read, the P4I session and the P4J attempt functions)');
 		for (const helper of INTERNAL_HELPERS) {
 			const fn = fns.find((f) => f.proname === helper);
 			assert.equal(await asRole('service_role', `select public.${helper}(${nullArgs(fn)})`), '42501', `internal helper ${helper} is not callable even by service_role`);

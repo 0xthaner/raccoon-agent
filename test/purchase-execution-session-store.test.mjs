@@ -151,7 +151,7 @@ test('P4I-IMPORT no runtime code reaches the session store; no purchase, executi
 	for (const file of runtime) assert.doesNotMatch(read(file), /purchase-execution-session-db(\.mjs)?['"`]|cover_purchase_execution_session|persistExecutionSession|consumeExecutionSession/, file);
 	const importing = /(?:from\s*|import\s*\(\s*)['"`][^'"`]*purchase-execution-session-db\.mjs/;
 	assert.deepEqual([...walk('src'), ...walk('api'), ...walk('test'), ...walk('test-support')].filter((f) => importing.test(read(f))).sort(),
-		['test/purchase-execution-session-db-concurrency.test.mjs', 'test/purchase-execution-session-db.test.mjs', 'test/purchase-execution-session-store.test.mjs']);
+		['test-support/purchase-execution-attempt-pg.mjs', 'test/purchase-execution-attempt-db.test.mjs', 'test/purchase-execution-session-db-concurrency.test.mjs', 'test/purchase-execution-session-db.test.mjs', 'test/purchase-execution-session-store.test.mjs']);
 	assert.deepEqual(walk('api').filter((f) => /purchase|buy|wallet|execution|session|intent|confirm/i.test(f)), []);
 	for (const route of ['api/purchase', 'api/execution', 'api/wallet', 'api/nexus/buy']) assert.ok(!walk('api').some((f) => f.startsWith(route)), route);
 	const vercel = JSON.parse(read('vercel.json'));

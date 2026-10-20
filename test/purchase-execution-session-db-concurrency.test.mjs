@@ -102,7 +102,7 @@ test('PURCHASE-SESSION-DB-CONC', { skip, timeout: 600_000 }, async (t) => {
 	});
 
 	await t.test('P4I-CONC-SUPERSEDE 40 concurrent replacements of an expired session: one new session, the old one superseded once, never usable', async () => {
-		const { built, session } = await created({ ttl: 1 });
+		const { built, session } = await created({ ttl: 4 }); // nicht 1 s: das Anlegen darf unter Last nicht gegen die abgerundete Uhr laufen
 		while ((await sql.query('select now() >= to_timestamp($1) as x', [session.expiresAt])).rows[0].x === false) await new Promise((r) => setTimeout(r, 50));
 		const sessions = Array.from({ length: N }, () => sessionFor(built));
 		const results = await contend('supersede', (c, i) => X.persistExecutionSession(c, { session: sessions[i] }));
@@ -126,7 +126,7 @@ test('PURCHASE-SESSION-DB-CONC', { skip, timeout: 600_000 }, async (t) => {
 
 	await t.test('P4I-CONC-EXPIRY consumers racing the expiry: never a consumption at or after expires_at, at most one winner', async () => {
 		// a) eine Sitzung, 40 Verbraucher verteilt um den Ablaufzeitpunkt
-		const one = await created({ ttl: 2 });
+		const one = await created({ ttl: 4 });
 		const deadlineMs = one.session.expiresAt * 1000;
 		const at = (i) => deadlineMs + (i - N / 2) * 5;
 		const results = await contend('expiry-one', async (c, i) => { await new Promise((r) => setTimeout(r, Math.max(0, at(i) - Date.now()))); return consumeWith(c, one.session, randomUUID()); });
@@ -137,11 +137,12 @@ test('PURCHASE-SESSION-DB-CONC', { skip, timeout: 600_000 }, async (t) => {
 		if (r1.consumed_at !== null) assert.ok(r1.consumed_at < r1.expires_at);
 		// b) 40 Sitzungen mit demselben Ablauf, je ein Verbraucher kurz vor oder nach dem Ablauf
 		const many = [];
-		const target = Math.floor(Date.now() / 1000) + 3;
+		// gemeinsamer Ablauf mit Reserve fuer 40 Intents unter Last (vorher 3 s)
+		const target = Math.floor(Date.now() / 1000) + 15;
 		for (let i = 0; i < N; i++) {
 			const built = await builtIntent(client);
-			const now = target - 2;
-			const session = sessionFor(built, { now, ttl: 2 });
+			const now = target - 15;
+			const session = sessionFor(built, { now, ttl: 15 });
 			assert.equal((await X.persistExecutionSession(client, { session })).status, 'created');
 			many.push(session);
 		}

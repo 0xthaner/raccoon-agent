@@ -177,8 +177,9 @@ test('PURCHASE-SESSION-DB', { skip, timeout: 600_000 }, async (t) => {
 		assert.equal(code(await atBoundary({ expires: 'now()' })), 'rejected:EXPIRED', 'expires exactly now: refused');
 		assert.equal(code(await atBoundary({ expires: `now() + interval '1 microsecond'` })), 'consumed', 'one microsecond left: consumable');
 		assert.equal(code(await atBoundary({ expires: `now() - interval '1 second'`, superseded: 'now()' })), 'rejected:SUPERSEDED');
-		// echte Uhr: eine Sitzung mit 2 s Laufzeit ist danach nicht mehr verbrauchbar; eine neue loest sie ab
-		const { built, session } = await created({ ttl: 2 });
+		// echte Uhr: eine Sitzung mit 5 s Laufzeit ist danach nicht mehr verbrauchbar; eine neue loest sie ab
+		// (5 s statt 2 s: expiresAt rundet die JS-Uhr ab, unter der Last paralleler Evidenzgruppen darf das Anlegen nicht gegen die Uhr laufen)
+		const { built, session } = await created({ ttl: 5 });
 		while ((await sql.query('select now() >= to_timestamp($1) as x', [session.expiresAt])).rows[0].x === false) await new Promise((r) => setTimeout(r, 100));
 		assert.deepEqual(await consume(session), { status: 'REJECTED', code: 'EXPIRED', session: null });
 		const next = sessionFor(built);

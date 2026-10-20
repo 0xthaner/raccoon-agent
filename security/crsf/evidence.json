@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zj",
+	"crsf_version": "1.0-draft-phase2zk",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -10048,6 +10048,182 @@
 			],
 			"coverage": "PARTIAL",
 			"reason_for_partial": "CR-PURCHASE-005[P12]: mutation cases: MUT-CR-PURCHASE-005-P12-P4ITWOOPEN, MUT-CR-PURCHASE-005-P12-P4INOSESSIONHASH, MUT-CR-PURCHASE-005-P12-P4INOINTENTID, MUT-CR-PURCHASE-005-P12-P4INOINTENTHASH, MUT-CR-PURCHASE-005-P12-P4INOCALLDATAHASH, MUT-CR-PURCHASE-005-P12-P4IEXPIREDCONSUME, MUT-CR-PURCHASE-005-P12-P4ICONSUMEDAGAIN, MUT-CR-PURCHASE-005-P12-P4ICLEARCONSUMED, MUT-CR-PURCHASE-005-P12-P4IEXTENDEXPIRY, MUT-CR-PURCHASE-005-P12-P4ITARGETMUTABLE, MUT-CR-PURCHASE-005-P12-P4IWALLETMUTABLE, MUT-CR-PURCHASE-005-P12-P4IBLOCKMUTABLE, MUT-CR-PURCHASE-005-P12-P4IBLOCKHASHMUTABLE, MUT-CR-PURCHASE-005-P12-P4INOINTENTSTATUS, MUT-CR-PURCHASE-005-P12-P4ISUBMITTEDCONSUME, MUT-CR-PURCHASE-005-P12-P4ICANCELLEDCONSUME, MUT-CR-PURCHASE-005-P12-P4INODEADLINE, MUT-CR-PURCHASE-005-P12-P4INOINTENTEXPIRYEQ1, MUT-CR-PURCHASE-005-P12-P4IINTENTWINDOW, MUT-CR-PURCHASE-005-P12-P4INOTXHASHEQ1, MUT-CR-PURCHASE-005-P12-P4INOCOVERIDEQ1, MUT-CR-PURCHASE-005-P12-P4ICONFIRMEDCONSUME, MUT-CR-PURCHASE-005-P12-P4IIGNOREREQKEY, MUT-CR-PURCHASE-005-P12-P4IDIFFKEYSUCCESS, MUT-CR-PURCHASE-005-P12-P4IKINDTWICE, MUT-CR-PURCHASE-005-P12-P4IANONEXEC, MUT-CR-PURCHASE-005-P12-P4IAUTHEXEC, MUT-CR-PURCHASE-005-P12-P4IDIRECTUPDATE, MUT-CR-PURCHASE-005-P12-P4IDELETEPATH"
+		},
+		{
+			"id": "EV-PURCHASE-ATTEMPT-DB",
+			"control_ids": [
+				"CR-PURCHASE-005"
+			],
+			"type": "real-system",
+			"level": "E5",
+			"source": "repository",
+			"artifact": "test/purchase-execution-attempt-db.test.mjs",
+			"test_or_proof": "test/purchase-execution-attempt-db.test.mjs, test/purchase-execution-attempt-db-concurrency.test.mjs, test/purchase-execution-protocol.test.mjs",
+			"property_proven": "Disposable Postgres with every migration and emulated Supabase default privileges; real P4D intents and real P4I sessions (persisted and consumed through their helpers); the real helper src/purchase-execution-attempt-db.mjs over a supabase-js-shaped rpc adapter. Open: one AUTHORIZED attempt per consumed session, the same request (also with a fresh attempt id) gets it back, another request REQUEST_MISMATCH, unconsumed, unknown or expired sessions refused, attempt ids not reusable. Write-ahead: one WALLET_REQUEST_PERMITTED, every repeat ALREADY_STARTED, another request refused, refused after session expiry (the attempt stays AUTHORIZED) and for a cancelled intent. Rejection: only after the write-ahead, ABORTED_NO_TX / WALLET_REJECTED, the intent stays BUILT without tx hash, no restart, no later hash, no second session of the kind (P4I), a new intent of the same wallet may start. UNCERTAIN: no restart, no late rejection or wallet hash, the wallet stays busy (a new intent of the same wallet gets WALLET_BUSY), a chain-found hash binds. Tx hash: bound with attempt, session, intent, kind and wallet; same hash idempotent, another TX_HASH_CONFLICT (the first stays), a hash of another attempt TX_HASH_TAKEN, another request refused, caller fields refused before any call. Submit: only from TX_HASH_OBSERVED, only for the attempt intent, never with a caller hash, the intent becomes SUBMITTED with the bound hash, repeat EXISTING, a lost answer is read back by the same request. Approval: never submits (NOT_A_PURCHASE) or touches the intent, allowance below max_premium_raw refused, APPROVAL_VERIFIED / APPROVAL_FAILED settle once, a buyCover attempt needs the verified approval and a session verified from that block on, no approval after a consumed buyCover. Reconciliation: RECONCILED_NO_TX refused within the 30-minute quiet period, recorded with block and nonce after it (rows inserted by the owner with an old write-ahead), never after a bound hash. Crash windows C1-C6 end to end. Immutability: no backward transition, tx hash, kind, session, intent, wallet, request id, write-ahead time, abort reason and settle time fixed (also for the owner), no delete or truncate. Access: RLS on, no table right for anon, authenticated or service_role, exactly eight SECURITY DEFINER functions for service_role (pinned search_path, no dynamic SQL), helper and trigger for nobody; no new trigger on the P4D or P4I tables. Concurrency: six races of 40 independent connections (40 distinct backend PIDs) released from an advisory-lock barrier only after the database reports 40 waiting backends: one write-ahead winner of 40, one attempt of 40 opens, one bound hash of 40 different hashes, one of 40 attempts binds a shared hash, one recorded outcome of 40 conflicting wallet outcomes, one submission of 40. Pure protocol (always running): transitions identical to the trigger, outcome classification, recovery per state, purchase effect, nonce never authorization, replacement, SIWE binding and unalterable adapter request, chain transaction check, approval sequencing, crash windows, wallet models, guarantees. Static: no wallet, send, sign or permission method, no generic SQL, table or RPC path, exactly eight fixed function calls, no replaced P4D or P4I function; no runtime importer, route, rewrite or cron.",
+			"property_not_proven": "any real wallet behaviour (no adapter exists: EOA, WalletConnect and Safe are modelled only), in particular that a wallet answering 4001 has not signed, that a transaction signed but held back cannot appear after RECONCILED_NO_TX, and what compromised served frontend JavaScript can ask the wallet directly (the wallet confirmation stays the last control); exactly-once execution (not claimed); the chain scan and allowance read themselves (inputs to the model and functions); the operator path when P4D refuses SUBMITTED after the build deadline; the production database (the migration is applied nowhere but the disposable Postgres); real PostgREST; CR-PURCHASE-008 P3 (reviewed wallet execution); Nexus texts and proof-of-loss (CR-TERMS-002, CR-POL-002)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-005[P13]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-005",
+					"properties": [
+						"P13"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"disposable Postgres 17 (M1_DB_TEST_PG_URL)"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "raw-pg",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/purchase-execution-attempt-db.test.mjs",
+					"test/purchase-execution-attempt-db-concurrency.test.mjs",
+					"test/purchase-execution-protocol.test.mjs"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-PURCHASE-ATTEMPT",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 12 case(s)",
+			"property_proven": "Each listed weakening of the pure protocol and its reach (rejection marks FAILED, timeout as no broadcast or as success, a caller hash trusted without the chain transaction, approval marks CONFIRMED, a wallet send method, a public API importer, an unchanged nonce taken as proof, adapter fields added, the SIWE wallet not compared) and of the runner observer that grants E5 (serial statements of one connection credited, zero overlap accepted) is detected by the intended test (12 KILLED).",
+			"property_not_proven": "weakenings beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-005",
+					"properties": [
+						"P13"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-PURCHASE-005-P13-P4JREJECTFAILED, MUT-CR-PURCHASE-005-P13-P4JTIMEOUTNOTX, MUT-CR-PURCHASE-005-P13-P4JTIMEOUTSUCCESS, MUT-CR-PURCHASE-005-P13-P4JTRUSTCALLERHASH, MUT-CR-PURCHASE-005-P13-P4JAPPROVALCONFIRMS, MUT-CR-PURCHASE-005-P13-P4JWALLETMETHOD, MUT-CR-PURCHASE-005-P13-P4JAPIIMPORT, MUT-CR-PURCHASE-005-P13-P4JNONCEAUTH, MUT-CR-PURCHASE-005-P13-P4JADAPTERALTER, MUT-CR-PURCHASE-005-P13-P4JSIWEMISMATCH, MUT-CR-PURCHASE-005-P13-P4JSERIALCONN, MUT-CR-PURCHASE-005-P13-P4JZEROOVERLAP"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-PURCHASE-005-P13-P4JREJECTFAILED",
+					"MUT-CR-PURCHASE-005-P13-P4JTIMEOUTNOTX",
+					"MUT-CR-PURCHASE-005-P13-P4JTIMEOUTSUCCESS",
+					"MUT-CR-PURCHASE-005-P13-P4JTRUSTCALLERHASH",
+					"MUT-CR-PURCHASE-005-P13-P4JAPPROVALCONFIRMS",
+					"MUT-CR-PURCHASE-005-P13-P4JWALLETMETHOD",
+					"MUT-CR-PURCHASE-005-P13-P4JAPIIMPORT",
+					"MUT-CR-PURCHASE-005-P13-P4JNONCEAUTH",
+					"MUT-CR-PURCHASE-005-P13-P4JADAPTERALTER",
+					"MUT-CR-PURCHASE-005-P13-P4JSIWEMISMATCH",
+					"MUT-CR-PURCHASE-005-P13-P4JSERIALCONN",
+					"MUT-CR-PURCHASE-005-P13-P4JZEROOVERLAP"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-PURCHASE-005"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-005[P13]: mutation cases: MUT-CR-PURCHASE-005-P13-P4JREJECTFAILED, MUT-CR-PURCHASE-005-P13-P4JTIMEOUTNOTX, MUT-CR-PURCHASE-005-P13-P4JTIMEOUTSUCCESS, MUT-CR-PURCHASE-005-P13-P4JTRUSTCALLERHASH, MUT-CR-PURCHASE-005-P13-P4JAPPROVALCONFIRMS, MUT-CR-PURCHASE-005-P13-P4JWALLETMETHOD, MUT-CR-PURCHASE-005-P13-P4JAPIIMPORT, MUT-CR-PURCHASE-005-P13-P4JNONCEAUTH, MUT-CR-PURCHASE-005-P13-P4JADAPTERALTER, MUT-CR-PURCHASE-005-P13-P4JSIWEMISMATCH, MUT-CR-PURCHASE-005-P13-P4JSERIALCONN, MUT-CR-PURCHASE-005-P13-P4JZEROOVERLAP"
+		},
+		{
+			"id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 21 case(s)",
+			"property_proven": "Each listed weakening of the attempt table and functions (two attempts per session, UNCERTAIN restartable, a hash bound elsewhere accepted, an approval submitting the purchase, submission for the caller intent, another request getting the attempt, a backward transition, the tx hash, kind, bindings or write-ahead time mutable, a direct UPDATE, UNCERTAIN terminal with the wallet free, the write-ahead won twice, no wallet-busy index, a wallet answer after UNCERTAIN, no quiet period, buyCover without verified approval or with a stale pre-send, an insufficient allowance verified, an approval after a consumed buyCover) is detected by the intended test against the real database (21 KILLED).",
+			"property_not_proven": "weakenings beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-005",
+					"properties": [
+						"P13"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-PURCHASE-005-P13-P4JTWOATTEMPTS, MUT-CR-PURCHASE-005-P13-P4JUNCERTAINRETRY, MUT-CR-PURCHASE-005-P13-P4JCROSSINTENT, MUT-CR-PURCHASE-005-P13-P4JAPPROVALSUBMITS, MUT-CR-PURCHASE-005-P13-P4JBUYUNBOUND, MUT-CR-PURCHASE-005-P13-P4JDIFFREQUEST, MUT-CR-PURCHASE-005-P13-P4JBACKWARDS, MUT-CR-PURCHASE-005-P13-P4JCLEARTXHASH, MUT-CR-PURCHASE-005-P13-P4JKINDMUTABLE, MUT-CR-PURCHASE-005-P13-P4JSESSIONMUTABLE, MUT-CR-PURCHASE-005-P13-P4JGENERICUPDATE, MUT-CR-PURCHASE-005-P13-P4JUNCERTAINTERMINAL, MUT-CR-PURCHASE-005-P13-P4JSTARTTWICE, MUT-CR-PURCHASE-005-P13-P4JNOWALLETBUSY, MUT-CR-PURCHASE-005-P13-P4JUNCERTAINWALLETBIND, MUT-CR-PURCHASE-005-P13-P4JNOQUIET, MUT-CR-PURCHASE-005-P13-P4JAPPROVALUNVERIFIED, MUT-CR-PURCHASE-005-P13-P4JSTALEPRESEND, MUT-CR-PURCHASE-005-P13-P4JALLOWANCE, MUT-CR-PURCHASE-005-P13-P4JLATEAPPROVAL, MUT-CR-PURCHASE-005-P13-P4JSTARTEDMUTABLE"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node",
+				"postgres"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "raw-pg",
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-PURCHASE-005-P13-P4JTWOATTEMPTS",
+					"MUT-CR-PURCHASE-005-P13-P4JUNCERTAINRETRY",
+					"MUT-CR-PURCHASE-005-P13-P4JCROSSINTENT",
+					"MUT-CR-PURCHASE-005-P13-P4JAPPROVALSUBMITS",
+					"MUT-CR-PURCHASE-005-P13-P4JBUYUNBOUND",
+					"MUT-CR-PURCHASE-005-P13-P4JDIFFREQUEST",
+					"MUT-CR-PURCHASE-005-P13-P4JBACKWARDS",
+					"MUT-CR-PURCHASE-005-P13-P4JCLEARTXHASH",
+					"MUT-CR-PURCHASE-005-P13-P4JKINDMUTABLE",
+					"MUT-CR-PURCHASE-005-P13-P4JSESSIONMUTABLE",
+					"MUT-CR-PURCHASE-005-P13-P4JGENERICUPDATE",
+					"MUT-CR-PURCHASE-005-P13-P4JUNCERTAINTERMINAL",
+					"MUT-CR-PURCHASE-005-P13-P4JSTARTTWICE",
+					"MUT-CR-PURCHASE-005-P13-P4JNOWALLETBUSY",
+					"MUT-CR-PURCHASE-005-P13-P4JUNCERTAINWALLETBIND",
+					"MUT-CR-PURCHASE-005-P13-P4JNOQUIET",
+					"MUT-CR-PURCHASE-005-P13-P4JAPPROVALUNVERIFIED",
+					"MUT-CR-PURCHASE-005-P13-P4JSTALEPRESEND",
+					"MUT-CR-PURCHASE-005-P13-P4JALLOWANCE",
+					"MUT-CR-PURCHASE-005-P13-P4JLATEAPPROVAL",
+					"MUT-CR-PURCHASE-005-P13-P4JSTARTEDMUTABLE"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-PURCHASE-005"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-005[P13]: mutation cases: MUT-CR-PURCHASE-005-P13-P4JTWOATTEMPTS, MUT-CR-PURCHASE-005-P13-P4JUNCERTAINRETRY, MUT-CR-PURCHASE-005-P13-P4JCROSSINTENT, MUT-CR-PURCHASE-005-P13-P4JAPPROVALSUBMITS, MUT-CR-PURCHASE-005-P13-P4JBUYUNBOUND, MUT-CR-PURCHASE-005-P13-P4JDIFFREQUEST, MUT-CR-PURCHASE-005-P13-P4JBACKWARDS, MUT-CR-PURCHASE-005-P13-P4JCLEARTXHASH, MUT-CR-PURCHASE-005-P13-P4JKINDMUTABLE, MUT-CR-PURCHASE-005-P13-P4JSESSIONMUTABLE, MUT-CR-PURCHASE-005-P13-P4JGENERICUPDATE, MUT-CR-PURCHASE-005-P13-P4JUNCERTAINTERMINAL, MUT-CR-PURCHASE-005-P13-P4JSTARTTWICE, MUT-CR-PURCHASE-005-P13-P4JNOWALLETBUSY, MUT-CR-PURCHASE-005-P13-P4JUNCERTAINWALLETBIND, MUT-CR-PURCHASE-005-P13-P4JNOQUIET, MUT-CR-PURCHASE-005-P13-P4JAPPROVALUNVERIFIED, MUT-CR-PURCHASE-005-P13-P4JSTALEPRESEND, MUT-CR-PURCHASE-005-P13-P4JALLOWANCE, MUT-CR-PURCHASE-005-P13-P4JLATEAPPROVAL, MUT-CR-PURCHASE-005-P13-P4JSTARTEDMUTABLE"
 		}
 	]
 }

@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zj",
+	"crsf_version": "1.0-draft-phase2zk",
 	"rules": [
 		{
 			"pattern": "src/*auth*",
@@ -396,6 +396,27 @@
 		},
 		{
 			"pattern": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+			"domains": [
+				"CR-CONC",
+				"CR-DB",
+				"CR-PURCHASE"
+			]
+		},
+		{
+			"pattern": "src/purchase-execution-protocol.mjs",
+			"domains": [
+				"CR-PURCHASE"
+			]
+		},
+		{
+			"pattern": "src/purchase-execution-attempt-db.mjs",
+			"domains": [
+				"CR-DB",
+				"CR-PURCHASE"
+			]
+		},
+		{
+			"pattern": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
 			"domains": [
 				"CR-CONC",
 				"CR-DB",

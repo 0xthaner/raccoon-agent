@@ -21476,6 +21476,1184 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JTWOATTEMPTS",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "a consumed session authorizes two attempts (one-per-session constraint and the existing-attempt answer removed)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "\tconstraint cover_purchase_execution_attempts_one_per_session unique (session_id),\n",
+					"replace": ""
+				},
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "  select * into saved from public.cover_purchase_execution_attempts a where a.session_id = p_session_id;\n  if found then return jsonb_build_object('status', 'existing', 'attempt', public.cover_purchase_execution_attempt_json(saved)); end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs",
+				"test/purchase-execution-attempt-db-concurrency.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-OPEN consume -> one AUTHORIZED attempt per session; the same request gets it back, any other request is refused$"
+				},
+				{
+					"test": "^P4J-CONC-OPEN 40 concurrent opens for one consumed session with fresh attempt ids: exactly one attempt$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JUNCERTAINRETRY",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "an UNCERTAIN attempt can be started again (start accepts UNCERTAIN, the trigger allows UNCERTAIN -> WALLET_REQUEST_STARTED, the write-ahead time is kept)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "     and a.state = 'AUTHORIZED'\n",
+					"replace": "     and a.state in ('AUTHORIZED', 'UNCERTAIN')\n"
+				},
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "      (old.state = 'AUTHORIZED' and new.state = 'WALLET_REQUEST_STARTED')\n",
+					"replace": "      (old.state = 'AUTHORIZED' and new.state = 'WALLET_REQUEST_STARTED')\n      or (old.state = 'UNCERTAIN' and new.state = 'WALLET_REQUEST_STARTED')\n"
+				},
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "     set state = 'WALLET_REQUEST_STARTED', wallet_request_started_at = now()\n",
+					"replace": "     set state = 'WALLET_REQUEST_STARTED', wallet_request_started_at = coalesce(a.wallet_request_started_at, now())\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-UNCERTAIN a timeout before any tx_hash is UNCERTAIN: no restart, no new execution for the wallet, only chain reconciliation$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JREJECTFAILED",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "an explicit wallet rejection marks the purchase FAILED",
+			"edits": [
+				{
+					"file": "src/purchase-execution-protocol.mjs",
+					"find": "\tif (kind === 'NEXUS_BUY_COVER' && state === 'TX_HASH_OBSERVED') return 'MARK_SUBMITTED';\n",
+					"replace": "\tif (kind === 'NEXUS_BUY_COVER' && state === 'TX_HASH_OBSERVED') return 'MARK_SUBMITTED';\n\tif (state === 'ABORTED_NO_TX') return 'MARK_FAILED';\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-protocol.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-PURCHASE-EFFECT only a buyCover tx hash leads to P4D SUBMITTED; approval never submits or confirms; a rejection never marks FAILED$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JTIMEOUTNOTX",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "a timeout is taken as \"no broadcast\"",
+			"edits": [
+				{
+					"file": "src/purchase-execution-protocol.mjs",
+					"find": "\treturn Object.freeze({ next: 'UNCERTAIN', reason: result && typeof result === 'object' && typeof result.type === 'string' ? result.type : 'NO_RESULT' });\n",
+					"replace": "\tif (result && result.type === 'TIMEOUT') return Object.freeze({ next: 'ABORTED_NO_TX', reason: 'TIMEOUT' });\n\treturn Object.freeze({ next: 'UNCERTAIN', reason: result && typeof result === 'object' && typeof result.type === 'string' ? result.type : 'NO_RESULT' });\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-protocol.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-OUTCOME only a well-formed tx hash or the explicit rejection 4001 are unambiguous; a timeout is UNCERTAIN, never \"no broadcast\" and never \"success\"$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JTIMEOUTSUCCESS",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "a timeout is taken as success",
+			"edits": [
+				{
+					"file": "src/purchase-execution-protocol.mjs",
+					"find": "\treturn Object.freeze({ next: 'UNCERTAIN', reason: result && typeof result === 'object' && typeof result.type === 'string' ? result.type : 'NO_RESULT' });\n",
+					"replace": "\tif (result && result.type === 'TIMEOUT') return Object.freeze({ next: 'TX_HASH_OBSERVED', txHash: null, source: 'WALLET_RESPONSE' });\n\treturn Object.freeze({ next: 'UNCERTAIN', reason: result && typeof result === 'object' && typeof result.type === 'string' ? result.type : 'NO_RESULT' });\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-protocol.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-OUTCOME only a well-formed tx hash or the explicit rejection 4001 are unambiguous; a timeout is UNCERTAIN, never \"no broadcast\" and never \"success\"$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JTRUSTCALLERHASH",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "a caller-supplied tx hash is trusted without comparing the chain transaction with the request",
+			"edits": [
+				{
+					"file": "src/purchase-execution-protocol.mjs",
+					"find": "\tif (!request || !tx || typeof tx !== 'object' || typeof tx.hash !== 'string' || !TX_HASH.test(tx.hash)) return Object.freeze({ ok: false, code: 'TX' });\n",
+					"replace": "\tif (!request || !tx || typeof tx !== 'object' || typeof tx.hash !== 'string' || !TX_HASH.test(tx.hash)) return Object.freeze({ ok: false, code: 'TX' });\n\treturn Object.freeze({ ok: true, txHash: tx.hash });\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-protocol.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-OBSERVED-TX a hash is bound from the chain only for a transaction with exactly the requested from, to, value, data and chain$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JCROSSINTENT",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "a tx hash already bound to another intent is accepted (global unique constraint and pre-check removed)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "\tconstraint cover_purchase_execution_attempts_tx_hash_key unique (tx_hash),\n",
+					"replace": ""
+				},
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "  if exists (select 1 from public.cover_purchase_execution_attempts a where a.tx_hash = p_tx_hash and a.attempt_id <> p_attempt_id) then\n",
+					"replace": "  if false then\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs",
+				"test/purchase-execution-attempt-db-concurrency.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-TXHASH a tx_hash is bound to attempt, session, intent and kind; the same hash is idempotent, another is a conflict, another intent cannot take it$"
+				},
+				{
+					"test": "^P4J-CONC-TXHASH-CROSS one tx hash raced onto 40 attempts of 40 intents: exactly one binds it$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JAPPROVALSUBMITS",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "an approval attempt moves the purchase intent to SUBMITTED (kind check and the SUBMITTED kind constraint removed)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "  if saved.transaction_kind <> 'NEXUS_BUY_COVER' then return jsonb_build_object('status', 'rejected', 'code', 'NOT_A_PURCHASE'); end if;\n",
+					"replace": ""
+				},
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "\t\tand (state <> 'SUBMITTED' or (transaction_kind = 'NEXUS_BUY_COVER' and tx_hash is not null and settled_at is not null))\n",
+					"replace": "\t\tand (state <> 'SUBMITTED' or (tx_hash is not null and settled_at is not null))\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-APPROVAL approval and buyCover are separate authorities: approval never submits or confirms the purchase; buyCover needs a verified approval and a fresh pre-send$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JAPPROVALCONFIRMS",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "a verified approval marks the purchase CONFIRMED",
+			"edits": [
+				{
+					"file": "src/purchase-execution-protocol.mjs",
+					"find": "\tif (kind === 'NEXUS_BUY_COVER' && state === 'TX_HASH_OBSERVED') return 'MARK_SUBMITTED';\n",
+					"replace": "\tif (kind === 'NEXUS_BUY_COVER' && state === 'TX_HASH_OBSERVED') return 'MARK_SUBMITTED';\n\tif (kind === 'USDC_APPROVAL' && state === 'APPROVAL_VERIFIED') return 'MARK_CONFIRMED';\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-protocol.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-PURCHASE-EFFECT only a buyCover tx hash leads to P4D SUBMITTED; approval never submits or confirms; a rejection never marks FAILED$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JBUYUNBOUND",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "submission uses the caller intent instead of the attempt binding",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "  if saved.intent_id is distinct from p_intent_id then return jsonb_build_object('status', 'rejected', 'code', 'INTENT_MISMATCH'); end if;\n",
+					"replace": ""
+				},
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "  res := public.mark_cover_purchase_intent_submitted(saved.intent_id, s.wallet,",
+					"replace": "  res := public.mark_cover_purchase_intent_submitted(p_intent_id, s.wallet,"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-SUBMIT only a buyCover attempt moves the intent to SUBMITTED, with the bound hash and never one from the caller$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JDIFFREQUEST",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "a different consumer request id gets the existing attempt",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "  if s.consumer_request_id is distinct from p_consumer_request_id then return jsonb_build_object('status', 'rejected', 'code', 'REQUEST_MISMATCH'); end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-OPEN consume -> one AUTHORIZED attempt per session; the same request gets it back, any other request is refused$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JBACKWARDS",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "the attempt state can move backwards (UNCERTAIN -> WALLET_REQUEST_STARTED allowed)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "      (old.state = 'AUTHORIZED' and new.state = 'WALLET_REQUEST_STARTED')\n",
+					"replace": "      (old.state = 'AUTHORIZED' and new.state = 'WALLET_REQUEST_STARTED')\n      or (old.state = 'UNCERTAIN' and new.state = 'WALLET_REQUEST_STARTED')\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs",
+				"test/purchase-execution-protocol.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-IMMUTABLE no backward transition, tx_hash never cleared or changed, bindings and kind fixed, nothing deleted$"
+				},
+				{
+					"test": "^P4J-STATES the attempt state machine is forward-only and identical to the migration trigger$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JCLEARTXHASH",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "the bound tx hash can be cleared or changed",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "  if old.tx_hash is not null and new.tx_hash is distinct from old.tx_hash then raise exception 'cover_purchase_execution_attempts: tx_hash is set once'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-IMMUTABLE no backward transition, tx_hash never cleared or changed, bindings and kind fixed, nothing deleted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JKINDMUTABLE",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "the transaction kind can change",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "  if new.transaction_kind is distinct from old.transaction_kind then raise exception 'cover_purchase_execution_attempts: transaction_kind is immutable'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-IMMUTABLE no backward transition, tx_hash never cleared or changed, bindings and kind fixed, nothing deleted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JSESSIONMUTABLE",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "the session and intent binding can change",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "  if new.session_id is distinct from old.session_id then raise exception 'cover_purchase_execution_attempts: session_id is immutable'; end if;\n",
+					"replace": ""
+				},
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "  if new.intent_id is distinct from old.intent_id then raise exception 'cover_purchase_execution_attempts: intent_id is immutable'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-IMMUTABLE no backward transition, tx_hash never cleared or changed, bindings and kind fixed, nothing deleted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JGENERICUPDATE",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "service_role may UPDATE the attempt table directly",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "revoke all on table public.cover_purchase_execution_attempts from public, anon, authenticated, service_role;\n",
+					"replace": "revoke all on table public.cover_purchase_execution_attempts from public, anon, authenticated, service_role;\ngrant update on table public.cover_purchase_execution_attempts to service_role;\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-PRIVILEGES RLS on, no direct table access for anyone \\(service_role included\\); service_role executes only the eight functions; no generic update, no delete path$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JWALLETMETHOD",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "a real wallet method appears in the protocol",
+			"edits": [
+				{
+					"file": "src/purchase-execution-protocol.mjs",
+					"find": "export const TRANSACTION_KINDS = Object.freeze(['USDC_APPROVAL', 'NEXUS_BUY_COVER']);\n",
+					"replace": "export const TRANSACTION_KINDS = Object.freeze(['USDC_APPROVAL', 'NEXUS_BUY_COVER']);\nexport const WALLET_METHOD = 'eth_sendTransaction';\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-protocol.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-NOEXEC no wallet, send, sign or permission method and no generic database path in the P4J code$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JAPIIMPORT",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "a public API route imports the execution protocol",
+			"edits": [
+				{
+					"file": "api/nexus/quote.mjs",
+					"find": "import { resolveDashboardSession } from '../../src/dashboard-auth.mjs';\n",
+					"replace": "import { resolveDashboardSession } from '../../src/dashboard-auth.mjs';\nimport { buildWalletRequest } from '../../src/purchase-execution-protocol.mjs';\nexport const REQUEST = buildWalletRequest;\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-protocol.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-IMPORT no runtime code reaches the protocol or the attempt store; no purchase, execution or wallet route exists$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JNONCEAUTH",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "an unchanged wallet nonce is taken as proof that nothing was sent",
+			"edits": [
+				{
+					"file": "src/purchase-execution-protocol.mjs",
+					"find": "\tvoid walletNonceAtStart; void walletNonceNow;\n",
+					"replace": "\tif (walletNonceNow === walletNonceAtStart && matches.length === 0) return Object.freeze({ decision: 'RECORD_NO_TX', reason: 'NONCE_UNCHANGED' });\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-protocol.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-RECONCILE the nonce is evidence, never authorization; no transaction is recorded only after the quiet period and finality depth$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JUNCERTAINTERMINAL",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "UNCERTAIN is marked terminal and safe for a new execution (policy and the wallet-busy index)",
+			"edits": [
+				{
+					"file": "src/purchase-execution-protocol.mjs",
+					"find": "\tUNCERTAIN: policy({ chainReconciliationRequired: true,",
+					"replace": "\tUNCERTAIN: policy({ terminal: true, newIntentAllowed: true,"
+				},
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "where state in ('WALLET_REQUEST_STARTED', 'UNCERTAIN', 'TX_HASH_OBSERVED');",
+					"replace": "where state in ('WALLET_REQUEST_STARTED', 'TX_HASH_OBSERVED');"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-protocol.test.mjs",
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-RECOVERY UNCERTAIN and a started request require chain reconciliation; no state but the verified approval allows a new session; nothing retries blindly$"
+				},
+				{
+					"test": "^P4J-DB-UNCERTAIN a timeout before any tx_hash is UNCERTAIN: no restart, no new execution for the wallet, only chain reconciliation$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JSTARTTWICE",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "the write-ahead can be won twice (state condition removed, write-ahead time kept)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "     and a.state = 'AUTHORIZED'\n",
+					"replace": ""
+				},
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "     set state = 'WALLET_REQUEST_STARTED', wallet_request_started_at = now()\n",
+					"replace": "     set state = 'WALLET_REQUEST_STARTED', wallet_request_started_at = coalesce(a.wallet_request_started_at, now())\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs",
+				"test/purchase-execution-attempt-db-concurrency.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-START the write-ahead is won exactly once; a duplicate browser request gets ALREADY_STARTED and must not call the wallet$"
+				},
+				{
+					"test": "^P4J-CONC-START 40 concurrent starts of one attempt \\(two tabs, retries\\): exactly one WALLET_REQUEST_PERMITTED$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JNOWALLETBUSY",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "another attempt of the same wallet can start while a transaction may be in flight",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "create unique index if not exists cover_purchase_execution_attempts_wallet_busy on",
+					"replace": "create index if not exists cover_purchase_execution_attempts_wallet_busy on"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-UNCERTAIN a timeout before any tx_hash is UNCERTAIN: no restart, no new execution for the wallet, only chain reconciliation$"
+				},
+				{
+					"test": "^P4J-DB-CRASH the six crash windows recover without a second wallet request$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JUNCERTAINWALLETBIND",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "a wallet response after UNCERTAIN is trusted",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "       and (a.state = 'WALLET_REQUEST_STARTED' or (a.state = 'UNCERTAIN' and p_source = 'CHAIN_RECONCILIATION'))\n",
+					"replace": "       and a.state in ('WALLET_REQUEST_STARTED', 'UNCERTAIN')\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-UNCERTAIN a timeout before any tx_hash is UNCERTAIN: no restart, no new execution for the wallet, only chain reconciliation$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JNOQUIET",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "RECONCILED_NO_TX without the quiet period",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "     and now() >= a.wallet_request_started_at + interval '30 minutes'\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-RECONCILE RECONCILED_NO_TX only after the 30-minute quiet period and with evidence; a found transaction binds instead$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JAPPROVALUNVERIFIED",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "buyCover after a consumed approval without a verified approval",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "  if s.transaction_kind = 'NEXUS_BUY_COVER' and exists (\n",
+					"replace": "  if false and s.transaction_kind = 'NEXUS_BUY_COVER' and exists (\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-APPROVAL approval and buyCover are separate authorities: approval never submits or confirms the purchase; buyCover needs a verified approval and a fresh pre-send$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JSTALEPRESEND",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "buyCover after an approval with a pre-send verified before the approval check",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "          and s.verified_block >= a.approval_verified_block) then\n",
+					"replace": "          ) then\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-APPROVAL approval and buyCover are separate authorities: approval never submits or confirms the purchase; buyCover needs a verified approval and a fresh pre-send$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JALLOWANCE",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "an approval is verified with an allowance below max_premium_raw",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "    if p_allowance_raw < needed then return jsonb_build_object('status', 'rejected', 'code', 'ALLOWANCE_INSUFFICIENT'); end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-APPROVAL approval and buyCover are separate authorities: approval never submits or confirms the purchase; buyCover needs a verified approval and a fresh pre-send$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JLATEAPPROVAL",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "an approval attempt after a consumed buyCover session",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "  if s.transaction_kind = 'USDC_APPROVAL' and exists (\n",
+					"replace": "  if false and s.transaction_kind = 'USDC_APPROVAL' and exists (\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-APPROVAL approval and buyCover are separate authorities: approval never submits or confirms the purchase; buyCover needs a verified approval and a fresh pre-send$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JADAPTERALTER",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "the adapter may add gas, nonce or fee fields to the request",
+			"edits": [
+				{
+					"file": "src/purchase-execution-protocol.mjs",
+					"find": "\tif (keys.length !== WALLET_REQUEST_FIELDS.length || !keys.every((k, i) => k === [...WALLET_REQUEST_FIELDS].sort()[i])) return 'ADAPTER_ALTERED';\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-protocol.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-SIWE-BINDING SIWE wallet == intent wallet == session wallet == from; no arbitrary from; the adapter may not alter any field$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JSIWEMISMATCH",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "the SIWE session wallet is not compared",
+			"edits": [
+				{
+					"file": "src/purchase-execution-protocol.mjs",
+					"find": "\tif (siweWallet !== intentWallet || intentWallet !== session.wallet) return Object.freeze({ ok: false, code: 'WALLET_MISMATCH' });\n",
+					"replace": "\tif (intentWallet !== session.wallet) return Object.freeze({ ok: false, code: 'WALLET_MISMATCH' });\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-protocol.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-SIWE-BINDING SIWE wallet == intent wallet == session wallet == from; no arbitrary from; the adapter may not alter any field$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JSTARTEDMUTABLE",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "the write-ahead time can change",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql",
+					"find": "  if old.wallet_request_started_at is not null and new.wallet_request_started_at is distinct from old.wallet_request_started_at then raise exception 'cover_purchase_execution_attempts: wallet_request_started_at is set once'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-attempt-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4J-DB-IMMUTABLE no backward transition, tx_hash never cleared or changed, bindings and kind fixed, nothing deleted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JSERIALCONN",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "the runner observer counts serial statements on a single connection as E5 concurrency",
+			"edits": [
+				{
+					"file": "security/crsf/lib/pg-observer.mjs",
+					"find": "d.authenticated >= 2 && d.max_busy >= min_concurrent_connections && d.overlap_events >= min_overlap_events",
+					"replace": "d.completed >= min_concurrent_connections"
+				}
+			],
+			"tests": [
+				"test/crsf-real-system-observation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^E5-OBS observer: strictly sequential statements on several connections are not concurrency, overlapping ones are$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P13-P4JZEROOVERLAP",
+			"origin": "new (P4J)",
+			"evidence_id": "EV-KB-PURCHASE-ATTEMPT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P13"
+				}
+			],
+			"description": "the runner observer accepts zero overlap (one busy connection at a time, no overlap event) as E5 concurrency",
+			"edits": [
+				{
+					"file": "security/crsf/lib/pg-observer.mjs",
+					"find": "d.authenticated >= 2 && d.max_busy >= min_concurrent_connections && d.overlap_events >= min_overlap_events",
+					"replace": "d.authenticated >= 2 && d.max_busy >= 1"
+				}
+			],
+			"tests": [
+				"test/crsf-real-system-observation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^E5-OBS observer: strictly sequential statements on several connections are not concurrency, overlapping ones are$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

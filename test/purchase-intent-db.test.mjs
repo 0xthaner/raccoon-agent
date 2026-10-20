@@ -351,7 +351,7 @@ test('P4D-IMPORT no runtime code imports the purchase-intent DB helper; only the
 	assert.ok(runtime.includes('src/bot.mjs') && runtime.includes('src/db.mjs') && runtime.some((f) => f.startsWith('api/')) && runtime.some((f) => f.startsWith('web/src/')));
 	for (const file of runtime) assert.doesNotMatch(read(file), /purchase-intent-db(\.mjs)?['"`]|cover_purchase_intent/, file);
 	const importing = /(?:from\s*|import\s*\(\s*)['"`][^'"`]*purchase-intent-db\.mjs/;
-	assert.deepEqual([...walk('src'), ...walk('test'), ...walk('test-support')].filter((f) => importing.test(read(f))).sort(), ['test-support/purchase-execution-session-pg.mjs', 'test/purchase-confirmation-db.test.mjs', 'test/purchase-execution-session-db.test.mjs', 'test/purchase-intent-db-concurrency.test.mjs', 'test/purchase-intent-db.test.mjs', 'test/purchase-runtime-loader-db.test.mjs', 'test/purchase-runtime-loader.test.mjs']);
+	assert.deepEqual([...walk('src'), ...walk('test'), ...walk('test-support')].filter((f) => importing.test(read(f))).sort(), ['test-support/purchase-execution-session-pg.mjs', 'test/purchase-confirmation-db.test.mjs', 'test/purchase-execution-attempt-db.test.mjs', 'test/purchase-execution-session-db.test.mjs', 'test/purchase-intent-db-concurrency.test.mjs', 'test/purchase-intent-db.test.mjs', 'test/purchase-runtime-loader-db.test.mjs', 'test/purchase-runtime-loader.test.mjs']);
 });
 
 test('P4D-NOROUTE there is no purchase route, page or wallet call for intents', () => {

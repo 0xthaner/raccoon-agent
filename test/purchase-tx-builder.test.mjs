@@ -275,7 +275,8 @@ test('P4C-SURFACE transaction encoding and transaction-shaped objects exist only
 		// P4H (20.10.2026): ebenso der unerreichbare Lader (P4H-LOADER-IMPORT), der den Hash nur liest und auf Format prueft.
 		// Die unerreichbare Ausfuehrungs-Sitzung (P4H-SESSION-IMPORT) benennt zusaetzlich die zwei Decoder-Arten; Kodieren, Selektoren, approve und productionReady bleiben auch dort ausgeschlossen.
 		// P4I (20.10.2026): ebenso der unerreichbare Sitzungsspeicher (P4I-IMPORT), der den Calldata-Hash und die Art fuer die Speicherung prueft.
-		if (file === 'src/purchase-execution-session.mjs' || file === 'src/purchase-execution-session-db.mjs') { assert.doesNotMatch(code(file), /encodeFunctionData|buyCover|7c59cac4|095ea7b3|functionName:\s*'approve'|\.approve\(|productionReady/, file); continue; }
+		// P4J (20.10.2026): ebenso das unerreichbare Protokoll und der Versuchsspeicher (P4J-IMPORT), die Freigabe und Kauf als Arten trennen.
+		if (['src/purchase-execution-session.mjs', 'src/purchase-execution-session-db.mjs', 'src/purchase-execution-protocol.mjs', 'src/purchase-execution-attempt-db.mjs'].includes(file)) { assert.doesNotMatch(code(file), /encodeFunctionData|buyCover|7c59cac4|095ea7b3|functionName:\s*'approve'|\.approve\(|productionReady/, file); continue; }
 		const surface = ['src/purchase-intent-db.mjs', 'src/purchase-receipt.mjs', 'src/purchase-pre-send.mjs', 'src/purchase-confirmation.mjs', 'src/purchase-runtime-loader.mjs'].includes(file) ? /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|productionReady/ : /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|calldataHash|productionReady/;
 		assert.doesNotMatch(code(file), surface, file);
 	}
