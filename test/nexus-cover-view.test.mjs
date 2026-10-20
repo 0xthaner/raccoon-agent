@@ -65,7 +65,25 @@ test('VIEW details show provider, product, exposure, suggested amount, capacity,
 	assert.ok(!all.includes('Product annex'), 'no annex for product 97');
 	assert.deepEqual(dom.all().filter((el) => el.tagName === 'BUTTON').map((el) => el.textContent), ['ETH', 'USDC', '30 days', '90 days', '180 days', '365 days', 'Get quote'], 'cbBTC without a trusted price is not offered');
 	assert.doesNotMatch(all, /\b(Buy|Purchase|Insure now)\b|fully insured|guaranteed payout|covered loss|approved claim/i);
-	assert.equal(dom.log.violations.length, 0);
+	assert.equal(dom.log.violations.length, 0);});
+
+test('VIEW Aave figures and the purchase stop: supplied, debt, exposure, and cover through CoverRaccoon not available - also without a readiness field', async () => {
+	for (const details of [DETAILS, { ...DETAILS, readiness: { status: 'BLOCKED', reasons: ['NEXUS_TERMS_UNCONFIRMED', 'NEXUS_PROOF_OF_LOSS_UNCONFIRMED', 'WALLET_EXECUTION_NOT_AVAILABLE'] } }]) {
+		const view = await mount({ details });
+		const all = view.text();
+		for (const part of ['Supplied', '26000.62345678 USD', 'Debt', '6000.00000001 USD', 'Suggested exposure (deposits − debt)', '20000.62345677 USD', 'Cover through CoverRaccoon', 'Not available yet',
+			'We are finalising the required Nexus Mutual terms and proof-of-loss flow before enabling wallet confirmations.']) assert.ok(all.includes(part), `missing: ${part}`);
+		view.button('Get quote').click();
+		await new Promise((resolve) => setImmediate(resolve));
+		assert.ok(view.text().includes('For information only. Cover cannot be taken out through CoverRaccoon yet.'));
+		assert.equal(view.dom.all().filter((el) => el.tagName === 'BUTTON').at(-1).textContent, 'Get quote', 'the quote is the last action; nothing after it');
+		assert.deepEqual(view.walletCalls, []);
+	}
+	const de = await mount({ language: 'de' });
+	assert.match(de.text(), /Abschluss über CoverRaccoonNoch nicht möglich/);
+	assert.match(de.text(), /Einlagen26000\.62345678 USD/);
+	const lido = await mount({ details: { ok: true, available: false, status: 'AMBIGUOUS' }, language: 'de' });
+	assert.match(lido.text(), /Für diesen Markt gibt es noch keine Cover-Zuordnung\./);
 });
 
 test('VIEW German texts carry the same disclaimer and proof-of-loss information', async () => {
@@ -143,7 +161,7 @@ test('VIEW remote strings are text only; unvalidated links are not rendered', as
 test('VIEW unavailable, ambiguous and unsupported states show only the neutral status', async () => {
 	for (const status of ['AMBIGUOUS', 'UNAVAILABLE', 'UNSUPPORTED']) {
 		const view = await mount({ details: { ok: true, available: false, status } });
-		assert.match(view.text(), /Cover availability cannot currently be determined for this position\./);
+		assert.match(view.text(), status === 'AMBIGUOUS' ? /^Nexus MutualCover mapping is not available for this market yet\.$/ : /Cover availability cannot currently be determined for this position\./);
 		assert.doesNotMatch(view.text(), /Get quote|Premium|Aave v3 ·|Suggested/);
 		assert.equal(view.button('Get quote'), undefined);
 	}

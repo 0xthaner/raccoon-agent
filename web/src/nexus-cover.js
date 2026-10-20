@@ -26,13 +26,14 @@ const TEXTS = {
 		stale: 'This quote has expired. Request a new quote.', fresh: 'Indicative live quote from Nexus Mutual.',
 		pol: { address: 'Wallet address(es) must be designated when cover is purchased.' },
 		readiness: 'Cover through CoverRaccoon', readinessBlocked: 'Not available yet',
+		readinessDetail: 'We are finalising the required Nexus Mutual terms and proof-of-loss flow before enabling wallet confirmations.',
 		readinessReasons: {
-			NEXUS_TERMS_UNCONFIRMED: 'Nexus Mutual has not yet confirmed the required terms.',
-			NEXUS_PROOF_OF_LOSS_UNCONFIRMED: 'Nexus Mutual has not yet confirmed how proof of loss is handled.',
-			WALLET_EXECUTION_NOT_AVAILABLE: 'Confirming in your wallet is not enabled yet.',
 			MARKET_NOT_IN_SCOPE: 'Not offered for this market yet.',
 			NO_SUGGESTED_EXPOSURE: 'No suggested exposure for this position.'
 		},
+		quoteOnly: 'For information only. Cover cannot be taken out through CoverRaccoon yet.',
+		mapping: 'Cover mapping is not available for this market yet.',
+		supplied: 'Supplied', debt: 'Debt',
 		polOther: 'Required proof-of-loss input:',
 		disclaimer: 'Suggested cover amount is an estimate based on detected economic exposure. It does not guarantee that the same amount would be payable in a claim. Nexus Mutual terms and claim assessment govern.',
 		termsNote: 'The linked wording and annex are the binding terms; nothing on this page replaces them.',
@@ -54,13 +55,14 @@ const TEXTS = {
 		stale: 'Diese Quote ist abgelaufen. Bitte eine neue Quote abrufen.', fresh: 'Unverbindliche Live-Quote von Nexus Mutual.',
 		pol: { address: 'Beim Abschluss des Covers müssen Wallet-Adresse(n) angegeben werden.' },
 		readiness: 'Abschluss über CoverRaccoon', readinessBlocked: 'Noch nicht möglich',
+		readinessDetail: 'Wir stellen die erforderlichen Bedingungen von Nexus Mutual und den Ablauf für den Schadensnachweis fertig, bevor Bestätigungen in der Wallet freigeschaltet werden.',
 		readinessReasons: {
-			NEXUS_TERMS_UNCONFIRMED: 'Nexus Mutual hat die erforderlichen Bedingungen noch nicht bestätigt.',
-			NEXUS_PROOF_OF_LOSS_UNCONFIRMED: 'Nexus Mutual hat den Umgang mit dem Schadensnachweis noch nicht bestätigt.',
-			WALLET_EXECUTION_NOT_AVAILABLE: 'Die Bestätigung in der Wallet ist noch nicht freigeschaltet.',
 			MARKET_NOT_IN_SCOPE: 'Für diesen Markt noch nicht angeboten.',
 			NO_SUGGESTED_EXPOSURE: 'Für diese Position gibt es kein vorgeschlagenes Engagement.'
 		},
+		quoteOnly: 'Nur zur Information. Ein Abschluss über CoverRaccoon ist noch nicht möglich.',
+		mapping: 'Für diesen Markt gibt es noch keine Cover-Zuordnung.',
+		supplied: 'Einlagen', debt: 'Schulden',
 		polOther: 'Erforderliche Angaben für den Nachweis:',
 		disclaimer: 'Die vorgeschlagene Cover-Summe ist eine Schätzung auf Basis des erkannten wirtschaftlichen Engagements. Sie garantiert nicht, dass im Schadensfall derselbe Betrag ausgezahlt würde. Es gelten die Bedingungen und die Schadensprüfung von Nexus Mutual.',
 		termsNote: 'Verbindlich sind die verlinkten Bedingungen und der Anhang; nichts auf dieser Seite ersetzt sie.',
@@ -122,13 +124,15 @@ export function createCoverPanel({ deploymentKey, post, language = 'en', now = (
 		if (state.phase === 'loading') { el(root, 'p', 'position-muted', t.loading); return; }
 		if (state.phase === 'failed') { el(root, 'p', 'position-muted', t.failed); return; }
 		const d = state.details;
-		if (!d?.available) { el(root, 'p', 'cover-neutral', t.neutral); return; }
+		if (!d?.available) { el(root, 'p', 'cover-neutral', d?.status === 'AMBIGUOUS' ? t.mapping : t.neutral); return; }
 
 		el(root, 'p', 'cover-product', `${text(d.productName)} · ${text(d.productTypeName)}`);
 		const figures = el(root, 'div', 'cover-figures');
 		row(figures, t.protocol, d.position?.protocol);
 		row(figures, t.network, d.position?.network);
-		row(figures, t.exposure, `${text(d.exposure?.suggestedExposure)} USD`, `${text(d.exposure?.grossExposure)} − ${text(d.exposure?.debt)} USD`);
+		row(figures, t.supplied, `${text(d.exposure?.grossExposure)} USD`);
+		row(figures, t.debt, `${text(d.exposure?.debt)} USD`);
+		row(figures, t.exposure, `${text(d.exposure?.suggestedExposure)} USD`);
 		const selectable = (d.assets ?? []).filter((asset) => asset.selectable);
 		const current = selectable.find((asset) => asset.symbol === state.asset) ?? selectable[0] ?? null;
 		if (current) {
@@ -137,10 +141,9 @@ export function createCoverPanel({ deploymentKey, post, language = 'en', now = (
 		}
 		row(figures, t.proofOfLoss, proofOfLossText(d.proofOfLoss?.inputTypes));
 		row(figures, t.grace, `${text(d.gracePeriodDays)} ${t.days}`);
-		if (d.readiness && d.readiness.status !== 'READY') {
-			const reasons = (Array.isArray(d.readiness.reasons) ? d.readiness.reasons : []).map((code) => t.readinessReasons[code]).filter(Boolean);
-			row(figures, t.readiness, t.readinessBlocked, reasons.join(' ') || undefined);
-		}
+		// Es gibt keinen Abschluss-Pfad im Browser: der Hinweis steht immer, auch ohne Bereitschaftsfeld.
+		const reasons = (Array.isArray(d.readiness?.reasons) ? d.readiness.reasons : []).map((code) => t.readinessReasons[code]).filter(Boolean);
+		row(figures, t.readiness, t.readinessBlocked, [...reasons, t.readinessDetail].join(' '));
 
 		const terms = el(root, 'div', 'cover-terms');
 		el(terms, 'small', 'figure-label', t.terms);
@@ -214,6 +217,7 @@ export function createCoverPanel({ deploymentKey, post, language = 'en', now = (
 		row(box, t.annual, `${text(quote.annualPricePercent)} %`);
 		row(box, t.fetched, formatTime(quote.quoteFetchedAt, language));
 		row(box, t.validUntil, formatTime(quote.quoteExpiresAt, language));
+		el(box, 'small', 'figure-help', t.quoteOnly);
 	}
 
 	async function requestQuote(amount, periodDays) {

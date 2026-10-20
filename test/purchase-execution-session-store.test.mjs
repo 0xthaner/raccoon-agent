@@ -56,7 +56,7 @@ test('P4I-HASH-AUTHORITY the helper recomputes the P4H session hash and persists
 	// Form: fehlende/zusaetzliche Felder, Bytes ohne passenden dataHash, buyCover ohne calldata-Bindung, Fenster > 30 s
 	const shapes = [
 		[{ ...s, extra: 1 }, 'SESSION_SHAPE'], [(({ toctou, ...rest }) => rest)(s), 'SESSION_SHAPE'], [{ ...s, data: `${s.data}00` }, 'DATA'], [{ ...s, calldataHash: hash32('c') }, 'CALLDATA_HASH_MISMATCH'],
-		[{ ...s, expiresAt: s.createdAt + 31 }, 'WINDOW'], [{ ...s, value: 1n }, 'FIELD'], [{ ...s, chainId: 10 }, 'FIELD'], [{ ...s, wallet: s.wallet.toUpperCase().replace('0X', '0x') }, 'ADDRESS'],
+		[{ ...s, expiresAt: s.createdAt + 31 }, 'WINDOW'], [{ ...s, value: 1n }, 'FIELD'], [{ ...s, chainId: 10 }, 'FIELD'], [{ ...s, wallet: `0xAB${s.wallet.slice(4).toUpperCase()}` }, 'ADDRESS'],
 		[{ ...s, verifiedAtBlock: 0n }, 'BLOCK'], [{ ...s, verifiedAtBlock: 5 }, 'BLOCK'], [{ ...s, singleUse: false }, 'SINGLE_USE'], [null, 'SESSION_SHAPE']
 	];
 	for (const [session, code] of shapes) {

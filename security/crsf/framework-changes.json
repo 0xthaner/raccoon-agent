@@ -3625,6 +3625,27 @@
 					"reason": "new rules src/aave-cover-readiness.mjs -> CR-NEXUS, CR-QUOTE, CR-PURCHASE and docs/aave-v3-ethereum-support.json -> CR-NEXUS; nothing removed"
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zm",
+			"summary": "Safe pre-purchase production state: the Aave cover details show supplied value and debt as their own rows, a calm stop notice for cover through CoverRaccoon (always shown, also without a readiness field) and, for an AMBIGUOUS mapping (Lido/Prime, EtherFi), the neutral text that no cover mapping exists for the market yet. New always-running guard test/production-reach.test.mjs (transitive import graph from api/** and the web entry scripts: no purchase module, no transaction/typed-data/approve/buyCover/writeContract call, literal wallet methods from the sign-in list only, server RPC read-only, no computed import). A PID-dependent flake in P4I-HASH-AUTHORITY fixed. No control, property, threshold, release class or external blocker changed.",
+			"changes": [
+				{
+					"id": "EV-NEXUS-QUOTE",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "test/nexus-cover-view.test.mjs: for status AMBIGUOUS the panel now shows exactly 'Cover mapping is not available for this market yet.' (was the general neutral text); UNAVAILABLE and UNSUPPORTED unchanged; every state still without quote button, premium or product. New test VIEW Aave figures and the purchase stop (supplied, debt, suggested exposure, the stop notice with and without a readiness field, the information-only note under a quote, no action after 'Get quote', no wallet call). The no-purchase wording guard (/\\b(Buy|Purchase|Insure now)\\b/) is unchanged; the copy avoids the word."
+				},
+				{
+					"id": "EV-PURCHASE-SESSION-DB",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "test/purchase-execution-session-store.test.mjs P4I-HASH-AUTHORITY: the ADDRESS shape case used s.wallet.toUpperCase(); freshWallet() derives the address from the process id and for about 1.8 % of process ids it has no hex letter, so the 'non-lowercase' wallet was identical and the case failed spuriously (seen once in test:ci on 20.10.2026). The case now always carries upper-case letters (0xAB + upper-cased rest). Expected code ADDRESS unchanged; the case is now deterministic."
+				},
+				{
+					"id": "test/production-reach.test.mjs",
+					"kind": "TEST_INFRA",
+					"reason": "new always-running guard (PROD-REACH-PURCHASE, -TX, -WALLET, -DYNAMIC) for the pre-purchase production state; sanity-checked by three ad-hoc mutations (purchase builder imported into src/nexus-quote.mjs, eth_sendTransaction in the browser login, computed wallet method), each failing the intended test. Not mapped as CRSF evidence in this version."
+				}
+			]
 		}
 	]
 }
