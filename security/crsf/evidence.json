@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zg",
+	"crsf_version": "1.0-draft-phase2zh",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -9433,6 +9433,179 @@
 			],
 			"coverage": "PARTIAL",
 			"reason_for_partial": "CR-PURCHASE-008[P1,P2]: mutation cases: MUT-CR-PURCHASE-008-P1-P4FONERPC, MUT-CR-PURCHASE-008-P1-P4FSAMEREADER, MUT-CR-PURCHASE-008-P1-P4FDISAGREE, MUT-CR-PURCHASE-008-P1-P4FWRONGCHAIN, MUT-CR-PURCHASE-008-P1-P4FSTATUSOPEN, MUT-CR-PURCHASE-008-P1-P4FEXPIRY, MUT-CR-PURCHASE-008-P1-P4FDEADLINE, MUT-CR-PURCHASE-008-P1-P4FNOHASH, MUT-CR-PURCHASE-008-P1-P4FLATEST, MUT-CR-PURCHASE-008-P1-P4FBLOCKHASH, MUT-CR-PURCHASE-008-P1-P4FBROKER, MUT-CR-PURCHASE-008-P1-P4FPROXY, MUT-CR-PURCHASE-008-P1-P4FEIP1967, MUT-CR-PURCHASE-008-P1-P4FIMPLADDR, MUT-CR-PURCHASE-008-P1-P4FIMPLCODE, MUT-CR-PURCHASE-008-P2-P4FUSDCPROXY, MUT-CR-PURCHASE-008-P2-P4FUSDCADDR, MUT-CR-PURCHASE-008-P2-P4FUSDCCODE, MUT-CR-PURCHASE-008-P2-P4FUNRESOLVED, MUT-CR-PURCHASE-008-P1-P4FRPCERROR, MUT-CR-PURCHASE-008-P1-P4FSENDMETHOD, MUT-CR-PURCHASE-008-P1-P4FDBWRITE, MUT-CR-PURCHASE-008-P1-P4FROUTEIMPORT, MUT-CR-PURCHASE-008-P1-P4FTOCTOU, MUT-CR-PURCHASE-008-P1-P4FSTALE, MUT-CR-PURCHASE-008-P1-P4FHEADSKEW, MUT-CR-PURCHASE-008-P1-P4FCLIENTFIELDS, MUT-CR-PURCHASE-008-P2-P4FUSDCSLOT, MUT-CR-PURCHASE-008-P2-P4FUSDCPINHASH"
+		},
+		{
+			"id": "EV-PURCHASE-CONFIRMATION",
+			"control_ids": [
+				"CR-PURCHASE-008"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/purchase-confirmation.test.mjs",
+			"test_or_proof": "test/purchase-confirmation.test.mjs",
+			"property_proven": "Behaviourally, with the REAL P4E verifier (never a mock) over two offline readers of a CONSTRUCTED purchase (test-support/purchase-receipt-world.mjs: verified ABI, pinned runtimes; head +100, finalized +10, so the production policy holds without a shortcut). Positive: a SUBMITTED record whose persisted tx_hash and calldata_hash match the chain gives exactly one markConfirmed({ id, persisted txHash, verifier coverId }) and CONFIRMED; the cover id follows the chain (7001 / 7002), the tx hash follows the record. Finality: exactly 64 confirmations and finalized confirms, 63 or not finalized do not; the policy object is the P4E production policy and cannot be passed in. Negative, each with zero writes and the row still SUBMITTED: caller txHash, wallet, calldataHash, coverId, receipt, logs, from, to, data, value, status, blockHash, blockNumber, verdict, result, verification, intent, record, now, policy fields (refused before any load or chain read); a repository with any extra method (query, update, from, rpc, executeSql, markFailed, markLateConfirmed) or a record with extra facts; a record of another id, another intent id, a wrong intent hash, an invalid intent, no proof-of-loss CID; OPEN, BUILT, FAILED, EXPIRED, CANCELLED, unknown status, late CONFIRMED, SUBMITTED with a cover id; missing or malformed persisted tx_hash or calldata_hash (no chain read); TEMPORARY_RPC_FAILURE (on every read method), RPC_DISAGREEMENT, INSUFFICIENT_CONFIRMATIONS, TX_NOT_FOUND, RECEIPT_NOT_FOUND, BLOCK_HASH_MISMATCH (retryable); TX_FAILED, WRONG_SENDER, RECEIPT_MISMATCH, CALLDATA_HASH_MISMATCH, CALLDATA_POLICY_MISMATCH, COVERBOUGHT_MISSING, POL_METADATA_MISMATCH, PROXY_DRIFT_AT_EXECUTION, WRONG_CHAIN, the same reader twice (not verified); cross-intent substitution (another wallet, the same calldata hash, a swapped record, a cover id already confirmed elsewhere); every unexpected DB answer (DB_CONFIRMATION_CONFLICT) or a DB exception (DB_UNAVAILABLE); a reorg after an earlier VERIFIED result (fresh verification each attempt). The gate rejects forged verdicts (ok false with VERIFIED, ok true with another status, errors, any required check not passed, non-positive or non-bigint cover id, missing block). An exact existing confirmation is accepted; an exact CONFIRMED row is reported without chain read or write. Static: no wallet, send, sign, builder, generic DB, FAILED, environment or cache surface; one verifier call, one write; no runtime importer, route or cron. The builder stays OFFLINE_ONLY, every output productionReady false, blockers and external controls separated, the former blockers documented.",
+			"property_not_proven": "the wallet execution path (CR-PURCHASE-008 P3, does not exist) and that it runs the pre-send verifier; live provider behaviour (readers are offline replays of a CONSTRUCTED purchase, not a mainnet CoverRaccoon receipt); a runtime loader for the persisted intent (no fixed read function exists yet; the orchestration takes an injected repository) and its wiring to any route, job or command; the P4D transitions themselves do not check the chain, so any future caller other than this orchestration (including a late-confirmation path) must gate on the verifier too; Nexus texts and proof-of-loss (CR-TERMS-002, CR-POL-002)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-008[P4,P5]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-008",
+					"properties": [
+						"P4",
+						"P5"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/purchase-confirmation.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-PURCHASE-CONFIRMATION-DB",
+			"control_ids": [
+				"CR-PURCHASE-008"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/purchase-confirmation-db.test.mjs",
+			"test_or_proof": "test/purchase-confirmation-db.test.mjs",
+			"property_proven": "Against a disposable Postgres with all migrations (real P4D functions, real P4D uniqueness) and the REAL P4E verifier over the CONSTRUCTED purchase: a SUBMITTED row created through createIntent / markBuilt / markSubmitted is loaded, reconstructed to the stored intent hash, verified and confirmed exactly once (CONFIRMED, cover id 7001, same tx_hash, not late); a second attempt is ALREADY_CONFIRMED with the row byte-identical; TX_FAILED, insufficient confirmations and a transaction of another sender leave the second row byte-identical (status, cover_id, tx_hash, late, updated_at); a cover id already held by another intent fails at the P4D uniqueness as DB_CONFIRMATION_CONFLICT with the row unchanged; a tx_hash is held by one row only; the second row confirms with its own cover id.",
+			"property_not_proven": "the wallet execution path (CR-PURCHASE-008 P3, does not exist) and that it runs the pre-send verifier; live provider behaviour (readers are offline replays of a CONSTRUCTED purchase, not a mainnet CoverRaccoon receipt); a runtime loader for the persisted intent (no fixed read function exists yet; the orchestration takes an injected repository) and its wiring to any route, job or command; the P4D transitions themselves do not check the chain, so any future caller other than this orchestration (including a late-confirmation path) must gate on the verifier too; Nexus texts and proof-of-loss (CR-TERMS-002, CR-POL-002)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-008[P4]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-008",
+					"properties": [
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24",
+				"disposable Postgres"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": "raw-pg",
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/purchase-confirmation-db.test.mjs"
+				],
+				"environment": [
+					"node",
+					"postgres"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-PURCHASE-CONFIRMATION",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 30 case(s)",
+			"property_proven": "Each listed weakening of the orchestration (confirm without the verifier, ok false or a non-VERIFIED status accepted, a failed receipt check ignored, caller cover id / tx hash / calldata hash used, BUILT or FAILED admitted, one-reader retry after disagreement or reader failure, lowered confirmations, no finality, TX_NOT_FOUND written, persisted tx_hash or calldata_hash binding dropped, a cached verdict reused, the builder imported, a generic DB update, an API importer, a wallet send method, FAILED written on infrastructure failure, a foreign record accepted, a DB conflict treated as success, a late confirmation reported as exact, the intent hash not recomputed, extra record facts tolerated) and of the builder statement (production-ready output, wallet blocker dropped, wallet orchestration claimed satisfied) is detected by the intended test.",
+			"property_not_proven": "weakenings beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-008",
+					"properties": [
+						"P4",
+						"P5"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-PURCHASE-008-P4-P4GNOVERIFY, MUT-CR-PURCHASE-008-P4-P4GOKFALSE, MUT-CR-PURCHASE-008-P4-P4GNOTVERIFIEDSTATUS, MUT-CR-PURCHASE-008-P4-P4GCALLERCOVERID, MUT-CR-PURCHASE-008-P4-P4GCALLERTXHASH, MUT-CR-PURCHASE-008-P4-P4GCALLERCALLDATA, MUT-CR-PURCHASE-008-P4-P4GBUILT, MUT-CR-PURCHASE-008-P4-P4GFAILEDNORMAL, MUT-CR-PURCHASE-008-P4-P4GRPCDISAGREE, MUT-CR-PURCHASE-008-P4-P4GRPCTEMP, MUT-CR-PURCHASE-008-P4-P4GLOWCONF, MUT-CR-PURCHASE-008-P4-P4GNOFINAL, MUT-CR-PURCHASE-008-P4-P4GTXNOTFOUND, MUT-CR-PURCHASE-008-P4-P4GRECEIPTMISMATCH, MUT-CR-PURCHASE-008-P4-P4GNOTXBIND, MUT-CR-PURCHASE-008-P4-P4GNOCALLDATABIND, MUT-CR-PURCHASE-008-P4-P4GCACHE, MUT-CR-PURCHASE-008-P4-P4GBUILDER, MUT-CR-PURCHASE-008-P4-P4GGENERICDB, MUT-CR-PURCHASE-008-P4-P4GAPIIMPORT, MUT-CR-PURCHASE-008-P4-P4GWALLETSEND, MUT-CR-PURCHASE-008-P4-P4GMARKFAILED, MUT-CR-PURCHASE-008-P4-P4GCROSSINTENT, MUT-CR-PURCHASE-008-P4-P4GCONFLICTOK, MUT-CR-PURCHASE-008-P5-P4GP4CREADY, MUT-CR-PURCHASE-008-P5-P4GP4CBLOCKERS, MUT-CR-PURCHASE-008-P5-P4GP4CWALLETOK, MUT-CR-PURCHASE-008-P4-P4GLATEOK, MUT-CR-PURCHASE-008-P4-P4GNOINTENTHASH, MUT-CR-PURCHASE-008-P4-P4GNOTNARROWRECORD"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-PURCHASE-008-P4-P4GNOVERIFY",
+					"MUT-CR-PURCHASE-008-P4-P4GOKFALSE",
+					"MUT-CR-PURCHASE-008-P4-P4GNOTVERIFIEDSTATUS",
+					"MUT-CR-PURCHASE-008-P4-P4GCALLERCOVERID",
+					"MUT-CR-PURCHASE-008-P4-P4GCALLERTXHASH",
+					"MUT-CR-PURCHASE-008-P4-P4GCALLERCALLDATA",
+					"MUT-CR-PURCHASE-008-P4-P4GBUILT",
+					"MUT-CR-PURCHASE-008-P4-P4GFAILEDNORMAL",
+					"MUT-CR-PURCHASE-008-P4-P4GRPCDISAGREE",
+					"MUT-CR-PURCHASE-008-P4-P4GRPCTEMP",
+					"MUT-CR-PURCHASE-008-P4-P4GLOWCONF",
+					"MUT-CR-PURCHASE-008-P4-P4GNOFINAL",
+					"MUT-CR-PURCHASE-008-P4-P4GTXNOTFOUND",
+					"MUT-CR-PURCHASE-008-P4-P4GRECEIPTMISMATCH",
+					"MUT-CR-PURCHASE-008-P4-P4GNOTXBIND",
+					"MUT-CR-PURCHASE-008-P4-P4GNOCALLDATABIND",
+					"MUT-CR-PURCHASE-008-P4-P4GCACHE",
+					"MUT-CR-PURCHASE-008-P4-P4GBUILDER",
+					"MUT-CR-PURCHASE-008-P4-P4GGENERICDB",
+					"MUT-CR-PURCHASE-008-P4-P4GAPIIMPORT",
+					"MUT-CR-PURCHASE-008-P4-P4GWALLETSEND",
+					"MUT-CR-PURCHASE-008-P4-P4GMARKFAILED",
+					"MUT-CR-PURCHASE-008-P4-P4GCROSSINTENT",
+					"MUT-CR-PURCHASE-008-P4-P4GCONFLICTOK",
+					"MUT-CR-PURCHASE-008-P5-P4GP4CREADY",
+					"MUT-CR-PURCHASE-008-P5-P4GP4CBLOCKERS",
+					"MUT-CR-PURCHASE-008-P5-P4GP4CWALLETOK",
+					"MUT-CR-PURCHASE-008-P4-P4GLATEOK",
+					"MUT-CR-PURCHASE-008-P4-P4GNOINTENTHASH",
+					"MUT-CR-PURCHASE-008-P4-P4GNOTNARROWRECORD"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-PURCHASE-008"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-008[P4,P5]: mutation cases: MUT-CR-PURCHASE-008-P4-P4GNOVERIFY, MUT-CR-PURCHASE-008-P4-P4GOKFALSE, MUT-CR-PURCHASE-008-P4-P4GNOTVERIFIEDSTATUS, MUT-CR-PURCHASE-008-P4-P4GCALLERCOVERID, MUT-CR-PURCHASE-008-P4-P4GCALLERTXHASH, MUT-CR-PURCHASE-008-P4-P4GCALLERCALLDATA, MUT-CR-PURCHASE-008-P4-P4GBUILT, MUT-CR-PURCHASE-008-P4-P4GFAILEDNORMAL, MUT-CR-PURCHASE-008-P4-P4GRPCDISAGREE, MUT-CR-PURCHASE-008-P4-P4GRPCTEMP, MUT-CR-PURCHASE-008-P4-P4GLOWCONF, MUT-CR-PURCHASE-008-P4-P4GNOFINAL, MUT-CR-PURCHASE-008-P4-P4GTXNOTFOUND, MUT-CR-PURCHASE-008-P4-P4GRECEIPTMISMATCH, MUT-CR-PURCHASE-008-P4-P4GNOTXBIND, MUT-CR-PURCHASE-008-P4-P4GNOCALLDATABIND, MUT-CR-PURCHASE-008-P4-P4GCACHE, MUT-CR-PURCHASE-008-P4-P4GBUILDER, MUT-CR-PURCHASE-008-P4-P4GGENERICDB, MUT-CR-PURCHASE-008-P4-P4GAPIIMPORT, MUT-CR-PURCHASE-008-P4-P4GWALLETSEND, MUT-CR-PURCHASE-008-P4-P4GMARKFAILED, MUT-CR-PURCHASE-008-P4-P4GCROSSINTENT, MUT-CR-PURCHASE-008-P4-P4GCONFLICTOK, MUT-CR-PURCHASE-008-P5-P4GP4CREADY, MUT-CR-PURCHASE-008-P5-P4GP4CBLOCKERS, MUT-CR-PURCHASE-008-P5-P4GP4CWALLETOK, MUT-CR-PURCHASE-008-P4-P4GLATEOK, MUT-CR-PURCHASE-008-P4-P4GNOINTENTHASH, MUT-CR-PURCHASE-008-P4-P4GNOTNARROWRECORD"
 		}
 	]
 }

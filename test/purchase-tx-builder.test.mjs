@@ -99,8 +99,11 @@ test('P4C-APPROVAL exact USDC.approve(Broker, maxPremiumRaw), value 0, no gas or
 	assert.equal(tx.calldataHash, keccak256(tx.data));
 	assert.equal(tx.intentHash, I.computePurchaseIntentHash(intent()));
 	assert.equal(tx.productionReady, false);
-	assert.ok(tx.blockers.includes('USDC_IMPLEMENTATION_NOT_PINNED'));
-	assert.equal(B.USDC_PIN_STATUS, 'ADDRESS_ONLY_IMPLEMENTATION_NOT_PINNED');
+	// P4G (20.10.2026): der Builder bleibt offline und kennt nur die USDC-Adresse; Pin und Pre-Send-Pruefung leistet P4F extern.
+	assert.equal(B.USDC_PIN_STATUS, 'BUILDER_ADDRESS_ONLY_PIN_EXTERNAL_P4F');
+	assert.equal(B.BUILDER_CAPABILITY, 'OFFLINE_ONLY');
+	assert.deepEqual({ ...B.EXTERNAL_REQUIRED_CONTROLS }, { USDC_PIN: 'SATISFIED_BY_P4F', PRE_SEND_CHAIN_VALIDATION: 'SATISFIED_BY_P4F', RECEIPT_BEFORE_CONFIRMATION: 'SATISFIED_BY_P4G', WALLET_ORCHESTRATION: 'UNRESOLVED', TERMS: 'UNRESOLVED', PROOF_OF_LOSS: 'UNRESOLVED' });
+	assert.ok(tx.blockers.includes('WALLET_ORCHESTRATION_UNRESOLVED'));
 	assert.deepEqual(approval(), r, 'deterministic');
 	assert.ok(Object.isFrozen(tx));
 });
@@ -142,7 +145,7 @@ test('P4C-BUY every buyCover field derives from the intent and the quote; exact 
 	assert.equal(tx.intentId, intent().id);
 	assert.equal(tx.intentHash, I.computePurchaseIntentHash(intent()));
 	assert.equal(tx.productionReady, false);
-	assert.deepEqual([...tx.blockers], ['PROOF_OF_LOSS_UNRESOLVED', 'NEXUS_TEXTS_UNCONFIRMED', 'USDC_IMPLEMENTATION_NOT_PINNED', 'NO_PRE_SEND_CHAIN_VALIDATION']);
+	assert.deepEqual([...tx.blockers], ['PROOF_OF_LOSS_UNRESOLVED', 'NEXUS_TEXTS_UNCONFIRMED', 'WALLET_ORCHESTRATION_UNRESOLVED']);
 });
 
 test('P4C-BUY-HASH calldataHash is deterministic and changes with every bound field', () => {
@@ -210,7 +213,7 @@ test('P4C-BUY-OVERRIDE no top-level or quote field can override an authoritative
 });
 
 test('P4C-EXPORTS exactly two transaction kinds; no generic builder', () => {
-	assert.deepEqual(Object.keys(B).sort(), ['APPROVE_SELECTOR', 'BROKER_ADDRESS', 'BROKER_BUY_COVER_ABI', 'BUY_COVER_SELECTOR', 'ERC20_APPROVE_ABI', 'PRODUCTION_BLOCKERS', 'TX_KINDS', 'USDC_ADDRESS', 'USDC_PIN_STATUS', 'buildExactUsdcApproval', 'buildNexusBuyCover']);
+	assert.deepEqual(Object.keys(B).sort(), ['APPROVE_SELECTOR', 'BROKER_ADDRESS', 'BROKER_BUY_COVER_ABI', 'BUILDER_CAPABILITY', 'BUY_COVER_SELECTOR', 'ERC20_APPROVE_ABI', 'EXTERNAL_REQUIRED_CONTROLS', 'PRODUCTION_BLOCKERS', 'TX_KINDS', 'USDC_ADDRESS', 'USDC_PIN_STATUS', 'buildExactUsdcApproval', 'buildNexusBuyCover']);
 	assert.deepEqual(Object.keys(D).sort(), ['DECODER_APPROVE_ABI', 'DECODER_BUY_COVER_ABI', 'decodeNexusBuyCover', 'decodeUsdcApproval', 'validateDecodedAgainstIntent']);
 	const source = code('src/purchase-tx-builder.mjs');
 	assert.deepEqual([...source.matchAll(/encodeFunctionData\(\{\s*abi:\s*(\w+),\s*functionName:\s*('\w+')/g)].map((m) => `${m[1]}.${m[2]}`), ["ERC20_APPROVE_ABI.'approve'", "BROKER_BUY_COVER_ABI.'buyCover'"]);
@@ -256,7 +259,8 @@ test('P4C-IMPORT no runtime code imports the builder or decoder; only P4C tests 
 	assert.doesNotMatch(readFileSync(new URL(`../${RECEIPT}`, import.meta.url), 'utf8'), /purchase-tx-builder|build(ExactUsdcApproval|NexusBuyCover)/, RECEIPT);
 	const importing = /(?:from\s*|import\s*\(\s*)['"`][^'"`]*purchase-tx-(builder|decode)\.mjs/;
 	const importers = [...walk('src'), ...walk('test')].filter((f) => importing.test(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8'))).sort();
-	assert.deepEqual(importers, [RECEIPT, 'test/purchase-tx-builder.test.mjs', 'test/purchase-tx-decode.test.mjs']);
+	// P4G (20.10.2026): der P4G-Test liest die Blocker-Aussage des Builders (P4G-P4C-MODEL); das P4G-Modul selbst importiert ihn nie (P4G-STATIC).
+	assert.deepEqual(importers, [RECEIPT, 'test/purchase-confirmation.test.mjs', 'test/purchase-tx-builder.test.mjs', 'test/purchase-tx-decode.test.mjs']);
 });
 
 test('P4C-SURFACE transaction encoding and transaction-shaped objects exist only in the two pure P4C modules', () => {
@@ -265,7 +269,8 @@ test('P4C-SURFACE transaction encoding and transaction-shaped objects exist only
 		// P4D (19.10.2026): der unerreichbare DB-Helfer (P4D-IMPORT) nimmt den Calldata-Hash entgegen, um ihn zu speichern; alles andere gilt auch dort.
 		// P4E (19.10.2026): ebenso der unerreichbare, nur lesende Beleg-Pruefer (P4E-IMPORT), der keccak256(input) gegen ihn vergleicht.
 		// P4F (20.10.2026): ebenso der unerreichbare, nur lesende Pre-Send-Pruefer (P4F-IMPORT), der nur das Format des gespeicherten Hashes prueft.
-		const surface = ['src/purchase-intent-db.mjs', 'src/purchase-receipt.mjs', 'src/purchase-pre-send.mjs'].includes(file) ? /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|productionReady/ : /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|calldataHash|productionReady/;
+		// P4G (20.10.2026): ebenso die unerreichbare Bestaetigungs-Orchestrierung (P4G-IMPORT), die den gespeicherten Hash an P4E weiterreicht.
+		const surface = ['src/purchase-intent-db.mjs', 'src/purchase-receipt.mjs', 'src/purchase-pre-send.mjs', 'src/purchase-confirmation.mjs'].includes(file) ? /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|productionReady/ : /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|calldataHash|productionReady/;
 		assert.doesNotMatch(code(file), surface, file);
 	}
 });

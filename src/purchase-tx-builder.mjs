@@ -12,8 +12,15 @@
 
 	Jede Ausgabe traegt productionReady: false. Echte Nutzung bleibt gesperrt:
 	Proof-of-Loss ungeklaert (P4B, CR-POL-002), Nexus-Texte unbestaetigt
-	(CR-TERMS-002), USDC-Implementierung nicht quellgepinnt (nur die Adresse),
-	keine Pruefung gegen die Kette unmittelbar vor dem Senden.
+	(CR-TERMS-002), kein gepruefter Wallet-Pfad (CR-PURCHASE-008 P3).
+
+	Faehigkeit des Builders selbst: nur offline (BUILDER_CAPABILITY). Er kennt von
+	USDC nur die Adresse und liest nie die Kette. Bis P4F (20.10.2026) hiess das
+	global "USDC_IMPLEMENTATION_NOT_PINNED" und "NO_PRE_SEND_CHAIN_VALIDATION";
+	beides leistet seither ausserhalb des Builders der nur lesende Pre-Send-Pruefer
+	(src/purchase-pre-send.mjs: unabhaengiger USDC-Pin, Pins an einem Block). Ein
+	spaeterer Wallet-Pfad muss ihn unmittelbar vor der Wallet-Anfrage ausfuehren;
+	diese Verdrahtung fehlt (EXTERNAL_REQUIRED_CONTROLS).
 
 	Broker-ABI: lokal festgeschrieben nach NexusMutual/smart-contracts v2.12.1
 	(Commit 20082c81, ICover.sol BuyCoverParams / PoolAllocationRequest), geprueft
@@ -27,17 +34,33 @@ import { encodeFunctionData, keccak256 } from 'viem';
 import { NEXUS_CHAIN_ID, NEXUS_CONTRACT_SOURCES } from './nexus-pinned.mjs';
 import { validatePurchaseIntent, validatePoolAllocations, computePurchaseIntentHash, parseRawUint, MVP_PRODUCT_ID, COMMISSION_POLICY } from './purchase-intent.mjs';
 
-/** Ethereum-Mainnet-USDC. Nur die Adresse ist festgelegt; die Implementierung hinter dem Proxy ist NICHT quellgepinnt. */
+/** Ethereum-Mainnet-USDC. Der Builder kennt nur die Adresse; Proxy und Implementierung pinnt und prueft P4F, nicht der Builder. */
 export const USDC_ADDRESS = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
-export const USDC_PIN_STATUS = 'ADDRESS_ONLY_IMPLEMENTATION_NOT_PINNED';
+/** Bis P4F: 'ADDRESS_ONLY_IMPLEMENTATION_NOT_PINNED'. Fuer den Builder allein gilt weiter "nur Adresse"; der Pin liegt extern. */
+export const USDC_PIN_STATUS = 'BUILDER_ADDRESS_ONLY_PIN_EXTERNAL_P4F';
+/** Der Builder kodiert nur Bytes; er liest keine Kette, prueft keine Pins und fuehrt nichts aus. */
+export const BUILDER_CAPABILITY = 'OFFLINE_ONLY';
+/** Was ausserhalb des Builders vor echter Nutzung erfuellt sein muss, und durch wen. Satisfied heisst: das Modul existiert, nicht dass es verdrahtet ist. */
+export const EXTERNAL_REQUIRED_CONTROLS = Object.freeze({
+	USDC_PIN: 'SATISFIED_BY_P4F',
+	PRE_SEND_CHAIN_VALIDATION: 'SATISFIED_BY_P4F',
+	RECEIPT_BEFORE_CONFIRMATION: 'SATISFIED_BY_P4G',
+	WALLET_ORCHESTRATION: 'UNRESOLVED',
+	TERMS: 'UNRESOLVED',
+	PROOF_OF_LOSS: 'UNRESOLVED'
+});
 const USDC_ASSET_ID = 6;
 export const BROKER_ADDRESS = NEXUS_CONTRACT_SOURCES.CoverBroker.address.toLowerCase();
 export const BUY_COVER_SELECTOR = '0x7c59cac4';
 export const APPROVE_SELECTOR = '0x095ea7b3';
 export const TX_KINDS = Object.freeze(['USDC_APPROVAL', 'NEXUS_BUY_COVER']);
 
-/** Warum keine Ausgabe produktionsreif ist. */
-export const PRODUCTION_BLOCKERS = Object.freeze(['PROOF_OF_LOSS_UNRESOLVED', 'NEXUS_TEXTS_UNCONFIRMED', 'USDC_IMPLEMENTATION_NOT_PINNED', 'NO_PRE_SEND_CHAIN_VALIDATION']);
+/**
+ * Warum keine Ausgabe produktionsreif ist. Bis P4F zusaetzlich USDC_IMPLEMENTATION_NOT_PINNED und
+ * NO_PRE_SEND_CHAIN_VALIDATION; beide sind seit P4F extern geloest (EXTERNAL_REQUIRED_CONTROLS), aber erst
+ * ein Wallet-Pfad, der den Pre-Send-Pruefer ausfuehrt, macht sie wirksam - daher WALLET_ORCHESTRATION_UNRESOLVED.
+ */
+export const PRODUCTION_BLOCKERS = Object.freeze(['PROOF_OF_LOSS_UNRESOLVED', 'NEXUS_TEXTS_UNCONFIRMED', 'WALLET_ORCHESTRATION_UNRESOLVED']);
 
 /** CoverBroker v2.12.1 buyCover, Feldreihenfolge und Typen wie im verifizierten Quellcode. */
 export const BROKER_BUY_COVER_ABI = Object.freeze([{

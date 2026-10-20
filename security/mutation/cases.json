@@ -18143,6 +18143,1067 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GNOVERIFY",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "confirm without calling the P4E verifier (a hand-made VERIFIED verdict)",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "verdict = await verifyPurchaseReceipt({ rpcA, rpcB, intent: record.intent, txHash, calldataHash, minConfirmations: CONFIRMATION_POLICY.minConfirmations, requireFinalized: CONFIRMATION_POLICY.requireFinalized });",
+					"replace": "verdict = { ok: true, status: 'VERIFIED_COVER_PURCHASE', coverId: 7001n, blockNumber: 1n, blockHash: `0x${'0'.repeat(64)}`, errors: [], checks: Object.fromEntries(REQUIRED_CHECKS.map((c) => [c, true])) };"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-VERIFIED a real P4E VERIFIED_COVER_PURCHASE leads to exactly one markConfirmed with persisted txHash and verifier coverId$"
+				},
+				{
+					"test": "^P4G-RETRYABLE infrastructure uncertainty leaves SUBMITTED unchanged and is retryable; FAILED is never written$"
+				},
+				{
+					"test": "^P4G-NOT-VERIFIED every mismatch, failure or policy violation proven by P4E leaves SUBMITTED unchanged$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GOKFALSE",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "the gate accepts a verdict with ok false",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\tif (verdict.ok !== true || verdict.status !== 'VERIFIED_COVER_PURCHASE') return null;",
+					"replace": "\tif (verdict.status !== 'VERIFIED_COVER_PURCHASE') return null;"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-GATE only ok === true AND VERIFIED_COVER_PURCHASE AND all checks AND a positive coverId may confirm$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GNOTVERIFIEDSTATUS",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "the gate accepts ok true with a status other than VERIFIED_COVER_PURCHASE",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\tif (verdict.ok !== true || verdict.status !== 'VERIFIED_COVER_PURCHASE') return null;",
+					"replace": "\tif (verdict.ok !== true) return null;"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-GATE only ok === true AND VERIFIED_COVER_PURCHASE AND all checks AND a positive coverId may confirm$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GCALLERCOVERID",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "a caller-supplied coverId is accepted and written",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "const INPUT_KEYS = Object.freeze(['repository', 'rpcA', 'rpcB', 'intentId']);",
+					"replace": "const INPUT_KEYS = Object.freeze(['repository', 'rpcA', 'rpcB', 'intentId', 'coverId']);"
+				},
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "coverId: coverId.toString() }); } catch {",
+					"replace": "coverId: String(input.coverId ?? coverId) }); } catch {"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-COVER-ID the confirmed coverId comes only from the verifier \\(the chain\\), never from the caller or the record$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GCALLERTXHASH",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "a caller-supplied txHash replaces the persisted tx_hash",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "const INPUT_KEYS = Object.freeze(['repository', 'rpcA', 'rpcB', 'intentId']);",
+					"replace": "const INPUT_KEYS = Object.freeze(['repository', 'rpcA', 'rpcB', 'intentId', 'txHash']);"
+				},
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\tconst { txHash, calldataHash } = record;\n",
+					"replace": "\tconst { calldataHash } = record;\n\tconst txHash = input.txHash ?? record.txHash;\n"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-CLIENT only intentId identifies the record; every caller-supplied fact, receipt, log or verdict is refused before any read$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GCALLERCALLDATA",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "a caller-supplied calldataHash replaces the persisted calldata_hash",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "const INPUT_KEYS = Object.freeze(['repository', 'rpcA', 'rpcB', 'intentId']);",
+					"replace": "const INPUT_KEYS = Object.freeze(['repository', 'rpcA', 'rpcB', 'intentId', 'calldataHash']);"
+				},
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\tconst { txHash, calldataHash } = record;\n",
+					"replace": "\tconst { txHash } = record;\n\tconst calldataHash = input.calldataHash ?? record.calldataHash;\n"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-CALLDATA the persisted calldata_hash is what P4E compares against keccak256\\(tx\\.input\\)$"
+				},
+				{
+					"test": "^P4G-CLIENT only intentId identifies the record; every caller-supplied fact, receipt, log or verdict is refused before any read$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GBUILT",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "a BUILT intent enters verification",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\tif (record.status !== 'SUBMITTED') return",
+					"replace": "\tif (record.status !== 'SUBMITTED' && record.status !== 'BUILT') return"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-STATUS only SUBMITTED enters verification; every other persisted status is refused without chain or DB write$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GFAILEDNORMAL",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "a FAILED intent is confirmed on the normal path (late confirmation without the separate path)",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\tif (record.status !== 'SUBMITTED') return",
+					"replace": "\tif (record.status !== 'SUBMITTED' && record.status !== 'FAILED') return"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-STATUS only SUBMITTED enters verification; every other persisted status is refused without chain or DB write$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GRPCDISAGREE",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "on RPC_DISAGREEMENT the orchestration retries with one reader and confirms",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\tconst coverId = confirmableCoverId(verdict);\n",
+					"replace": "\tif (verdict?.status === 'RPC_DISAGREEMENT') verdict = await verifyPurchaseReceipt({ rpcA, rpcB: { request: (q) => rpcA.request(q) }, intent: record.intent, txHash, calldataHash, minConfirmations: CONFIRMATION_POLICY.minConfirmations, requireFinalized: CONFIRMATION_POLICY.requireFinalized });\n\tconst coverId = confirmableCoverId(verdict);\n"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-RETRYABLE infrastructure uncertainty leaves SUBMITTED unchanged and is retryable; FAILED is never written$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GRPCTEMP",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "on TEMPORARY_RPC_FAILURE the orchestration continues with the reader that answered and confirms",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\tconst coverId = confirmableCoverId(verdict);\n",
+					"replace": "\tif (verdict?.status === 'TEMPORARY_RPC_FAILURE') verdict = await verifyPurchaseReceipt({ rpcA, rpcB: { request: (q) => rpcA.request(q) }, intent: record.intent, txHash, calldataHash, minConfirmations: CONFIRMATION_POLICY.minConfirmations, requireFinalized: CONFIRMATION_POLICY.requireFinalized });\n\tconst coverId = confirmableCoverId(verdict);\n"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-RETRYABLE infrastructure uncertainty leaves SUBMITTED unchanged and is retryable; FAILED is never written$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GLOWCONF",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "the orchestration lowers the confirmation threshold below the production policy",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "minConfirmations: CONFIRMATION_POLICY.minConfirmations, requireFinalized",
+					"replace": "minConfirmations: 1, requireFinalized"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-FINALITY the documented P4E production policy \\(finalized and >= 64 confirmations\\) is fixed and not lowered$"
+				},
+				{
+					"test": "^P4G-RETRYABLE infrastructure uncertainty leaves SUBMITTED unchanged and is retryable; FAILED is never written$"
+				},
+				{
+					"test": "^P4G-STATIC the orchestration has no wallet, send, sign, builder, generic DB, FAILED or environment surface$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GNOFINAL",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "the orchestration does not require a finalized block",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "requireFinalized: CONFIRMATION_POLICY.requireFinalized });",
+					"replace": "requireFinalized: false });"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-FINALITY the documented P4E production policy \\(finalized and >= 64 confirmations\\) is fixed and not lowered$"
+				},
+				{
+					"test": "^P4G-STATIC the orchestration has no wallet, send, sign, builder, generic DB, FAILED or environment surface$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GTXNOTFOUND",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "TX_NOT_FOUND is written as a confirmation",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\t\tconst retry = RETRYABLE_VERIFIER_STATUSES.includes(verdict?.status);\n",
+					"replace": "\t\tconst retry = RETRYABLE_VERIFIER_STATUSES.includes(verdict?.status);\n\t\tif (verdict?.status === 'TX_NOT_FOUND') { await repository.markConfirmed({ id: intentId, txHash, coverId: '1' }); return outcome('CONFIRMED', { intentId, txHash, coverId: 1n }); }\n"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-RETRYABLE infrastructure uncertainty leaves SUBMITTED unchanged and is retryable; FAILED is never written$"
+				},
+				{
+					"test": "^P4G-TX-HASH the transaction verified and confirmed is the persisted tx_hash of this very row$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GRECEIPTMISMATCH",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "the gate ignores a failed receipt check",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\tif (!verdict.checks || REQUIRED_CHECKS.some((c) => verdict.checks[c] !== true)) return null;",
+					"replace": "\tif (!verdict.checks || REQUIRED_CHECKS.some((c) => c !== 'receipt' && verdict.checks[c] !== true)) return null;"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-GATE only ok === true AND VERIFIED_COVER_PURCHASE AND all checks AND a positive coverId may confirm$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GNOTXBIND",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "the persisted tx_hash is not required before verification",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\tif (typeof record.txHash !== 'string' || !HASH.test(record.txHash)) bound.push('RECORD_TX_HASH');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-TX-HASH the transaction verified and confirmed is the persisted tx_hash of this very row$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GNOCALLDATABIND",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "the persisted calldata_hash is not required before verification",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\tif (typeof record.calldataHash !== 'string' || !HASH.test(record.calldataHash)) bound.push('RECORD_CALLDATA_HASH');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-CALLDATA the persisted calldata_hash is what P4E compares against keccak256\\(tx\\.input\\)$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GCACHE",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "a cached earlier VERIFIED verdict is reused instead of a fresh verification",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "const HASH = /^0x[0-9a-f]{64}$/;\n",
+					"replace": "const HASH = /^0x[0-9a-f]{64}$/;\nconst LAST = new Map();\n"
+				},
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\tconst coverId = confirmableCoverId(verdict);\n",
+					"replace": "\tif (verdict?.ok) LAST.set(intentId, verdict); else if (LAST.has(intentId)) verdict = LAST.get(intentId);\n\tconst coverId = confirmableCoverId(verdict);\n"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-NO-CACHE every attempt runs a fresh verification; a reorg after an earlier VERIFIED result is not confirmed$"
+				},
+				{
+					"test": "^P4G-STATIC the orchestration has no wallet, send, sign, builder, generic DB, FAILED or environment surface$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GBUILDER",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "the orchestration imports the P4C builder to rebuild the transaction",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "import { verifyPurchaseReceipt, PRODUCTION_CONFIRMATION_POLICY, REQUIRED_CHECKS } from './purchase-receipt.mjs';\n",
+					"replace": "import { verifyPurchaseReceipt, PRODUCTION_CONFIRMATION_POLICY, REQUIRED_CHECKS } from './purchase-receipt.mjs';\nimport { buildNexusBuyCover } from './purchase-tx-builder.mjs';\nexport const REBUILD = buildNexusBuyCover;\n"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-STATIC the orchestration has no wallet, send, sign, builder, generic DB, FAILED or environment surface$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GGENERICDB",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "a generic repository update replaces the narrow markConfirmed transition",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "!repo || typeof repo !== 'object' || Object.keys(repo).sort().join() !== [...REPOSITORY_KEYS].sort().join() || ",
+					"replace": "!repo || typeof repo !== 'object' || "
+				},
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "try { db = await repository.markConfirmed({ id: intentId, txHash, coverId: coverId.toString() }); } catch {",
+					"replace": "try { db = await (repository.update ?? repository.markConfirmed)({ id: intentId, txHash, coverId: coverId.toString(), status: 'CONFIRMED' }); } catch {"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-REPOSITORY the repository is exactly loadIntentById \\+ markConfirmed; no generic DB surface, no extra record facts$"
+				},
+				{
+					"test": "^P4G-STATIC the orchestration has no wallet, send, sign, builder, generic DB, FAILED or environment surface$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GAPIIMPORT",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "a public API route imports the confirmation module",
+			"edits": [
+				{
+					"file": "api/nexus/quote.mjs",
+					"find": "import { resolveDashboardSession } from '../../src/dashboard-auth.mjs';\n",
+					"replace": "import { resolveDashboardSession } from '../../src/dashboard-auth.mjs';\nimport { confirmVerifiedPurchase } from '../../src/purchase-confirmation.mjs';\nexport const CONFIRM = confirmVerifiedPurchase;\n"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-IMPORT only the two P4G tests import the orchestration; no route, cron or command reaches it$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GWALLETSEND",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "a wallet send method appears in the orchestration",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "const HASH = /^0x[0-9a-f]{64}$/;\n",
+					"replace": "const HASH = /^0x[0-9a-f]{64}$/;\nexport const SEND_METHOD = 'eth_sendTransaction';\n"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-STATIC the orchestration has no wallet, send, sign, builder, generic DB, FAILED or environment surface$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GMARKFAILED",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "a temporary infrastructure failure is written as FAILED",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "const REPOSITORY_KEYS = Object.freeze(['loadIntentById', 'markConfirmed']);",
+					"replace": "const REPOSITORY_KEYS = Object.freeze(['loadIntentById', 'markConfirmed', 'markFailed']);"
+				},
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\t\tconst retry = RETRYABLE_VERIFIER_STATUSES.includes(verdict?.status);\n",
+					"replace": "\t\tconst retry = RETRYABLE_VERIFIER_STATUSES.includes(verdict?.status);\n\t\tif (retry) await repository.markFailed({ id: intentId, txHash, reason: 'TX_DROPPED' });\n"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-STATIC the orchestration has no wallet, send, sign, builder, generic DB, FAILED or environment surface$"
+				},
+				{
+					"test": "^P4G-REPOSITORY the repository is exactly loadIntentById \\+ markConfirmed; no generic DB surface, no extra record facts$"
+				},
+				{
+					"test": "^P4G-RETRYABLE infrastructure uncertainty leaves SUBMITTED unchanged and is retryable; FAILED is never written$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GCROSSINTENT",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "a record of another intent is accepted for the requested intent id",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\tif (record.id !== intentId) errors.push('RECORD_ID');\n",
+					"replace": ""
+				},
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\t\tif (checked.intent.id !== intentId) errors.push('RECORD_INTENT_ID');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-CROSS-INTENT the transaction of one intent never confirms another intent$"
+				},
+				{
+					"test": "^P4G-RECORD the record must belong to the requested intent: id, intent id and recomputed intent hash$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GCONFLICTOK",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "a DB conflict is reported as a confirmation",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\tif (!exact) return outcome('DB_CONFIRMATION_CONFLICT'",
+					"replace": "\tif (!exact && db?.status !== 'conflict') return outcome('DB_CONFIRMATION_CONFLICT'"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-DB-CONFLICT an unexpected confirmation result fails closed as DB_CONFIRMATION_CONFLICT$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P5-P4GP4CREADY",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P5"
+				}
+			],
+			"description": "the offline builder marks its output production-ready",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "productionReady: false, blockers: PRODUCTION_BLOCKERS",
+					"replace": "productionReady: true, blockers: PRODUCTION_BLOCKERS"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-P4C-MODEL the builder stays offline-only and never production-ready; external controls are separated, not deleted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P5-P4GP4CBLOCKERS",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P5"
+				}
+			],
+			"description": "the wallet orchestration blocker is dropped from the builder output",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "'NEXUS_TEXTS_UNCONFIRMED', 'WALLET_ORCHESTRATION_UNRESOLVED']);",
+					"replace": "'NEXUS_TEXTS_UNCONFIRMED']);"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-P4C-MODEL the builder stays offline-only and never production-ready; external controls are separated, not deleted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P5-P4GP4CWALLETOK",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P5"
+				}
+			],
+			"description": "the builder claims the wallet orchestration as satisfied",
+			"edits": [
+				{
+					"file": "src/purchase-tx-builder.mjs",
+					"find": "\tWALLET_ORCHESTRATION: 'UNRESOLVED',",
+					"replace": "\tWALLET_ORCHESTRATION: 'SATISFIED_BY_P4F',"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-P4C-MODEL the builder stays offline-only and never production-ready; external controls are separated, not deleted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GLATEOK",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "a late (FAILED -> CONFIRMED) confirmation is reported as an exact normal confirmation",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\t\tif (record.late || done === null ||",
+					"replace": "\t\tif (done === null ||"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-STATUS only SUBMITTED enters verification; every other persisted status is refused without chain or DB write$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GNOINTENTHASH",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "the persisted intent hash is not recomputed with P4A",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\t\tif (record.intentHash !== computePurchaseIntentHash(record.intent)) errors.push('RECORD_INTENT_HASH');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-RECORD the record must belong to the requested intent: id, intent id and recomputed intent hash$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P4-P4GNOTNARROWRECORD",
+			"origin": "new (P4G)",
+			"evidence_id": "EV-KB-PURCHASE-CONFIRMATION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P4"
+				}
+			],
+			"description": "extra record facts (receipt, logs) from the repository are tolerated",
+			"edits": [
+				{
+					"file": "src/purchase-confirmation.mjs",
+					"find": "\tconst errors = Object.keys(record).filter((k) => !RECORD_KEYS.includes(k)).map((k) => `RECORD_FIELD:${k}`);",
+					"replace": "\tconst errors = [];"
+				}
+			],
+			"tests": [
+				"test/purchase-confirmation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4G-REPOSITORY the repository is exactly loadIntentById \\+ markConfirmed; no generic DB surface, no extra record facts$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

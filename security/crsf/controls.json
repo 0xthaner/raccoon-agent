@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zg",
+	"crsf_version": "1.0-draft-phase2zh",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -13404,7 +13404,7 @@
 				"V2.3.2"
 			],
 			"external_requirement": "Business logic limits and rules are implemented as documented (V2.3.2).",
-			"applicability_reason": "Obligation for the transaction phases. P4F adds the read-only pre-send verifier (src/purchase-pre-send.mjs) and the independent USDC pin; neither is reachable from any runtime path. Nothing sends, signs, calls a wallet or records CONFIRMED. Must become RELEASE_BLOCKING before any real transaction code.",
+			"applicability_reason": "Obligation for the transaction phases. P4F adds the read-only pre-send verifier (src/purchase-pre-send.mjs) and the independent USDC pin; P4G adds the server-side receipt-to-confirmation orchestration (src/purchase-confirmation.mjs). None of them is reachable from any runtime path. Nothing sends, signs or calls a wallet. Must become RELEASE_BLOCKING before any real transaction code.",
 			"release_class": "SECURITY_DEBT",
 			"minimum_evidence_level": "E3",
 			"automation": "PARTIAL",
@@ -13415,7 +13415,8 @@
 				"src/purchase-tx-decode.mjs",
 				"src/purchase-intent-db.mjs",
 				"src/purchase-receipt.mjs",
-				"src/purchase-pre-send.mjs"
+				"src/purchase-pre-send.mjs",
+				"src/purchase-confirmation.mjs"
 			],
 			"source_refs": [
 				"SRC-ASVS V2.3.2",
@@ -13425,7 +13426,7 @@
 				"SRC-USDC-FIATTOKEN-V2-2",
 				"SRC-NEXUS-PRE-SEND-STATE"
 			],
-			"coverraccoon_requirement": "Before any real transaction: a read-only pre-send verifier re-reads, at one block agreed by two independent readers, the Broker runtime, the Cover proxy runtime, implementation slot and implementation runtime, and the USDC proxy runtime, implementation slot and implementation runtime, and passes only if all equal the pins and the server-loaded intent is BUILT, unexpired, before its build deadline and hash-consistent; the USDC implementation is source-pinned (address, slot, runtime, recompiled source with understood approve semantics); execution happens only through a reviewed wallet path that runs this verifier immediately before the wallet request, binds the verified block to the session and re-validates the exact bytes with the independent decoder; the receipt (CoverBought / NFT owner) is verified against the intent before CONFIRMED is recorded.",
+			"coverraccoon_requirement": "Before any real transaction: a read-only pre-send verifier re-reads, at one block agreed by two independent readers, the Broker runtime, the Cover proxy runtime, implementation slot and implementation runtime, and the USDC proxy runtime, implementation slot and implementation runtime, and passes only if all equal the pins and the server-loaded intent is BUILT, unexpired, before its build deadline and hash-consistent; the USDC implementation is source-pinned (address, slot, runtime, recompiled source with understood approve semantics); execution happens only through a reviewed wallet path that runs this verifier immediately before the wallet request, binds the verified block to the session and re-validates the exact bytes with the independent decoder; an intent becomes CONFIRMED only through a server-side orchestration that loads the persisted SUBMITTED intent by id alone, runs the independent receipt verifier fresh on its persisted tx_hash and calldata_hash with two readers and the production finality policy, and calls the narrow SUBMITTED -> CONFIRMED transition only with the verifier's cover id; the offline builder never claims to be production-ready.",
 			"threat": "a correct offline transaction sent against changed contracts, or a purchase recorded without on-chain proof",
 			"expected_property": "chain-checked execution and receipt",
 			"properties": [
@@ -13447,14 +13448,22 @@
 				{
 					"id": "P4",
 					"kind": "REQUIREMENT",
-					"text": "the purchase receipt is verified against the intent before any state is recorded as confirmed"
+					"text": "an intent is recorded as CONFIRMED on the normal path only by the server-side orchestration, which: identifies the record by intent id alone and refuses every caller-supplied transaction hash, calldata hash, cover id, receipt, logs, status, block or verifier result; loads the persisted record through a repository with exactly two operations (load by id, the P4D SUBMITTED -> CONFIRMED transition) and requires it to belong to that id with a P4A-recomputed intent hash; requires status SUBMITTED with a persisted tx_hash and calldata_hash (OPEN, BUILT, FAILED, EXPIRED, CANCELLED refused; a late FAILED -> CONFIRMED is not this path); runs the independent receipt verifier (CR-PURCHASE-006) freshly on every attempt with two readers and the fixed production finality policy (finalized and at least 64 confirmations) on exactly those persisted values; writes only when the verdict is ok === true and VERIFIED_COVER_PURCHASE with every required check passed, using the verifier's cover id; leaves the row unchanged (never FAILED) for every other verdict, reader failure, disagreement, missing transaction or receipt, insufficient confirmations or reorg; and treats any database answer other than the exact confirmed or existing row as DB_CONFIRMATION_CONFLICT. No runtime code imports the orchestration or the P4D transitions"
+				},
+				{
+					"id": "P5",
+					"kind": "REQUIREMENT",
+					"text": "the offline transaction builder declares its capability as OFFLINE_ONLY and never marks an output production-ready; its production blockers name the open wallet orchestration, Nexus texts and proof-of-loss, and the controls it relies on outside itself (USDC pin and pre-send chain validation by the pre-send verifier, receipt-before-confirmation by the orchestration; wallet orchestration, terms and proof-of-loss unresolved) are listed explicitly instead of being deleted"
 				}
 			],
 			"required_evidence_types": [
 				"behavioral"
 			],
 			"current_evidence_ids": [
+				"EV-KB-PURCHASE-CONFIRMATION",
 				"EV-KB-PURCHASE-PRE-SEND",
+				"EV-PURCHASE-CONFIRMATION",
+				"EV-PURCHASE-CONFIRMATION-DB",
 				"EV-PURCHASE-PRE-SEND"
 			],
 			"property_coverage": {
@@ -13480,15 +13489,27 @@
 					"insufficient": []
 				},
 				"P4": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-PURCHASE-CONFIRMATION",
+						"EV-PURCHASE-CONFIRMATION-DB",
+						"EV-KB-PURCHASE-CONFIRMATION"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P5": {
+					"satisfied_by": [
+						"EV-PURCHASE-CONFIRMATION",
+						"EV-KB-PURCHASE-CONFIRMATION"
+					],
 					"partial_only": [],
 					"insufficient": []
 				}
 			},
 			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P3 unsatisfied; P4 unsatisfied",
+			"conformance_status_reason": "P3 unsatisfied",
 			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P3 unsatisfied; P4 unsatisfied",
+			"security_status_reason": "P3 unsatisfied",
 			"deviation_ids": [],
 			"independence": null
 		}

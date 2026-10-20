@@ -532,11 +532,13 @@ test('P4E-STATIC the verifier has no send, sign, wallet, network, DB or environm
 
 test('P4E-IMPORT only test/purchase-receipt.test.mjs imports the verifier; the verifier never imports the builder', () => {
 	const RECEIPT = 'src/purchase-receipt.mjs';
-	const runtime = [...walk('src'), ...walk('api'), ...walk('web'), ...walk('scripts')].filter((f) => f !== RECEIPT && !f.startsWith('web/dist'));
+	// P4G (20.10.2026): einziger Importeur im Quellcode ist die selbst unerreichbare Bestaetigungs-Orchestrierung (P4G-IMPORT).
+	const CONFIRMATION = 'src/purchase-confirmation.mjs';
+	const runtime = [...walk('src'), ...walk('api'), ...walk('web'), ...walk('scripts')].filter((f) => f !== RECEIPT && f !== CONFIRMATION && !f.startsWith('web/dist'));
 	assert.ok(runtime.includes('src/bot.mjs') && runtime.some((f) => f.startsWith('api/')) && runtime.some((f) => f.startsWith('web/src/')) && runtime.some((f) => /^src\/agent-/.test(f)));
 	for (const file of runtime) assert.doesNotMatch(read(file), /purchase-receipt(\.mjs)?['"`]|verifyPurchaseReceipt/, file);
 	const importing = /(?:from\s*|import\s*\(\s*)['"`][^'"`]*purchase-receipt\.mjs/;
-	assert.deepEqual([...walk('src'), ...walk('api'), ...walk('test'), ...walk('test-support')].filter((f) => importing.test(read(f))).sort(), ['test/purchase-receipt.test.mjs']);
+	assert.deepEqual([...walk('src'), ...walk('api'), ...walk('test'), ...walk('test-support')].filter((f) => importing.test(read(f))).sort(), [CONFIRMATION, 'test/purchase-confirmation.test.mjs', 'test/purchase-receipt.test.mjs']);
 	assert.doesNotMatch(read(RECEIPT), /purchase-tx-builder|build(ExactUsdcApproval|NexusBuyCover)/);
 	assert.deepEqual(walk('api').filter((f) => /receipt|purchase|buy|intent/i.test(f)), [], 'no receipt or purchase route');
 });

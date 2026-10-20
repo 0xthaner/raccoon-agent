@@ -2651,6 +2651,182 @@
 					"reason": "security:verify reads SHOW max_connections of the disposable Postgres before executing anything and exits 3 (TEST INFRASTRUCTURE PRECONDITION FAILED, no report) below 600; P4E showed 11 concurrent Postgres evidence groups exhausting max_connections=300 (162 \"too many clients\") and producing a false FAIL. Read-only, disposable Postgres only, never production. Concurrency, overlap requirements, tests and E5 thresholds unchanged; test/crsf-pg-capacity.test.mjs. Not application security evidence."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zh",
+			"summary": "Nexus P4G: server-side receipt-to-confirmation orchestration src/purchase-confirmation.mjs (intent id only; injected repository with exactly loadIntentById and the P4D SUBMITTED -> CONFIRMED transition; persisted tx_hash and calldata_hash; fresh P4E verification with two readers and the fixed production policy, finalized and >= 64 confirmations; markConfirmed only for ok === true and VERIFIED_COVER_PURCHASE with the verifier's cover id; every other outcome leaves SUBMITTED unchanged, never FAILED; unexpected DB answers fail closed; no route, wallet, send, builder or cache). CR-PURCHASE-008 P4 reworded into the concrete orchestration obligation and satisfied by E3 (offline with the real verifier, and against the real P4D database) + E4 (30 KILLED mutations); new P5: the offline builder states OFFLINE_ONLY, never production-ready, external controls separated (src/purchase-tx-builder.mjs: USDC_IMPLEMENTATION_NOT_PINNED and NO_PRE_SEND_CHAIN_VALIDATION replaced by EXTERNAL_REQUIRED_CONTROLS and WALLET_ORCHESTRATION_UNRESOLVED, history kept in comments). P3 (wallet path) stays MISSING_EVIDENCE, so the control stays MISSING_EVIDENCE / SECURITY_DEBT. CR-TERMS-002 and CR-POL-002 unchanged.",
+			"changes": [
+				{
+					"id": "CR-PURCHASE-008",
+					"kind": "REQUIREMENT_CLARIFICATION",
+					"reason": "P4 reworded from \"the purchase receipt is verified against the intent before any state is recorded as confirmed\" into the concrete orchestration obligation (intent id only, narrow repository, SUBMITTED with persisted tx_hash and calldata_hash, fresh P4E verification with two readers and the production finality policy, write only on a complete VERIFIED verdict with the verifier cover id, everything else unchanged and never FAILED, DB conflicts fail closed, no runtime importer); new P5 for the builder statement (OFFLINE_ONLY, never production-ready, external controls separated). applies_to + src/purchase-confirmation.mjs; CoverRaccoon requirement and applicability reason extended accordingly. Minimum level, automation and release class unchanged.",
+					"rationale": "P4G implements the confirmation half of CR-PURCHASE-008. The old one-line P4 did not say which values are authoritative, which finality applies or what happens on uncertainty; the new wording fixes all of it, and P5 makes the stale builder metadata a checked statement instead of free text.",
+					"why_not_weakening": "The old P4 obligation (receipt verified against the intent before CONFIRMED) is contained in full and narrowed further (persisted values only, two readers, production finality, fresh per attempt, no FAILED on uncertainty). P5 is an added property. P3 is untouched and still unsatisfied, so the control status stays MISSING_EVIDENCE and the release class SECURITY_DEBT.",
+					"before": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "a read-only pre-send verifier, given only server-loaded intent state, returns PRE_SEND_VERIFIED only if: the intent is BUILT, now < expires_at and now < build_deadline (P4D bounds, exclusive), the intent hash recomputed with P4A equals the stored one and the stored calldata hash is bytes32; two distinct readers agree on chain 1 and on one block (the lower head, with the same block hash, not stale); and at exactly that block hash the Broker runtime code hash, the Cover proxy runtime code hash, the Cover implementation in slot keccak256(\"org.govblocks.proxy.implementation\") (not EIP-1967) and its runtime code hash equal the pins. Any drift, disagreement, reader failure, other status, expired deadline or client-shaped field fails closed; the verifier never sends, signs, calls a wallet or writes the database, and nothing at runtime imports it"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "the USDC proxy and implementation are pinned independently - proxy architecture and implementation slot keccak256(\"org.zeppelinos.proxy.implementation\") from the deployed code, implementation address from storage, both runtime code hashes, and our own recompilation of the Circle source (identical except the metadata hash), never a web label - and the pre-send verifier checks the USDC proxy runtime, implementation slot and implementation runtime at the same block (USDC_DRIFT; an unresolved pin is USDC_PIN_UNRESOLVED); the pinned approve(address,uint256) overwrites the allowance with the exact amount, needs no zero-first step and returns true"
+							},
+							{
+								"id": "P3",
+								"kind": "REQUIREMENT",
+								"text": "wallet execution exists only through a reviewed path that runs the pre-send verifier (P1, P2) immediately before the wallet request, binds verifiedAtBlock / verifiedAtBlockHash to the transaction session, and re-validates the exact bytes with the independent decoder"
+							},
+							{
+								"id": "P4",
+								"kind": "REQUIREMENT",
+								"text": "the purchase receipt is verified against the intent before any state is recorded as confirmed"
+							}
+						],
+						"derivation": {
+							"title": "Pre-send chain validation, USDC implementation pin, wallet execution and confirmed-state recording",
+							"domain": "CR-PURCHASE",
+							"source_refs": [
+								"SRC-ASVS V2.3.2",
+								"SRC-NEXUS-COVERBROKER",
+								"SRC-NEXUS-COVER",
+								"SRC-USDC-MAINNET",
+								"SRC-USDC-FIATTOKEN-V2-2",
+								"SRC-NEXUS-PRE-SEND-STATE"
+							],
+							"derivation_type": "EXTERNAL_STANDARD",
+							"external_requirement": "Business logic limits and rules are implemented as documented (V2.3.2).",
+							"coverraccoon_requirement": "Before any real transaction: a read-only pre-send verifier re-reads, at one block agreed by two independent readers, the Broker runtime, the Cover proxy runtime, implementation slot and implementation runtime, and the USDC proxy runtime, implementation slot and implementation runtime, and passes only if all equal the pins and the server-loaded intent is BUILT, unexpired, before its build deadline and hash-consistent; the USDC implementation is source-pinned (address, slot, runtime, recompiled source with understood approve semantics); execution happens only through a reviewed wallet path that runs this verifier immediately before the wallet request, binds the verified block to the session and re-validates the exact bytes with the independent decoder; the receipt (CoverBought / NFT owner) is verified against the intent before CONFIRMED is recorded.",
+							"applicability_reason": "Obligation for the transaction phases. P4F adds the read-only pre-send verifier (src/purchase-pre-send.mjs) and the independent USDC pin; neither is reachable from any runtime path. Nothing sends, signs, calls a wallet or records CONFIRMED. Must become RELEASE_BLOCKING before any real transaction code.",
+							"profile_level": "ASVS_L2",
+							"applies_to": [
+								"src/purchase-tx-builder.mjs",
+								"src/purchase-tx-decode.mjs",
+								"src/purchase-intent-db.mjs",
+								"src/purchase-receipt.mjs",
+								"src/purchase-pre-send.mjs"
+							],
+							"threat": "a correct offline transaction sent against changed contracts, or a purchase recorded without on-chain proof",
+							"expected_property": "chain-checked execution and receipt",
+							"automation": "PARTIAL"
+						},
+						"minimum_evidence_level": "E3",
+						"automation": "PARTIAL"
+					},
+					"after": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "a read-only pre-send verifier, given only server-loaded intent state, returns PRE_SEND_VERIFIED only if: the intent is BUILT, now < expires_at and now < build_deadline (P4D bounds, exclusive), the intent hash recomputed with P4A equals the stored one and the stored calldata hash is bytes32; two distinct readers agree on chain 1 and on one block (the lower head, with the same block hash, not stale); and at exactly that block hash the Broker runtime code hash, the Cover proxy runtime code hash, the Cover implementation in slot keccak256(\"org.govblocks.proxy.implementation\") (not EIP-1967) and its runtime code hash equal the pins. Any drift, disagreement, reader failure, other status, expired deadline or client-shaped field fails closed; the verifier never sends, signs, calls a wallet or writes the database, and nothing at runtime imports it"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "the USDC proxy and implementation are pinned independently - proxy architecture and implementation slot keccak256(\"org.zeppelinos.proxy.implementation\") from the deployed code, implementation address from storage, both runtime code hashes, and our own recompilation of the Circle source (identical except the metadata hash), never a web label - and the pre-send verifier checks the USDC proxy runtime, implementation slot and implementation runtime at the same block (USDC_DRIFT; an unresolved pin is USDC_PIN_UNRESOLVED); the pinned approve(address,uint256) overwrites the allowance with the exact amount, needs no zero-first step and returns true"
+							},
+							{
+								"id": "P3",
+								"kind": "REQUIREMENT",
+								"text": "wallet execution exists only through a reviewed path that runs the pre-send verifier (P1, P2) immediately before the wallet request, binds verifiedAtBlock / verifiedAtBlockHash to the transaction session, and re-validates the exact bytes with the independent decoder"
+							},
+							{
+								"id": "P4",
+								"kind": "REQUIREMENT",
+								"text": "an intent is recorded as CONFIRMED on the normal path only by the server-side orchestration, which: identifies the record by intent id alone and refuses every caller-supplied transaction hash, calldata hash, cover id, receipt, logs, status, block or verifier result; loads the persisted record through a repository with exactly two operations (load by id, the P4D SUBMITTED -> CONFIRMED transition) and requires it to belong to that id with a P4A-recomputed intent hash; requires status SUBMITTED with a persisted tx_hash and calldata_hash (OPEN, BUILT, FAILED, EXPIRED, CANCELLED refused; a late FAILED -> CONFIRMED is not this path); runs the independent receipt verifier (CR-PURCHASE-006) freshly on every attempt with two readers and the fixed production finality policy (finalized and at least 64 confirmations) on exactly those persisted values; writes only when the verdict is ok === true and VERIFIED_COVER_PURCHASE with every required check passed, using the verifier's cover id; leaves the row unchanged (never FAILED) for every other verdict, reader failure, disagreement, missing transaction or receipt, insufficient confirmations or reorg; and treats any database answer other than the exact confirmed or existing row as DB_CONFIRMATION_CONFLICT. No runtime code imports the orchestration or the P4D transitions"
+							},
+							{
+								"id": "P5",
+								"kind": "REQUIREMENT",
+								"text": "the offline transaction builder declares its capability as OFFLINE_ONLY and never marks an output production-ready; its production blockers name the open wallet orchestration, Nexus texts and proof-of-loss, and the controls it relies on outside itself (USDC pin and pre-send chain validation by the pre-send verifier, receipt-before-confirmation by the orchestration; wallet orchestration, terms and proof-of-loss unresolved) are listed explicitly instead of being deleted"
+							}
+						],
+						"derivation": {
+							"title": "Pre-send chain validation, USDC implementation pin, wallet execution and confirmed-state recording",
+							"domain": "CR-PURCHASE",
+							"source_refs": [
+								"SRC-ASVS V2.3.2",
+								"SRC-NEXUS-COVERBROKER",
+								"SRC-NEXUS-COVER",
+								"SRC-USDC-MAINNET",
+								"SRC-USDC-FIATTOKEN-V2-2",
+								"SRC-NEXUS-PRE-SEND-STATE"
+							],
+							"derivation_type": "EXTERNAL_STANDARD",
+							"external_requirement": "Business logic limits and rules are implemented as documented (V2.3.2).",
+							"coverraccoon_requirement": "Before any real transaction: a read-only pre-send verifier re-reads, at one block agreed by two independent readers, the Broker runtime, the Cover proxy runtime, implementation slot and implementation runtime, and the USDC proxy runtime, implementation slot and implementation runtime, and passes only if all equal the pins and the server-loaded intent is BUILT, unexpired, before its build deadline and hash-consistent; the USDC implementation is source-pinned (address, slot, runtime, recompiled source with understood approve semantics); execution happens only through a reviewed wallet path that runs this verifier immediately before the wallet request, binds the verified block to the session and re-validates the exact bytes with the independent decoder; an intent becomes CONFIRMED only through a server-side orchestration that loads the persisted SUBMITTED intent by id alone, runs the independent receipt verifier fresh on its persisted tx_hash and calldata_hash with two readers and the production finality policy, and calls the narrow SUBMITTED -> CONFIRMED transition only with the verifier's cover id; the offline builder never claims to be production-ready.",
+							"applicability_reason": "Obligation for the transaction phases. P4F adds the read-only pre-send verifier (src/purchase-pre-send.mjs) and the independent USDC pin; P4G adds the server-side receipt-to-confirmation orchestration (src/purchase-confirmation.mjs). None of them is reachable from any runtime path. Nothing sends, signs or calls a wallet. Must become RELEASE_BLOCKING before any real transaction code.",
+							"profile_level": "ASVS_L2",
+							"applies_to": [
+								"src/purchase-tx-builder.mjs",
+								"src/purchase-tx-decode.mjs",
+								"src/purchase-intent-db.mjs",
+								"src/purchase-receipt.mjs",
+								"src/purchase-pre-send.mjs",
+								"src/purchase-confirmation.mjs"
+							],
+							"threat": "a correct offline transaction sent against changed contracts, or a purchase recorded without on-chain proof",
+							"expected_property": "chain-checked execution and receipt",
+							"automation": "PARTIAL"
+						},
+						"minimum_evidence_level": "E3",
+						"automation": "PARTIAL"
+					}
+				},
+				{
+					"id": "EV-PURCHASE-CONFIRMATION",
+					"kind": "ADDED",
+					"reason": "behavioral E3 evidence for CR-PURCHASE-008 P4/P5 (test/purchase-confirmation.test.mjs, real P4E verifier)",
+					"rationale": "new confirmation orchestration and builder statement",
+					"why_not_weakening": "New evidence and stricter wording only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "EV-PURCHASE-CONFIRMATION-DB",
+					"kind": "ADDED",
+					"reason": "behavioral E3 evidence for CR-PURCHASE-008 P4 against the real P4D database (test/purchase-confirmation-db.test.mjs, disposable Postgres)",
+					"rationale": "the orchestration must work with the real P4D transition and uniqueness, not only with a model of it",
+					"why_not_weakening": "New evidence and stricter wording only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "EV-KB-PURCHASE-CONFIRMATION",
+					"kind": "ADDED",
+					"reason": "known-bad E4 evidence: 30 mutation cases, each KILLED by its intended P4G test",
+					"rationale": "every listed weakening of the orchestration and the builder statement must be detected",
+					"why_not_weakening": "New evidence and stricter wording only; no existing control, property, threshold, release class or evidence weakened."
+				},
+				{
+					"id": "EV-PURCHASE-TX-BUILDER",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "P4C-APPROVAL / P4C-BUY / P4C-EXPORTS: the builder now exports BUILDER_CAPABILITY (OFFLINE_ONLY) and EXTERNAL_REQUIRED_CONTROLS, USDC_PIN_STATUS reads BUILDER_ADDRESS_ONLY_PIN_EXTERNAL_P4F and the blockers are PROOF_OF_LOSS_UNRESOLVED, NEXUS_TEXTS_UNCONFIRMED, WALLET_ORCHESTRATION_UNRESOLVED (the two satisfied-by-P4F blockers moved into EXTERNAL_REQUIRED_CONTROLS, history in comments); productionReady false is asserted unchanged. P4C-IMPORT: test/purchase-confirmation.test.mjs may import the builder (to check its statement); P4C-SURFACE: src/purchase-confirmation.mjs may contain the identifier calldataHash; every other pattern still applies, and P4G-STATIC forbids any builder import there."
+				},
+				{
+					"id": "EV-PURCHASE-INTENT",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "test P4A-IMPORT: the pure purchase module set also contains src/purchase-confirmation.mjs (imports purchase-intent; itself unreachable, P4G-IMPORT); the allowed importing tests also include test/purchase-confirmation.test.mjs and test/purchase-confirmation-db.test.mjs. Every other runtime file still may not name purchase-intent; P4A behaviour unchanged."
+				},
+				{
+					"id": "EV-PURCHASE-RECEIPT",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "test P4E-IMPORT: src/purchase-confirmation.mjs (itself unreachable, P4G-IMPORT) is the one source importer of the verifier, test/purchase-confirmation.test.mjs the second importing test; every other runtime file still may not name the verifier, and the verifier still never imports the builder. P4E behaviour unchanged."
+				},
+				{
+					"id": "EV-PURCHASE-DB",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "test P4D-IMPORT: test/purchase-confirmation-db.test.mjs may import the P4D helper (to drive the real transitions); no runtime file may, unchanged."
+				},
+				{
+					"id": "drift-model",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "new rule src/purchase-confirmation.mjs -> CR-PURCHASE; nothing removed"
+				},
+				{
+					"id": "scripts/skip-policy.mjs",
+					"kind": "TEST_INFRA",
+					"reason": "one exact-name allowed skip (test/purchase-confirmation-db.test.mjs :: PURCHASE-CONFIRMATION-DB), only while M1_DB_TEST_PG_URL is unset; with Postgres configured a skip is an error."
+				}
+			]
 		}
 	]
 }

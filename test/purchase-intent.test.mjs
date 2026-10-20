@@ -319,7 +319,8 @@ function walk(dir) {
 // P4D (19.10.2026): dazu der schmale DB-Helfer; er ist selbst von keinem Laufzeitpfad erreichbar (P4D-IMPORT in test/purchase-intent-db.test.mjs).
 // P4E (19.10.2026): der nur lesende Beleg-Pruefer ist ebenso unerreichbar (P4E-IMPORT in test/purchase-receipt.test.mjs).
 // P4F (20.10.2026): ebenso der nur lesende Pre-Send-Pruefer (P4F-IMPORT in test/purchase-pre-send.test.mjs).
-const PURE_PURCHASE = [SRC, 'src/purchase-terms.mjs', 'src/purchase-proof-of-loss.mjs', 'src/purchase-tx-builder.mjs', 'src/purchase-tx-decode.mjs', 'src/purchase-intent-db.mjs', 'src/purchase-receipt.mjs', 'src/purchase-pre-send.mjs'];
+// P4G (20.10.2026): ebenso die Bestaetigungs-Orchestrierung (P4G-IMPORT in test/purchase-confirmation.test.mjs).
+const PURE_PURCHASE = [SRC, 'src/purchase-terms.mjs', 'src/purchase-proof-of-loss.mjs', 'src/purchase-tx-builder.mjs', 'src/purchase-tx-decode.mjs', 'src/purchase-intent-db.mjs', 'src/purchase-receipt.mjs', 'src/purchase-pre-send.mjs', 'src/purchase-confirmation.mjs'];
 
 test('P4A-IMPORT no runtime code imports the purchase-intent module; only tests do', () => {
 	const runtime = [...walk('src'), ...walk('api'), ...walk('web'), ...walk('scripts')].filter((f) => !PURE_PURCHASE.includes(f) && !f.startsWith('web/dist'));
@@ -331,5 +332,5 @@ test('P4A-IMPORT no runtime code imports the purchase-intent module; only tests 
 	// importiert (statisch oder dynamisch) wird es nur von Tests der reinen Kauf-Module; andere Tests duerfen den Pfad nennen
 	const importing = /(?:from\s*|import\s*\(\s*)['"`][^'"`]*purchase-intent\.mjs/;
 	const testers = walk('test').filter((f) => importing.test(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')));
-	assert.deepEqual(testers, ['test/purchase-intent-db.test.mjs', 'test/purchase-intent.test.mjs', 'test/purchase-pre-send.test.mjs', 'test/purchase-receipt.test.mjs', 'test/purchase-terms.test.mjs', 'test/purchase-tx-builder.test.mjs', 'test/purchase-tx-decode.test.mjs']);
+	assert.deepEqual(testers, ['test/purchase-confirmation-db.test.mjs', 'test/purchase-confirmation.test.mjs', 'test/purchase-intent-db.test.mjs', 'test/purchase-intent.test.mjs', 'test/purchase-pre-send.test.mjs', 'test/purchase-receipt.test.mjs', 'test/purchase-terms.test.mjs', 'test/purchase-tx-builder.test.mjs', 'test/purchase-tx-decode.test.mjs']);
 });
