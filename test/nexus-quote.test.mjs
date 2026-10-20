@@ -373,6 +373,64 @@ test('QUOTE-PRICE premium and amount must match the quoted price and the request
 	assert.equal((await quoteWithPatch((q) => { q.totalCoverAmountInAsset = '1100000000'; q.poolAllocationRequests[0].coverAmountInAsset = '1100000000'; })).reason, 'QUOTE_AMOUNT_MISMATCH');
 });
 
+/*
+	Produktion 20.10.2026: eine Aave-Core-Position von 0,38 USD schlug 0,000156433958752724 ETH vor. Nexus
+	antwortete mit HTTP 200, rundete die Cover-Summe aber auf eine Allokations-Einheit (0,01 NXM,
+	Cover.NXM_PER_ALLOCATION_UNIT on-chain) auf 0,000256687 ETH auf - mehr als die 1 % Toleranz.
+	Fixture: die echte Antwort fuer genau diesen Betrag (90 Tage), unveraendert.
+*/
+const QUOTE_ETH_TINY = fixture('quote-97-eth-tiny-90d');
+const TINY_ETH = '0.000156433958752724';
+const TINY_QUERY = '/v2/quote?productId=97&amount=156433958752724&period=90&coverAsset=0&paymentAsset=0';
+
+test('QUOTE-TINY Nexus rounding a very small amount up to an allocation unit stays rejected, with its own code and no premium', async () => {
+	const { model } = await availableModel();
+	const nexus = fakeNexus({ [TINY_QUERY]: QUOTE_ETH_TINY });
+	const result = await requestCoverQuote({ coverAsset: 'ETH', amount: TINY_ETH, periodDays: 90 }, model, position(), { fetchImpl: nexus.fetchImpl, now: NOW });
+	assert.deepEqual({ ...result }, { ok: false, code: 'QUOTE_AMOUNT_TOO_SMALL', reason: 'QUOTE_AMOUNT_ROUNDED_UP' });
+	assert.equal(nexus.quoteCalls().length, 1);
+	assert.equal(nexus.quoteCalls()[0].url, `${NEXUS_API_BASE}${TINY_QUERY}`, 'exact request: product 97, amount in wei, 90 days, ETH paid in ETH');
+	// Ueber dem Handler: 422, eigener Code, keine Praemie und kein Nexus-Rohtext.
+	const { call } = setup({ routes: { [TINY_QUERY]: QUOTE_ETH_TINY } });
+	const r = await call(quoteBody({ coverAsset: 'ETH', amount: TINY_ETH, periodDays: 90 }));
+	assert.equal(r.statusCode, 422);
+	assert.deepEqual(r.body, { ok: false, code: 'QUOTE_AMOUNT_TOO_SMALL', error: 'Für diesen sehr kleinen Betrag kann derzeit keine Nexus-Quote erstellt werden.' });
+	assert.doesNotMatch(JSON.stringify(r.body), /premium|NXM|allocation|pool/i);
+});
+
+test('QUOTE-TINY-BOUNDS only a round-up of at most one allocation unit per pool counts as too small; everything else stays QUOTE_UNAVAILABLE', async () => {
+	const { model } = await availableModel();
+	const run = async (patch) => {
+		const body = clone(QUOTE_ETH_TINY);
+		patch(body.quote);
+		const nexus = fakeNexus({ [TINY_QUERY]: body });
+		return requestCoverQuote({ coverAsset: 'ETH', amount: TINY_ETH, periodDays: 90 }, model, position(), { fetchImpl: nexus.fetchImpl, now: NOW });
+	};
+	const setTotal = (q, total) => {
+		const premium = (BigInt(total) * 88n * 90n) / 3_650_000n;
+		q.totalCoverAmountInAsset = total; q.poolAllocationRequests = [{ poolId: '23', coverAmountInAsset: total }];
+		// NXM-Praemie im gleichen Verhaeltnis, damit der Wert einer Einheit gleich bleibt
+		const premiumInNXM = (premium * BigInt(QUOTE_ETH_TINY.quote.premiumInNXM)) / BigInt(QUOTE_ETH_TINY.quote.premiumInAsset);
+		q.premiumInAsset = q.premiumInAssetWithRefund = premium.toString();
+		q.premiumInNXM = q.premiumInNXMWithRefund = premiumInNXM.toString();
+	};
+	// genau eine Einheit (die echte Antwort, neu berechnet): zu klein, nicht unbekannt
+	assert.equal((await run((q) => setTotal(q, q.totalCoverAmountInAsset))).code, 'QUOTE_AMOUNT_TOO_SMALL');
+	// zwei Einheiten bei nur einem Pool: nicht durch Rundung erklaert
+	assert.deepEqual({ ...await run((q) => setTotal(q, (156433958752724n + 2n * 256687001776552n).toString())) }, { ok: false, code: 'QUOTE_UNAVAILABLE', reason: 'QUOTE_AMOUNT_MISMATCH' });
+	// unter dem verlangten Betrag
+	assert.equal((await run((q) => setTotal(q, '156433958752723'))).reason, 'QUOTE_AMOUNT_MISMATCH');
+	// ohne NXM-Praemie laesst sich keine Einheit bestimmen
+	assert.equal((await run((q) => { q.premiumInNXM = q.premiumInNXMWithRefund = '0'; })).reason, 'QUOTE_AMOUNT_MISMATCH');
+	// jede andere Unstimmigkeit bleibt QUOTE_UNAVAILABLE: fremder Pool, falsche Praemie, falsches Asset, Form
+	assert.equal((await run((q) => { q.poolAllocationRequests = [{ poolId: '99', coverAmountInAsset: q.totalCoverAmountInAsset }]; })).reason, 'QUOTE_PRODUCT_MISMATCH');
+	assert.equal((await run((q) => { q.premiumInAsset = q.premiumInAssetWithRefund = '1'; })).code, 'QUOTE_UNAVAILABLE', 'a broken premium is never a known small-amount case');
+	assert.equal((await run((q) => { q.asset = { id: 6, symbol: 'USDC', decimals: 6 }; })).reason, 'QUOTE_ASSET_MISMATCH');
+	for (const result of [await run((q) => { q.refundInAsset = '5'; }), await run((q) => { delete q.poolAllocationRequests; })]) assert.equal(result.reason, 'MALFORMED_QUOTE');
+	// Kontrolle: eine Quote innerhalb von 1 % bleibt eine gueltige Quote
+	assert.equal((await quoteWithPatch(() => {})).ok, true);
+});
+
 test('QUOTE-TIMEOUT a hanging Nexus quote gives QUOTE_UNAVAILABLE without any fallback premium', async () => {
 	const hang = (url, init) => new Promise((_, reject) => { init?.signal?.addEventListener('abort', () => reject(init.signal.reason), { once: true }); });
 	const { call } = setup({ routes: { [USDC_QUERY]: hang }, timeoutMs: 30 });

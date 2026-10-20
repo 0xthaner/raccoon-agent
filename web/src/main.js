@@ -195,7 +195,12 @@ function applyLanguage(next) {
 	text('#dash-kicker', t.dashKicker); teile('#dash-title', t.dashTitle); text('#switch-wallet', t.switchWallet); text('#logout', t.logout);
 	text('#label-active', t.activeLabel); text('#label-expiry', t.expiryLabel); text('#label-telegram', t.telegramLabel); text('#telegram-title', t.telegramTitle); text('#protection-title', t.protection); text('#footer-copy', t.footer); text('#footer-explainer', t.footerExplainer);
 }
-document.querySelectorAll('[data-language]').forEach((button) => button.addEventListener('click', () => { applyLanguage(button.dataset.language); if (window.dashboardData) renderDashboard(window.dashboardData); }));
+document.querySelectorAll('[data-language]').forEach((button) => button.addEventListener('click', () => {
+	applyLanguage(button.dataset.language);
+	// Offene Cover-Panels behalten ihren Zustand (Quote, Eingaben) und folgen nur der Sprache.
+	for (const panel of coverPanels.values()) panel.setLanguage(language);
+	if (window.dashboardData) renderDashboard(window.dashboardData);
+}));
 applyLanguage(language);
 
 let debugOutput;

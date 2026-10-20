@@ -227,6 +227,8 @@ export async function requestCoverQuote(request, model, position, { fetchImpl = 
 	try {
 		quote = await readQuote({ productId, coverAsset: checked.coverAsset, amount: checked.amount, periodDays: checked.periodDays, capacity: model.capacity }, { fetchImpl, now, ...(timeoutMs ? { timeoutMs } : {}) });
 	} catch (error) {
+		// Bekannte Ursache: Nexus rundet einen sehr kleinen Betrag auf Allokations-Einheiten auf.
+		if (error?.code === 'QUOTE_AMOUNT_ROUNDED_UP') return fail('QUOTE_AMOUNT_TOO_SMALL', { reason: error.code });
 		return fail('QUOTE_UNAVAILABLE', { reason: typeof error?.code === 'string' ? error.code : 'UNKNOWN' });
 	}
 	return Object.freeze({ ok: true, quote: quoteView(quote, model, now) });

@@ -8,6 +8,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createRecordingDom } from '../test-support/recording-dom.mjs';
 
 const NOW = Date.UTC(2026, 9, 18, 12);
@@ -29,7 +30,7 @@ const DETAILS = {
 };
 const QUOTE = { provider: 'Nexus Mutual', productName: 'Aave v3', productTypeName: 'Single Protocol Cover', coverAsset: 'ETH', coverAmount: '1', periodDays: 90, premium: '0.009', premiumAsset: 'ETH', annualPricePercent: '3.65', quoteFetchedAt: new Date(NOW).toISOString(), quoteExpiresAt: new Date(NOW + 60_000).toISOString(), freshness: 'FRESH' };
 
-async function mount({ details = DETAILS, quote = QUOTE, language = 'en', quoteStatus = 200 } = {}) {
+async function mount({ details = DETAILS, quote = QUOTE, language = 'en', quoteStatus = 200, quoteCode = 'QUOTE_UNAVAILABLE' } = {}) {
 	const dom = createRecordingDom();
 	const walletCalls = [];
 	globalThis.document = dom.document;
@@ -43,7 +44,7 @@ async function mount({ details = DETAILS, quote = QUOTE, language = 'en', quoteS
 		post: async (body) => {
 			posts.push(body);
 			if (body.action === 'details') return { status: 200, body: details };
-			return quoteStatus === 200 ? { status: 200, body: { ok: true, status: 'QUOTED', quote } } : { status: quoteStatus, body: { ok: false, code: 'QUOTE_UNAVAILABLE' } };
+			return quoteStatus === 200 ? { status: 200, body: { ok: true, status: 'QUOTED', quote } } : { status: quoteStatus, body: { ok: false, code: quoteCode } };
 		}
 	});
 	dom.document.body.appendChild(panel.element);
@@ -168,6 +169,88 @@ test('VIEW unavailable, ambiguous and unsupported states show only the neutral s
 	const failing = await mount({ quoteStatus: 503 });
 	failing.button('Get quote').click();
 	await new Promise((resolve) => setImmediate(resolve));
-	assert.ok(failing.text().includes('Nexus Mutual did not return a valid quote right now.'));
+	assert.ok(failing.text().includes('Nexus Mutual could not return a valid quote for this amount right now.'));
 	assert.doesNotMatch(failing.text(), /Premium/);
+});
+
+/* ------------------------------------------------- Sprache und Kleinbetrag (20.10.2026) -- */
+
+const ENGLISH_LABELS = ['Position protocol', 'Network', 'Supplied', 'Debt', 'Suggested exposure', 'Suggested cover amount', 'Converted with the Aave oracle price', 'Available capacity',
+	'Proof of loss requirement', 'Grace period', 'Cover through CoverRaccoon', 'Not available yet', 'We are finalising', 'Terms', 'Cover wording', 'Suggested cover amount is an estimate',
+	'binding terms', 'Cover asset', 'Cover amount', 'Maximum selectable', 'Duration', 'Get quote', 'Requesting quote', 'Indicative live quote', 'This quote has expired', 'Premium', 'Annual price',
+	'Quoted at', 'Valid until', 'For information only', 'days', 'Wallet address(es) must'];
+const READINESS = { status: 'BLOCKED', reasons: ['NEXUS_TERMS_UNCONFIRMED', 'NEXUS_PROOF_OF_LOSS_UNCONFIRMED', 'WALLET_EXECUTION_NOT_AVAILABLE'] };
+
+async function quoted(view) {
+	const get = view.dom.all().find((el) => el.tagName === 'BUTTON' && el.classList.contains('cover-get-quote'));
+	get.click();
+	await new Promise((resolve) => setImmediate(resolve));
+}
+
+test('VIEW-LANG-DE the whole cover panel is German: figures, readiness, terms, disclaimer, form, quote states and errors', async () => {
+	const view = await mount({ language: 'de', details: { ...DETAILS, readiness: READINESS } });
+	const before = view.text();
+	for (const part of ['Nexus Mutual', 'Aave v3 · Single Protocol Cover', 'Protokoll der Position', 'Netzwerk', 'Einlagen', 'Schulden', 'Vorgeschlagenes Engagement (Einlagen − Schulden)',
+		'Vorgeschlagene Cover-Summe', 'Umgerechnet mit dem Aave-Orakelpreis', 'Verfügbare Kapazität', 'Nachweis im Schadensfall', 'Beim Abschluss des Covers müssen Wallet-Adresse(n) angegeben werden.',
+		'Nachfrist', '35 Tage', 'Abschluss über CoverRaccoon', 'Noch nicht möglich', 'Wir stellen die erforderlichen Bedingungen', 'Bedingungen', 'Cover-Bedingungen (Nexus Mutual)',
+		'Verbindlich sind die verlinkten Bedingungen', 'Die vorgeschlagene Cover-Summe ist eine Schätzung', 'Cover-Asset', 'Cover-Summe (ETH)', 'Höchstens wählbar', 'Laufzeit (Tage)', '30 Tage', 'Quote abrufen']) {
+		assert.ok(before.includes(part), `missing: ${part}`);
+	}
+	await quoted(view);
+	const after = view.text();
+	for (const part of ['Unverbindliche Live-Quote von Nexus Mutual.', 'Prämie', 'Jahrespreis', 'Abgerufen um', 'Gültig bis', 'Nur zur Information.']) assert.ok(after.includes(part), `missing: ${part}`);
+	view.advance(61_000);
+	view.panel.render();
+	assert.ok(view.text().includes('Diese Quote ist abgelaufen. Bitte eine neue Quote abrufen.'));
+	for (const english of ENGLISH_LABELS) assert.ok(!view.text().includes(english) && !before.includes(english), `English left: ${english}`);
+	assert.deepEqual(view.walletCalls, []);
+	for (const [code, message] of [['QUOTE_UNAVAILABLE', 'Nexus Mutual konnte für diesen Betrag derzeit keine gültige Quote liefern.'], ['QUOTE_AMOUNT_TOO_SMALL', 'Für diesen sehr kleinen Betrag kann derzeit keine Nexus-Quote erstellt werden.']]) {
+		const failing = await mount({ language: 'de', quoteStatus: code === 'QUOTE_UNAVAILABLE' ? 503 : 422, quoteCode: code });
+		await quoted(failing);
+		assert.ok(failing.text().includes(message), code);
+		assert.doesNotMatch(failing.text(), /Prämie|Premium/);
+	}
+	const loading = await mount({ language: 'de' });
+	loading.panel.state.pending = true;
+	loading.panel.render();
+	assert.ok(loading.text().includes('Quote wird abgerufen …'));
+});
+
+test('VIEW-LANG-EN English panel and the two quote error states', async () => {
+	const view = await mount({ details: { ...DETAILS, readiness: READINESS } });
+	for (const part of ['Position protocol', 'Supplied', 'Debt', 'Cover through CoverRaccoon', 'Not available yet', 'Get quote']) assert.ok(view.text().includes(part), part);
+	assert.doesNotMatch(view.text(), /Einlagen|Schulden|Quote abrufen|Noch nicht möglich/);
+	const tiny = await mount({ quoteStatus: 422, quoteCode: 'QUOTE_AMOUNT_TOO_SMALL' });
+	await quoted(tiny);
+	assert.ok(tiny.text().includes('A Nexus quote cannot currently be created for this very small amount.'));
+	assert.doesNotMatch(tiny.text(), /capacity is|insufficient capacity|not enough capacity/i, 'no capacity claim');
+	assert.deepEqual(tiny.walletCalls, []);
+});
+
+test('VIEW-LANG-SWITCH an open panel follows the app language without reloading: quote, inputs and requests stay', async () => {
+	const view = await mount({ details: { ...DETAILS, readiness: READINESS } });
+	view.button('USDC').click();
+	await quoted(view);
+	const posts = view.posts.length;
+	assert.ok(view.text().includes('Indicative live quote from Nexus Mutual.'));
+	view.panel.setLanguage('de');
+	assert.ok(view.text().includes('Unverbindliche Live-Quote von Nexus Mutual.'));
+	assert.ok(view.text().includes('Abschluss über CoverRaccoon') && view.text().includes('Quote abrufen'));
+	for (const english of ['Get quote', 'Supplied', 'Indicative live quote', 'Not available yet']) assert.ok(!view.text().includes(english), english);
+	assert.equal(view.panel.state.asset, 'USDC', 'selected asset kept');
+	assert.ok(view.panel.state.quote, 'quote kept');
+	assert.equal(view.posts.length, posts, 'a language switch sends no request');
+	view.panel.setLanguage('en');
+	assert.ok(view.text().includes('Get quote') && !view.text().includes('Quote abrufen'));
+	view.panel.setLanguage('fr');
+	assert.ok(view.text().includes('Get quote'), 'unknown language falls back to English');
+	assert.deepEqual(view.walletCalls, []);
+});
+
+test('VIEW-LANG-WIRING main.js hands the global language to every open cover panel on a DE/EN switch; no second language state', () => {
+	const main = readFileSync(new URL('../web/src/main.js', import.meta.url), 'utf8');
+	assert.match(main, /applyLanguage\(button\.dataset\.language\);\n\t\/\/[^\n]*\n\tfor \(const panel of coverPanels\.values\(\)\) panel\.setLanguage\(language\);/);
+	assert.match(main, /createCoverPanel\(\{ deploymentKey: key, post: nexusQuoteApi\.post, language \}\)/);
+	const cover = readFileSync(new URL('../web/src/nexus-cover.js', import.meta.url), 'utf8');
+	assert.doesNotMatch(cover, /localStorage|navigator\.language|documentElement\.lang|raccoon_language/, 'the panel keeps no language of its own');
 });

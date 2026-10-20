@@ -182,6 +182,23 @@ export function parseCapacity(raw, productId) {
 */
 const QUOTE_DIGITS = ['totalCoverAmountInAsset', 'annualPrice', 'premiumInNXM', 'premiumInAsset', 'refundInNXM', 'refundInAsset', 'premiumInNXMWithRefund', 'premiumInAssetWithRefund'];
 
+/** NXM je Allokations-Einheit im Nexus-Cover-Vertrag (Cover.NXM_PER_ALLOCATION_UNIT, 1e16 = 0,01 NXM). */
+export const NXM_PER_ALLOCATION_UNIT = 10n ** 16n;
+
+/**
+ * Erklaert die Aufrundung den Mehrbetrag? Wert einer Einheit im Asset aus dem Verhaeltnis
+ * premiumInAsset / premiumInNXM derselben Quote; hoechstens eine Einheit je Pool (2 % Spielraum
+ * fuer die Rundung des Verhaeltnisses). Nur fuer die Einordnung des Fehlers, nie fuer eine Annahme.
+ */
+function isAllocationRoundUp(q, amount, total) {
+	const premiumInNXM = BigInt(q.premiumInNXM);
+	const premiumInAsset = BigInt(q.premiumInAsset);
+	const pools = Array.isArray(q.poolAllocationRequests) ? BigInt(Math.max(1, q.poolAllocationRequests.length)) : 1n;
+	if (premiumInNXM <= 0n || premiumInAsset <= 0n) return false;
+	const unitInAsset = (NXM_PER_ALLOCATION_UNIT * premiumInAsset) / premiumInNXM;
+	return total - amount <= (pools * unitInAsset * 102n) / 100n + 1n;
+}
+
 export function parseQuote(raw, { coverAsset, amount, periodDays, capacity }) {
 	if (!isPlain(raw) || !isPlain(raw.quote)) bad('MALFORMED_QUOTE');
 	const q = raw.quote;
@@ -190,7 +207,12 @@ export function parseQuote(raw, { coverAsset, amount, periodDays, capacity }) {
 	if (q.asset.id !== coverAsset.assetId || q.asset.symbol !== coverAsset.symbol || q.asset.decimals !== coverAsset.decimals) bad('QUOTE_ASSET_MISMATCH');
 	if (q.refundInNXM !== '0' || q.refundInAsset !== '0' || q.premiumInAssetWithRefund !== q.premiumInAsset || q.premiumInNXMWithRefund !== q.premiumInNXM) bad('MALFORMED_QUOTE');
 	const total = BigInt(q.totalCoverAmountInAsset);
-	if (total < amount || total > amount + amount / 100n + 1n) bad('QUOTE_AMOUNT_MISMATCH');
+	if (total < amount) bad('QUOTE_AMOUNT_MISMATCH');
+	// Nexus rundet die Cover-Summe je Pool auf ganze Allokations-Einheiten (Cover.NXM_PER_ALLOCATION_UNIT
+	// = 0,01 NXM, on-chain gelesen am 20.10.2026). Bei kleinen Betraegen liegt das ueber 1 %. Eine solche
+	// Quote bleibt abgelehnt; sie bekommt nur einen eigenen Grund, wenn die Aufrundung genau das erklaert.
+	const roundedUp = total > amount + amount / 100n + 1n;
+	if (roundedUp && !isAllocationRoundUp(q, amount, total)) bad('QUOTE_AMOUNT_MISMATCH');
 	const annualPrice = BigInt(q.annualPrice);
 	if (annualPrice < 1n || annualPrice > 10_000n) bad('MALFORMED_QUOTE');
 	if (!Array.isArray(q.poolAllocationRequests) || q.poolAllocationRequests.length === 0 || q.poolAllocationRequests.length > 32) bad('MALFORMED_QUOTE');
@@ -211,6 +233,7 @@ export function parseQuote(raw, { coverAsset, amount, periodDays, capacity }) {
 	const expected = (total * annualPrice * BigInt(periodDays)) / (10_000n * 365n);
 	const drift = premium > expected ? premium - expected : expected - premium;
 	if (premium <= 0n || drift > expected / 1_000n + 1n) bad('QUOTE_PRICE_INCONSISTENT');
+	if (roundedUp) bad('QUOTE_AMOUNT_ROUNDED_UP');
 	return { coverAsset: coverAsset.symbol, coverAmount: amount.toString(), totalCoverAmount: total.toString(), premiumInAsset: premium.toString(), annualPriceBps: Number(annualPrice) };
 }
 

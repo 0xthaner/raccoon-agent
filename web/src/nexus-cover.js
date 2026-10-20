@@ -40,7 +40,8 @@ const TEXTS = {
 		errors: {
 			AMOUNT_OUT_OF_RANGE: 'The amount is outside the allowed range.', INVALID_AMOUNT: 'Please enter a valid amount.',
 			PERIOD_OUT_OF_RANGE: 'The duration must be between 28 and 365 days.', ASSET_NOT_SUPPORTED: 'This cover asset is not supported.',
-			COVER_NOT_AVAILABLE: 'Cover availability cannot currently be determined for this position.', QUOTE_UNAVAILABLE: 'Nexus Mutual did not return a valid quote right now.'
+			COVER_NOT_AVAILABLE: 'Cover availability cannot currently be determined for this position.', QUOTE_UNAVAILABLE: 'Nexus Mutual could not return a valid quote for this amount right now.',
+			QUOTE_AMOUNT_TOO_SMALL: 'A Nexus quote cannot currently be created for this very small amount.'
 		}
 	},
 	de: {
@@ -69,7 +70,8 @@ const TEXTS = {
 		errors: {
 			AMOUNT_OUT_OF_RANGE: 'Der Betrag liegt außerhalb des zulässigen Bereichs.', INVALID_AMOUNT: 'Bitte einen gültigen Betrag eingeben.',
 			PERIOD_OUT_OF_RANGE: 'Die Laufzeit muss zwischen 28 und 365 Tagen liegen.', ASSET_NOT_SUPPORTED: 'Dieses Cover-Asset wird nicht unterstützt.',
-			COVER_NOT_AVAILABLE: 'Die Cover-Verfügbarkeit kann für diese Position derzeit nicht bestimmt werden.', QUOTE_UNAVAILABLE: 'Nexus Mutual hat gerade keine gültige Quote geliefert.'
+			COVER_NOT_AVAILABLE: 'Die Cover-Verfügbarkeit kann für diese Position derzeit nicht bestimmt werden.', QUOTE_UNAVAILABLE: 'Nexus Mutual konnte für diesen Betrag derzeit keine gültige Quote liefern.',
+			QUOTE_AMOUNT_TOO_SMALL: 'Für diesen sehr kleinen Betrag kann derzeit keine Nexus-Quote erstellt werden.'
 		}
 	}
 };
@@ -113,7 +115,8 @@ function formatTime(iso, language) {
  * von POST /api/nexus/quote.
  */
 export function createCoverPanel({ deploymentKey, post, language = 'en', now = () => Date.now(), setTimer = (fn, ms) => setTimeout(fn, ms) }) {
-	const t = TEXTS[language] ?? TEXTS.en;
+	// Die Sprache gehoert der App (main.js); ein offenes Panel folgt ihr ueber setLanguage.
+	let t = TEXTS[language] ?? TEXTS.en;
 	const root = document.createElement('div');
 	root.className = 'cover-panel';
 	const state = { phase: 'loading', details: null, asset: null, amount: '', period: 90, quote: null, error: null, pending: false };
@@ -257,5 +260,11 @@ export function createCoverPanel({ deploymentKey, post, language = 'en', now = (
 		render();
 	}
 
-	return { element: root, load, render, state };
+	function setLanguage(next) {
+		language = TEXTS[next] ? next : 'en';
+		t = TEXTS[language];
+		render();
+	}
+
+	return { element: root, load, render, setLanguage, state };
 }

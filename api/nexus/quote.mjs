@@ -45,7 +45,8 @@ const MESSAGES = {
 	AMOUNT_OUT_OF_RANGE: [422, 'Der Betrag liegt außerhalb des zulässigen Bereichs.'],
 	PERIOD_OUT_OF_RANGE: [422, 'Die Laufzeit muss zwischen 28 und 365 Tagen liegen.'],
 	COVER_NOT_AVAILABLE: [409, 'Die Cover-Verfügbarkeit kann für diese Position derzeit nicht bestimmt werden.'],
-	QUOTE_UNAVAILABLE: [503, 'Nexus Mutual hat gerade keine gültige Quote geliefert.']
+	QUOTE_UNAVAILABLE: [503, 'Nexus Mutual hat gerade keine gültige Quote geliefert.'],
+	QUOTE_AMOUNT_TOO_SMALL: [422, 'Für diesen sehr kleinen Betrag kann derzeit keine Nexus-Quote erstellt werden.']
 };
 
 function sessionIssuedAt(session) {
