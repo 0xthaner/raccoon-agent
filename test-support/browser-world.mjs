@@ -14,6 +14,7 @@ import { createRecordingDom } from './recording-dom.mjs';
 import * as walletMethods from '../web/src/wallet-methods.js';
 import * as eoaLogin from '../web/src/eoa-login.js';
 import * as onchainLogin from '../web/src/onchain-login.js';
+import * as dashboardShell from '../web/src/dashboard-shell.js';
 
 const source = (file) => readFileSync(new URL(`../web/src/${file}`, import.meta.url), 'utf8')
 	.replace(/^import [^;]*;\n/gm, '')
@@ -77,7 +78,7 @@ export async function loadPage(file, { search = '', routes = {}, storage = {}, e
 		Function: function (...args) { code.Function.push(args.map(String)); throw new Error('Function constructor called'); },
 		__env: { DEV: false, PROD: true },
 		__import: async (specifier) => { code.imports.push(String(specifier)); if (Object.hasOwn(imports, specifier)) return imports[specifier]; throw new Error(`dynamic import ${specifier} not available in the recording DOM`); },
-		...walletMethods, ...eoaLogin, ...onchainLogin,
+		...walletMethods, ...eoaLogin, ...onchainLogin, ...dashboardShell,
 		startAnalytics: () => {}, mountEye: () => {}
 	};
 	// Ausgangs-DOM ist die echte Vorlage (web/index.html bzw. web/guide.html).

@@ -163,30 +163,123 @@
       body.link-mode .intro { display:none; }
       body.link-mode .connect { width:min(100%,480px); }
       body.link-mode .panel h2 { margin-top:34px; }
+      /* Dashboard (20.10.2026): Seitenleiste mit fuenf Ansichten, mobil eine Leiste am unteren Rand. */
       .dashboard { display: none; width: 100%; }
-      body.dashboard-mode main { display: block; padding-top: 58px; }
+      body.dashboard-mode main { display: block; padding: 44px 0 72px; }
       body.dashboard-mode .intro, body.dashboard-mode .connect { display: none; }
-      body.dashboard-mode .dashboard { display: block; }
-      .dash-head { display: flex; align-items: center; gap: 20px; }
-      .dash-eye { width: 56px; height: 56px; flex: none; cursor: pointer; filter: drop-shadow(0 8px 18px rgba(0,0,0,.5)) drop-shadow(0 0 18px rgba(40,205,150,.16)); }
-      @media (max-width: 560px) { .dash-eye { width: 44px; height: 44px; } .dash-head { gap: 14px; } }
-      .dash-top { display: flex; justify-content: space-between; align-items: end; gap: 30px; margin-bottom: 38px; }
-      .dash-top h1 { font-size: clamp(2.8rem, 6vw, 5.4rem); }
+      body.dashboard-mode .dashboard { display: grid; grid-template-columns: 208px minmax(0, 1fr); gap: 52px; align-items: start; }
+      .dash-nav { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 4px; padding: 8px; border: 1px solid var(--line-soft); border-radius: 16px; background: rgba(13,14,16,.7); }
+      .nav-item { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: var(--silver); text-decoration: none; font-size: .84rem; font-weight: 540; letter-spacing: -.01em; transition: color .15s ease, background .15s ease; }
+      .nav-item:hover { color: var(--white); background: rgba(255,255,255,.035); }
+      .nav-item[aria-current="page"] { color: var(--white); background: rgba(255,255,255,.07); box-shadow: inset 2px 0 0 var(--mint); }
+      .nav-item:focus-visible, .block-link:focus-visible, .ask-card:focus-visible, .inline-link:focus-visible, .attention-action:focus-visible, .channel-action:focus-visible, .text-action:focus-visible, .cover-action:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; }
+      .nav-icon { flex: none; opacity: .85; }
+      .dash-main { min-width: 0; }
+      .dash-view[hidden] { display: none; }
+      .view-head { display: flex; align-items: center; gap: 18px; margin-bottom: 30px; }
+      .view-head .kicker { margin-bottom: 12px; }
+      .view-top { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; margin: 0 0 6px; }
+      .view-title, .dashboard h1.view-title { margin: 0; max-width: none; font-size: clamp(1.9rem, 3.2vw, 2.6rem); font-weight: 540; line-height: 1.08; letter-spacing: -.045em; }
+      .view-title:focus { outline: none; }
+      .view-title:focus-visible { outline: 2px solid var(--mint); outline-offset: 4px; border-radius: 4px; }
+      .view-lead { max-width: 640px; margin: 8px 0 28px; color: var(--silver); font-size: .92rem; line-height: 1.6; }
+      .view-head .view-lead { margin-bottom: 0; }
+      .dash-eye { width: 52px; height: 52px; flex: none; cursor: pointer; filter: drop-shadow(0 8px 18px rgba(0,0,0,.5)) drop-shadow(0 0 18px rgba(40,205,150,.16)); }
       .wallet-chip { color: var(--silver); padding: 12px 15px; border: 1px solid var(--line); border-radius: 999px; font: 500 .68rem/1 ui-monospace,SFMono-Regular,Menlo,monospace; }
-      .metrics { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; background: var(--surface); }
-      .metric { min-height: 135px; padding: 25px; border-right: 1px solid var(--line); }
-      .metric:last-child { border: 0; }
-      .metric span { color: var(--dim); font: 500 .62rem/1 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing: .1em; text-transform: uppercase; }
-      .metric strong { display: block; margin-top: 22px; font-size: 1.45rem; font-weight: 520; letter-spacing: -.04em; }
+      .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: var(--surface); }
+      .metric { min-width: 0; min-height: 128px; padding: 22px 22px 20px; border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+      .metric:last-child { border-right: 0; }
+      .metric span { color: var(--dim); font: 500 .6rem/1.3 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing: .1em; text-transform: uppercase; }
+      .metric strong { display: block; margin-top: 18px; font-size: 1.6rem; font-weight: 540; letter-spacing: -.04em; overflow-wrap: anywhere; }
+      .metric small { margin-top: auto; padding-top: 8px; color: var(--dim); font-size: .7rem; line-height: 1.4; }
+      .dash-block { margin-top: 34px; }
+      .block-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 14px; }
+      .block-head h2, .section-title, .settings-section h2 { margin: 0; font-size: 1.08rem; font-weight: 560; letter-spacing: -.02em; }
+      .section-title { margin: 38px 0 14px; }
+      .section-hint { margin: -6px 0 14px; color: var(--dim); font-size: .74rem; }
+      .block-link, .inline-link { color: var(--silver); font-size: .76rem; text-underline-offset: 3px; }
+      .block-link:hover, .inline-link:hover { color: var(--white); }
+      .attention-list { display: grid; gap: 8px; }
+      .attention-item { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid var(--line); border-left: 2px solid var(--gold); border-radius: 12px; background: rgba(255,217,140,.035); }
+      .attention-item.attention-clear { grid-template-columns: 28px minmax(0, 1fr); border-left-color: var(--mint); background: rgba(124,255,233,.035); }
+      .attention-item.attention-telegram, .attention-item.attention-unknown { border-left-color: var(--silver); background: rgba(255,255,255,.02); }
+      .attention-mark { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; border: 1px solid var(--line); color: var(--gold); font-size: .78rem; }
+      .attention-clear .attention-mark { color: var(--mint); }
+      .attention-telegram .attention-mark, .attention-unknown .attention-mark { color: var(--silver); }
+      .attention-text { margin: 0; color: var(--white); font-size: .84rem; line-height: 1.5; }
+      .attention-action { width: auto; min-height: 36px; padding: 0 13px; border: 1px solid var(--line); border-radius: 9px; color: var(--white); background: transparent; font-size: .74rem; font-weight: 600; white-space: nowrap; }
+      .attention-action:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.22); transform: none; }
+      .pos-table { border: 1px solid var(--line); border-radius: 15px; overflow: hidden; background: rgba(13,14,16,.92); }
+      .pos-row { display: grid; grid-template-columns: minmax(90px, .9fr) minmax(90px, .8fr) minmax(160px, 1.8fr) minmax(110px, 1fr) minmax(170px, 1.3fr); gap: 16px; align-items: center; padding: 15px 20px; border-top: 1px solid var(--line-soft); }
+      .pos-row.pos-head { border-top: 0; padding-top: 12px; padding-bottom: 12px; background: rgba(255,255,255,.02); }
+      .pos-head .pos-cell { color: var(--dim); font: 500 .58rem/1.2 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing: .09em; text-transform: uppercase; }
+      .pos-cell { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+      .pos-label { display: none; }
+      .pos-value { font-size: .86rem; overflow-wrap: anywhere; }
+      .pos-number { font-variant-numeric: tabular-nums; }
+      .pos-sub { color: var(--dim); font-size: .7rem; line-height: 1.4; overflow-wrap: anywhere; }
+      .pos-unread .pos-value { color: var(--silver); }
+      .pos-more { margin: 10px 0 0; color: var(--dim); font-size: .72rem; }
+      .status-badge { display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--silver); font-size: .72rem; font-weight: 560; white-space: nowrap; }
+      .status-mark { font-size: .7rem; }
+      .status-attributed { color: var(--mint); border-color: rgba(124,255,233,.3); }
+      .status-confirm, .status-no-active-cover { color: var(--gold); border-color: rgba(255,217,140,.3); }
+      .status-past { color: var(--dim); }
+      .dash-empty.compact { padding: 18px 20px; text-align: left; font-size: .82rem; }
+      .overview-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 28px; }
+      .ask-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 64px; padding: 10px 10px 10px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--dim); text-decoration: none; transition: border-color .15s ease; }
+      .ask-card:hover { border-color: rgba(255,255,255,.22); }
+      .ask-input { min-width: 0; font-size: .84rem; line-height: 1.45; }
+      .ask-go { flex: none; padding: 11px 14px; border-radius: 9px; color: #08090a; background: var(--white); font-size: .76rem; font-weight: 650; }
+      .activity-list { display: grid; border: 1px solid var(--line-soft); border-radius: 14px; overflow: hidden; }
+      .activity-item { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 13px 16px; border-top: 1px solid var(--line-soft); }
+      .activity-item:first-child { border-top: 0; }
+      .activity-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--silver); }
+      .activity-text { font-size: .8rem; color: var(--white); }
+      .activity-time { color: var(--dim); font: 500 .66rem/1 ui-monospace,SFMono-Regular,Menlo,monospace; }
+      .activity-list .dash-empty { border: 0; }
+      .cover-lines { display: grid; gap: 10px; }
+      .cover-line { display: grid; grid-template-columns: minmax(180px, 1.4fr) minmax(0, 2fr); gap: 16px; align-items: center; padding: 16px 20px; border: 1px solid var(--line); border-radius: 13px; background: rgba(13,14,16,.92); }
+      .cover-line.cover-past { background: transparent; border-style: dashed; }
+      .cover-line-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; font-size: .9rem; overflow-wrap: anywhere; }
+      .cover-line-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+      .cover-fact { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: .82rem; overflow-wrap: anywhere; }
+      .cover-fact small { color: var(--dim); font: 500 .56rem/1.2 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing: .09em; text-transform: uppercase; }
+      .cover-card small.cover-remaining { margin: 7px 0 0; color: var(--silver); font: 400 .72rem/1.3 inherit; letter-spacing: 0; text-transform: none; }
+      .view-note { max-width: 700px; margin: 28px 0 0; color: var(--dim); font-size: .74rem; line-height: 1.55; }
+      .agent-card { max-width: 720px; padding: 28px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(140deg, rgba(124,255,233,.04), rgba(13,14,16,.95) 40%); }
+      .agent-intro { display: flex; gap: 16px; align-items: flex-start; }
+      .agent-mark { width: 44px; height: 44px; flex: none; border-radius: 12px; }
+      .agent-where { margin: 0 0 4px; color: var(--white); font-size: .92rem; line-height: 1.55; }
+      .agent-examples-title { margin: 26px 0 10px; color: var(--dim); font: 500 .6rem/1 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing: .1em; text-transform: uppercase; }
+      .agent-examples { display: grid; gap: 8px; margin-bottom: 22px; }
+      .agent-example { margin: 0; padding: 12px 14px; border: 1px solid var(--line-soft); border-radius: 10px; background: rgba(255,255,255,.02); color: var(--silver); font-size: .84rem; }
+      .agent-action { display: inline-flex; }
+      .agent-safety { margin: 18px 0 0; padding-top: 16px; border-top: 1px solid var(--line-soft); color: var(--dim); font-size: .74rem; line-height: 1.5; }
+      .settings-section { max-width: 760px; margin-top: 30px; padding-top: 26px; border-top: 1px solid var(--line-soft); }
+      .settings-section:first-of-type { margin-top: 22px; }
+      .settings-section h2 { margin-bottom: 12px; }
+      .settings-section .wallet-menu { justify-content: flex-start; gap: 8px; }
+      .settings-section .text-action { min-height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: 9px; color: var(--white); font-size: .76rem; font-weight: 600; text-decoration: none; }
+      .settings-section .text-action:hover { background: rgba(255,255,255,.05); transform: none; }
+      .settings-section .channel-card { margin-top: 0; }
+      .settings-copy { margin: 0 0 12px; color: var(--silver); font-size: .82rem; line-height: 1.55; }
+      .settings-copy:empty { display: none; }
+      .settings-row { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); font-size: .82rem; }
+      .settings-label { color: var(--silver); }
+      .settings-value { color: var(--white); font-weight: 580; text-align: right; overflow-wrap: anywhere; }
+      #notify-details { margin-bottom: 4px; }
+      #notify-details .settings-copy { margin-top: 12px; }
       .channel-card { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:32px; align-items:center; margin-top:18px; padding:27px 28px; border:1px solid var(--line); border-radius:17px; background:linear-gradient(120deg,rgba(124,255,233,.055),rgba(13,14,16,.94) 42%); }
       .channel-copy { display:flex; gap:17px; align-items:flex-start; }
       .channel-icon { display:grid; flex:0 0 auto; place-items:center; width:45px; height:45px; border:1px solid rgba(124,255,233,.2); border-radius:12px; color:var(--mint); background:rgba(124,255,233,.06); font-size:1.05rem; }
-      .channel-card h2 { margin:0; font-size:1.05rem; font-weight:560; letter-spacing:-.02em; }
+      .channel-card h3 { margin:0; font-size:1.05rem; font-weight:560; letter-spacing:-.02em; }
       .channel-card p { max-width:610px; margin:7px 0 0; color:var(--silver); font-size:.8rem; line-height:1.55; }
       .channel-state { display:inline-block; margin-top:10px; color:var(--dim); font:500 .6rem/1 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.09em; text-transform:uppercase; }
       .channel-state.connected { color:var(--mint); }
       .channel-action { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:0 17px; border:1px solid var(--line); border-radius:9px; color:var(--white); text-decoration:none; font-size:.77rem; font-weight:620; white-space:nowrap; }
       .channel-action.primary { color:#08090a; border-color:transparent; background:var(--white); }
+      .channel-action[hidden] { display:none; }
       .covers-head { display:flex; justify-content:space-between; align-items:center; margin:48px 0 17px; }
       .covers-head h2 { margin:0; font-size:1.35rem; font-weight:520; }
       .cover-list { display:grid; gap:12px; }
@@ -303,9 +396,23 @@
         .intro { max-width: 590px; }
         .connect { width: 100%; max-width: 480px; }
         footer { padding: 20px 0; }
-        .dash-top { align-items:flex-start; flex-direction:column; }
-        .metrics { grid-template-columns:1fr; }
-        .metric { min-height:100px; border-right:0; border-bottom:1px solid var(--line); }
+        body.dashboard-mode main { padding: 28px 0 calc(96px + env(safe-area-inset-bottom)); }
+        body.dashboard-mode .dashboard { grid-template-columns: minmax(0, 1fr); gap: 0; }
+        .dash-nav { position: fixed; z-index: 50; top: auto; left: 0; right: 0; bottom: 0; flex-direction: row; gap: 0; padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); border: 0; border-top: 1px solid var(--line); border-radius: 0; background: rgba(8,9,10,.96); backdrop-filter: blur(10px); }
+        .nav-item { flex: 1 1 0; min-width: 0; flex-direction: column; justify-content: center; gap: 4px; min-height: 54px; padding: 4px 2px; font-size: .62rem; text-align: center; }
+        .nav-item span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .nav-item[aria-current="page"] { box-shadow: inset 0 2px 0 var(--mint); }
+        .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .metric { min-height: 112px; padding: 18px; }
+        .metric:nth-child(2n) { border-right: 0; }
+        .metric:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+        .overview-split { grid-template-columns: minmax(0, 1fr); }
+        .pos-table { border: 0; background: transparent; display: grid; gap: 10px; }
+        .pos-row.pos-head { display: none; }
+        .pos-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 16px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: rgba(13,14,16,.92); }
+        .pos-label { display: block; color: var(--dim); font: 500 .56rem/1.2 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing: .09em; text-transform: uppercase; }
+        .pos-position, .pos-status { grid-column: 1 / -1; }
+        .cover-line { grid-template-columns: minmax(0, 1fr); }
         .cover-card { grid-template-columns:1fr 1fr; }
         .cover-action { grid-column:1/-1; }
         .channel-card { grid-template-columns:1fr; gap:20px; }
@@ -328,6 +435,15 @@
         .footer-intelligence { text-align: left; }
         .cover-card { grid-template-columns:1fr; }
         .cover-action { grid-column:auto; }
+        .view-head { gap: 14px; margin-bottom: 24px; }
+        .dash-eye { width: 42px; height: 42px; }
+        .metric strong { font-size: 1.35rem; }
+        .attention-item { grid-template-columns: 26px minmax(0, 1fr); }
+        .attention-action { grid-column: 2; justify-self: start; }
+        .ask-card { flex-direction: column; align-items: stretch; padding: 14px; }
+        .ask-go { text-align: center; }
+        .cover-line-facts { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+        .agent-card { padding: 20px 18px; }
       }
       @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } .verify-dot { animation: none; box-shadow: 0 0 9px rgba(124,255,233,.45); } }
     </style>
@@ -384,28 +500,119 @@
         </section>
 
         <section class="dashboard" id="dashboard" aria-label="Persönliches Cover-Dashboard">
-          <div class="dash-top"><div class="dash-head"><canvas class="dash-eye" id="dash-eye" aria-hidden="true"></canvas><div><p class="kicker" id="dash-kicker">Persönliches Dashboard</p><h1 id="dash-title"><span data-teil="0">Dein Cover,</span><br><em data-teil="1">immer im Blick.</em></h1></div></div><div class="wallet-menu"><span class="wallet-chip" id="dash-wallet"></span><button class="text-action" id="switch-wallet">Wallet wechseln</button><button class="text-action" id="logout">Abmelden</button></div></div>
-          <div class="metrics">
-            <div class="metric"><span id="label-active">Aktive Covers</span><strong id="metric-active">—</strong></div>
-            <div class="metric"><span id="label-expiry">Nächster Ablauf</span><strong id="metric-expiry">—</strong></div>
-            <div class="metric"><span id="label-telegram">Telegram-Überwachung</span><strong id="metric-telegram">—</strong></div>
-          </div>
-          <section class="channel-card" aria-labelledby="telegram-title">
-            <div class="channel-copy">
-              <span class="channel-icon" aria-hidden="true">➤</span>
-              <div>
-                <h2 id="telegram-title">Telegram-Benachrichtigungen</h2>
-                <p id="telegram-copy">Erhalte Erinnerungen, ohne laufend das Dashboard prüfen zu müssen.</p>
-                <span class="channel-state" id="telegram-state">Verbindung wird geprüft …</span>
+          <nav class="dash-nav" id="dash-nav" aria-label="Dashboard-Navigation">
+            <a class="nav-item" href="#overview" data-view-link="overview" aria-current="page"><svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span id="nav-overview">Übersicht</span></a>
+            <a class="nav-item" href="#positions" data-view-link="positions"><svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M21 19H3"/></svg><span id="nav-positions">Positionen</span></a>
+            <a class="nav-item" href="#covers" data-view-link="covers"><svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z"/></svg><span id="nav-covers">Covers</span></a>
+            <a class="nav-item" href="#agent" data-view-link="agent"><svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01"/></svg><span id="nav-agent">Agent</span></a>
+            <a class="nav-item" href="#settings" data-view-link="settings"><svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14.3 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5a7 7 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2 1.2l.4 2.6h4l.4-2.6a7 7 0 0 0 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></svg><span id="nav-settings">Einstellungen</span></a>
+          </nav>
+          <div class="dash-main">
+            <section class="dash-view" id="view-overview" aria-labelledby="dash-title">
+              <div class="view-head">
+                <canvas class="dash-eye" id="dash-eye" aria-hidden="true"></canvas>
+                <div><p class="kicker" id="dash-kicker">Persönliches Dashboard</p><h1 class="view-title" tabindex="-1" data-view-heading id="dash-title"><span data-teil="0">Cover-Übersicht</span></h1><p class="view-lead" id="overview-lead">Deine Positionen, Covers und anstehenden Abläufe auf einen Blick.</p></div>
               </div>
-            </div>
-            <a class="channel-action" id="telegram-action" hidden></a>
-          </section>
-          <div class="covers-head"><h2 id="protection-title">Deine Covers</h2><span class="tag" id="checked-at"></span></div>
-          <div class="cover-list" id="cover-list"></div>
-          <div class="covers-head"><h2 id="positions-title">DeFi-Positionen</h2><span class="tag" id="positions-checked"></span></div>
-          <div class="position-list" id="position-list"></div>
-          <div class="dash-actions" id="dash-actions"></div>
+              <div class="metrics">
+                <div class="metric"><span id="label-positions">Erkannte Positionen</span><strong id="metric-positions">—</strong><small id="metric-positions-note"></small></div>
+                <div class="metric"><span id="label-active">Aktive Covers</span><strong id="metric-active">—</strong><small id="metric-active-note">Nexus Mutual</small></div>
+                <div class="metric"><span id="label-uncovered">Ohne aktives Cover</span><strong id="metric-uncovered">—</strong><small id="metric-uncovered-note"></small></div>
+                <div class="metric"><span id="label-expiry">Nächster Ablauf</span><strong id="metric-expiry">—</strong><small id="metric-expiry-note"></small></div>
+              </div>
+              <section class="dash-block" aria-labelledby="attention-title">
+                <div class="block-head"><h2 id="attention-title">Zu beachten</h2></div>
+                <div class="attention-list" id="attention-list"></div>
+              </section>
+              <section class="dash-block" aria-labelledby="preview-title">
+                <div class="block-head"><h2 id="preview-title">Positionen</h2><a class="block-link" id="preview-link" href="#positions">Alle Positionen ansehen</a></div>
+                <div id="positions-preview"></div>
+              </section>
+              <div class="overview-split">
+                <section class="dash-block ask-block" aria-labelledby="ask-title">
+                  <div class="block-head"><h2 id="ask-title">CoverRaccoon fragen</h2></div>
+                  <a class="ask-card" href="#agent" aria-labelledby="ask-title ask-link"><span class="ask-input" id="ask-placeholder">Frag nach deinen Positionen, Cover-Optionen oder Bedingungen …</span><span class="ask-go" id="ask-link">Zum Agent</span></a>
+                </section>
+                <section class="dash-block" aria-labelledby="activity-title">
+                  <div class="block-head"><h2 id="activity-title">Letzte Aktivität</h2></div>
+                  <div class="activity-list" id="activity-list"></div>
+                </section>
+              </div>
+            </section>
+
+            <section class="dash-view" id="view-positions" aria-labelledby="positions-title" hidden>
+              <div class="view-top"><h1 class="view-title" tabindex="-1" data-view-heading id="positions-title">DeFi-Positionen</h1><span class="tag" id="positions-checked"></span></div>
+              <p class="view-lead" id="positions-lead">Erkannte DeFi-Positionen dieser Wallet und ob dafür ein aktives Cover zugeordnet ist.</p>
+              <div id="positions-table"></div>
+              <h2 class="section-title" id="positions-details-title">Details und Cover-Zuordnung</h2>
+              <div class="position-list" id="position-list"></div>
+            </section>
+
+            <section class="dash-view" id="view-covers" aria-labelledby="protection-title" hidden>
+              <div class="view-top"><h1 class="view-title" tabindex="-1" data-view-heading id="protection-title">Deine Covers</h1><span class="tag" id="checked-at"></span></div>
+              <h2 class="section-title" id="covers-active-title">Aktiv</h2>
+              <div class="cover-list" id="cover-list"></div>
+              <h2 class="section-title" id="covers-expiring-title">Läuft bald ab</h2>
+              <p class="section-hint" id="covers-expiring-hint">Aktive Covers, die innerhalb von 30 Tagen ablaufen.</p>
+              <div class="cover-lines" id="covers-expiring"></div>
+              <h2 class="section-title" id="covers-past-title">Vergangen</h2>
+              <div class="cover-lines" id="covers-past"></div>
+              <p class="view-note" id="covers-note"></p>
+            </section>
+
+            <section class="dash-view" id="view-agent" aria-labelledby="agent-title" hidden>
+              <div class="view-top"><h1 class="view-title" tabindex="-1" data-view-heading id="agent-title">CoverRaccoon Agent</h1></div>
+              <p class="view-lead" id="agent-lead">Frag nach deinen Positionen, Cover-Optionen und Bedingungen.</p>
+              <div class="agent-card">
+                <div class="agent-intro">
+                  <img class="agent-mark" src="/holo-raccoon.svg" alt="" />
+                  <div><p class="agent-where" id="agent-where"></p><span class="channel-state" id="agent-state"></span></div>
+                </div>
+                <p class="agent-examples-title" id="agent-examples-title">Zum Beispiel</p>
+                <div class="agent-examples">
+                  <p class="agent-example" id="agent-example-1"></p>
+                  <p class="agent-example" id="agent-example-2"></p>
+                  <p class="agent-example" id="agent-example-3"></p>
+                </div>
+                <a class="channel-action primary agent-action" id="agent-action" hidden></a>
+                <p class="settings-copy" id="agent-missing"></p>
+                <p class="agent-safety" id="agent-safety"></p>
+              </div>
+            </section>
+
+            <section class="dash-view" id="view-settings" aria-labelledby="settings-title" hidden>
+              <div class="view-top"><h1 class="view-title" tabindex="-1" data-view-heading id="settings-title">Einstellungen</h1></div>
+              <section class="settings-section" aria-labelledby="settings-wallet-title">
+                <h2 id="settings-wallet-title">Wallet</h2>
+                <p class="settings-copy" id="settings-wallet-copy">Mit dieser Wallet bist du angemeldet.</p>
+                <div class="wallet-menu"><span class="wallet-chip" id="dash-wallet"></span><button class="text-action" id="switch-wallet">Wallet wechseln</button><button class="text-action" id="logout">Abmelden</button></div>
+              </section>
+              <section class="settings-section" aria-labelledby="settings-telegram-title">
+                <h2 id="settings-telegram-title">Telegram</h2>
+                <section class="channel-card" aria-labelledby="telegram-title">
+                  <div class="channel-copy">
+                    <span class="channel-icon" aria-hidden="true">➤</span>
+                    <div>
+                      <h3 id="telegram-title">Telegram-Benachrichtigungen</h3>
+                      <p id="telegram-copy">Erhalte Erinnerungen, ohne laufend das Dashboard prüfen zu müssen.</p>
+                      <span class="channel-state" id="telegram-state">Verbindung wird geprüft …</span>
+                    </div>
+                  </div>
+                  <a class="channel-action" id="telegram-action" hidden></a>
+                </section>
+                <div class="dash-actions" id="dash-actions"></div>
+              </section>
+              <section class="settings-section" aria-labelledby="settings-notifications-title">
+                <h2 id="settings-notifications-title">Benachrichtigungen</h2>
+                <div class="settings-row"><span class="settings-label" id="label-telegram">Telegram-Überwachung</span><strong class="settings-value" id="metric-telegram">—</strong></div>
+                <div id="notify-details"></div>
+              </section>
+              <section class="settings-section" aria-labelledby="settings-security-title">
+                <h2 id="settings-security-title">Sicherheit</h2>
+                <p class="settings-copy" id="security-copy"></p>
+                <p class="settings-copy" id="security-signout"></p>
+              </section>
+            </section>
+          </div>
         </section>
       </main>
 
