@@ -446,6 +446,113 @@
         .agent-card { padding: 20px 18px; }
       }
       @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } .verify-dot { animation: none; box-shadow: 0 0 9px rgba(124,255,233,.45); } }
+      /* Oeffentliche Landingpage: nur .landing und .lp-*; das Dashboard bleibt unberuehrt. */
+      body:not(.dashboard-mode):not(.link-mode) main { display: block; padding: 0 0 88px; }
+      body.dashboard-mode .landing { display: none; }
+      body.link-mode .landing > section:not(.lp-final), body.link-mode .lp-final-copy { display: none; }
+      body.link-mode .lp-final { display: block; margin: 0; padding: 0; border: 0; background: none; }
+      .landing { display: grid; gap: clamp(88px, 11vw, 136px); }
+      .landing [id] { scroll-margin-top: 24px; }
+      .landing section:focus { outline: none; }
+      .lp-hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: clamp(40px, 6vw, 88px); align-items: center; padding-top: clamp(56px, 7vw, 92px); }
+      .lp-hero h1 { max-width: 640px; font-size: clamp(2.7rem, 4.9vw, 4.6rem); line-height: 1.01; letter-spacing: -.055em; }
+      .lp-hero .lead { max-width: 540px; }
+      .lp-cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+      .lp-cta { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 20px; border: 1px solid var(--line); border-radius: 12px; color: var(--white); background: rgba(255,255,255,.03); font-size: .86rem; font-weight: 560; text-decoration: none; transition: background .2s, border-color .2s; }
+      .lp-cta:hover { border-color: rgba(240,241,239,.24); background: rgba(255,255,255,.06); }
+      .lp-cta-primary { color: var(--black); background: var(--white); border-color: var(--white); }
+      .lp-cta-primary:hover { background: #dfe1de; border-color: #dfe1de; }
+      .lp-cta:focus-visible, .landing a:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; }
+      .lp-hero .principles { margin-top: 38px; }
+      .lp-hero .principle span { color: var(--silver); }
+      .lp-preview { margin: 0; min-width: 0; }
+      .lp-window { border: 1px solid var(--line); border-radius: 20px; background: linear-gradient(180deg, rgba(20,21,24,.98), rgba(12,13,15,.98)); box-shadow: 0 40px 110px rgba(0,0,0,.45); overflow: hidden; }
+      .lp-window-bar { display: flex; align-items: center; gap: 6px; padding: 12px 16px; border-bottom: 1px solid var(--line-soft); }
+      .lp-window-bar span { width: 8px; height: 8px; border-radius: 50%; background: rgba(240,241,239,.14); }
+      .lp-window-bar b { margin-left: auto; padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--silver); font: 500 .6rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; }
+      .lp-window-body { display: grid; gap: 12px; padding: 20px; }
+      .lp-pv-title { margin: 0; color: var(--white); font-size: 1.02rem; font-weight: 600; letter-spacing: -.02em; }
+      .lp-pv-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+      .lp-pv-metrics div { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line-soft); border-radius: 12px; background: rgba(255,255,255,.02); min-width: 0; }
+      .lp-pv-metrics small { color: var(--silver); font-size: .64rem; line-height: 1.25; }
+      .lp-pv-metrics strong { color: var(--white); font-size: 1.15rem; font-weight: 560; letter-spacing: -.02em; }
+      .lp-pv-label { margin: 4px 0 0; color: var(--silver); font: 500 .6rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; text-transform: uppercase; }
+      .lp-pv-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line-soft); border-radius: 10px; color: var(--white); font-size: .76rem; }
+      .lp-pv-mark { display: inline-grid; place-items: center; width: 20px; height: 20px; flex: none; border: 1px solid rgba(255,217,140,.4); border-radius: 50%; color: var(--gold); font-size: .66rem; }
+      .lp-pv-rows { display: grid; border: 1px solid var(--line-soft); border-radius: 12px; overflow: hidden; }
+      .lp-pv-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 11px 12px; color: var(--white); font-size: .76rem; }
+      .lp-pv-row + .lp-pv-row { border-top: 1px solid var(--line-soft); }
+      .lp-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px; font-size: .64rem; white-space: nowrap; }
+      .lp-badge-ok { color: var(--mint); background: rgba(124,255,233,.08); }
+      .lp-badge-warn { color: var(--gold); background: rgba(255,217,140,.08); }
+      .lp-pv-ask { display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; border: 1px solid var(--line); border-radius: 12px; color: var(--silver); font-size: .76rem; }
+      .lp-pv-ask-go { color: var(--white); }
+      .lp-preview figcaption { margin-top: 12px; color: var(--silver); font-size: .72rem; text-align: center; }
+      .lp-kicker { margin: 0 0 14px; color: var(--mint); font: 530 .66rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .13em; text-transform: uppercase; }
+      .lp-h2 { max-width: 720px; margin: 0; color: var(--white); font-size: clamp(1.9rem, 3.2vw, 2.85rem); font-weight: 520; line-height: 1.08; letter-spacing: -.045em; }
+      .lp-copy { max-width: 560px; margin: 18px 0 0; color: var(--silver); font-size: 1rem; line-height: 1.65; }
+      .lp-note { max-width: 720px; margin: 22px 0 0; color: var(--silver); font-size: .78rem; line-height: 1.6; }
+      .lp-steps, .lp-caps, .lp-dash, .lp-trust-list, .lp-final-points { margin: 0; padding: 0; list-style: none; }
+      .lp-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 40px; }
+      .lp-step-card, .lp-cap, .lp-dash-card, .lp-trust-list li { padding: 24px; border: 1px solid var(--line-soft); border-radius: 18px; background: rgba(255,255,255,.018); min-width: 0; }
+      .lp-step-no { color: var(--mint); font: 560 .74rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+      .landing h3 { margin: 14px 0 0; color: var(--white); font-size: 1.02rem; font-weight: 580; letter-spacing: -.02em; }
+      .landing li p, .lp-dash-card p { margin: 8px 0 0; color: var(--silver); font-size: .84rem; line-height: 1.55; }
+      .lp-caps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 40px; }
+      .lp-cap { padding: 20px; }
+      .lp-cap h3 { margin-top: 14px; font-size: .92rem; }
+      .lp-icon { display: block; color: var(--mint); }
+      .lp-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(36px, 6vw, 88px); align-items: center; }
+      .lp-chat { display: grid; gap: 14px; padding: 22px; border: 1px solid var(--line); border-radius: 20px; background: rgba(13,14,16,.96); }
+      .lp-chat-demo { justify-self: start; margin: 0; padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--silver); font: 500 .6rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; }
+      .lp-msg small { display: block; margin-bottom: 5px; color: var(--silver); font-size: .66rem; }
+      .lp-msg p { margin: 0; color: var(--white); font-size: .88rem; line-height: 1.55; }
+      .lp-msg-user { justify-self: end; max-width: 82%; padding: 12px 15px; border-radius: 16px 16px 4px 16px; background: rgba(255,255,255,.07); }
+      .lp-msg-bot { display: flex; gap: 12px; align-items: flex-start; max-width: 92%; }
+      .lp-msg-bot img { width: 30px; height: 30px; flex: none; }
+      .lp-msg-bot > div { padding: 12px 15px; border: 1px solid var(--line-soft); border-radius: 4px 16px 16px 16px; }
+      .lp-msg-bot .lp-msg-follow { margin-top: 8px; color: var(--silver); }
+      .lp-dash { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 40px; }
+      .lp-mini { display: grid; gap: 6px; height: 88px; padding: 12px; border: 1px solid var(--line-soft); border-radius: 12px; background: rgba(0,0,0,.25); align-content: start; }
+      .lp-mini i { display: block; height: 8px; border-radius: 4px; background: rgba(240,241,239,.09); }
+      .lp-mini i:nth-child(2) { width: 72%; }
+      .lp-mini i:nth-child(3) { width: 48%; }
+      .lp-mini .lp-mini-metrics { height: 26px; background: linear-gradient(90deg, rgba(124,255,233,.16) 0 23%, transparent 23% 25.5%, rgba(240,241,239,.09) 25.5% 48.5%, transparent 48.5% 51%, rgba(240,241,239,.09) 51% 74%, transparent 74% 76.5%, rgba(240,241,239,.09) 76.5%); }
+      .lp-mini-table i { width: 100% !important; height: 12px; }
+      .lp-mini-table i:first-child { background: rgba(124,255,233,.16); }
+      .lp-mini-covers i { height: 16px; }
+      .lp-mini-covers i:first-child { background: rgba(124,255,233,.16); }
+      .lp-mini-chat i { height: 18px; width: 60% !important; }
+      .lp-mini-chat i:nth-child(2) { justify-self: end; background: rgba(124,255,233,.16); }
+      .lp-trust { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: clamp(32px, 5vw, 72px); align-items: start; }
+      .lp-trust .lp-note { grid-column: 1 / -1; margin-top: 0; }
+      .lp-trust-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .lp-trust-list li h3 { margin-top: 0; }
+      .lp-source-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+      .lp-source { display: grid; gap: 6px; padding: 16px 20px; border: 1px solid var(--line); border-radius: 14px; color: var(--white); font-size: .95rem; font-weight: 560; }
+      .lp-source small { color: var(--silver); font: 500 .6rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; }
+      .lp-final { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 480px); gap: clamp(40px, 7vw, 120px); align-items: center; padding: clamp(32px, 5vw, 64px); border: 1px solid var(--line-soft); border-radius: 28px; background: rgba(255,255,255,.015); }
+      .lp-final-points { display: grid; gap: 10px; margin-top: 26px; }
+      .lp-final-points li { display: flex; align-items: center; gap: 10px; color: var(--white); font-size: .88rem; }
+      .lp-final-points li::before { content: "✓"; color: var(--mint); font-size: .8rem; }
+      @media (max-width: 1100px) {
+        .lp-caps, .lp-dash { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      @media (max-width: 900px) {
+        .lp-hero, .lp-split, .lp-trust, .lp-final { grid-template-columns: minmax(0, 1fr); }
+        .lp-hero { padding-top: 48px; }
+        .lp-steps { grid-template-columns: minmax(0, 1fr); }
+        .lp-final { padding: 28px 20px; }
+      }
+      @media (max-width: 520px) {
+        .landing { gap: 76px; }
+        .lp-hero h1 { font-size: clamp(2.35rem, 11vw, 3rem); }
+        .lp-cta { flex: 1 1 100%; }
+        .lp-caps, .lp-dash, .lp-trust-list { grid-template-columns: minmax(0, 1fr); }
+        .lp-pv-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .lp-window-body { padding: 14px; }
+        .lp-final { padding: 0; border: 0; background: none; }
+      }
     </style>
   </head>
   <body>
@@ -456,48 +563,166 @@
       </header>
 
       <main>
-        <section class="intro">
-          <p class="kicker" id="intro-kicker">Unabhängige DeFi-Cover-Überwachung</p>
-          <h1 id="intro-title"><span data-teil="0">Covers, </span><em data-teil="1">immer im Blick.</em></h1>
-          <p class="lead" id="intro-lead">Öffne dein persönliches Dashboard und aktiviere auf Wunsch Telegram-Erinnerungen.</p>
-          <div class="signal"></div>
-          <div class="principles" aria-label="Sicherheitsmerkmale">
-            <div class="principle"><strong>READ ONLY</strong><span id="principle-wallet">Wallet bleibt unberührt</span></div>
-            <div class="principle"><strong>KEIN WERT</strong><span id="principle-signature">Nur eine Signatur</span></div>
-            <div class="principle"><strong>PRIVAT</strong><span id="principle-alerts">Hinweise über Telegram</span></div>
-          </div>
-        </section>
+        <div class="landing" id="landing">
+          <section class="lp-hero" aria-labelledby="intro-title">
+            <div class="intro lp-hero-copy">
+              <p class="kicker" id="intro-kicker">Unabhängige DeFi-Cover-Überwachung</p>
+              <h1 id="intro-title"><span data-teil="0">Onchain-Risiken verstehen. </span><em data-teil="1">Cover finden. Im Blick behalten.</em></h1>
+              <p class="lead" id="intro-lead">CoverRaccoon zeigt dir deine DeFi-Positionen, passende Cover-Optionen und deine aktiven Covers – ohne deine Assets zu verwahren.</p>
+              <div class="lp-cta-row">
+                <a class="lp-cta lp-cta-primary" href="#connect" data-scroll="connect" data-l="ctaOpen">Dashboard öffnen</a>
+                <a class="lp-cta" href="#how" data-scroll="how" data-l="ctaHow">So funktioniert’s</a>
+              </div>
+              <div class="principles" aria-label="Sicherheitsmerkmale">
+                <div class="principle"><strong data-l="principle1">NUR LESEN</strong><span id="principle-wallet">Wallet bleibt unberührt</span></div>
+                <div class="principle"><strong data-l="principle2">KEIN TRANSFER</strong><span id="principle-signature">Nur eine Signatur</span></div>
+                <div class="principle"><strong data-l="principle3">PRIVAT</strong><span id="principle-alerts">Hinweise über Telegram</span></div>
+              </div>
+            </div>
+            <figure class="lp-preview" aria-labelledby="lp-preview-caption">
+              <div class="lp-window" aria-hidden="true">
+                <div class="lp-window-bar"><span></span><span></span><span></span><b data-l="previewDemo">Demo</b></div>
+                <div class="lp-window-body">
+                  <p class="lp-pv-title" data-l="pvTitle">Cover-Übersicht</p>
+                  <div class="lp-pv-metrics">
+                    <div><small data-l="pvPositions">Positionen</small><strong>2</strong></div>
+                    <div><small data-l="pvActive">Aktive Covers</small><strong>1</strong></div>
+                    <div><small data-l="pvUncovered">Ohne aktives Cover</small><strong>1</strong></div>
+                    <div><small data-l="pvExpiry">Nächster Ablauf</small><strong data-l="pvExpiryValue">12 Tage</strong></div>
+                  </div>
+                  <p class="lp-pv-label" data-l="pvAttention">Zu beachten</p>
+                  <div class="lp-pv-item"><span class="lp-pv-mark">!</span><span data-l="pvItem1">Aave v3 · Lido: kein aktives Cover</span></div>
+                  <div class="lp-pv-item"><span class="lp-pv-mark">◷</span><span data-l="pvItem2">Cover läuft in 12 Tagen ab</span></div>
+                  <div class="lp-pv-rows">
+                    <div class="lp-pv-row"><span>Aave v3 · Core</span><span class="lp-badge lp-badge-ok">● <span data-l="pvStatusAttributed">Cover zugeordnet</span></span></div>
+                    <div class="lp-pv-row"><span>Aave v3 · Lido</span><span class="lp-badge lp-badge-warn">○ <span data-l="pvStatusNone">Kein aktives Cover</span></span></div>
+                  </div>
+                  <div class="lp-pv-ask"><span data-l="pvAsk">CoverRaccoon fragen …</span><span class="lp-pv-ask-go">→</span></div>
+                </div>
+              </div>
+              <figcaption id="lp-preview-caption" data-l="previewCaption">Beispielansicht mit Demo-Daten</figcaption>
+            </figure>
+          </section>
 
-        <section class="connect" aria-label="Wallet verbinden">
-          <div class="panel">
-            <div class="panel-head">
-              <img class="mark" src="/holo-raccoon.svg" alt="Holografisches Raccoon-Agent-Logo" />
-              <span class="step">01 · Identität</span>
+          <section class="lp-section" id="how" tabindex="-1" aria-labelledby="lp-how-title">
+            <p class="lp-kicker" data-l="howKicker">So funktioniert’s</p>
+            <h2 class="lp-h2" id="lp-how-title" data-l="howTitle">Drei Schritte zu deiner Cover-Übersicht</h2>
+            <ol class="lp-steps">
+              <li class="lp-step-card"><span class="lp-step-no">01</span><h3 data-l="how1Title">Erkennen</h3><p data-l="how1Copy">Verbinde deine Wallet und sieh deine unterstützten Onchain-Positionen – derzeit Aave v3 auf Ethereum.</p></li>
+              <li class="lp-step-card"><span class="lp-step-no">02</span><h3 data-l="how2Title">Cover prüfen</h3><p data-l="how2Copy">Sieh dir passende Cover-Optionen an und lies die maßgeblichen Bedingungen nach.</p></li>
+              <li class="lp-step-card"><span class="lp-step-no">03</span><h3 data-l="how3Title">Im Blick behalten</h3><p data-l="how3Copy">Behalte aktive Covers, Ablaufdaten und Erinnerungen im Blick.</p></li>
+            </ol>
+          </section>
+
+          <section class="lp-section" aria-labelledby="lp-cap-title">
+            <p class="lp-kicker" data-l="capKicker">Funktionen</p>
+            <h2 class="lp-h2" id="lp-cap-title" data-l="capTitle">Wobei CoverRaccoon dir hilft</h2>
+            <ul class="lp-caps">
+              <li class="lp-cap"><svg class="lp-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><h3 data-l="cap1">Unterstützte DeFi-Positionen erkennen</h3><p data-l="cap1Copy">Derzeit Aave v3 auf Ethereum, live aus der Blockchain.</p></li>
+              <li class="lp-cap"><svg class="lp-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M21 19H3"/></svg><h3 data-l="cap2">Onchain-Exposure verstehen</h3><p data-l="cap2Copy">Einlagen, Schulden und Nettowert je Markt.</p></li>
+              <li class="lp-cap"><svg class="lp-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z"/></svg><h3 data-l="cap3">Passende Cover-Optionen finden</h3><p data-l="cap3Copy">Produkte und Quotes von Nexus Mutual, soweit verfügbar.</p></li>
+              <li class="lp-cap"><svg class="lp-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></svg><h3 data-l="cap4">Cover-Bedingungen nachlesen</h3><p data-l="cap4Copy">Wording und Annex direkt aus der Quelle.</p></li>
+              <li class="lp-cap"><svg class="lp-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg><h3 data-l="cap5">Aktive Covers im Blick</h3><p data-l="cap5Copy">Betrag, Asset und Status deiner Covers.</p></li>
+              <li class="lp-cap"><svg class="lp-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg><h3 data-l="cap6">Ablaufdaten verfolgen</h3><p data-l="cap6Copy">Was bald ausläuft, siehst du zuerst.</p></li>
+              <li class="lp-cap"><svg class="lp-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><h3 data-l="cap7">Erinnerungen erhalten</h3><p data-l="cap7Copy">Vor dem Ablauf, über Telegram.</p></li>
+              <li class="lp-cap"><svg class="lp-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg><h3 data-l="cap8">Den CoverRaccoon Agent fragen</h3><p data-l="cap8Copy">Fragen zu Positionen, Covers und Bedingungen.</p></li>
+            </ul>
+            <p class="lp-note" data-l="capNote">Nicht jedes Protokoll und nicht jedes Risiko wird unterstützt. Ein passendes Produkt bedeutet nicht, dass ein bestimmter Verlust gedeckt ist; maßgeblich sind allein die Bedingungen des Anbieters.</p>
+          </section>
+
+          <section class="lp-section lp-split" aria-labelledby="lp-agent-title">
+            <div class="lp-split-copy">
+              <p class="lp-kicker" data-l="agentKicker">CoverRaccoon Agent</p>
+              <h2 class="lp-h2" id="lp-agent-title" data-l="agentTitle">Frag einfach nach.</h2>
+              <p class="lp-copy" data-l="agentCopy">Der Agent kennt deine verbundenen Positionen und Covers und erklärt sie in klaren Worten. Er liest nur und fragt nie nach einer Transaktion.</p>
+              <p class="lp-note" data-l="agentWhere">Heute antwortet der Agent in deinem privaten Telegram-Chat.</p>
             </div>
-            <h2>Wallet verbinden</h2>
-            <p class="panel-copy">Eine Signatur bestätigt die Wallet und öffnet dein persönliches Dashboard.</p>
-            <p class="link-account" id="link-account" hidden></p>
-            <p class="login-paused" id="login-paused" hidden></p>
-            <div class="actions">
-              <button id="walletconnect">Mit Wallet verbinden</button>
-              <button id="injected" class="secondary">Browser-Wallet verwenden</button>
+            <div class="lp-chat">
+              <p class="lp-chat-demo" data-l="agentDemo">Beispiel</p>
+              <div class="lp-msg lp-msg-user"><small data-l="agentUserLabel">Du</small><p data-l="agentQ">Ist meine Aave-Position derzeit abgedeckt?</p></div>
+              <div class="lp-msg lp-msg-bot"><img src="/holo-raccoon.svg" alt="" /><div><small data-l="agentBotLabel">CoverRaccoon</small><p data-l="agentA">Ich habe deine Aave-v3-Position gefunden. Ihr ist derzeit kein aktives Cover zugeordnet.</p><p class="lp-msg-follow" data-l="agentFollow">Möchtest du passende Cover-Optionen sehen?</p></div></div>
             </div>
-            <div id="status" aria-live="polite"></div>
-            <div class="security">
-              <svg width="13" height="15" viewBox="0 0 13 15" fill="none" aria-hidden="true"><rect x="1" y="6" width="11" height="8" rx="2" stroke="currentColor"/><path d="M3.5 6V4a3 3 0 0 1 6 0v2" stroke="currentColor"/></svg>
-              <span>Keine Transaktion und keine Freigabe. Gas nur, wenn eine Safe die Anmeldung on-chain bestätigt.</span>
+          </section>
+
+          <section class="lp-section" aria-labelledby="lp-dash-title">
+            <p class="lp-kicker" data-l="dashKicker">Nach dem Login</p>
+            <h2 class="lp-h2" id="lp-dash-title" data-l="dashTitle">Das siehst du in deinem Dashboard</h2>
+            <ul class="lp-dash">
+              <li class="lp-dash-card"><div class="lp-mini" aria-hidden="true"><i class="lp-mini-metrics"></i><i></i><i></i></div><h3 data-l="dash1">Übersicht</h3><p data-l="dash1Copy">Kennzahlen, Hinweise und anstehende Abläufe auf einen Blick.</p></li>
+              <li class="lp-dash-card"><div class="lp-mini lp-mini-table" aria-hidden="true"><i></i><i></i><i></i><i></i></div><h3 data-l="dash2">Positionen</h3><p data-l="dash2Copy">Deine erkannten Positionen mit Nettowert und Cover-Status.</p></li>
+              <li class="lp-dash-card"><div class="lp-mini lp-mini-covers" aria-hidden="true"><i></i><i></i><i></i></div><h3 data-l="dash3">Covers</h3><p data-l="dash3Copy">Aktive, bald ablaufende und vergangene Covers.</p></li>
+              <li class="lp-dash-card"><div class="lp-mini lp-mini-chat" aria-hidden="true"><i></i><i></i></div><h3 data-l="dash4">Agent</h3><p data-l="dash4Copy">Der direkte Weg zu deinem CoverRaccoon Agent.</p></li>
+            </ul>
+          </section>
+
+          <section class="lp-section lp-trust" aria-labelledby="lp-trust-title">
+            <div class="lp-trust-head">
+              <p class="lp-kicker" data-l="trustKicker">Sicherheit</p>
+              <h2 class="lp-h2" id="lp-trust-title" data-l="trustTitle">Nicht-verwahrend, von Grund auf</h2>
+              <p class="lp-copy" data-l="trustLead">Deine Wallet bleibt deine.</p>
             </div>
-            <details class="verify">
-              <summary><span class="verify-dot" aria-hidden="true"></span><span id="verify-title">Woran erkenne ich eine echte Anfrage?</span></summary>
-              <ol class="verify-list">
-                <li id="verify-1">Es ist eine Signatur, keine Transaktion: kein Betrag, keine Freigabe. Bei einer Safe kann Safe{Wallet} daraus eine SignMessageLib-On-chain-Bestätigung machen: Sie kann Gas kosten, bewegt aber keinen Wert und erteilt keine Tokenfreigabe.</li>
-                <li id="verify-2">Die Nachricht beginnt mit „coverraccoon.com wants you to sign in“, und die Adresszeile zeigt coverraccoon.com.</li>
-                <li id="verify-3">Kein „Permit“, kein „Approve“, kein Token-Betrag und kein unlesbarer Hex-Text. Siehst du so etwas, brich ab.</li>
-                <li id="verify-4">Links zum Verbinden einer Wallet kommen nur aus deinem privaten Chat mit dem Raccoon-Agent-Bot.</li>
-              </ol>
-            </details>
-          </div>
-        </section>
+            <ul class="lp-trust-list">
+              <li><h3 data-l="trust1">Keine privaten Schlüssel</h3><p data-l="trust1Copy">CoverRaccoon kennt und speichert weder private Schlüssel noch Seed Phrases.</p></li>
+              <li><h3 data-l="trust2">Keine Verwahrung</h3><p data-l="trust2Copy">Deine Assets bleiben in deiner Wallet. CoverRaccoon bewegt nichts.</p></li>
+              <li><h3 data-l="trust3">Eine Signatur zur Anmeldung</h3><p data-l="trust3Copy">Keine Transaktion und keine Token-Freigabe. Was deine Wallet betrifft, bestätigst du selbst; bei einer Safe kann die Bestätigung on-chain Gas kosten.</p></li>
+              <li><h3 data-l="trust4">Cover von Drittanbietern</h3><p data-l="trust4Copy">Covers stammen von Nexus Mutual. Es gelten allein deren Bedingungen; CoverRaccoon verkauft und vermittelt nichts.</p></li>
+            </ul>
+            <p class="lp-note" data-l="trustNote">CoverRaccoon ist experimentell und in Entwicklung. Angezeigte Daten ohne Gewähr.</p>
+          </section>
+
+          <section class="lp-section lp-sources" aria-labelledby="lp-prov-title">
+            <p class="lp-kicker" data-l="provKicker">Datenquellen</p>
+            <h2 class="lp-h2" id="lp-prov-title" data-l="provTitle">Cover-Optionen von Protokollen wie Nexus Mutual</h2>
+            <p class="lp-copy" data-l="provCopy">Positionen und Covers werden live von Ethereum und von Nexus Mutual gelesen. CoverRaccoon ist ein unabhängiges Werkzeug. Nexus Mutual ist keine Versicherung.</p>
+            <div class="lp-source-row">
+              <span class="lp-source"><small data-l="provPositions">Positionen</small>Aave v3 · Ethereum</span>
+              <span class="lp-source"><small data-l="provCovers">Cover</small>Nexus Mutual</span>
+            </div>
+          </section>
+
+          <section class="lp-final" aria-labelledby="lp-final-title">
+            <div class="lp-final-copy">
+              <p class="lp-kicker" data-l="finalKicker">Loslegen</p>
+              <h2 class="lp-h2" id="lp-final-title" data-l="finalTitle">Sieh deine Cover-Übersicht</h2>
+              <p class="lp-copy" data-l="finalCopy">Verbinde deine Wallet, um deine unterstützten Positionen und verfügbaren Cover-Optionen zu sehen.</p>
+              <ul class="lp-final-points">
+                <li data-l="finalPoint1">Eine Signatur, keine Transaktion</li>
+                <li data-l="finalPoint2">Kein Konto, keine E-Mail</li>
+                <li data-l="finalPoint3">Abmelden jederzeit</li>
+              </ul>
+            </div>
+              <section class="connect" id="connect" tabindex="-1" aria-label="Wallet verbinden">
+                <div class="panel">
+                  <div class="panel-head">
+                    <img class="mark" src="/holo-raccoon.svg" alt="Holografisches Raccoon-Agent-Logo" />
+                    <span class="step">01 · Identität</span>
+                  </div>
+                  <h2>Wallet verbinden</h2>
+                  <p class="panel-copy">Eine Signatur bestätigt die Wallet und öffnet dein persönliches Dashboard.</p>
+                  <p class="link-account" id="link-account" hidden></p>
+                  <p class="login-paused" id="login-paused" hidden></p>
+                  <div class="actions">
+                    <button id="walletconnect">Mit Wallet verbinden</button>
+                    <button id="injected" class="secondary">Browser-Wallet verwenden</button>
+                  </div>
+                  <div id="status" aria-live="polite"></div>
+                  <div class="security">
+                    <svg width="13" height="15" viewBox="0 0 13 15" fill="none" aria-hidden="true"><rect x="1" y="6" width="11" height="8" rx="2" stroke="currentColor"/><path d="M3.5 6V4a3 3 0 0 1 6 0v2" stroke="currentColor"/></svg>
+                    <span>Keine Transaktion und keine Freigabe. Gas nur, wenn eine Safe die Anmeldung on-chain bestätigt.</span>
+                  </div>
+                  <details class="verify">
+                    <summary><span class="verify-dot" aria-hidden="true"></span><span id="verify-title">Woran erkenne ich eine echte Anfrage?</span></summary>
+                    <ol class="verify-list">
+                      <li id="verify-1">Es ist eine Signatur, keine Transaktion: kein Betrag, keine Freigabe. Bei einer Safe kann Safe{Wallet} daraus eine SignMessageLib-On-chain-Bestätigung machen: Sie kann Gas kosten, bewegt aber keinen Wert und erteilt keine Tokenfreigabe.</li>
+                      <li id="verify-2">Die Nachricht beginnt mit „coverraccoon.com wants you to sign in“, und die Adresszeile zeigt coverraccoon.com.</li>
+                      <li id="verify-3">Kein „Permit“, kein „Approve“, kein Token-Betrag und kein unlesbarer Hex-Text. Siehst du so etwas, brich ab.</li>
+                      <li id="verify-4">Links zum Verbinden einer Wallet kommen nur aus deinem privaten Chat mit dem Raccoon-Agent-Bot.</li>
+                    </ol>
+                  </details>
+                </div>
+              </section>
+          </section>
+        </div>
 
         <section class="dashboard" id="dashboard" aria-label="Persönliches Cover-Dashboard">
           <nav class="dash-nav" id="dash-nav" aria-label="Dashboard-Navigation">
@@ -654,5 +879,6 @@
   </div>
 </div>
 <script type="module" src="/src/main.js"></script>
+<script type="module" src="/src/landing.js"></script>
   </body>
 </html>
