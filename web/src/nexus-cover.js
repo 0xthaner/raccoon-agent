@@ -18,13 +18,21 @@ const TEXTS = {
 		provider: 'Nexus Mutual', loading: 'Loading cover details…', getQuote: 'Get quote', quoting: 'Requesting quote…',
 		neutral: 'Cover availability cannot currently be determined for this position.',
 		failed: 'Cover details could not be loaded right now.',
-		protocol: 'Position protocol', network: 'Network', exposure: 'Economic exposure (deposits − debt)', suggested: 'Suggested cover amount',
+		protocol: 'Position protocol', network: 'Network', exposure: 'Suggested exposure (deposits − debt)', suggested: 'Suggested cover amount',
 		asset: 'Cover asset', amount: 'Cover amount', duration: 'Duration (days)', days: 'days', premium: 'Premium', annual: 'Annual price',
 		capacity: 'Available capacity', maxAmount: 'Maximum selectable', proofOfLoss: 'Proof of loss requirement', grace: 'Grace period',
 		wording: 'Cover wording (Nexus Mutual)', annex: 'Product annex', terms: 'Terms', noAsset: 'No cover asset can be selected for this position.',
 		conversion: 'Converted with the Aave oracle price', quoteFor: 'Quote', fetched: 'Quoted at', validUntil: 'Valid until',
 		stale: 'This quote has expired. Request a new quote.', fresh: 'Indicative live quote from Nexus Mutual.',
 		pol: { address: 'Wallet address(es) must be designated when cover is purchased.' },
+		readiness: 'Cover through CoverRaccoon', readinessBlocked: 'Not available yet',
+		readinessReasons: {
+			NEXUS_TERMS_UNCONFIRMED: 'Nexus Mutual has not yet confirmed the required terms.',
+			NEXUS_PROOF_OF_LOSS_UNCONFIRMED: 'Nexus Mutual has not yet confirmed how proof of loss is handled.',
+			WALLET_EXECUTION_NOT_AVAILABLE: 'Confirming in your wallet is not enabled yet.',
+			MARKET_NOT_IN_SCOPE: 'Not offered for this market yet.',
+			NO_SUGGESTED_EXPOSURE: 'No suggested exposure for this position.'
+		},
 		polOther: 'Required proof-of-loss input:',
 		disclaimer: 'Suggested cover amount is an estimate based on detected economic exposure. It does not guarantee that the same amount would be payable in a claim. Nexus Mutual terms and claim assessment govern.',
 		termsNote: 'The linked wording and annex are the binding terms; nothing on this page replaces them.',
@@ -38,13 +46,21 @@ const TEXTS = {
 		provider: 'Nexus Mutual', loading: 'Cover-Details werden geladen …', getQuote: 'Quote abrufen', quoting: 'Quote wird abgerufen …',
 		neutral: 'Die Cover-Verfügbarkeit kann für diese Position derzeit nicht bestimmt werden.',
 		failed: 'Cover-Details konnten gerade nicht geladen werden.',
-		protocol: 'Protokoll der Position', network: 'Netzwerk', exposure: 'Wirtschaftliches Engagement (Einlagen − Schulden)', suggested: 'Vorgeschlagene Cover-Summe',
+		protocol: 'Protokoll der Position', network: 'Netzwerk', exposure: 'Vorgeschlagenes Engagement (Einlagen − Schulden)', suggested: 'Vorgeschlagene Cover-Summe',
 		asset: 'Cover-Asset', amount: 'Cover-Summe', duration: 'Laufzeit (Tage)', days: 'Tage', premium: 'Prämie', annual: 'Jahrespreis',
 		capacity: 'Verfügbare Kapazität', maxAmount: 'Höchstens wählbar', proofOfLoss: 'Nachweis im Schadensfall', grace: 'Nachfrist',
 		wording: 'Cover-Bedingungen (Nexus Mutual)', annex: 'Produkt-Anhang', terms: 'Bedingungen', noAsset: 'Für diese Position ist kein Cover-Asset wählbar.',
 		conversion: 'Umgerechnet mit dem Aave-Orakelpreis', quoteFor: 'Quote', fetched: 'Abgerufen um', validUntil: 'Gültig bis',
 		stale: 'Diese Quote ist abgelaufen. Bitte eine neue Quote abrufen.', fresh: 'Unverbindliche Live-Quote von Nexus Mutual.',
 		pol: { address: 'Beim Abschluss des Covers müssen Wallet-Adresse(n) angegeben werden.' },
+		readiness: 'Abschluss über CoverRaccoon', readinessBlocked: 'Noch nicht möglich',
+		readinessReasons: {
+			NEXUS_TERMS_UNCONFIRMED: 'Nexus Mutual hat die erforderlichen Bedingungen noch nicht bestätigt.',
+			NEXUS_PROOF_OF_LOSS_UNCONFIRMED: 'Nexus Mutual hat den Umgang mit dem Schadensnachweis noch nicht bestätigt.',
+			WALLET_EXECUTION_NOT_AVAILABLE: 'Die Bestätigung in der Wallet ist noch nicht freigeschaltet.',
+			MARKET_NOT_IN_SCOPE: 'Für diesen Markt noch nicht angeboten.',
+			NO_SUGGESTED_EXPOSURE: 'Für diese Position gibt es kein vorgeschlagenes Engagement.'
+		},
 		polOther: 'Erforderliche Angaben für den Nachweis:',
 		disclaimer: 'Die vorgeschlagene Cover-Summe ist eine Schätzung auf Basis des erkannten wirtschaftlichen Engagements. Sie garantiert nicht, dass im Schadensfall derselbe Betrag ausgezahlt würde. Es gelten die Bedingungen und die Schadensprüfung von Nexus Mutual.',
 		termsNote: 'Verbindlich sind die verlinkten Bedingungen und der Anhang; nichts auf dieser Seite ersetzt sie.',
@@ -121,6 +137,10 @@ export function createCoverPanel({ deploymentKey, post, language = 'en', now = (
 		}
 		row(figures, t.proofOfLoss, proofOfLossText(d.proofOfLoss?.inputTypes));
 		row(figures, t.grace, `${text(d.gracePeriodDays)} ${t.days}`);
+		if (d.readiness && d.readiness.status !== 'READY') {
+			const reasons = (Array.isArray(d.readiness.reasons) ? d.readiness.reasons : []).map((code) => t.readinessReasons[code]).filter(Boolean);
+			row(figures, t.readiness, t.readinessBlocked, reasons.join(' ') || undefined);
+		}
 
 		const terms = el(root, 'div', 'cover-terms');
 		el(terms, 'small', 'figure-label', t.terms);

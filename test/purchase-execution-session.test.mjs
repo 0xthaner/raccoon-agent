@@ -23,7 +23,8 @@ const WALLET = RW.WALLET, OTHER = RW.OTHER;
 const BROKER = '0xcb2b736652d2dbf7d72e4db880cf6b7d99507814';
 const USDC = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
 const NOW = TS + 5, BUILT_AT = TS - 10, DEADLINE = TS + 110;
-const intent = (patch = {}) => RW.intent({ id: ID, quoteFetchedAt: TS - 60, capacityFetchedAt: TS - 60, acknowledgedAt: TS - 50, expiresAt: TS + 550, ...patch });
+// Quote und Kapazitaet bis TS + 40 frisch (60/120-Aufloesung): NOW = TS + 5 liegt darin.
+const intent = (patch = {}) => RW.intent({ id: ID, quoteFetchedAt: TS - 20, capacityFetchedAt: TS - 20, acknowledgedAt: TS - 15, expiresAt: TS + 550, ...patch });
 
 const BUY_DATA = RW.calldata(WALLET);
 const ERC20 = parseAbi(['function approve(address spender, uint256 amount) returns (bool)']);
@@ -219,10 +220,11 @@ test('P4H-SESSION-TTL the session lives at most 30 s and never past build_deadli
 	assert.equal(S.SESSION_TTL_SECONDS, 30);
 	const base = await parts();
 	assert.equal(create(base).session.expiresAt, NOW + 30);
-	// Deadline naeher als 30 s
-	const nearDeadline = create(base, { now: DEADLINE - 10 });
-	assert.equal(nearDeadline.status, 'SESSION_CREATED');
-	assert.equal(nearDeadline.session.expiresAt, DEADLINE);
+	// Deadline naeher als 30 s (und vor dem Ende der Quote-Frische bei TS + 40)
+	const shortBuild = await parts(row({ build_deadline: TS + 20 }));
+	const nearDeadline = create(shortBuild, { now: TS + 10 });
+	assert.equal(nearDeadline.status, 'SESSION_CREATED', JSON.stringify(nearDeadline.errors));
+	assert.equal(nearDeadline.session.expiresAt, TS + 20);
 	// expires_at naeher als Deadline und 30 s
 	const nearExpiry = await parts(row({ built_at: TS - 100, build_deadline: TS + 15 }, { expiresAt: TS + 15 }));
 	const e = create(nearExpiry);
@@ -239,6 +241,32 @@ test('P4H-SESSION-TTL the session lives at most 30 s and never past build_deadli
 	// Verlaengerung ist nicht moeglich: expiresAt ist gebunden, eine Aenderung macht die Sitzung ungueltig
 	const s = create(base).session;
 	assert.equal(S.checkSessionUse({ session: { ...s, expiresAt: s.expiresAt + 60 }, now: NOW, consumed: new Set() }), 'TAMPERED');
+});
+
+test('AAVE-FRESH-SESSION a session never outlives the 60 s quote and capacity freshness; a stale quote gets no session', async () => {
+	// Quote 50 s vor TS: frisch bis TS + 10, also kuerzer als 30 s ab NOW = TS + 5
+	const old = await parts(row({}, { quoteFetchedAt: TS - 50, capacityFetchedAt: TS - 50, acknowledgedAt: TS - 45 }));
+	const s = create(old);
+	assert.equal(s.status, 'SESSION_CREATED', JSON.stringify(s.errors));
+	assert.equal(s.session.expiresAt, TS + 10);
+	assert.equal(S.checkSessionUse({ session: s.session, now: TS + 9, consumed: new Set() }), 'USABLE');
+	assert.equal(S.checkSessionUse({ session: s.session, now: TS + 10, consumed: new Set() }), 'EXPIRED');
+	// Kapazitaet aelter als die Quote: die aeltere Zeit begrenzt
+	const cap = create(await parts(row({}, { quoteFetchedAt: TS - 20, capacityFetchedAt: TS - 52, acknowledgedAt: TS - 15 })));
+	assert.equal(cap.session.expiresAt, TS + 8);
+	// ab 60 s keine Sitzung, auch wenn Build-Deadline und Intent noch laufen
+	for (const now of [TS + 10, TS + 11, DEADLINE - 1]) {
+		const x = create(old, { now });
+		assert.equal(x.status, 'PURCHASE_REJECTED', String(now - TS));
+		assert.ok(x.errors.includes('QUOTE_STALE_FOR_EXECUTION'), x.errors.join());
+		assert.equal(x.session, null);
+	}
+	// jede Sitzung endet spaetestens 60 s nach dem aelteren Abruf
+	for (const at of [TS - 54, TS - 40, TS - 20, TS]) {
+		const made = create(await parts(row({}, { quoteFetchedAt: at, capacityFetchedAt: at, acknowledgedAt: at })));
+		assert.equal(made.status, 'SESSION_CREATED', String(at - TS));
+		assert.equal(made.session.expiresAt, Math.min(NOW + 30, at + 60), String(at - TS));
+	}
 });
 
 /* ---------------------------------------------------- Aufrufer, Einmal -- */

@@ -14,7 +14,8 @@ const I = await import('../src/purchase-intent.mjs');
 const D = await import('../src/purchase-intent-db.mjs');
 
 const T0 = 1_792_400_000;
-const NOW = T0 + 60;
+// Quote und Kapazitaet bei T0, frisch bis T0 + 60 (exklusiv; 60/120-Aufloesung).
+const NOW = T0 + 30;
 const ID = '0b9e6f1c-3d2a-4f5b-8c7d-1e2f3a4b5c6d';
 const WALLET = '0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed';
 const TEST_CID = 'QmQPWELjoGp6zqfrELz2xeafuPgtSBfvVF1pjX3DvuFsah';
@@ -118,15 +119,38 @@ test('P4H-LOAD-HASH the stored intent hash must equal the P4A recomputation; the
 });
 
 test('P4H-LOAD-EXPIRY expires_at and build_deadline are exclusive bounds; no extension', async () => {
-	const r = row();
+	// Deadline vor dem Ende der Quote-Frische, damit nur die Deadline greift
+	const r = row({ built_at: T0 + 15, build_deadline: T0 + 45 });
 	assert.equal((await load(found(r), { now: r.build_deadline - 1 })).res.status, 'LOADED');
 	assert.equal((await load(found(r), { now: r.build_deadline })).res.status, 'BUILD_DEADLINE_EXPIRED');
 	assert.equal((await load(found(r), { now: r.build_deadline + 100 })).res.status, 'BUILD_DEADLINE_EXPIRED');
 	// Deadline gleich expires_at: expires_at zuerst
-	const tight = row({ built_at: T0 + 500, build_deadline: T0 + 610 });
-	assert.equal((await load(found(tight), { now: T0 + 609 })).res.status, 'LOADED');
-	assert.equal((await load(found(tight), { now: T0 + 610 })).res.status, 'INTENT_EXPIRED');
+	const tight = row({ built_at: T0 + 20, build_deadline: T0 + 50 }, { expiresAt: T0 + 50 });
+	assert.equal((await load(found(tight), { now: T0 + 49 })).res.status, 'LOADED');
+	assert.equal((await load(found(tight), { now: T0 + 50 })).res.status, 'INTENT_EXPIRED');
 	for (const now of [0, -1, 1.5, '1792400060', null]) assert.equal((await load(found(row()), { now })).res.status, 'INVALID_INPUT');
+});
+
+test('AAVE-FRESH-LOADER quote and capacity must be younger than 60 s for any execution step, although the build window is 120 s', async () => {
+	assert.equal(L.EXECUTION_QUOTE_MAX_AGE_SECONDS, 60);
+	assert.equal(L.EXECUTION_QUOTE_MAX_AGE_SECONDS, I.QUOTE_MAX_AGE_SECONDS);
+	const r = row(); // gebaut T0 + 20, Deadline T0 + 140: das Build-Fenster reicht weit ueber die Quote-Frische hinaus
+	assert.equal((await load(found(r), { now: T0 + 59 })).res.status, 'LOADED');
+	for (const now of [T0 + 60, T0 + 61, T0 + 139]) {
+		const { res } = await load(found(r), { now });
+		assert.equal(res.status, 'QUOTE_STALE_FOR_EXECUTION', String(now - T0));
+		assert.equal(res.purchase, null);
+	}
+	// die aeltere der beiden Zeiten zaehlt: Kapazitaet 5 s vor der Quote
+	const olderCapacity = row({}, { capacityFetchedAt: T0 - 5 });
+	assert.equal((await load(found(olderCapacity), { now: T0 + 54 })).res.status, 'LOADED');
+	assert.equal((await load(found(olderCapacity), { now: T0 + 55 })).res.status, 'CAPACITY_STALE_FOR_EXECUTION');
+	assert.equal(L.executionFreshUntil(intent({ capacityFetchedAt: T0 - 5 })), T0 + 55);
+	assert.equal(L.executionFreshUntil(intent()), T0 + 60);
+	// auch ein spaeterer Schritt prueft erneut
+	const { res } = await load(found(r), { now: T0 + 30 });
+	assert.equal(L.recheckPurchase(res.purchase, T0 + 59).ok, true);
+	assert.equal(L.recheckPurchase(res.purchase, T0 + 60).status, 'QUOTE_STALE_FOR_EXECUTION');
 });
 
 test('P4H-LOAD-CLIENT only intentId (and the server clock) are inputs; every caller copy is refused before any read', async () => {
@@ -180,7 +204,7 @@ test('P4H-LOADER-STATIC the loader reads only through its one repository method;
 	assert.doesNotMatch(source, /approve\(|buyCover|markBuilt|markSubmitted|markConfirmed|markFailed|\.rpc\(|\.from\(|\.query\(|\.update\(|process\.env|fetch\(|cover_purchase_intent|Date\.now|new Date/);
 	assert.deepEqual([...source.matchAll(/^import .* from '([^']+)';$/gm)].map((m) => m[1]), ['./purchase-intent.mjs']);
 	assert.equal(source.match(/repository\.\w+\(/g).length, 1);
-	assert.deepEqual(Object.keys(L).sort(), ['EXPECTED_TERMS_VERSION', 'LOADER_STATUSES', 'loadPurchaseForExecution', 'recheckPurchase']);
+	assert.deepEqual(Object.keys(L).sort(), ['EXECUTION_QUOTE_MAX_AGE_SECONDS', 'EXPECTED_TERMS_VERSION', 'LOADER_STATUSES', 'executionFreshUntil', 'loadPurchaseForExecution', 'recheckPurchase']);
 	// der P4D-Helfer ruft genau die feste Lesefunktion
 	assert.match(read('src/purchase-intent-db.mjs'), /export async function loadIntentForExecution\(client, \{ id \}\) \{\n\treturn call\(client, 'get_cover_purchase_intent_for_execution', \{ p_id: wantId\(id\) \}\);\n\}/);
 });

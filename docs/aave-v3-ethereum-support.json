@@ -1,0 +1,105 @@
+{
+	"scope": "Aave v3 · Ethereum mainnet (chainId 1)",
+	"nexusProductId": 97,
+	"markets": [
+		{
+			"deploymentKey": "aave-v3-ethereum-core",
+			"market": "Aave v3 Ethereum Core",
+			"class": "SUPPORTED",
+			"positionDetection": "YES",
+			"exposure": "YES",
+			"nexusMapping": "MATCHED",
+			"nexusProductId": 97,
+			"capacity": "YES",
+			"quote": "YES",
+			"quoteAssets": [
+				"ETH",
+				"USDC",
+				"cbBTC"
+			],
+			"purchaseAssets": [
+				"USDC"
+			],
+			"terms": "BLOCKED_EXTERNAL",
+			"proofOfLoss": "BLOCKED_EXTERNAL",
+			"purchaseExecution": "NO",
+			"coverMonitoring": "YES"
+		},
+		{
+			"deploymentKey": "aave-v3-ethereum-lido",
+			"market": "Aave v3 Ethereum Lido / Prime",
+			"class": "SUPPORTED",
+			"positionDetection": "YES",
+			"exposure": "YES",
+			"nexusMapping": "AMBIGUOUS",
+			"nexusProductId": null,
+			"capacity": "NO",
+			"quote": "NO",
+			"quoteAssets": [],
+			"purchaseAssets": [],
+			"terms": "NOT_APPLICABLE",
+			"proofOfLoss": "NOT_APPLICABLE",
+			"purchaseExecution": "NO",
+			"coverMonitoring": "YES"
+		},
+		{
+			"deploymentKey": "aave-v3-ethereum-etherfi",
+			"market": "Aave v3 Ethereum EtherFi",
+			"class": "SUPPORTED",
+			"positionDetection": "YES",
+			"exposure": "YES",
+			"nexusMapping": "AMBIGUOUS",
+			"nexusProductId": null,
+			"capacity": "NO",
+			"quote": "NO",
+			"quoteAssets": [],
+			"purchaseAssets": [],
+			"terms": "NOT_APPLICABLE",
+			"proofOfLoss": "NOT_APPLICABLE",
+			"purchaseExecution": "NO",
+			"coverMonitoring": "YES"
+		}
+	],
+	"excluded": [
+		{
+			"scope": "aave-v2-ethereum",
+			"class": "DEPRECATED",
+			"reason": "AAVE_V2_NOT_V3; Nexus product 2 (aave v2) is deprecated"
+		},
+		{
+			"scope": "aave-v4",
+			"class": "UNSUPPORTED",
+			"reason": "AAVE_V4_NOT_MAPPED; Nexus product 449 is a separate product"
+		},
+		{
+			"scope": "aave-v3-ethereum-horizon",
+			"class": "UNSUPPORTED",
+			"reason": "HORIZON_PERMISSIONED_RWA_MARKET"
+		},
+		{
+			"scope": "aave-v3-other-chains",
+			"class": "UNSUPPORTED",
+			"reason": "ONLY_ETHEREUM_MAINNET (Arbitrum, Base, Optimism, Polygon, Avalanche and all others excluded)"
+		}
+	],
+	"externalBlockers": [
+		{
+			"id": "CR-TERMS-002",
+			"area": "TERMS",
+			"status": "UNRESOLVED",
+			"summary": "Nexus has not confirmed the distributor / point-of-sale wording, the restricted-country acknowledgement and the membership-at-claim text"
+		},
+		{
+			"id": "CR-POL-002",
+			"area": "PROOF_OF_LOSS",
+			"status": "UNRESOLVED",
+			"summary": "Nexus has not confirmed proof-of-loss metadata semantics for product 97 (claimability without metadata, creator/owner, idempotency, retention)"
+		},
+		{
+			"id": "CR-PURCHASE-008/P3",
+			"area": "WALLET_EXECUTION",
+			"status": "UNRESOLVED",
+			"summary": "no wallet execution path exists; transaction code is out of scope until Nexus answers"
+		}
+	]
+}

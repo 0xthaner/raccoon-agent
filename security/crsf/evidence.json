@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zk",
+	"crsf_version": "1.0-draft-phase2zl",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -10224,6 +10224,177 @@
 			],
 			"coverage": "PARTIAL",
 			"reason_for_partial": "CR-PURCHASE-005[P13]: mutation cases: MUT-CR-PURCHASE-005-P13-P4JTWOATTEMPTS, MUT-CR-PURCHASE-005-P13-P4JUNCERTAINRETRY, MUT-CR-PURCHASE-005-P13-P4JCROSSINTENT, MUT-CR-PURCHASE-005-P13-P4JAPPROVALSUBMITS, MUT-CR-PURCHASE-005-P13-P4JBUYUNBOUND, MUT-CR-PURCHASE-005-P13-P4JDIFFREQUEST, MUT-CR-PURCHASE-005-P13-P4JBACKWARDS, MUT-CR-PURCHASE-005-P13-P4JCLEARTXHASH, MUT-CR-PURCHASE-005-P13-P4JKINDMUTABLE, MUT-CR-PURCHASE-005-P13-P4JSESSIONMUTABLE, MUT-CR-PURCHASE-005-P13-P4JGENERICUPDATE, MUT-CR-PURCHASE-005-P13-P4JUNCERTAINTERMINAL, MUT-CR-PURCHASE-005-P13-P4JSTARTTWICE, MUT-CR-PURCHASE-005-P13-P4JNOWALLETBUSY, MUT-CR-PURCHASE-005-P13-P4JUNCERTAINWALLETBIND, MUT-CR-PURCHASE-005-P13-P4JNOQUIET, MUT-CR-PURCHASE-005-P13-P4JAPPROVALUNVERIFIED, MUT-CR-PURCHASE-005-P13-P4JSTALEPRESEND, MUT-CR-PURCHASE-005-P13-P4JALLOWANCE, MUT-CR-PURCHASE-005-P13-P4JLATEAPPROVAL, MUT-CR-PURCHASE-005-P13-P4JSTARTEDMUTABLE"
+		},
+		{
+			"id": "EV-AAVE-READINESS",
+			"control_ids": [
+				"CR-NEXUS-007"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/aave-cover-readiness.test.mjs",
+			"test_or_proof": "test/aave-cover-readiness.test.mjs, test/purchase-runtime-loader.test.mjs (AAVE-FRESH-LOADER), test/purchase-execution-session.test.mjs (AAVE-FRESH-SESSION)",
+			"property_proven": "Offline against the captured Nexus product/capacity responses: the three registry markets and their live-verified provider/pool pins; other chains, v2, v4, Horizon, fuzzy names and conflicting pools fail closed; only Core is MATCHED to product 97, Lido/Prime and EtherFi AMBIGUOUS, client product ids ignored; exposure exact in BigInt incl. 0.1+0.2-0.3 and 21-digit values, debt subtracted, floored at zero, floats and mismatched totals invalid; quotes bounded by exposure/capacity and 28..365 days; freshness strictly below 60 s; with every technical condition met the decision is BLOCKED by exactly the Terms/PoL and external blockers, every missing condition adds its own reason, unknown override fields are refused; external blockers agree with the CRSF record; cover details show BLOCKED with neutral reasons; ACTIVE_COVER only via a confirmed attribution of an unexpired product-97 cover of the same wallet; expiry days and the existing Telegram thresholds; the support matrix file equals the implementation; the execution loader refuses quote/capacity at 60 s inside the 120 s build window and every session ends at the older fetch time + 60 s.",
+			"property_not_proven": "live Aave and Nexus state at run time (the scope was checked live on 20.10.2026 at block 26235509, not in CI); Nexus' answers to CR-TERMS-002 and CR-POL-002; any wallet execution (none exists); the user's wallet confirmation delay after the wallet request started",
+			"covers": [
+				{
+					"control": "CR-NEXUS-007",
+					"properties": [
+						"P1",
+						"P2",
+						"P3",
+						"P4",
+						"P5",
+						"P6"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/aave-cover-readiness.test.mjs",
+					"test/purchase-runtime-loader.test.mjs",
+					"test/purchase-execution-session.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			},
+			"coverage": "FULL",
+			"reason_for_partial": null
+		},
+		{
+			"id": "EV-KB-AAVE-READINESS",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 27 case(s)",
+			"property_proven": "Each listed weakening of the Aave scope, mapping, exposure, readiness, cover status and 60 s execution bound is detected by its intended test: unsupported chain, v2 as v3, Horizon in the registry, fuzzy protocol name, wrong product, client product id, float exposure, ignored debt, negative exposure, stale capacity, stale quote, asset outside the allowlist, Terms/PoL blockers bypassed, unexpected PoL types, READY despite external blockers, a blocker marked resolved, foreign wallet, other chain, cover of another market, expired cover, covers of another wallet, stale quote or capacity in the execution loader, session outliving the freshness, freshness ignoring older capacity, readiness missing in the details.",
+			"property_not_proven": "other conceivable weakenings beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-NEXUS-007",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-NEXUS-007-P1-AVCHAIN, MUT-CR-NEXUS-007-P1-AVV2ASV3, MUT-CR-NEXUS-007-P1-AVHORIZON, MUT-CR-NEXUS-007-P1-AVFUZZY"
+				},
+				{
+					"control": "CR-NEXUS-007",
+					"properties": [
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-NEXUS-007-P2-AVWRONGPRODUCT, MUT-CR-NEXUS-007-P2-AVCLIENTPID"
+				},
+				{
+					"control": "CR-NEXUS-007",
+					"properties": [
+						"P3"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-NEXUS-007-P3-AVFLOAT, MUT-CR-NEXUS-007-P3-AVNODEBT, MUT-CR-NEXUS-007-P3-AVNEGATIVE"
+				},
+				{
+					"control": "CR-NEXUS-007",
+					"properties": [
+						"P4"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-NEXUS-007-P4-AVSTALECAP, MUT-CR-NEXUS-007-P4-AVSTALEQUOTE, MUT-CR-NEXUS-007-P4-AVASSET, MUT-CR-NEXUS-007-P4-AVTERMS, MUT-CR-NEXUS-007-P4-AVPOL, MUT-CR-NEXUS-007-P4-AVPOLTYPES, MUT-CR-NEXUS-007-P4-AVREADYEXT, MUT-CR-NEXUS-007-P4-AVEXTRESOLVED, MUT-CR-NEXUS-007-P4-AVWALLET, MUT-CR-NEXUS-007-P4-AVCHAINREASON, MUT-CR-NEXUS-007-P4-AVDETAILS"
+				},
+				{
+					"control": "CR-NEXUS-007",
+					"properties": [
+						"P5"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-NEXUS-007-P5-AVFALSEMATCH, MUT-CR-NEXUS-007-P5-AVEXPIRED, MUT-CR-NEXUS-007-P5-AVCOVERWALLET"
+				},
+				{
+					"control": "CR-NEXUS-007",
+					"properties": [
+						"P6"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-NEXUS-007-P6-AVLOADQUOTE, MUT-CR-NEXUS-007-P6-AVLOADCAP, MUT-CR-NEXUS-007-P6-AVSESSIONTTL, MUT-CR-NEXUS-007-P6-AVFRESHQUOTEONLY"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-NEXUS-007-P1-AVCHAIN",
+					"MUT-CR-NEXUS-007-P1-AVV2ASV3",
+					"MUT-CR-NEXUS-007-P1-AVHORIZON",
+					"MUT-CR-NEXUS-007-P1-AVFUZZY",
+					"MUT-CR-NEXUS-007-P2-AVWRONGPRODUCT",
+					"MUT-CR-NEXUS-007-P2-AVCLIENTPID",
+					"MUT-CR-NEXUS-007-P3-AVFLOAT",
+					"MUT-CR-NEXUS-007-P3-AVNODEBT",
+					"MUT-CR-NEXUS-007-P3-AVNEGATIVE",
+					"MUT-CR-NEXUS-007-P4-AVSTALECAP",
+					"MUT-CR-NEXUS-007-P4-AVSTALEQUOTE",
+					"MUT-CR-NEXUS-007-P4-AVASSET",
+					"MUT-CR-NEXUS-007-P4-AVTERMS",
+					"MUT-CR-NEXUS-007-P4-AVPOL",
+					"MUT-CR-NEXUS-007-P4-AVPOLTYPES",
+					"MUT-CR-NEXUS-007-P4-AVREADYEXT",
+					"MUT-CR-NEXUS-007-P4-AVEXTRESOLVED",
+					"MUT-CR-NEXUS-007-P4-AVWALLET",
+					"MUT-CR-NEXUS-007-P4-AVCHAINREASON",
+					"MUT-CR-NEXUS-007-P5-AVFALSEMATCH",
+					"MUT-CR-NEXUS-007-P5-AVEXPIRED",
+					"MUT-CR-NEXUS-007-P5-AVCOVERWALLET",
+					"MUT-CR-NEXUS-007-P6-AVLOADQUOTE",
+					"MUT-CR-NEXUS-007-P6-AVLOADCAP",
+					"MUT-CR-NEXUS-007-P6-AVSESSIONTTL",
+					"MUT-CR-NEXUS-007-P6-AVFRESHQUOTEONLY",
+					"MUT-CR-NEXUS-007-P4-AVDETAILS"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-NEXUS-007"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-NEXUS-007[P1]: mutation cases: MUT-CR-NEXUS-007-P1-AVCHAIN, MUT-CR-NEXUS-007-P1-AVV2ASV3, MUT-CR-NEXUS-007-P1-AVHORIZON, MUT-CR-NEXUS-007-P1-AVFUZZY; CR-NEXUS-007[P2]: mutation cases: MUT-CR-NEXUS-007-P2-AVWRONGPRODUCT, MUT-CR-NEXUS-007-P2-AVCLIENTPID; CR-NEXUS-007[P3]: mutation cases: MUT-CR-NEXUS-007-P3-AVFLOAT, MUT-CR-NEXUS-007-P3-AVNODEBT, MUT-CR-NEXUS-007-P3-AVNEGATIVE; CR-NEXUS-007[P4]: mutation cases: MUT-CR-NEXUS-007-P4-AVSTALECAP, MUT-CR-NEXUS-007-P4-AVSTALEQUOTE, MUT-CR-NEXUS-007-P4-AVASSET, MUT-CR-NEXUS-007-P4-AVTERMS, MUT-CR-NEXUS-007-P4-AVPOL, MUT-CR-NEXUS-007-P4-AVPOLTYPES, MUT-CR-NEXUS-007-P4-AVREADYEXT, MUT-CR-NEXUS-007-P4-AVEXTRESOLVED, MUT-CR-NEXUS-007-P4-AVWALLET, MUT-CR-NEXUS-007-P4-AVCHAINREASON, MUT-CR-NEXUS-007-P4-AVDETAILS; CR-NEXUS-007[P5]: mutation cases: MUT-CR-NEXUS-007-P5-AVFALSEMATCH, MUT-CR-NEXUS-007-P5-AVEXPIRED, MUT-CR-NEXUS-007-P5-AVCOVERWALLET; CR-NEXUS-007[P6]: mutation cases: MUT-CR-NEXUS-007-P6-AVLOADQUOTE, MUT-CR-NEXUS-007-P6-AVLOADCAP, MUT-CR-NEXUS-007-P6-AVSESSIONTTL, MUT-CR-NEXUS-007-P6-AVFRESHQUOTEONLY"
 		}
 	]
 }

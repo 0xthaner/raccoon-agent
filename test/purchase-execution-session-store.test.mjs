@@ -72,7 +72,7 @@ test('P4I-P4H-SHAPE a genuine P4H createExecutionSession result is accepted unch
 	const I = await import('../src/purchase-intent.mjs');
 	const { TS } = PW;
 	const id = '0b9e6f1c-3d2a-4f5b-8c7d-1e2f3a4b5c6d';
-	const i = RW.intent({ id, quoteFetchedAt: TS - 60, capacityFetchedAt: TS - 60, acknowledgedAt: TS - 50, expiresAt: TS + 550 });
+	const i = RW.intent({ id, quoteFetchedAt: TS - 20, capacityFetchedAt: TS - 20, acknowledgedAt: TS - 15, expiresAt: TS + 550 });
 	const data = RW.calldata(RW.WALLET);
 	const row = {
 		id: i.id, wallet: i.wallet, chain_id: i.chainId, deployment_key: i.deploymentKey, product_id: i.productId, product_type_id: i.productTypeId, cover_asset_id: i.coverAssetId,

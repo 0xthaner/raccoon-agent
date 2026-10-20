@@ -3567,6 +3567,64 @@
 					"reason": "Test timing only: P4I-DB-EXPIRY uses a 5 s session (was 2 s), P4I-CONC-SUPERSEDE and the single-session expiry race 4 s (were 1 s and 2 s), the forty-session expiry race a common expiry 15 s ahead (was 3 s). expiresAt rounds the JS clock down, so the real window of a 1-2 s session was 0-2 s; under the load of concurrently running Postgres evidence groups (larger since P4J) persisting could run past it and fail before the asserted property (observed once as KILLED_OTHER of the EQUIVALENT case MUT-CR-PURCHASE-005-P12-P4INOTXHASHEQ1 in a full verify; that case SURVIVED twice in isolation). Every assertion is unchanged: exactly at expires_at refused, never consumed at or after expiry, superseded once; the P4J tests use 4 s instead of 1 s for the same reason."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zl",
+			"summary": "Aave v3 Ethereum as the first end-to-end protocol path (no transaction code): new pure module src/aave-cover-readiness.mjs (exact deployment classes SUPPORTED/UNSUPPORTED/AMBIGUOUS/DEPRECATED, Nexus mapping classes MATCHED/AMBIGUOUS/UNSUPPORTED, Terms/PoL readiness, one server-side purchase readiness decision with fixed, non-overridable external blockers CR-TERMS-002, CR-POL-002 and CR-PURCHASE-008/P3, cover status ACTIVE_COVER/NO_ACTIVE_COVER/UNKNOWN/UNSUPPORTED, support matrix docs/aave-v3-ethereum-support.json). The cover details show the readiness as BLOCKED with neutral reasons. 60 s / 120 s resolved: the unreachable execution loader refuses quote or capacity of 60 s or more and every execution session ends at the older fetch time + 60 s. New control CR-NEXUS-007 (P1-P6, E3 + E4 27 KILLED). Three mutation anchors re-targeted (one broken by the dashboard redesign c0ea347, two by the new session bound). CR-TERMS-002, CR-POL-002 and CR-PURCHASE-008 P3 unchanged (MISSING_EVIDENCE).",
+			"changes": [
+				{
+					"id": "CR-NEXUS-007",
+					"kind": "ADDED",
+					"reason": "New control: Aave v3 Ethereum scope, purchase readiness, cover status and quote freshness fail closed. Derivation: Business logic limits are implemented as documented (V2.3.2); no fail-open (V16.5.3); related data items are combined only per pre-defined rules (V2.2.3); data-specific access only to the owner (V8.2.2). Kept separate from CR-NEXUS-001..006 and CR-QUOTE-001..008 (locked) and from CR-PURCHASE-008 (its P3 wallet execution stays open), so no locked property changes.",
+					"rationale": "Each property is tested behaviourally (test/aave-cover-readiness.test.mjs and the AAVE-FRESH tests of the loader and session) and guarded by 27 known-bad mutations killed by the intended test.",
+					"why_not_weakening": "New obligations only; no existing control, property, threshold, release class or evidence weakened. The external blockers stay unresolved and are checked against this record."
+				},
+				{
+					"id": "EV-AAVE-READINESS",
+					"kind": "ADDED",
+					"reason": "behavioral E3 evidence for CR-NEXUS-007 P1-P6 (test/aave-cover-readiness.test.mjs, AAVE-FRESH-LOADER, AAVE-FRESH-SESSION)."
+				},
+				{
+					"id": "EV-KB-AAVE-READINESS",
+					"kind": "ADDED",
+					"reason": "known-bad E4 evidence: 27 mutation cases of the Aave scope, mapping, exposure, readiness, cover status and the 60 s execution bound, each KILLED by the intended test."
+				},
+				{
+					"id": "MUT-CR-BROWSER-004-P1-2PD",
+					"kind": "MUTATION_ANCHOR_UPDATED",
+					"reason": "the dashboard redesign (c0ea347) sets the same inventoried Telegram href inside a loop over the Telegram and Agent buttons, one indentation level deeper; the case was re-targeted to the same weakening (fixed https://t.me/ prefix dropped) and is still KILLED by the same test and message. The anchor had no unique match since c0ea347; that commit ran no mutation verify."
+				},
+				{
+					"id": "MUT-CR-PURCHASE-008-P6-P4HTTLDEADLINE",
+					"kind": "MUTATION_ANCHOR_UPDATED",
+					"reason": "the session expiry is now min(now + 30, build_deadline, expires_at, executionFreshUntil); the case still drops build_deadline only and is KILLED by P4H-SESSION-TTL (near-deadline case rebuilt with a deadline inside the quote freshness)."
+				},
+				{
+					"id": "MUT-CR-PURCHASE-008-P6-P4HTTLEXPIRYEQ1",
+					"kind": "MUTATION_ANCHOR_UPDATED",
+					"reason": "same expression as above; the case still drops only expires_at and stays EQUIVALENT (REDUNDANT_LAYER), proof extended by the freshness term, which does not change the argument."
+				},
+				{
+					"id": "EV-PURCHASE-RUNTIME-LOADER",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "60/120: the loader now also refuses quote or capacity of 60 s or more. Fixtures moved accordingly (NOW = T0 + 30 instead of T0 + 60; the exclusive build_deadline and expires_at boundary cases use a deadline inside the quote freshness). Same assertions for status, hash, client and recheck; LOADER-STATIC lists the two new exports (EXECUTION_QUOTE_MAX_AGE_SECONDS, executionFreshUntil); the import list stays ['./purchase-intent.mjs']. New test AAVE-FRESH-LOADER for the 60 s bound."
+				},
+				{
+					"id": "EV-PURCHASE-EXECUTION-SESSION",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "60/120: fixtures use a quote and capacity fetched 20 s before TS (was 60 s, which is now stale at NOW = TS + 5); the near-deadline TTL case uses a 20 s build deadline at TS + 10 (was DEADLINE - 10 = TS + 100, past the quote freshness). Same assertions otherwise. New test AAVE-FRESH-SESSION for the session bound."
+				},
+				{
+					"id": "EV-PURCHASE-SESSION-DB",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "test/purchase-execution-session-store.test.mjs builds its P4H session from an intent with quote and capacity 20 s before TS (was 60 s, now stale for execution). Assertions unchanged."
+				},
+				{
+					"id": "drift-model",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "new rules src/aave-cover-readiness.mjs -> CR-NEXUS, CR-QUOTE, CR-PURCHASE and docs/aave-v3-ethereum-support.json -> CR-NEXUS; nothing removed"
+				}
+			]
 		}
 	]
 }

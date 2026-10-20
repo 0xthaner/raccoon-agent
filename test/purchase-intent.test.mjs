@@ -323,6 +323,16 @@ function walk(dir) {
 // P4H (20.10.2026): ebenso Lader und Ausfuehrungs-Sitzung (P4H-LOADER-IMPORT, P4H-SESSION-IMPORT).
 const PURE_PURCHASE = [SRC, 'src/purchase-terms.mjs', 'src/purchase-proof-of-loss.mjs', 'src/purchase-tx-builder.mjs', 'src/purchase-tx-decode.mjs', 'src/purchase-intent-db.mjs', 'src/purchase-receipt.mjs', 'src/purchase-pre-send.mjs', 'src/purchase-confirmation.mjs', 'src/purchase-runtime-loader.mjs', 'src/purchase-execution-session.mjs'];
 
+test('AAVE-SCOPE-INTENT the readiness allowlists equal the P4A intent policy (Core only, USDC only, product 97, 60 s)', async () => {
+	// Die Bereitschaft darf das Intent-Modell nicht importieren (P4A-IMPORT); deshalb dieser Abgleich hier.
+	const R = await import('../src/aave-cover-readiness.mjs');
+	const { NEXUS_ASSETS } = await import('../src/nexus-pinned.mjs');
+	assert.deepEqual([...R.PURCHASE_DEPLOYMENT_KEYS], [...P.MVP_DEPLOYMENT_KEYS]);
+	assert.deepEqual([...R.PURCHASE_COVER_ASSETS], P.MVP_COVER_ASSET_IDS.map((id) => NEXUS_ASSETS[id].symbol));
+	assert.equal(R.AAVE_PRODUCT_ID, P.MVP_PRODUCT_ID);
+	assert.equal(R.MAX_QUOTE_AGE_MS, P.QUOTE_MAX_AGE_SECONDS * 1000);
+});
+
 test('P4A-IMPORT no runtime code imports the purchase-intent module; only tests do', () => {
 	const runtime = [...walk('src'), ...walk('api'), ...walk('web'), ...walk('scripts')].filter((f) => !PURE_PURCHASE.includes(f) && !f.startsWith('web/dist'));
 	assert.ok(runtime.some((f) => f.startsWith('api/')) && runtime.some((f) => f.startsWith('web/src/')) && runtime.includes('src/bot.mjs'), 'the scan covers api, web, bot');

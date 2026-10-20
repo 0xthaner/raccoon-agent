@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zk",
+	"crsf_version": "1.0-draft-phase2zl",
 	"rules": [
 		{
 			"pattern": "src/*auth*",
@@ -421,6 +421,20 @@
 				"CR-CONC",
 				"CR-DB",
 				"CR-PURCHASE"
+			]
+		},
+		{
+			"pattern": "src/aave-cover-readiness.mjs",
+			"domains": [
+				"CR-NEXUS",
+				"CR-QUOTE",
+				"CR-PURCHASE"
+			]
+		},
+		{
+			"pattern": "docs/aave-v3-ethereum-support.json",
+			"domains": [
+				"CR-NEXUS"
 			]
 		}
 	],

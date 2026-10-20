@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zk",
+	"crsf_version": "1.0-draft-phase2zl",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -11981,6 +11981,150 @@
 			"conformance_status_reason": "all 3 requirement properties demonstrated",
 			"security_status": "PASS_AUTOMATED",
 			"security_status_reason": "all 3 sub-properties satisfied at >= E3",
+			"deviation_ids": [],
+			"independence": {
+				"evidence_classes": [
+					"behavioral",
+					"known-bad"
+				],
+				"independent_classes": 2,
+				"shared_fixture_groups": []
+			}
+		},
+		{
+			"domain": "CR-NEXUS",
+			"applicability": "APPLICABLE",
+			"applicability_reason": "Feature present in CoverRaccoon at the verified commit (Aave v3 Ethereum scope, readiness decision and cover status in src/aave-cover-readiness.mjs, the readiness line of the cover details, and the 60 s bound of the unreachable execution loader and session).",
+			"profile_level": "ASVS_L2",
+			"release_class": "RELEASE_BLOCKING",
+			"minimum_evidence_level": "E3",
+			"automation": "YES",
+			"ambiguity": null,
+			"status_computed": true,
+			"manual_override_allowed": false,
+			"derivation_type": "EXTERNAL_STANDARD",
+			"id": "CR-NEXUS-007",
+			"title": "Aave v3 Ethereum scope, purchase readiness, cover status and quote freshness fail closed",
+			"source_refs": [
+				"SRC-ASVS V2.3.2",
+				"SRC-ASVS V16.5.3",
+				"SRC-ASVS V2.2.3",
+				"SRC-ASVS V8.2.2",
+				"SRC-NEXUS-API",
+				"SRC-NEXUS-QUOTE"
+			],
+			"external_requirement_ids": [
+				"V2.3.2",
+				"V16.5.3",
+				"V2.2.3",
+				"V8.2.2"
+			],
+			"external_requirement": "Business logic limits are implemented as documented (V2.3.2); no fail-open (V16.5.3); related data items are combined only per pre-defined rules (V2.2.3); data-specific access only to the owner (V8.2.2).",
+			"coverraccoon_requirement": "What 'Aave supported' means is derived from implementation constants only: the exact registry identity, the strict Nexus mapping, BigInt exposure, fixed asset allowlists and fixed external blockers. A single server-side readiness decision lists every unmet condition and stays BLOCKED while Nexus has not answered CR-TERMS-002 / CR-POL-002 and no reviewed wallet path exists; cover status needs a confirmed attribution; and no execution step can use a quote or capacity of 60 s or more inside the 120 s build window.",
+			"applies_to": [
+				"src/aave-cover-readiness.mjs",
+				"src/positions/aave-registry.mjs",
+				"src/positions/exposure.mjs",
+				"src/nexus-quote.mjs",
+				"src/purchase-runtime-loader.mjs",
+				"src/purchase-execution-session.mjs",
+				"docs/aave-v3-ethereum-support.json"
+			],
+			"threat": "an unsupported or ambiguous Aave market, a stale quote or capacity, a foreign wallet or an unresolved Nexus requirement is treated as ready, or a cover is shown as active for a position it does not belong to",
+			"expected_property": "exact scope; BLOCKED with reasons; stale (>= 60 s) never executable; cover status only via confirmed attribution",
+			"properties": [
+				{
+					"id": "P1",
+					"kind": "REQUIREMENT",
+					"text": "an Aave deployment is SUPPORTED only by the exact registry identity (chain 1, protocol key aave, version v3, a registry deployment key and its pool address); Aave v2 is DEPRECATED, other chains, versions, protocol names, Horizon and unknown keys are UNSUPPORTED, a registry key with conflicting chain, version or pool is AMBIGUOUS; nothing is matched by name"
+				},
+				{
+					"id": "P2",
+					"kind": "REQUIREMENT",
+					"text": "only Aave v3 Ethereum Core maps to Nexus product 97 (MATCHED); Lido/Prime and EtherFi stay AMBIGUOUS and every other deployment UNSUPPORTED; a product id carried by the client or the position is never trusted, and the readiness decision requires the EXACT read model of product 97"
+				},
+				{
+					"id": "P3",
+					"kind": "REQUIREMENT",
+					"text": "the suggested exposure is supplied minus debt in exact 8-decimal BigInt arithmetic, floored at zero, and only from Aave-oracle values whose per-asset sums equal the position totals; floating-point input, malformed values and mismatched totals give no exposure"
+				},
+				{
+					"id": "P4",
+					"kind": "REQUIREMENT",
+					"text": "one server-side readiness decision is READY_FOR_PURCHASE_EXECUTION only if every condition holds (session wallet equals the position wallet, supported Core market, valid exposure, MATCHED mapping and AVAILABLE product 97, capacity and quote fresh strictly below 60 s and not from the future, USDC cover and payment asset, quote within the exposure/capacity bound and 28..365 days, validated allocation, verified pins, no unresolved attempt, fresh pre-send state, Terms and proof of loss ready); the external blockers CR-TERMS-002, CR-POL-002 and CR-PURCHASE-008/P3 are fixed UNRESOLVED and cannot be switched off by any input, so the decision is BLOCKED; the cover details show only the BLOCKED status and neutral reasons"
+				},
+				{
+					"id": "P5",
+					"kind": "REQUIREMENT",
+					"text": "the cover status of an Aave position is ACTIVE_COVER only through a valid user-confirmed attribution for exactly that market and product 97 to a cover of the same wallet whose status is active and whose end lies after the given time; an unattributed cover is only an open hint (NO_ACTIVE_COVER), unread or foreign-wallet data is UNKNOWN and an unsupported deployment UNSUPPORTED"
+				},
+				{
+					"id": "P6",
+					"kind": "REQUIREMENT",
+					"text": "60 s / 120 s: the execution loader refuses an intent whose quote or capacity is 60 s or older (QUOTE_STALE_FOR_EXECUTION, CAPACITY_STALE_FOR_EXECUTION, exclusive bound) although the P4D build window is 120 s, and every execution session expires no later than the older of quote and capacity time plus 60 s, so a wallet request (which must start before the session expiry) never starts with a quote or capacity of 60 s or more"
+				}
+			],
+			"required_evidence_types": [
+				"behavioral"
+			],
+			"current_evidence_ids": [
+				"EV-AAVE-READINESS",
+				"EV-KB-AAVE-READINESS"
+			],
+			"property_coverage": {
+				"P1": {
+					"satisfied_by": [
+						"EV-AAVE-READINESS",
+						"EV-KB-AAVE-READINESS"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P2": {
+					"satisfied_by": [
+						"EV-AAVE-READINESS",
+						"EV-KB-AAVE-READINESS"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P3": {
+					"satisfied_by": [
+						"EV-AAVE-READINESS",
+						"EV-KB-AAVE-READINESS"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P4": {
+					"satisfied_by": [
+						"EV-AAVE-READINESS",
+						"EV-KB-AAVE-READINESS"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P5": {
+					"satisfied_by": [
+						"EV-AAVE-READINESS",
+						"EV-KB-AAVE-READINESS"
+					],
+					"partial_only": [],
+					"insufficient": []
+				},
+				"P6": {
+					"satisfied_by": [
+						"EV-AAVE-READINESS",
+						"EV-KB-AAVE-READINESS"
+					],
+					"partial_only": [],
+					"insufficient": []
+				}
+			},
+			"conformance_status": "CONFORMANT",
+			"conformance_status_reason": "all 6 requirement properties demonstrated",
+			"security_status": "PASS_AUTOMATED",
+			"security_status_reason": "all 6 sub-properties satisfied at >= E3",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [

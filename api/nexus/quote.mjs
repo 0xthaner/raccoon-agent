@@ -116,7 +116,7 @@ function createInnerHandler({
 		const at = now();
 		if (parsed.action === 'details') {
 			const model = await readModel(position, { now: at });
-			return response.status(200).json(coverDetails(model, position));
+			return response.status(200).json(coverDetails(model, position, at));
 		}
 
 		// Quote: Lesemodell mit frischer Kapazitaet (hoechstens so alt wie die Quote-Gueltigkeit).

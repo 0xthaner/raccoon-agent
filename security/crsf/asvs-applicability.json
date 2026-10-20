@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zk",
+	"crsf_version": "1.0-draft-phase2zl",
 	"asvs": "5.0.0",
 	"input": "security/crsf/vendor/asvs-5.0.0.flat.json",
 	"input_sha256": "8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311",
@@ -376,6 +376,7 @@
 				"CR-NEXUS-001",
 				"CR-NEXUS-002",
 				"CR-QUOTE-002",
+				"CR-NEXUS-007",
 				"CR-PURCHASE-003",
 				"CR-ALLOC-001",
 				"CR-TERMS-001",
@@ -406,6 +407,7 @@
 				"CR-CONC-002",
 				"CR-QUOTE-003",
 				"CR-QUOTE-005",
+				"CR-NEXUS-007",
 				"CR-COMMISSION-001",
 				"CR-ALLOC-001",
 				"CR-TERMS-002",
@@ -1763,7 +1765,8 @@
 			"reason": "",
 			"controls": [
 				"CR-API-001",
-				"CR-QUOTE-002"
+				"CR-QUOTE-002",
+				"CR-NEXUS-007"
 			],
 			"conformance_status": "CONFORMANT",
 			"release_relevance": "RELEASE_BLOCKING"
@@ -3381,7 +3384,8 @@
 				"CR-NEXUS-005",
 				"CR-QUOTE-002",
 				"CR-QUOTE-005",
-				"CR-QUOTE-006"
+				"CR-QUOTE-006",
+				"CR-NEXUS-007"
 			],
 			"conformance_status": "NOT_DEMONSTRATED",
 			"release_relevance": "RELEASE_BLOCKING"

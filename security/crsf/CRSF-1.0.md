@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2zk
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2zl
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -11,19 +11,19 @@
 - FAIL: 19
 - INFORMATIONAL: 2
 - MISSING_EVIDENCE: 47
-- PASS_AUTOMATED: 83
+- PASS_AUTOMATED: 84
 - PASS_MANUAL: 24
 
 ### Release classes
 
 - INFORMATIONAL: 2
 - MANUAL_ASSURANCE: 30
-- RELEASE_BLOCKING: 79
+- RELEASE_BLOCKING: 80
 - SECURITY_DEBT: 64
 
 ### Release-blocking controls by security status
 
-- PASS_AUTOMATED: 79
+- PASS_AUTOMATED: 80
 
 ### Standard conformance (ASVS 5.0.0, applicable requirements)
 
@@ -265,6 +265,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | CR-QUOTE-007 | User-facing quote is informational and cannot trigger wallet methods | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
 | CR-QUOTE-008 | Quote retrieval rate limited per IP, wallet and globally | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 1 sub-properties satisfied at >= E3 |
 | CR-NEXUS-006 | Pinned Nexus contracts bound to their verified deployed source | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 3 sub-properties satisfied at >= E3 |
+| CR-NEXUS-007 | Aave v3 Ethereum scope, purchase readiness, cover status and quote freshness fail closed | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 6 sub-properties satisfied at >= E3 |
 | CR-PURCHASE-003 | Purchase intent canonically binds every security-critical value (P4A model) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 6 sub-properties satisfied at >= E3 |
 | CR-PURCHASE-005 | Purchase-intent state model allows only the defined single-use transitions (P4A model, P4D database) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 13 sub-properties satisfied at >= E3 |
 | CR-COMMISSION-001 | Commission fixed server-side to zero (P4A policy) | RELEASE_BLOCKING | E3 | **PASS_AUTOMATED** | CONFORMANT | all 2 sub-properties satisfied at >= E3 |
@@ -445,10 +446,12 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-PURCHASE-ATTEMPT-DB | real-system | E5 | node-test | PARTIAL | yes | Disposable Postgres with every migration and emulated Supabase default privileges; real P4D intents and real P4I sessions (persisted and consumed through their helpers); the real helper src/purchase-execution-attempt-db.mjs over a supabase-js-shaped rpc adapter. Open: one AUTHORIZED attempt per consumed session, the same request (also with a fresh attempt id) gets it back, another request REQUEST_MISMATCH, unconsumed, unknown or expired sessions refused, attempt ids not reusable. Write-ahead: one WALLET_REQUEST_PERMITTED, every repeat ALREADY_STARTED, another request refused, refused after session expiry (the attempt stays AUTHORIZED) and for a cancelled intent. Rejection: only after the write-ahead, ABORTED_NO_TX / WALLET_REJECTED, the intent stays BUILT without tx hash, no restart, no later hash, no second session of the kind (P4I), a new intent of the same wallet may start. UNCERTAIN: no restart, no late rejection or wallet hash, the wallet stays busy (a new intent of the same wallet gets WALLET_BUSY), a chain-found hash binds. Tx hash: bound with attempt, session, intent, kind and wallet; same hash idempotent, another TX_HASH_CONFLICT (the first stays), a hash of another attempt TX_HASH_TAKEN, another request refused, caller fields refused before any call. Submit: only from TX_HASH_OBSERVED, only for the attempt intent, never with a caller hash, the intent becomes SUBMITTED with the bound hash, repeat EXISTING, a lost answer is read back by the same request. Approval: never submits (NOT_A_PURCHASE) or touches the intent, allowance below max_premium_raw refused, APPROVAL_VERIFIED / APPROVAL_FAILED settle once, a buyCover attempt needs the verified approval and a session verified from that block on, no approval after a consumed buyCover. Reconciliation: RECONCILED_NO_TX refused within the 30-minute quiet period, recorded with block and nonce after it (rows inserted by the owner with an old write-ahead), never after a bound hash. Crash windows C1-C6 end to end. Immutability: no backward transition, tx hash, kind, session, intent, wallet, request id, write-ahead time, abort reason and settle time fixed (also for the owner), no delete or truncate. Access: RLS on, no table right for anon, authenticated or service_role, exactly eight SECURITY DEFINER functions for service_role (pinned search_path, no dynamic SQL), helper and trigger for nobody; no new trigger on the P4D or P4I tables. Concurrency: six races of 40 independent connections (40 distinct backend PIDs) released from an advisory-lock barrier only after the database reports 40 waiting backends: one write-ahead winner of 40, one attempt of 40 opens, one bound hash of 40 different hashes, one of 40 attempts binds a shared hash, one recorded outcome of 40 conflicting wallet outcomes, one submission of 40. Pure protocol (always running): transitions identical to the trigger, outcome classification, recovery per state, purchase effect, nonce never authorization, replacement, SIWE binding and unalterable adapter request, chain transaction check, approval sequencing, crash windows, wallet models, guarantees. Static: no wallet, send, sign or permission method, no generic SQL, table or RPC path, exactly eight fixed function calls, no replaced P4D or P4I function; no runtime importer, route, rewrite or cron. |
 | EV-KB-PURCHASE-ATTEMPT | known-bad | E4 | mutation | PARTIAL | yes | Each listed weakening of the pure protocol and its reach (rejection marks FAILED, timeout as no broadcast or as success, a caller hash trusted without the chain transaction, approval marks CONFIRMED, a wallet send method, a public API importer, an unchanged nonce taken as proof, adapter fields added, the SIWE wallet not compared) and of the runner observer that grants E5 (serial statements of one connection credited, zero overlap accepted) is detected by the intended test (12 KILLED). |
 | EV-KB-PURCHASE-ATTEMPT-DB | known-bad | E4 | mutation | PARTIAL | yes | Each listed weakening of the attempt table and functions (two attempts per session, UNCERTAIN restartable, a hash bound elsewhere accepted, an approval submitting the purchase, submission for the caller intent, another request getting the attempt, a backward transition, the tx hash, kind, bindings or write-ahead time mutable, a direct UPDATE, UNCERTAIN terminal with the wallet free, the write-ahead won twice, no wallet-busy index, a wallet answer after UNCERTAIN, no quiet period, buyCover without verified approval or with a stale pre-send, an insufficient allowance verified, an approval after a consumed buyCover) is detected by the intended test against the real database (21 KILLED). |
+| EV-AAVE-READINESS | behavioral | E3 | node-test | FULL | yes | Offline against the captured Nexus product/capacity responses: the three registry markets and their live-verified provider/pool pins; other chains, v2, v4, Horizon, fuzzy names and conflicting pools fail closed; only Core is MATCHED to product 97, Lido/Prime and EtherFi AMBIGUOUS, client product ids ignored; exposure exact in BigInt incl. 0.1+0.2-0.3 and 21-digit values, debt subtracted, floored at zero, floats and mismatched totals invalid; quotes bounded by exposure/capacity and 28..365 days; freshness strictly below 60 s; with every technical condition met the decision is BLOCKED by exactly the Terms/PoL and external blockers, every missing condition adds its own reason, unknown override fields are refused; external blockers agree with the CRSF record; cover details show BLOCKED with neutral reasons; ACTIVE_COVER only via a confirmed attribution of an unexpired product-97 cover of the same wallet; expiry days and the existing Telegram thresholds; the support matrix file equals the implementation; the execution loader refuses quote/capacity at 60 s inside the 120 s build window and every session ends at the older fetch time + 60 s. |
+| EV-KB-AAVE-READINESS | known-bad | E4 | mutation | PARTIAL | yes | Each listed weakening of the Aave scope, mapping, exposure, readiness, cover status and 60 s execution bound is detected by its intended test: unsupported chain, v2 as v3, Horizon in the registry, fuzzy protocol name, wrong product, client product id, float exposure, ignored debt, negative exposure, stale capacity, stale quote, asset outside the allowlist, Terms/PoL blockers bypassed, unexpected PoL types, READY despite external blockers, a blocker marked resolved, foreign wallet, other chain, cover of another market, expired cover, covers of another wallet, stale quote or capacity in the execution loader, session outliving the freshness, freshness ignoring older capacity, readiness missing in the details. |
 
 ## 6. Mutation cases
 
-639 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+666 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -1091,6 +1094,33 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-PURCHASE-005-P13-P4JSTARTEDMUTABLE | CR-PURCHASE-005.P13 | behavioral | KILLED |
 | MUT-CR-PURCHASE-005-P13-P4JSERIALCONN | CR-PURCHASE-005.P13 | behavioral | KILLED |
 | MUT-CR-PURCHASE-005-P13-P4JZEROOVERLAP | CR-PURCHASE-005.P13 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P1-AVCHAIN | CR-NEXUS-007.P1 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P1-AVV2ASV3 | CR-NEXUS-007.P1 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P1-AVHORIZON | CR-NEXUS-007.P1 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P1-AVFUZZY | CR-NEXUS-007.P1 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P2-AVWRONGPRODUCT | CR-NEXUS-007.P2 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P2-AVCLIENTPID | CR-NEXUS-007.P2 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P3-AVFLOAT | CR-NEXUS-007.P3 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P3-AVNODEBT | CR-NEXUS-007.P3 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P3-AVNEGATIVE | CR-NEXUS-007.P3 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P4-AVSTALECAP | CR-NEXUS-007.P4 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P4-AVSTALEQUOTE | CR-NEXUS-007.P4 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P4-AVASSET | CR-NEXUS-007.P4 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P4-AVTERMS | CR-NEXUS-007.P4 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P4-AVPOL | CR-NEXUS-007.P4 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P4-AVPOLTYPES | CR-NEXUS-007.P4 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P4-AVREADYEXT | CR-NEXUS-007.P4 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P4-AVEXTRESOLVED | CR-NEXUS-007.P4 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P4-AVWALLET | CR-NEXUS-007.P4 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P4-AVCHAINREASON | CR-NEXUS-007.P4 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P5-AVFALSEMATCH | CR-NEXUS-007.P5 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P5-AVEXPIRED | CR-NEXUS-007.P5 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P5-AVCOVERWALLET | CR-NEXUS-007.P5 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P6-AVLOADQUOTE | CR-NEXUS-007.P6 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P6-AVLOADCAP | CR-NEXUS-007.P6 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P6-AVSESSIONTTL | CR-NEXUS-007.P6 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P6-AVFRESHQUOTEONLY | CR-NEXUS-007.P6 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P4-AVDETAILS | CR-NEXUS-007.P4 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -1115,9 +1145,9 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V2.1.3 | L2 | CR-RESOURCE-005, CR-QUOTE-008 | NON_CONFORMANT |
 | V2.2.1 | L1 | CR-API-003, CR-NEXUS-001, CR-NEXUS-003, CR-QUOTE-001, CR-QUOTE-003, CR-QUOTE-004, CR-PURCHASE-003, CR-PURCHASE-002 | CONFORMANT |
 | V2.2.2 | L1 | CR-API-003 | CONFORMANT |
-| V2.2.3 | L2 | CR-INPUT-010, CR-NEXUS-001, CR-NEXUS-002, CR-QUOTE-002, CR-PURCHASE-003, CR-ALLOC-001, CR-TERMS-001, CR-PURCHASE-001, CR-PURCHASE-002 | CONFORMANT |
+| V2.2.3 | L2 | CR-INPUT-010, CR-NEXUS-001, CR-NEXUS-002, CR-QUOTE-002, CR-NEXUS-007, CR-PURCHASE-003, CR-ALLOC-001, CR-TERMS-001, CR-PURCHASE-001, CR-PURCHASE-002 | CONFORMANT |
 | V2.3.1 | L1 | CR-API-009, CR-PURCHASE-005 | CONFORMANT |
-| V2.3.2 | L2 | CR-CONC-002, CR-QUOTE-003, CR-QUOTE-005, CR-COMMISSION-001, CR-ALLOC-001, CR-TERMS-002, CR-APPROVAL-001, CR-PURCHASE-006, CR-PURCHASE-007, CR-PURCHASE-008 | NOT_DEMONSTRATED |
+| V2.3.2 | L2 | CR-CONC-002, CR-QUOTE-003, CR-QUOTE-005, CR-NEXUS-007, CR-COMMISSION-001, CR-ALLOC-001, CR-TERMS-002, CR-APPROVAL-001, CR-PURCHASE-006, CR-PURCHASE-007, CR-PURCHASE-008 | NOT_DEMONSTRATED |
 | V2.3.3 | L2 | CR-CONC-001, CR-CONC-004 | CONFORMANT |
 | V2.3.4 | L2 | CR-CONC-002, CR-CONC-003 | CONFORMANT |
 | V2.3.5 | L3 | CR-API-010 | CONFORMANT |
@@ -1171,7 +1201,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V8.1.1 | L1 | CR-API-012 | NON_CONFORMANT |
 | V8.1.2 | L2 | CR-API-012 | NON_CONFORMANT |
 | V8.2.1 | L1 | CR-API-002, CR-DB-002 | CONFORMANT |
-| V8.2.2 | L1 | CR-API-001, CR-QUOTE-002 | CONFORMANT |
+| V8.2.2 | L1 | CR-API-001, CR-QUOTE-002, CR-NEXUS-007 | CONFORMANT |
 | V8.2.3 | L2 | CR-API-003 | CONFORMANT |
 | V8.3.1 | L1 | CR-API-001, CR-QUOTE-001 | CONFORMANT |
 | V8.3.2 | L3 | CR-SESSION-007 | CONFORMANT |
@@ -1257,7 +1287,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | V16.4.3 | L2 | CR-LOG-009 | NOT_DEMONSTRATED |
 | V16.5.1 | L2 | CR-API-006 | NOT_DEMONSTRATED |
 | V16.5.2 | L2 | CR-RESOURCE-003, CR-PROVIDER-001, CR-PROVIDER-002, CR-NEXUS-004, CR-QUOTE-006 | NOT_DEMONSTRATED |
-| V16.5.3 | L2 | CR-AUTH-005, CR-API-006, CR-PROVIDER-001, CR-NEXUS-002, CR-NEXUS-004, CR-NEXUS-005, CR-QUOTE-002, CR-QUOTE-005, CR-QUOTE-006 | NOT_DEMONSTRATED |
+| V16.5.3 | L2 | CR-AUTH-005, CR-API-006, CR-PROVIDER-001, CR-NEXUS-002, CR-NEXUS-004, CR-NEXUS-005, CR-QUOTE-002, CR-QUOTE-005, CR-QUOTE-006, CR-NEXUS-007 | NOT_DEMONSTRATED |
 
 ## 8. Pinned sources
 
@@ -1358,6 +1388,8 @@ Drift output only prioritises review. security:verify always evaluates every con
 | `src/purchase-execution-protocol.mjs` | CR-PURCHASE |
 | `src/purchase-execution-attempt-db.mjs` | CR-DB, CR-PURCHASE |
 | `supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql` | CR-CONC, CR-DB, CR-PURCHASE |
+| `src/aave-cover-readiness.mjs` | CR-NEXUS, CR-QUOTE, CR-PURCHASE |
+| `docs/aave-v3-ethereum-support.json` | CR-NEXUS |
 
 ## 10. Framework versions
 
@@ -1399,4 +1431,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2zi** — Nexus P4H: server-only runtime loader src/purchase-runtime-loader.mjs over the fixed read function public.get_cover_purchase_intent_for_execution(uuid) (local migration supabase/migrations/20261020120000_cover_purchase_intent_execution_read.sql, SECURITY INVOKER, STABLE, pinned search_path, service_role only, not applied remotely) and the short-lived execution-session binding src/purchase-execution-session.mjs (P4F PRE_SEND_VERIFIED for exactly the loaded intent, independent P4C decoder, never builder output; intent id as the only client input; TTL min(now + 30 s, build_deadline, expires_at); fixed-ABI executionSessionHash, domain coverraccoon.execution-session v1; single use modelled, not persisted; TOCTOU residual stated). Nothing sends, signs or reaches a wallet; no route, cron or command. New CR-PURCHASE-008 P6 (the technical binding) satisfied by E3 (offline with real P4F and decoder, and against the real database) + E4 (29 KILLED, 1 EQUIVALENT with proof). P3 (wallet execution) stays MISSING_EVIDENCE, so the control stays MISSING_EVIDENCE / SECURITY_DEBT. CR-TERMS-002 and CR-POL-002 unchanged. The P4C builder lists RUNTIME_LOADER and EXECUTION_SESSION_BINDING as SATISFIED_BY_P4H; productionReady stays false.
 - **1.0-draft-phase2zj** — Nexus P4I: the P4H execution session becomes a durable single-use capability in a local-only table public.cover_purchase_execution_sessions (supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql, not applied to any hosted database): server-recomputed session hash, immutable facts, at most 30 s of the database clock and never past the intent bounds, one open session per intent (expired ones superseded atomically), one consumed session per intent and transaction kind, one compare-and-set consumption with expiry and intent state (BUILT, no tx hash, no cover id, matching hashes and wallet, before build_deadline and expiry) checked in SQL, idempotent replay only for the same consumer request id, no delete or truncate; two service_role SECURITY DEFINER functions, no table right for anyone; narrow helper src/purchase-execution-session-db.mjs (no runtime importer). CR-PURCHASE-005 gains P12 (concurrency claim, observed by the runner) with E5 evidence (eight races of 40 independent connections, barrier-proven overlap) and E4 (31 KILLED, 3 EQUIVALENT with proof and a KILLED companion each). Nothing sends, signs or reaches a wallet; no route, cron or command. CR-PURCHASE-008 P3 (wallet execution) stays unsatisfied, so CR-PURCHASE-008 stays MISSING_EVIDENCE / SECURITY_DEBT; CR-TERMS-002 and CR-POL-002 unchanged.
 - **1.0-draft-phase2zk** — Nexus P4J: the wallet execution protocol after a consumed P4I session, without any wallet call: a local-only table public.cover_purchase_execution_attempts (supabase/migrations/20261020160000_cover_purchase_execution_attempts.sql, not applied to any hosted database) with eight states (AUTHORIZED, WALLET_REQUEST_STARTED, UNCERTAIN, ABORTED_NO_TX, TX_HASH_OBSERVED, SUBMITTED, APPROVAL_VERIFIED, APPROVAL_FAILED), forward-only, one attempt per consumed session, a write-ahead compare-and-set won once before any wallet request, explicit rejection separated from ambiguous provider results, chain reconciliation with a 30-minute quiet period, tx hash binding, one busy attempt per wallet, buyCover submission to P4D with the bound hash only, approval separated from the purchase; eight service_role SECURITY DEFINER functions, no table right for anyone, no new trigger and no replaced function on the P4D or P4I tables; narrow helper src/purchase-execution-attempt-db.mjs and pure model src/purchase-execution-protocol.mjs (no runtime importer). CR-PURCHASE-005 gains P13 (concurrency claim, observed by the runner) with E5 evidence (six races of 40 independent connections, barrier-proven overlap) and E4 (33 KILLED). Nothing sends, signs or reaches a wallet; no route, cron or command. CR-PURCHASE-008 P3 (reviewed wallet execution) stays unsatisfied, so CR-PURCHASE-008 stays MISSING_EVIDENCE / SECURITY_DEBT; CR-TERMS-002 and CR-POL-002 unchanged.
+- **1.0-draft-phase2zl** — Aave v3 Ethereum as the first end-to-end protocol path (no transaction code): new pure module src/aave-cover-readiness.mjs (exact deployment classes SUPPORTED/UNSUPPORTED/AMBIGUOUS/DEPRECATED, Nexus mapping classes MATCHED/AMBIGUOUS/UNSUPPORTED, Terms/PoL readiness, one server-side purchase readiness decision with fixed, non-overridable external blockers CR-TERMS-002, CR-POL-002 and CR-PURCHASE-008/P3, cover status ACTIVE_COVER/NO_ACTIVE_COVER/UNKNOWN/UNSUPPORTED, support matrix docs/aave-v3-ethereum-support.json). The cover details show the readiness as BLOCKED with neutral reasons. 60 s / 120 s resolved: the unreachable execution loader refuses quote or capacity of 60 s or more and every execution session ends at the older fetch time + 60 s. New control CR-NEXUS-007 (P1-P6, E3 + E4 27 KILLED). Three mutation anchors re-targeted (one broken by the dashboard redesign c0ea347, two by the new session bound). CR-TERMS-002, CR-POL-002 and CR-PURCHASE-008 P3 unchanged (MISSING_EVIDENCE).
 

@@ -21,11 +21,16 @@
 	"veraltet" anzeigbar und darf nie Grundlage einer spaeteren Aktion sein
 	(isQuoteUsable). Es gibt hier keinen Kauf, keine Freigabe, keine Transaktion,
 	keine Vertriebsgebuehr, keinen Proof-of-Loss-Upload.
+
+	Aave-Phase (20.10.2026): die Details tragen zusaetzlich den Bereitschafts-
+	Status aus aave-cover-readiness.mjs (status BLOCKED und neutrale Gruende),
+	damit die Anzeige ehrlich sagt, warum es keinen Abschluss gibt.
 */
 import { formatUnits } from 'viem';
 import { AAVE_V3_MARKETS, REFERENCE_TOKENS } from './positions/aave-registry.mjs';
 import { COVER_PERIOD_DAYS, NEXUS_ASSETS } from './nexus-pinned.mjs';
 import { readQuote } from './nexus-read-api.mjs';
+import { evaluateAavePurchaseReadiness, publicReadiness } from './aave-cover-readiness.mjs';
 
 export const QUOTE_TTL_MS = 60_000;
 export const PERIOD_PRESETS = Object.freeze([30, 90, 180, 365]);
@@ -126,7 +131,7 @@ export function coverBounds(model, position) {
 }
 
 /** Nur fuer eine AVAILABLE-Zuordnung; alles andere ist eine neutrale Statusmeldung ohne Produkt. */
-export function coverDetails(model, position) {
+export function coverDetails(model, position, now = Date.now()) {
 	const status = model?.eligibility?.status ?? 'UNAVAILABLE';
 	if (status !== 'AVAILABLE') return Object.freeze({ ok: true, available: false, status });
 	const market = AAVE_V3_MARKETS.find((entry) => entry.deploymentKey === position.deploymentKey);
@@ -155,7 +160,9 @@ export function coverDetails(model, position) {
 		annex: w.annexUrl ? Object.freeze({ cid: w.annexCid, url: w.annexUrl }) : null,
 		annualPriceRange: model.capacity.annualPriceRange,
 		capacityFetchedAt: model.capacity.fetchedAt,
-		quoteTtlSeconds: QUOTE_TTL_MS / 1_000
+		quoteTtlSeconds: QUOTE_TTL_MS / 1_000,
+		// Ohne Quote, Allokation und Ausfuehrungszustand nie bereit; die externen Blocker gelten ohnehin.
+		readiness: publicReadiness(evaluateAavePurchaseReadiness({ sessionWallet: position.wallet, position, model, bounds: coverBounds(model, position), quote: null, allocation: null, execution: null, now }))
 	});
 }
 

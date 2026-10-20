@@ -15,17 +15,31 @@
 	exklusiv). Der Aufrufer nennt nur intentId (und der Server die Uhr); jede Kopie
 	von Intent, Hashes, Status oder Zeiten wird abgelehnt.
 
+	60 s / 120 s (Aave-Phase, 20.10.2026): Quote und Kapazitaet sind nach P3/P4A
+	hoechstens 60 s alt, das P4D-Build-Fenster ist aber 120 s lang und ein Intent
+	lebt bis zu 15 Minuten. Damit nie eine aeltere Quote oder Kapazitaet zu einem
+	Senden fuehrt, gilt hier zusaetzlich: nutzbar nur bei
+	now < quote_fetched_at + 60 und now < capacity_fetched_at + 60 (exklusiv,
+	QUOTE_STALE_FOR_EXECUTION / CAPACITY_STALE_FOR_EXECUTION), und
+	executionFreshUntil begrenzt jede Ausfuehrungs-Sitzung auf genau diese Grenze.
+	Eine spaetere Quote heisst: neuer Intent, nie ein Nachtragen.
+
 	Kein Kaufpfad: liest nur, schreibt nie, kein Netz, keine Wallet. Bis zu einer
 	spaeteren Phase importieren nur test/ und das selbst unerreichbare
 	src/purchase-execution-session.mjs dieses Modul (P4H-IMPORT).
 */
-import { validatePurchaseIntent, computePurchaseIntentHash, isIntentId } from './purchase-intent.mjs';
+import { validatePurchaseIntent, computePurchaseIntentHash, isIntentId, QUOTE_MAX_AGE_SECONDS } from './purchase-intent.mjs';
 
-export const LOADER_STATUSES = Object.freeze(['LOADED', 'INVALID_INPUT', 'NOT_FOUND', 'DB_UNAVAILABLE', 'PERSISTED_RECORD_INVALID', 'INVALID_STATUS', 'INTENT_EXPIRED', 'BUILD_DEADLINE_EXPIRED']);
+export const LOADER_STATUSES = Object.freeze(['LOADED', 'INVALID_INPUT', 'NOT_FOUND', 'DB_UNAVAILABLE', 'PERSISTED_RECORD_INVALID', 'INVALID_STATUS', 'INTENT_EXPIRED', 'BUILD_DEADLINE_EXPIRED', 'QUOTE_STALE_FOR_EXECUTION', 'CAPACITY_STALE_FOR_EXECUTION']);
 /** P4D: Terms-Version neben dem Terms-Hash; jede andere Version ist ein anderer Vertrag. */
 export const EXPECTED_TERMS_VERSION = 'coverraccoon.terms/1';
 /** P4D: build_deadline = built_at + 120 s und nie nach expires_at. */
 const BUILD_WINDOW_SECONDS = 120;
+/** Hoechstalter von Quote und Kapazitaet bis zum Ende jeder Ausfuehrungs-Sitzung (gleich P4A QUOTE_MAX_AGE_SECONDS). */
+export const EXECUTION_QUOTE_MAX_AGE_SECONDS = QUOTE_MAX_AGE_SECONDS;
+
+/** Letzte Sekunde (exklusiv), bis zu der Quote und Kapazitaet eines Intents fuer eine Ausfuehrung frisch sind. */
+export const executionFreshUntil = (intent) => Math.min(intent.quoteFetchedAt, intent.capacityFetchedAt) + EXECUTION_QUOTE_MAX_AGE_SECONDS;
 
 const INPUT_KEYS = Object.freeze(['repository', 'intentId', 'now']);
 const REPOSITORY_KEYS = Object.freeze(['loadIntentForExecution']);
@@ -78,6 +92,9 @@ function checkPurchase(p, now) {
 	// P4D-Grenzen, beide exklusiv.
 	if (!(now < p.expiresAt)) stop('INTENT_EXPIRED');
 	if (!(now < p.buildDeadline)) stop('BUILD_DEADLINE_EXPIRED');
+	// 60/120: keine Ausfuehrung mit einer Quote oder Kapazitaet, die 60 s oder aelter ist.
+	if (!(now < checked.intent.quoteFetchedAt + EXECUTION_QUOTE_MAX_AGE_SECONDS)) stop('QUOTE_STALE_FOR_EXECUTION');
+	if (!(now < checked.intent.capacityFetchedAt + EXECUTION_QUOTE_MAX_AGE_SECONDS)) stop('CAPACITY_STALE_FOR_EXECUTION');
 	return checked.intent;
 }
 

@@ -7495,8 +7495,8 @@
 			"edits": [
 				{
 					"file": "web/src/main.js",
-					"find": "\t\t\t? `https://t.me/${config.telegramUsername}`\n\t\t\t: `https://t.me/${config.telegramUsername}?start=connect`;",
-					"replace": "\t\t\t? config.telegramUsername\n\t\t\t: `https://t.me/${config.telegramUsername}?start=connect`;"
+					"find": "\t\t\t\t? `https://t.me/${config.telegramUsername}`\n\t\t\t\t: `https://t.me/${config.telegramUsername}?start=connect`;",
+					"replace": "\t\t\t\t? config.telegramUsername\n\t\t\t\t: `https://t.me/${config.telegramUsername}?start=connect`;"
 				}
 			],
 			"tests": [
@@ -19987,8 +19987,8 @@
 			"edits": [
 				{
 					"file": "src/purchase-execution-session.mjs",
-					"find": "Math.min(now + SESSION_TTL_SECONDS, purchase.buildDeadline, purchase.expiresAt)",
-					"replace": "Math.min(now + SESSION_TTL_SECONDS, purchase.expiresAt)"
+					"find": "Math.min(now + SESSION_TTL_SECONDS, purchase.buildDeadline, purchase.expiresAt, executionFreshUntil(intent))",
+					"replace": "Math.min(now + SESSION_TTL_SECONDS, purchase.expiresAt, executionFreshUntil(intent))"
 				}
 			],
 			"tests": [
@@ -20020,8 +20020,8 @@
 			"edits": [
 				{
 					"file": "src/purchase-execution-session.mjs",
-					"find": "Math.min(now + SESSION_TTL_SECONDS, purchase.buildDeadline, purchase.expiresAt)",
-					"replace": "Math.min(now + SESSION_TTL_SECONDS, purchase.buildDeadline)"
+					"find": "Math.min(now + SESSION_TTL_SECONDS, purchase.buildDeadline, purchase.expiresAt, executionFreshUntil(intent))",
+					"replace": "Math.min(now + SESSION_TTL_SECONDS, purchase.buildDeadline, executionFreshUntil(intent))"
 				}
 			],
 			"tests": [
@@ -20037,7 +20037,7 @@
 			"timeout_ms": 300000,
 			"equivalence": {
 				"kind": "REDUNDANT_LAYER",
-				"proof": "createExecutionSession re-runs recheckPurchase before computing the expiry; it requires purchase.expiresAt === intent.expiresAt and rejects (BUILD_WINDOW) every purchase whose buildDeadline lies after expiresAt. So for every purchase that reaches Math.min, buildDeadline <= expiresAt and min(now + 30, buildDeadline, expiresAt) == min(now + 30, buildDeadline). The bound itself is proven by MUT-CR-PURCHASE-008-P6-P4HDEADLINEAFTEREXPIRY (KILLED)."
+				"proof": "createExecutionSession re-runs recheckPurchase before computing the expiry; it requires purchase.expiresAt === intent.expiresAt and rejects (BUILD_WINDOW) every purchase whose buildDeadline lies after expiresAt. So for every purchase that reaches Math.min, buildDeadline <= expiresAt and min(now + 30, buildDeadline, expiresAt, executionFreshUntil) == min(now + 30, buildDeadline, executionFreshUntil). The bound itself is proven by MUT-CR-PURCHASE-008-P6-P4HDEADLINEAFTEREXPIRY (KILLED)."
 			}
 		},
 		{
@@ -22649,6 +22649,943 @@
 			"expected_failures": [
 				{
 					"test": "^E5-OBS observer: strictly sequential statements on several connections are not concurrency, overlapping ones are$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P1-AVCHAIN",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P1"
+				}
+			],
+			"description": "an unsupported chain is accepted as an Aave v3 Ethereum deployment",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "\tif (chainId !== CHAIN_ID) return Object.freeze({ class: 'UNSUPPORTED', reason: 'UNSUPPORTED_CHAIN' });\n",
+					"replace": ""
+				},
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "if (market.chainId !== chainId || market.protocolVersion",
+					"replace": "if (market.protocolVersion"
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-SCOPE-REJECT "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P1-AVV2ASV3",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P1"
+				}
+			],
+			"description": "Aave v2 is accepted as v3",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "\tif (protocolVersion === 'v2') return Object.freeze({ class: 'DEPRECATED', reason: 'AAVE_V2' });\n",
+					"replace": ""
+				},
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "if (protocolVersion !== 'v3') return",
+					"replace": "if (protocolVersion !== 'v3' && protocolVersion !== 'v2') return"
+				},
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "market.protocolVersion !== protocolVersion || ",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-SCOPE-REJECT "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P1-AVHORIZON",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P1"
+				}
+			],
+			"description": "the permissioned Horizon market is added to the supported registry",
+			"edits": [
+				{
+					"file": "src/positions/aave-registry.mjs",
+					"find": "\t\toracle: '0x43b64f28A678944E0655404B0B98E443851cC34F'\n\t})\n]);",
+					"replace": "\t\toracle: '0x43b64f28A678944E0655404B0B98E443851cC34F'\n\t}),\n\tObject.freeze({ deploymentKey: 'aave-v3-ethereum-horizon', protocolKey: 'aave', protocolVersion: 'v3', chainId: CHAIN_ID, label: 'Horizon', poolAddressesProvider: '0x1111111111111111111111111111111111111111', pool: '0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2', dataProvider: '0x2222222222222222222222222222222222222222', oracle: '0x3333333333333333333333333333333333333333' })\n]);"
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-SCOPE exactly three"
+				},
+				{
+					"test": "^AAVE-SCOPE-REJECT "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P1-AVFUZZY",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P1"
+				}
+			],
+			"description": "the protocol is matched by a case-insensitive name instead of the exact key",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "if (protocolKey !== 'aave') return",
+					"replace": "if (!/aave/i.test(String(protocolKey))) return"
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-SCOPE-REJECT "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P2-AVWRONGPRODUCT",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P2"
+				}
+			],
+			"description": "readiness accepts a Nexus read model for another product id",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "model?.nexusMatch?.productId !== AAVE_PRODUCT_ID || ",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-READY-REASONS "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P2-AVCLIENTPID",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P2"
+				}
+			],
+			"description": "a product id carried in the position is trusted for the mapping",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "\tconst match = matchPositionToNexus(position);",
+					"replace": "\tconst match = Number.isSafeInteger(position?.productId) ? { status: 'EXACT', productId: position.productId, reason: 'CLIENT' } : matchPositionToNexus(position);"
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-MAPPING "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P3-AVFLOAT",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P3"
+				}
+			],
+			"description": "the suggested exposure is computed in floating point",
+			"edits": [
+				{
+					"file": "src/positions/exposure.mjs",
+					"find": "\tconst net = gross - debt;",
+					"replace": "\tconst net = BigInt(Number(gross) - Number(debt));"
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-EXPOSURE "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P3-AVNODEBT",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P3"
+				}
+			],
+			"description": "debt is ignored in the suggested exposure",
+			"edits": [
+				{
+					"file": "src/positions/exposure.mjs",
+					"find": "\tconst net = gross - debt;",
+					"replace": "\tconst net = gross;"
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-EXPOSURE "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P3-AVNEGATIVE",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P3"
+				}
+			],
+			"description": "a negative net exposure is turned into a positive suggestion",
+			"edits": [
+				{
+					"file": "src/positions/exposure.mjs",
+					"find": "suggestedExposure: formatUsd(net > 0n ? net : 0n)",
+					"replace": "suggestedExposure: formatUsd(net < 0n ? -net : net)"
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-EXPOSURE "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P4-AVSTALECAP",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P4"
+				}
+			],
+			"description": "stale capacity is accepted by the readiness decision",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "\telse if (!isTime(now) || !isFreshAt(capacityAt, now)) add('CAPACITY_STALE');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-READY-REASONS "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P4-AVSTALEQUOTE",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P4"
+				}
+			],
+			"description": "a stale or expired quote is accepted by the readiness decision",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "!isFreshAt(quotedAt, now) || !(now < expiresAt) || ",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-READY-REASONS "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P4-AVASSET",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P4"
+				}
+			],
+			"description": "a cover/payment asset outside the purchase allowlist is accepted",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "if (!PURCHASE_COVER_ASSETS.includes(quote.coverAsset) || quote.premiumAsset !== quote.coverAsset) add('PAYMENT_ASSET_NOT_SUPPORTED');",
+					"replace": "if (quote.premiumAsset !== quote.coverAsset) add('PAYMENT_ASSET_NOT_SUPPORTED');"
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-READY-REASONS "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P4-AVTERMS",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P4"
+				}
+			],
+			"description": "the Terms blocker is bypassed",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "\tif (terms.status !== 'TERMS_READY') add('TERMS_BLOCKED');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-READY with every"
+				},
+				{
+					"test": "^AAVE-READY-NO-OVERRIDE "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P4-AVPOL",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P4"
+				}
+			],
+			"description": "the proof-of-loss blocker is bypassed",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "\tif (pol.status !== 'POL_READY') add('POL_BLOCKED');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-READY with every"
+				},
+				{
+					"test": "^AAVE-READY-NO-OVERRIDE "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P4-AVPOLTYPES",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P4"
+				}
+			],
+			"description": "an unexpected proof-of-loss input type list is accepted",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "\telse if (inputTypes.length !== expected.length || inputTypes.some((type, i) => type !== expected[i])) reasons.push('POL_TYPES_UNEXPECTED');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-TERMS-POL "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P4-AVREADYEXT",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P4"
+				}
+			],
+			"description": "the decision becomes READY although external blockers are unresolved",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "decision: reasons.length === 0 ? 'READY_FOR_PURCHASE_EXECUTION' : 'BLOCKED',",
+					"replace": "decision: reasons.every((code) => /^(TERMS|POL)_BLOCKED$|^EXTERNAL:/.test(code)) ? 'READY_FOR_PURCHASE_EXECUTION' : 'BLOCKED',"
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-READY with every"
+				},
+				{
+					"test": "^AAVE-READY-NO-OVERRIDE "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P4-AVEXTRESOLVED",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P4"
+				}
+			],
+			"description": "CR-TERMS-002 is marked resolved without Nexus evidence",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "Object.freeze({ id: 'CR-TERMS-002', area: 'TERMS', status: 'UNRESOLVED',",
+					"replace": "Object.freeze({ id: 'CR-TERMS-002', area: 'TERMS', status: 'RESOLVED',"
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-BLOCKERS-CRSF "
+				},
+				{
+					"test": "^AAVE-TERMS-POL "
+				},
+				{
+					"test": "^AAVE-READY with every"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P4-AVWALLET",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P4"
+				}
+			],
+			"description": "readiness accepts a position of another wallet",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "\telse if (String(position?.wallet ?? '').toLowerCase() !== wallet) add('WALLET_MISMATCH');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-READY-REASONS "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P4-AVCHAINREASON",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P4"
+				}
+			],
+			"description": "readiness does not block a position on another chain",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "if (deployment.class !== 'SUPPORTED') add(deployment.reason === 'UNSUPPORTED_CHAIN' ? 'CHAIN_MISMATCH' : 'MARKET_NOT_SUPPORTED');",
+					"replace": "if (deployment.class !== 'SUPPORTED' && deployment.reason !== 'UNSUPPORTED_CHAIN') add('MARKET_NOT_SUPPORTED');"
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-READY-REASONS "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P5-AVFALSEMATCH",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P5"
+				}
+			],
+			"description": "an attributed cover of another market counts as active cover of this position",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "if (attribution?.deploymentKey !== position.deploymentKey || attribution.productId !== AAVE_PRODUCT_ID) continue;",
+					"replace": "if (attribution?.productId !== AAVE_PRODUCT_ID) continue;"
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-COVER "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P5-AVEXPIRED",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P5"
+				}
+			],
+			"description": "an expired cover whose cached status still says active is shown as active",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": " && (parseTime(cover.endsAt) ?? 0) > now",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-COVER "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P5-AVCOVERWALLET",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P5"
+				}
+			],
+			"description": "covers read for another wallet are used for the cover status",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "String(covers.wallet ?? '').toLowerCase() !== owner || ",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-COVER "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P6-AVLOADQUOTE",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P6"
+				}
+			],
+			"description": "the execution loader accepts a quote that is 60 s or older inside the 120 s build window",
+			"edits": [
+				{
+					"file": "src/purchase-runtime-loader.mjs",
+					"find": "\tif (!(now < checked.intent.quoteFetchedAt + EXECUTION_QUOTE_MAX_AGE_SECONDS)) stop('QUOTE_STALE_FOR_EXECUTION');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-runtime-loader.test.mjs",
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-FRESH-LOADER "
+				},
+				{
+					"test": "^AAVE-FRESH-SESSION "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P6-AVLOADCAP",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P6"
+				}
+			],
+			"description": "the execution loader accepts capacity that is 60 s or older",
+			"edits": [
+				{
+					"file": "src/purchase-runtime-loader.mjs",
+					"find": "\tif (!(now < checked.intent.capacityFetchedAt + EXECUTION_QUOTE_MAX_AGE_SECONDS)) stop('CAPACITY_STALE_FOR_EXECUTION');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-runtime-loader.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-FRESH-LOADER "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P6-AVSESSIONTTL",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P6"
+				}
+			],
+			"description": "an execution session may outlive the 60 s quote and capacity freshness",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session.mjs",
+					"find": "purchase.buildDeadline, purchase.expiresAt, executionFreshUntil(intent));",
+					"replace": "purchase.buildDeadline, purchase.expiresAt);"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-FRESH-SESSION "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P6-AVFRESHQUOTEONLY",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P6"
+				}
+			],
+			"description": "the freshness bound uses only the quote time and ignores older capacity",
+			"edits": [
+				{
+					"file": "src/purchase-runtime-loader.mjs",
+					"find": "Math.min(intent.quoteFetchedAt, intent.capacityFetchedAt) + EXECUTION_QUOTE_MAX_AGE_SECONDS",
+					"replace": "intent.quoteFetchedAt + EXECUTION_QUOTE_MAX_AGE_SECONDS"
+				}
+			],
+			"tests": [
+				"test/purchase-runtime-loader.test.mjs",
+				"test/purchase-execution-session.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-FRESH-LOADER "
+				},
+				{
+					"test": "^AAVE-FRESH-SESSION "
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P4-AVDETAILS",
+			"origin": "new (Aave v3 Ethereum readiness)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P4"
+				}
+			],
+			"description": "the cover details no longer state the blocked readiness",
+			"edits": [
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "\t\tquoteTtlSeconds: QUOTE_TTL_MS / 1_000,\n\t\t// Ohne Quote, Allokation und Ausfuehrungszustand nie bereit; die externen Blocker gelten ohnehin.\n",
+					"replace": "\t\tquoteTtlSeconds: QUOTE_TTL_MS / 1_000,\n\t\treadinessOmitted: true,\n\t\t// Ohne Quote, Allokation und Ausfuehrungszustand nie bereit; die externen Blocker gelten ohnehin.\n"
+				},
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "\t\treadiness: publicReadiness(",
+					"replace": "\t\t_readiness: publicReadiness("
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AAVE-DETAILS "
 				}
 			],
 			"expected_result": "KILLED",

@@ -16,8 +16,11 @@
 	buyCover zusaetzlich keccak256(data) == gespeicherter calldata_hash). Der Builder
 	wird nie importiert und seiner Ausgabe nie vertraut.
 
-	Laufzeit: hoechstens SESSION_TTL_SECONDS und nie nach build_deadline oder
-	expires_at; ohne positives Fenster keine Sitzung, keine Verlaengerung.
+	Laufzeit: hoechstens SESSION_TTL_SECONDS und nie nach build_deadline,
+	expires_at oder dem Ende der Quote-/Kapazitaets-Frische (executionFreshUntil,
+	60 s ab dem aelteren Abrufzeitpunkt); ohne positives Fenster keine Sitzung,
+	keine Verlaengerung. Da eine Wallet-Anfrage nur vor expires_at der Sitzung
+	beginnen darf (P4J), beginnt sie nie mit einer 60 s alten Quote.
 
 	Einmal-Nutzung: hier nur MODELLIERT (checkSessionUse mit einer vom Aufrufer
 	gefuehrten Menge verbrauchter Hashes). Das ist KEINE Durchsetzung; die gehoert
@@ -34,11 +37,11 @@
 import { encodeAbiParameters, keccak256 } from 'viem';
 import { decodeUsdcApproval, decodeNexusBuyCover, validateDecodedAgainstIntent } from './purchase-tx-decode.mjs';
 import { verifyPurchasePreSend, PRE_SEND_CHECKS, PRE_SEND_PINS } from './purchase-pre-send.mjs';
-import { loadPurchaseForExecution, recheckPurchase } from './purchase-runtime-loader.mjs';
+import { loadPurchaseForExecution, recheckPurchase, executionFreshUntil } from './purchase-runtime-loader.mjs';
 
 export const EXECUTION_SESSION_DOMAIN = 'coverraccoon.execution-session';
 export const EXECUTION_SESSION_VERSION = 1;
-/** Hoechstens 30 Sekunden; nie nach build_deadline oder expires_at. */
+/** Hoechstens 30 Sekunden; nie nach build_deadline, expires_at oder executionFreshUntil. */
 export const SESSION_TTL_SECONDS = 30;
 /** Ehrliche Bezeichnung: Einmal-Nutzung ist nur modelliert, nicht dauerhaft durchgesetzt. */
 export const SINGLE_USE_ENFORCEMENT = 'MODEL_ONLY_NOT_PERSISTED';
@@ -139,7 +142,7 @@ export function createExecutionSession(input) {
 	const txProblem = transactionErrors(transaction, purchase);
 	if (txProblem) return outcome(txProblem.status, { errors: txProblem.errors });
 
-	const expiresAt = Math.min(now + SESSION_TTL_SECONDS, purchase.buildDeadline, purchase.expiresAt);
+	const expiresAt = Math.min(now + SESSION_TTL_SECONDS, purchase.buildDeadline, purchase.expiresAt, executionFreshUntil(intent));
 	if (!(expiresAt > now)) return outcome('NO_SESSION_WINDOW');
 
 	const fields = {
