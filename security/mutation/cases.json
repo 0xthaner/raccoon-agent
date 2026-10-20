@@ -17186,6 +17186,963 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FONERPC",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "only one RPC reader is used (reader A answers for both)",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\t\tconst settled = await Promise.allSettled([one(rpcA, method, params), one(rpcB, method, params)]);",
+					"replace": "\t\tconst settled = await Promise.allSettled([one(rpcA, method, params), one(rpcA, method, params)]);"
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-TWO-RPC disagreement on chain, head, block hash, code or storage fails closed without majority$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FSAMEREADER",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "the same reader object passed twice is accepted",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\tif (rpcA === rpcB) stop('RPC_NOT_INDEPENDENT');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-INDEPENDENT the same reader object twice is not two readers$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FDISAGREE",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "disagreement between the readers is ignored (reader A wins)",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\t\t\tif (a !== b) stop('RPC_DISAGREEMENT', `RPC_DISAGREEMENT:${method}`);\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-TWO-RPC disagreement on chain, head, block hash, code or storage fails closed without majority$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FWRONGCHAIN",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "a chain other than mainnet is accepted",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\t\tif (await rpc.agreed('eth_chainId', []) !== `0x${pins.chainId.toString(16)}`) stop('WRONG_CHAIN');",
+					"replace": "\t\tawait rpc.agreed('eth_chainId', []);"
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-CHAIN a chain other than Ethereum mainnet is refused$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FSTATUSOPEN",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "an OPEN intent is accepted for pre-send",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\tif (status !== 'BUILT') stop('INVALID_STATUS', `STATUS_${status}`);",
+					"replace": "\tif (status !== 'BUILT' && status !== 'OPEN') stop('INVALID_STATUS', `STATUS_${status}`);"
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-STATUS only BUILT is eligible; every other persisted status is refused$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FEXPIRY",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "expires_at is ignored",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\tif (!(now < checked.intent.expiresAt)) stop('INTENT_EXPIRED');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-EXPIRY expires_at and build_deadline are exclusive P4D boundaries and are never extended$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FDEADLINE",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "build_deadline is ignored",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\tif (!(now < deadline)) stop('BUILD_DEADLINE_EXPIRED');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-EXPIRY expires_at and build_deadline are exclusive P4D boundaries and are never extended$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FNOHASH",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "the intent hash is not recomputed (the persisted hash is trusted)",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\tif (computePurchaseIntentHash(input.persistedIntent) !== input.persistedIntentHash) stop('INVALID_INTENT', 'INTENT_HASH_MISMATCH');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-INTENT the intent hash is recomputed with P4A and must equal the persisted one; the calldata hash must be bytes32$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FLATEST",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "contracts are read at \"latest\" instead of the agreed block hash",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\t\tconst at = { blockHash: block.hash };",
+					"replace": "\t\tconst at = 'latest';"
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-BLOCK all code and storage reads happen at one agreed block, bound by its hash$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FBLOCKHASH",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "a block hash disagreement between the readers is accepted",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\t\tif (blocks[0].hash !== blocks[1].hash || blocks[0].timestamp !== blocks[1].timestamp) stop('RPC_DISAGREEMENT', 'BLOCK_HASH');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-TWO-RPC disagreement on chain, head, block hash, code or storage fails closed without majority$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FBROKER",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "the Broker runtime hash is ignored",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\t\tif (observed.brokerCodeHash !== pins.brokerCodeHash) stop('BROKER_DRIFT');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-BROKER a changed or missing CoverBroker runtime is BROKER_DRIFT$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FPROXY",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "the Cover proxy runtime hash is ignored",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\t\tif (observed.coverProxyCodeHash !== pins.coverProxyCodeHash) stop('COVER_PROXY_DRIFT');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-COVER-PROXY a changed Cover proxy runtime is COVER_PROXY_DRIFT$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FEIP1967",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "the EIP-1967 slot is read instead of the govblocks implementation slot",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\tcoverImplementationSlot: '0x7fb5080a7084f4c60aade0a78fc13ba4ba6555b60e554360d005f0d684cea186',",
+					"replace": "\tcoverImplementationSlot: '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc',"
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-COVER-IMPL the legacy govblocks slot \\(not EIP-1967\\) must name the pinned implementation with the pinned runtime$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FIMPLADDR",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "the Cover implementation address is ignored",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\t\tif (observed.coverImplementation !== pins.coverImplementation) stop('COVER_IMPLEMENTATION_DRIFT', 'IMPLEMENTATION_ADDRESS');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-COVER-IMPL the legacy govblocks slot \\(not EIP-1967\\) must name the pinned implementation with the pinned runtime$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FIMPLCODE",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "the Cover implementation runtime hash is ignored",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\t\tif (observed.coverImplementationCodeHash !== pins.coverImplementationCodeHash) stop('COVER_IMPLEMENTATION_DRIFT', 'IMPLEMENTATION_CODE');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-COVER-IMPL the legacy govblocks slot \\(not EIP-1967\\) must name the pinned implementation with the pinned runtime$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P2-P4FUSDCPROXY",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P2"
+				}
+			],
+			"description": "the USDC proxy runtime hash is ignored",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\t\tif (observed.usdcProxyCodeHash !== pins.usdc.proxyCodeHash) stop('USDC_DRIFT', 'USDC_PROXY_CODE');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-USDC a changed USDC proxy runtime, implementation address or implementation runtime is USDC_DRIFT$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P2-P4FUSDCADDR",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P2"
+				}
+			],
+			"description": "the USDC implementation address is ignored",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\t\tif (observed.usdcImplementation !== pins.usdc.implementation) stop('USDC_DRIFT', 'USDC_IMPLEMENTATION_ADDRESS');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-USDC a changed USDC proxy runtime, implementation address or implementation runtime is USDC_DRIFT$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P2-P4FUSDCCODE",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P2"
+				}
+			],
+			"description": "the USDC implementation runtime hash is ignored",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\t\tif (observed.usdcImplementationCodeHash !== pins.usdc.implementationCodeHash) stop('USDC_DRIFT', 'USDC_IMPLEMENTATION_CODE');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-USDC a changed USDC proxy runtime, implementation address or implementation runtime is USDC_DRIFT$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P2-P4FUNRESOLVED",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P2"
+				}
+			],
+			"description": "an unresolved USDC pin is accepted",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\tif (!pin || pin.status !== 'PINNED') return 'USDC_PIN_UNRESOLVED';",
+					"replace": "\tif (!pin) return 'USDC_PIN_UNRESOLVED';"
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-USDC-UNRESOLVED a USDC pin counts only when status, addresses, slot and both runtime hashes are present$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FRPCERROR",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "a reader failure is papered over with the other reader's answer and verified",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\t\tif (settled.some((s) => s.status === 'rejected')) stop('TEMPORARY_RPC_FAILURE', ...settled.map((s, i) => (s.status === 'rejected' ? `RPC_${'AB'[i]}_FAILED:${method}` : null)).filter(Boolean));",
+					"replace": "\t\tif (settled.some((s) => s.status === 'rejected')) return settled.map(() => settled.find((x) => x.status === 'fulfilled')?.value);"
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-RPC-ERROR a reader failure is a temporary failure, never verified$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FSENDMETHOD",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "a wallet send method is introduced into the reader allowlist",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "export const PRE_SEND_READ_METHODS = Object.freeze(['eth_chainId', 'eth_blockNumber', 'eth_getBlockByNumber', 'eth_getCode', 'eth_getStorageAt', 'eth_call']);",
+					"replace": "export const PRE_SEND_READ_METHODS = Object.freeze(['eth_chainId', 'eth_blockNumber', 'eth_getBlockByNumber', 'eth_getCode', 'eth_getStorageAt', 'eth_call', 'eth_sendRawTransaction']);"
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-STATIC the pre-send verifier has no send, sign, wallet, network, DB-mutation or environment surface and uses only read methods$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FDBWRITE",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "a DB state transition (markSubmitted) is introduced into the verifier",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "import { validatePurchaseIntent, computePurchaseIntentHash, PURCHASE_PINS, INTENT_STATUSES } from './purchase-intent.mjs';",
+					"replace": "import { validatePurchaseIntent, computePurchaseIntentHash, PURCHASE_PINS, INTENT_STATUSES } from './purchase-intent.mjs';\nimport { markSubmitted } from './purchase-intent-db.mjs';"
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-STATIC the pre-send verifier has no send, sign, wallet, network, DB-mutation or environment surface and uses only read methods$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FROUTEIMPORT",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "a runtime route (api/nexus/quote.mjs) imports the pre-send verifier",
+			"edits": [
+				{
+					"file": "api/nexus/quote.mjs",
+					"find": "import { getNexusReadModel } from '../../src/nexus-read-model.mjs';",
+					"replace": "import { getNexusReadModel } from '../../src/nexus-read-model.mjs';\nimport { verifyPurchasePreSend } from '../../src/purchase-pre-send.mjs';"
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-IMPORT only test/purchase-pre-send\\.test\\.mjs imports the pre-send verifier; no API route exists$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FTOCTOU",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "the TOCTOU residual is described as eliminated",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "export const TOCTOU_RESIDUAL = 'NOT eliminated: the chain can change",
+					"replace": "export const TOCTOU_RESIDUAL = 'Eliminated: the chain can no longer change"
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-TOCTOU the verdict states the residual time-of-check risk and never claims it is eliminated$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FSTALE",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "a stale block (older than the allowed age) is accepted as the current chain view",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\t\tif (age > MAX_BLOCK_AGE_SECONDS) stop('STALE_CHAIN_VIEW', 'BLOCK_TOO_OLD');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-BLOCK all code and storage reads happen at one agreed block, bound by its hash$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FHEADSKEW",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "readers whose heads are far apart are accepted",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\t\tif (high - low > MAX_HEAD_SKEW_BLOCKS) stop('RPC_DISAGREEMENT', 'HEAD_SKEW');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-TWO-RPC disagreement on chain, head, block hash, code or storage fails closed without majority$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P1-P4FCLIENTFIELDS",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P1"
+				}
+			],
+			"description": "client-supplied fields are accepted silently",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\tif (unknown.length) stop('INVALID_INPUT', ...unknown.map((k) => `CLIENT_FIELD:${k}`));\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-CLIENT a browser intent hash, calldata hash, status, deadline or transaction is refused and never read$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P2-P4FUSDCSLOT",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P2"
+				}
+			],
+			"description": "the USDC pin uses the EIP-1967 implementation slot instead of the zeppelinos slot",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\timplementationSlot: '0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3',",
+					"replace": "\timplementationSlot: '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc',"
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-USDC-SOURCE proxy and implementation are pinned from deployed code and our own recompilation, not from a label$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-008-P2-P4FUSDCPINHASH",
+			"origin": "new (P4F)",
+			"evidence_id": "EV-KB-PURCHASE-PRE-SEND",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-008",
+					"property": "P2"
+				}
+			],
+			"description": "the USDC implementation pin names a runtime hash that is not the recompiled deployed code",
+			"edits": [
+				{
+					"file": "src/purchase-pre-send.mjs",
+					"find": "\timplementationCodeHash: '0xcdfb7d322961af3acae7a8f7ee8b69c205b36f576cc5b077f170c7eb8ecbe3ea'",
+					"replace": "\timplementationCodeHash: '0xf0ff95adad069e2472f58697fab60abde1d1181edb5d933c69483fb6a55cc29c'"
+				}
+			],
+			"tests": [
+				"test/purchase-pre-send.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4F-USDC-SOURCE proxy and implementation are pinned from deployed code and our own recompilation, not from a label$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

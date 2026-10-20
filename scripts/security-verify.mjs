@@ -19,7 +19,10 @@
 
 	Exit codes: 0 framework valid and no executed evidence failed; 1 framework
 	invalid, evidence failure, mutation claim mismatch or release-blocking FAIL;
-	2 only with --require-release-assertion when the assertion is not PASS.
+	2 only with --require-release-assertion when the assertion is not PASS;
+	3 test-infrastructure precondition failed (disposable Postgres below the
+	documented connection capacity, security/crsf/lib/pg-capacity.mjs) - nothing
+	was executed and no report is written.
 	No secrets are read: child processes get a fixed minimal environment.
 */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -29,6 +32,7 @@ import { fileURLToPath } from 'node:url';
 import { loadDefinition, loadSchemas, validateSchemas, checkIntegrity, checkPinnedSources, declaredOutcomes, evaluate, affectedDomains, sha256, findingLedger, openUnmappedFindings, releaseAssertion } from '../security/crsf/lib/engine.mjs';
 import { detectCapabilities, childEnv, executeNodeTestEvidence, executeProbe, executeMutations, mutationClaimMismatches, gitInfo, changedPaths } from '../security/crsf/lib/exec.mjs';
 import { runSelfTests } from '../security/crsf/selftest/framework-selftest.mjs';
+import { probePgCapacity } from '../security/crsf/lib/pg-capacity.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CRSF = path.join(REPO, 'security/crsf');
@@ -65,6 +69,15 @@ log(`framework: ${framework.length ? `INVALID (${framework.length} error(s))` : 
 
 /* -------------------------------------------- 9-10: execution */
 const caps = detectCapabilities();
+// P4F: test infrastructure, not security evidence - all Postgres evidence groups run concurrently against one disposable server.
+if (caps.postgres.available) {
+	const capacity = await probePgCapacity({ url: process.env.M1_DB_TEST_PG_URL, module: process.env.M1_DB_TEST_PG_MODULE });
+	if (!capacity.ok) {
+		log(`TEST INFRASTRUCTURE PRECONDITION FAILED: disposable Postgres max_connections ${capacity.value ?? 'unknown'} (${capacity.error}); required >= ${capacity.required} for the concurrent evidence groups. Nothing executed.`);
+		process.exit(3);
+	}
+	log(`test infrastructure: disposable Postgres max_connections ${capacity.value} >= ${capacity.required}`);
+}
 const env = childEnv(caps);
 const items = def.evidence?.evidence ?? [];
 // Phase 2W: the capabilities of this run are part of the observed outcomes (meta-derived properties check them).

@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zf",
+	"crsf_version": "1.0-draft-phase2zg",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -8769,7 +8769,7 @@
 			"artifact": "test/purchase-tx-builder.test.mjs",
 			"test_or_proof": "test/purchase-tx-builder.test.mjs",
 			"property_proven": "Behaviourally, against the pure builder: the local Broker ABI equals the verified v2.12.1 signature (recompilation methodIdentifiers, deployed runtime dispatches 0x7c59cac4) and wrong ABI assumptions change the selector; the approval is exactly USDC.approve(Broker, maxPremiumRaw), value 0, deterministic, never unbounded (MaxUint and above-cover maxima rejected); buyCover decodes (test-own ABI) to exactly the intent/quote-derived fields with value 0, the real overshooting quote is accepted, underflow / mismatch / premium above max / other assets / missing proof-of-loss CID are rejected; calldataHash is deterministic and changes with each bound field; every override field is rejected; only two fixed encodings exist; outputs are never production-ready; no wallet, send, network, DB, clock or unlimited-approval code; no runtime import; transaction encoding exists only in the two P4C modules.",
-			"property_not_proven": "chain state at send time and wallet execution (CR-PURCHASE-008); receipts (CR-PURCHASE-006, read-only verifier); the USDC implementation (address only)",
+			"property_not_proven": "chain state at send time (read-only pre-send verifier, CR-PURCHASE-008 P1/P2) and wallet execution (CR-PURCHASE-008 P3); receipts (CR-PURCHASE-006, read-only verifier); the builder itself encodes against the USDC address only (the implementation pin is checked by the pre-send verifier, CR-PURCHASE-008 P2)",
 			"coverage": "PARTIAL",
 			"reason_for_partial": "CR-PURCHASE-002[P1,P2,P4]: covers a subset of sub-properties",
 			"covers": [
@@ -9310,6 +9310,129 @@
 			],
 			"coverage": "FULL",
 			"reason_for_partial": null
+		},
+		{
+			"id": "EV-PURCHASE-PRE-SEND",
+			"control_ids": [
+				"CR-PURCHASE-008"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/purchase-pre-send.test.mjs",
+			"test_or_proof": "test/purchase-pre-send.test.mjs",
+			"property_proven": "Behaviourally, against the read-only pre-send verifier with two offline readers that answer only for the agreed block hash. Positive: the REAL chain state of block 26230166 (two-provider capture, pinned runtimes of Broker, Cover proxy and implementation, USDC proxy and implementation, both implementation slots) with a SYNTHETIC BUILT intent gives PRE_SEND_VERIFIED with all 17 checks passed, the observed pins and a non-authoritative allowance observation; deterministic over repeated runs. Negative, each with its own status: every status other than BUILT, expires_at and build_deadline at and after the exclusive bound, an inconsistent build window, the persisted intent hash not equal to the P4A recomputation, malformed intent or calldata hash, missing proof-of-loss CID, client-shaped fields (intent hash, calldata hash, status, deadline, to, data, value, spender, ABI, selector, transaction) refused and never read, wrong chain, the same reader twice, disagreement on chain id, block hash, block timestamp, missing block, head skew, code and storage in both directions, reader failure on every method from either side (TEMPORARY_RPC_FAILURE), malformed head, stale or future block, every code/storage/call read bound to the agreed block hash and only the pinned addresses and slots read, Broker / Cover proxy / Cover implementation slot (including EIP-1967 and garbage upper bytes) / Cover implementation runtime drift, USDC proxy runtime / implementation address (including empty, EIP-1967) / implementation runtime drift, an unresolved USDC pin. USDC source: proxy and implementation fixtures hash to the pins, the deployed proxy carries the zeppelinos implementation and admin slots and no EIP-1967 slot, our recompilations differ from the deployed runtimes only in the 32-byte metadata hash, the shipped Circle sources hash to the compiled metadata, and the pinned approve overwrites the allowance with the exact value, returns true and has no zero-first requirement; the deployed implementation dispatches approve and allowance. TOCTOU residual stated, never claimed eliminated. No send, sign, wallet, network, DB or environment code; six read methods; no runtime importer.",
+			"property_not_proven": "live provider behaviour beyond one manual live run (readers are offline replays); that the check runs immediately before a real wallet request and that its block is bound to the session (P3, no wallet path exists); state changes between check and mining (TOCTOU residual: proxy upgrade, USDC pause, reorg); receipt-before-CONFIRMED orchestration (P4); Nexus texts and proof-of-loss (CR-TERMS-002, CR-POL-002)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-008[P1,P2]: covers a subset of sub-properties",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-008",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/purchase-pre-send.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-PURCHASE-PRE-SEND",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 29 case(s)",
+			"property_proven": "Each listed weakening of the pre-send verifier (one reader, same reader twice, disagreement ignored, wrong chain, OPEN status, expiry and build deadline ignored, intent hash not recomputed, reads at latest instead of the agreed block, block hash disagreement, stale block, head skew, Broker / Cover proxy / implementation address / implementation code checks dropped, EIP-1967 slot instead of govblocks, USDC proxy / implementation address / implementation code checks dropped, USDC EIP-1967 slot, a USDC pin hash that is not the deployed code, unresolved USDC pin accepted, reader failure papered over, client fields accepted, send method, DB write, route import, TOCTOU described as eliminated) is detected by the intended test.",
+			"property_not_proven": "weakenings beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-PURCHASE-008",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-PURCHASE-008-P1-P4FONERPC, MUT-CR-PURCHASE-008-P1-P4FSAMEREADER, MUT-CR-PURCHASE-008-P1-P4FDISAGREE, MUT-CR-PURCHASE-008-P1-P4FWRONGCHAIN, MUT-CR-PURCHASE-008-P1-P4FSTATUSOPEN, MUT-CR-PURCHASE-008-P1-P4FEXPIRY, MUT-CR-PURCHASE-008-P1-P4FDEADLINE, MUT-CR-PURCHASE-008-P1-P4FNOHASH, MUT-CR-PURCHASE-008-P1-P4FLATEST, MUT-CR-PURCHASE-008-P1-P4FBLOCKHASH, MUT-CR-PURCHASE-008-P1-P4FBROKER, MUT-CR-PURCHASE-008-P1-P4FPROXY, MUT-CR-PURCHASE-008-P1-P4FEIP1967, MUT-CR-PURCHASE-008-P1-P4FIMPLADDR, MUT-CR-PURCHASE-008-P1-P4FIMPLCODE, MUT-CR-PURCHASE-008-P2-P4FUSDCPROXY, MUT-CR-PURCHASE-008-P2-P4FUSDCADDR, MUT-CR-PURCHASE-008-P2-P4FUSDCCODE, MUT-CR-PURCHASE-008-P2-P4FUNRESOLVED, MUT-CR-PURCHASE-008-P1-P4FRPCERROR, MUT-CR-PURCHASE-008-P1-P4FSENDMETHOD, MUT-CR-PURCHASE-008-P1-P4FDBWRITE, MUT-CR-PURCHASE-008-P1-P4FROUTEIMPORT, MUT-CR-PURCHASE-008-P1-P4FTOCTOU, MUT-CR-PURCHASE-008-P1-P4FSTALE, MUT-CR-PURCHASE-008-P1-P4FHEADSKEW, MUT-CR-PURCHASE-008-P1-P4FCLIENTFIELDS, MUT-CR-PURCHASE-008-P2-P4FUSDCSLOT, MUT-CR-PURCHASE-008-P2-P4FUSDCPINHASH"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-PURCHASE-008-P1-P4FONERPC",
+					"MUT-CR-PURCHASE-008-P1-P4FSAMEREADER",
+					"MUT-CR-PURCHASE-008-P1-P4FDISAGREE",
+					"MUT-CR-PURCHASE-008-P1-P4FWRONGCHAIN",
+					"MUT-CR-PURCHASE-008-P1-P4FSTATUSOPEN",
+					"MUT-CR-PURCHASE-008-P1-P4FEXPIRY",
+					"MUT-CR-PURCHASE-008-P1-P4FDEADLINE",
+					"MUT-CR-PURCHASE-008-P1-P4FNOHASH",
+					"MUT-CR-PURCHASE-008-P1-P4FLATEST",
+					"MUT-CR-PURCHASE-008-P1-P4FBLOCKHASH",
+					"MUT-CR-PURCHASE-008-P1-P4FBROKER",
+					"MUT-CR-PURCHASE-008-P1-P4FPROXY",
+					"MUT-CR-PURCHASE-008-P1-P4FEIP1967",
+					"MUT-CR-PURCHASE-008-P1-P4FIMPLADDR",
+					"MUT-CR-PURCHASE-008-P1-P4FIMPLCODE",
+					"MUT-CR-PURCHASE-008-P2-P4FUSDCPROXY",
+					"MUT-CR-PURCHASE-008-P2-P4FUSDCADDR",
+					"MUT-CR-PURCHASE-008-P2-P4FUSDCCODE",
+					"MUT-CR-PURCHASE-008-P2-P4FUNRESOLVED",
+					"MUT-CR-PURCHASE-008-P1-P4FRPCERROR",
+					"MUT-CR-PURCHASE-008-P1-P4FSENDMETHOD",
+					"MUT-CR-PURCHASE-008-P1-P4FDBWRITE",
+					"MUT-CR-PURCHASE-008-P1-P4FROUTEIMPORT",
+					"MUT-CR-PURCHASE-008-P1-P4FTOCTOU",
+					"MUT-CR-PURCHASE-008-P1-P4FSTALE",
+					"MUT-CR-PURCHASE-008-P1-P4FHEADSKEW",
+					"MUT-CR-PURCHASE-008-P1-P4FCLIENTFIELDS",
+					"MUT-CR-PURCHASE-008-P2-P4FUSDCSLOT",
+					"MUT-CR-PURCHASE-008-P2-P4FUSDCPINHASH"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-PURCHASE-008"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-PURCHASE-008[P1,P2]: mutation cases: MUT-CR-PURCHASE-008-P1-P4FONERPC, MUT-CR-PURCHASE-008-P1-P4FSAMEREADER, MUT-CR-PURCHASE-008-P1-P4FDISAGREE, MUT-CR-PURCHASE-008-P1-P4FWRONGCHAIN, MUT-CR-PURCHASE-008-P1-P4FSTATUSOPEN, MUT-CR-PURCHASE-008-P1-P4FEXPIRY, MUT-CR-PURCHASE-008-P1-P4FDEADLINE, MUT-CR-PURCHASE-008-P1-P4FNOHASH, MUT-CR-PURCHASE-008-P1-P4FLATEST, MUT-CR-PURCHASE-008-P1-P4FBLOCKHASH, MUT-CR-PURCHASE-008-P1-P4FBROKER, MUT-CR-PURCHASE-008-P1-P4FPROXY, MUT-CR-PURCHASE-008-P1-P4FEIP1967, MUT-CR-PURCHASE-008-P1-P4FIMPLADDR, MUT-CR-PURCHASE-008-P1-P4FIMPLCODE, MUT-CR-PURCHASE-008-P2-P4FUSDCPROXY, MUT-CR-PURCHASE-008-P2-P4FUSDCADDR, MUT-CR-PURCHASE-008-P2-P4FUSDCCODE, MUT-CR-PURCHASE-008-P2-P4FUNRESOLVED, MUT-CR-PURCHASE-008-P1-P4FRPCERROR, MUT-CR-PURCHASE-008-P1-P4FSENDMETHOD, MUT-CR-PURCHASE-008-P1-P4FDBWRITE, MUT-CR-PURCHASE-008-P1-P4FROUTEIMPORT, MUT-CR-PURCHASE-008-P1-P4FTOCTOU, MUT-CR-PURCHASE-008-P1-P4FSTALE, MUT-CR-PURCHASE-008-P1-P4FHEADSKEW, MUT-CR-PURCHASE-008-P1-P4FCLIENTFIELDS, MUT-CR-PURCHASE-008-P2-P4FUSDCSLOT, MUT-CR-PURCHASE-008-P2-P4FUSDCPINHASH"
 		}
 	]
 }

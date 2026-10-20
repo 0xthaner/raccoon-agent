@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zf",
+	"crsf_version": "1.0-draft-phase2zg",
 	"profile_rules_digest": "0408f5d8ab00e6ec5829051c12ec5713e303de093937be60a5c09d90bf4f1bdc",
 	"controls": {
 		"CR-ALLOC-001": {
@@ -1239,13 +1239,13 @@
 		},
 		"CR-PURCHASE-008": {
 			"release_class": "SECURITY_DEBT",
-			"minimum_evidence_level": "E1",
+			"minimum_evidence_level": "E3",
 			"applicability": "APPLICABLE",
 			"external_requirement_ids": [
 				"V2.3.2"
 			],
-			"properties_digest": "120222d35b09312d0ae58aee4f4536d075d84abe3ab7f52cf4cf295c3c5e393f",
-			"derivation_digest": "0d0a9fd34603a23ade523398ff7689fdd6bb5e698a9cfdbc5b30d115be9212b1"
+			"properties_digest": "f1010a28c8d9b61ef9faed71ead228bab532f6256db34253d9cee2ca016af042",
+			"derivation_digest": "81cdad458a0fabf25cc32c9bf0f1d0d9c006ca301f45d5f511b5d634bf5f8cbf"
 		},
 		"CR-QUOTE-001": {
 			"release_class": "RELEASE_BLOCKING",

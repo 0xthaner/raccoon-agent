@@ -264,7 +264,8 @@ test('P4C-SURFACE transaction encoding and transaction-shaped objects exist only
 	for (const file of runtime) {
 		// P4D (19.10.2026): der unerreichbare DB-Helfer (P4D-IMPORT) nimmt den Calldata-Hash entgegen, um ihn zu speichern; alles andere gilt auch dort.
 		// P4E (19.10.2026): ebenso der unerreichbare, nur lesende Beleg-Pruefer (P4E-IMPORT), der keccak256(input) gegen ihn vergleicht.
-		const surface = ['src/purchase-intent-db.mjs', 'src/purchase-receipt.mjs'].includes(file) ? /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|productionReady/ : /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|calldataHash|productionReady/;
+		// P4F (20.10.2026): ebenso der unerreichbare, nur lesende Pre-Send-Pruefer (P4F-IMPORT), der nur das Format des gespeicherten Hashes prueft.
+		const surface = ['src/purchase-intent-db.mjs', 'src/purchase-receipt.mjs', 'src/purchase-pre-send.mjs'].includes(file) ? /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|productionReady/ : /encodeFunctionData|buyCover|7c59cac4|095ea7b3|NEXUS_BUY_COVER|USDC_APPROVAL|functionName:\s*'approve'|\.approve\(|calldataHash|productionReady/;
 		assert.doesNotMatch(code(file), surface, file);
 	}
 });

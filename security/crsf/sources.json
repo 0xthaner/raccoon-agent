@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zf",
+	"crsf_version": "1.0-draft-phase2zg",
 	"sources": [
 		{
 			"id": "SRC-ASVS",
@@ -258,12 +258,12 @@
 		{
 			"id": "SRC-USDC-MAINNET",
 			"org": "Circle",
-			"title": "USDC on Ethereum mainnet (address only)",
-			"version": "address pin",
-			"date": "2026-10-19",
+			"title": "USDC on Ethereum mainnet (proxy and implementation pinned)",
+			"version": "FiatTokenProxy -> FiatTokenV2_2",
+			"date": "2026-10-20",
 			"url": "https://etherscan.io/address/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-			"pin": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 as given in the P4C task; implementation behind the proxy NOT source-pinned, no on-chain read in P4C",
-			"note": "P4C encodes approve(address,uint256) only as an offline template; real use stays blocked until the USDC implementation/source check (CR-PURCHASE-008 P2)."
+			"pin": "proxy 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 (FiatTokenProxy = zeppelinos AdminUpgradeabilityProxy, runtime keccak256 0xd80d4b7c890cb9d6a4893e6b52bc34b56b25335cb13716e0d1d31383e6b41505, 2186 bytes; implementation slot keccak256(\"org.zeppelinos.proxy.implementation\") = 0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3, EIP-1967 slots empty) -> implementation 0x43506849D7C04F9138D1A2050bbF3A0c054402dd (FiatTokenV2_2, runtime keccak256 0xcdfb7d322961af3acae7a8f7ee8b69c205b36f576cc5b077f170c7eb8ecbe3ea, 23464 bytes); read on 2026-10-20 from two providers (eth.drpc.org, mainnet.gateway.tenderly.co) at one block with identical results; test/fixtures/usdc/runtime-usdc-*.hex",
+			"note": "Pinned independently in P4F (CR-PURCHASE-008 P2): deployed code from two readers, the implementation slot read from storage (not assumed), both runtimes recompiled by us (SRC-USDC-FIATTOKEN-V2-2; the proxy from its single-file verified source with official solc 0.4.24): identical except the 32-byte metadata hash. The proxy admin can upgrade the implementation; the pin then fails closed (USDC_DRIFT). A web label was never used as proof."
 		},
 		{
 			"id": "SRC-NEXUS-BUYCOVER-RECEIPT",
@@ -274,6 +274,26 @@
 			"url": "https://etherscan.io/tx/0x1bec0316a5e23e34d1e81bd81aab8b38333d67e01b01382a112314823edae031",
 			"pin": "tx 0x1bec0316a5e23e34d1e81bd81aab8b38333d67e01b01382a112314823edae031 in block 26219867 (hash 0xb72af12b1c4af58497cb4942ed6b0cb5295e33be73d739b76779a8bf50e417fa); captured read-only once on 2026-10-19 from two independent providers (eth.drpc.org, mainnet.gateway.tenderly.co) which returned identical values: transaction, receipt with 11 logs, block, implementation slot keccak256(\"org.govblocks.proxy.implementation\") = 0xcafeafF1a21418f530Feb00C6BAeF07523979C05, code hashes of Broker / Cover proxy / implementation at the block (equal to the pins), getCoverData / getCoverReference / getCoverMetadata / ownerOf at the block for cover 5645; test/fixtures/nexus/buycover-receipt-26219867.json; Cover proxy runtime (863 bytes, keccak256 0xd772ae50e8c6515f53b17b60eb2bf13e0d40ec60cc3d2d5dd8d58d78afb8a1e0, identical to the Sourcify exact-match OwnedUpgradeabilityProxy of CoverProducts 0xcafead81) in test/fixtures/nexus/runtime-cover-proxy-cafeac0f.hex",
 			"note": "Not a CoverRaccoon purchase: commissionRatio 1000 to a non-zero destination (visible as a USDC transfer from the Broker), empty ipfsData, owner = sender but not a CoverRaccoon intent. Confirms structurally: CoverBought(5645, 5645, 9301, 97) from the Cover proxy (new cover: originalCoverId = coverId; buyer member 9301 = the Broker), CoverNFT mint 0 -> owner of 5645, stored amount 401085049 >= requested 400000000, start = block timestamp, period 2592000. Used only as a negative / structural example, never as a positive receipt."
+		},
+		{
+			"id": "SRC-USDC-FIATTOKEN-V2-2",
+			"org": "Circle",
+			"title": "stablecoin-evm FiatTokenV2_2 (USDC implementation source)",
+			"version": "v2.2.0",
+			"date": "2026-10-20",
+			"url": "https://github.com/circlefin/stablecoin-evm/tree/v2.2.0",
+			"pin": "tag v2.2.0 = commit 405efc100c016ed1a437063b6274b4e24ea7b8b1, contracts/v2/FiatTokenV2_2.sol with @openzeppelin/contracts 3.4.2 (npm, sha512 integrity of the v2.2.0 yarn.lock), official soljson v0.6.12+commit.27d51765 (sha256 0x3e1956c5... per binaries.soliditylang.org list.json), optimizer 10000000 runs, istanbul, SignatureChecker library linked at 0x800c32eaa2a6c93cf4cb51794450ed77fbfbb172; test/fixtures/usdc/usdc-builds.json, FiatTokenV2_2.sol, FiatTokenV1.sol, Pausable.sol",
+			"note": "Untrusted third-party code, verified by recompilation: every source keccak256 equals the verified metadata record, the compiled runtime equals the deployed implementation in every byte except the 32-byte IPFS metadata hash in the CBOR trailer (Sourcify also reports \"match\", not \"exact_match\"; executable code identical). approve(address,uint256) (selector 0x095ea7b3): whenNotPaused only (V2_2 removed the blacklist modifiers), _approve requires non-zero owner and spender, OVERWRITES allowed[owner][spender] with the exact value (no zero-first step, no accumulation), emits Approval, returns true; reverts only when paused or for the zero address."
+		},
+		{
+			"id": "SRC-NEXUS-PRE-SEND-STATE",
+			"org": "Ethereum mainnet",
+			"title": "Broker / Cover / USDC pins at one agreed block (pre-send capture)",
+			"version": "block 26230166",
+			"date": "2026-10-20",
+			"url": "https://etherscan.io/block/26230166",
+			"pin": "block 26230166 (hash 0xeff8e6a815e51fd8d4ed2b8cc7f65f64b7951b95920949ae7618392a872810f8) = min(head A, head B) of eth.drpc.org and mainnet.gateway.tenderly.co; code of Broker, Cover proxy and implementation, USDC proxy and implementation, the govblocks and zeppelinos implementation slots, the EIP-1967 slots (empty) and one allowance, each read by EIP-1898 block hash from both providers with identical results; test/fixtures/nexus/pre-send-state-26230166.json",
+			"note": "Real chain state, read-only. Used offline as the positive chain state of the pre-send verifier with a SYNTHETIC intent (no transaction exists). The same verifier also ran once live against both providers (PRE_SEND_VERIFIED at block 26230202)."
 		}
 	],
 	"deferred_sources": [
@@ -404,6 +424,24 @@
 			"change": "CORRECTED",
 			"id": "SRC-USDC-MAINNET",
 			"reason": "note: the open USDC implementation pin moved with the pre-send obligations from CR-PURCHASE-006 P2 to CR-PURCHASE-008 P2 (unchanged, still open)"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zg",
+			"change": "CORRECTED",
+			"id": "SRC-USDC-MAINNET",
+			"reason": "P4F: the USDC implementation is now pinned independently (proxy architecture and slot from the deployed code, implementation address from storage, both runtime hashes, recompilation); before: address only"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zg",
+			"change": "ADDED",
+			"id": "SRC-USDC-FIATTOKEN-V2-2",
+			"reason": "P4F: Circle source of the pinned USDC implementation, proven by recompilation; approve semantics"
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zg",
+			"change": "ADDED",
+			"id": "SRC-NEXUS-PRE-SEND-STATE",
+			"reason": "P4F: real pins at one agreed block from two providers, positive chain state for CR-PURCHASE-008 P1/P2"
 		}
 	],
 	"vendored": [

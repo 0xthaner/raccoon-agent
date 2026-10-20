@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zf",
+	"crsf_version": "1.0-draft-phase2zg",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -13404,42 +13404,45 @@
 				"V2.3.2"
 			],
 			"external_requirement": "Business logic limits and rules are implemented as documented (V2.3.2).",
-			"applicability_reason": "Obligation for the transaction phases; P4E only verifies receipts read-only. Nothing sends, signs, calls a wallet or records CONFIRMED. Must become RELEASE_BLOCKING before any real transaction code.",
+			"applicability_reason": "Obligation for the transaction phases. P4F adds the read-only pre-send verifier (src/purchase-pre-send.mjs) and the independent USDC pin; neither is reachable from any runtime path. Nothing sends, signs, calls a wallet or records CONFIRMED. Must become RELEASE_BLOCKING before any real transaction code.",
 			"release_class": "SECURITY_DEBT",
-			"minimum_evidence_level": "E1",
-			"automation": "NO",
+			"minimum_evidence_level": "E3",
+			"automation": "PARTIAL",
 			"id": "CR-PURCHASE-008",
 			"title": "Pre-send chain validation, USDC implementation pin, wallet execution and confirmed-state recording",
 			"applies_to": [
 				"src/purchase-tx-builder.mjs",
 				"src/purchase-tx-decode.mjs",
 				"src/purchase-intent-db.mjs",
-				"src/purchase-receipt.mjs"
+				"src/purchase-receipt.mjs",
+				"src/purchase-pre-send.mjs"
 			],
 			"source_refs": [
 				"SRC-ASVS V2.3.2",
 				"SRC-NEXUS-COVERBROKER",
 				"SRC-NEXUS-COVER",
-				"SRC-USDC-MAINNET"
+				"SRC-USDC-MAINNET",
+				"SRC-USDC-FIATTOKEN-V2-2",
+				"SRC-NEXUS-PRE-SEND-STATE"
 			],
-			"coverraccoon_requirement": "Before any real transaction: re-read Broker runtime hash and Cover implementation from the chain right before sending; source-pin the USDC implementation; execute only through a reviewed wallet path that re-validates with the independent decoder; verify the receipt (CoverBought / NFT owner) against the intent.",
+			"coverraccoon_requirement": "Before any real transaction: a read-only pre-send verifier re-reads, at one block agreed by two independent readers, the Broker runtime, the Cover proxy runtime, implementation slot and implementation runtime, and the USDC proxy runtime, implementation slot and implementation runtime, and passes only if all equal the pins and the server-loaded intent is BUILT, unexpired, before its build deadline and hash-consistent; the USDC implementation is source-pinned (address, slot, runtime, recompiled source with understood approve semantics); execution happens only through a reviewed wallet path that runs this verifier immediately before the wallet request, binds the verified block to the session and re-validates the exact bytes with the independent decoder; the receipt (CoverBought / NFT owner) is verified against the intent before CONFIRMED is recorded.",
 			"threat": "a correct offline transaction sent against changed contracts, or a purchase recorded without on-chain proof",
 			"expected_property": "chain-checked execution and receipt",
 			"properties": [
 				{
 					"id": "P1",
 					"kind": "REQUIREMENT",
-					"text": "immediately before sending, the Broker runtime code hash and the Cover implementation read from the chain match the pins"
+					"text": "a read-only pre-send verifier, given only server-loaded intent state, returns PRE_SEND_VERIFIED only if: the intent is BUILT, now < expires_at and now < build_deadline (P4D bounds, exclusive), the intent hash recomputed with P4A equals the stored one and the stored calldata hash is bytes32; two distinct readers agree on chain 1 and on one block (the lower head, with the same block hash, not stale); and at exactly that block hash the Broker runtime code hash, the Cover proxy runtime code hash, the Cover implementation in slot keccak256(\"org.govblocks.proxy.implementation\") (not EIP-1967) and its runtime code hash equal the pins. Any drift, disagreement, reader failure, other status, expired deadline or client-shaped field fails closed; the verifier never sends, signs, calls a wallet or writes the database, and nothing at runtime imports it"
 				},
 				{
 					"id": "P2",
 					"kind": "REQUIREMENT",
-					"text": "the USDC implementation behind the proxy is source-pinned"
+					"text": "the USDC proxy and implementation are pinned independently - proxy architecture and implementation slot keccak256(\"org.zeppelinos.proxy.implementation\") from the deployed code, implementation address from storage, both runtime code hashes, and our own recompilation of the Circle source (identical except the metadata hash), never a web label - and the pre-send verifier checks the USDC proxy runtime, implementation slot and implementation runtime at the same block (USDC_DRIFT; an unresolved pin is USDC_PIN_UNRESOLVED); the pinned approve(address,uint256) overwrites the allowance with the exact amount, needs no zero-first step and returns true"
 				},
 				{
 					"id": "P3",
 					"kind": "REQUIREMENT",
-					"text": "wallet execution exists only through a reviewed path that re-validates the exact bytes with the independent decoder"
+					"text": "wallet execution exists only through a reviewed path that runs the pre-send verifier (P1, P2) immediately before the wallet request, binds verifiedAtBlock / verifiedAtBlockHash to the transaction session, and re-validates the exact bytes with the independent decoder"
 				},
 				{
 					"id": "P4",
@@ -13448,19 +13451,26 @@
 				}
 			],
 			"required_evidence_types": [
-				"static",
-				"config",
-				"manual"
+				"behavioral"
 			],
-			"current_evidence_ids": [],
+			"current_evidence_ids": [
+				"EV-KB-PURCHASE-PRE-SEND",
+				"EV-PURCHASE-PRE-SEND"
+			],
 			"property_coverage": {
 				"P1": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-PURCHASE-PRE-SEND",
+						"EV-KB-PURCHASE-PRE-SEND"
+					],
 					"partial_only": [],
 					"insufficient": []
 				},
 				"P2": {
-					"satisfied_by": [],
+					"satisfied_by": [
+						"EV-PURCHASE-PRE-SEND",
+						"EV-KB-PURCHASE-PRE-SEND"
+					],
 					"partial_only": [],
 					"insufficient": []
 				},
@@ -13476,9 +13486,9 @@
 				}
 			},
 			"conformance_status": "NOT_DEMONSTRATED",
-			"conformance_status_reason": "P1 unsatisfied; P2 unsatisfied; P3 unsatisfied; P4 unsatisfied",
+			"conformance_status_reason": "P3 unsatisfied; P4 unsatisfied",
 			"security_status": "MISSING_EVIDENCE",
-			"security_status_reason": "P1 unsatisfied; P2 unsatisfied; P3 unsatisfied; P4 unsatisfied",
+			"security_status_reason": "P3 unsatisfied; P4 unsatisfied",
 			"deviation_ids": [],
 			"independence": null
 		}
