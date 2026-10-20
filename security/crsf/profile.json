@@ -1,6 +1,6 @@
 {
 	"id": "CRSF-1.0/COVER-RACCOON-PROFILE",
-	"crsf_version": "1.0-draft-phase2zi",
+	"crsf_version": "1.0-draft-phase2zj",
 	"asvs_target": {
 		"baseline": "ASVS L2 (all applicable L1 + L2 requirements are in scope)",
 		"selected_l3": [
@@ -353,6 +353,10 @@
 				{
 					"control": "CR-PURCHASE-005",
 					"property": "P11"
+				},
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
 				}
 			]
 		}

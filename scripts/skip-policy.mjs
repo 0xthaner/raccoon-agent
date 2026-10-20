@@ -4,7 +4,7 @@
 	Ausgelagert aus scripts/run-tests-guarded.mjs (CRSF Phase 2A), damit
 	`npm run security:verify` exakt dieselbe Liste benutzt und die beiden nicht
 	auseinanderlaufen. Inhalt unveraendert: nur die Postgres-Integrationstests
-	(M1, H2, L1, L5, REVOKE, DBPRIV, DASHBOARD-LOGIN, INPUT-DB-PG, RL, LOCKS, PURCHASE-DB, PURCHASE-DB-CONC, PURCHASE-CONFIRMATION-DB, PURCHASE-LOADER-DB), jeweils exakt mit Datei und Name, und nur solange kein
+	(M1, H2, L1, L5, REVOKE, DBPRIV, DASHBOARD-LOGIN, INPUT-DB-PG, RL, LOCKS, PURCHASE-DB, PURCHASE-DB-CONC, PURCHASE-CONFIRMATION-DB, PURCHASE-LOADER-DB, PURCHASE-SESSION-DB, PURCHASE-SESSION-DB-CONC), jeweils exakt mit Datei und Name, und nur solange kein
 	Wegwerf-Postgres konfiguriert ist. Ist M1_DB_TEST_PG_URL gesetzt und ein Test
 	wird trotzdem uebersprungen, ist das ein Fehler wie jeder andere Skip.
 
@@ -51,6 +51,9 @@ export const ALLOWED_SKIPS = new Map([
 	['test/purchase-confirmation-db.test.mjs :: PURCHASE-CONFIRMATION-DB', (env) => !env.M1_DB_TEST_PG_URL],
 	// Nexus P4H: feste Lesefunktion und Lader gegen die echte Datenbank, derselbe Wegwerf-Postgres.
 	['test/purchase-runtime-loader-db.test.mjs :: PURCHASE-LOADER-DB', (env) => !env.M1_DB_TEST_PG_URL],
+	// Nexus P4I: dauerhafte Ausfuehrungs-Sitzungen (Einmal-Verbrauch, 40 Verbindungen), derselbe Wegwerf-Postgres.
+	['test/purchase-execution-session-db.test.mjs :: PURCHASE-SESSION-DB', (env) => !env.M1_DB_TEST_PG_URL],
+	['test/purchase-execution-session-db-concurrency.test.mjs :: PURCHASE-SESSION-DB-CONC', (env) => !env.M1_DB_TEST_PG_URL],
 	// CRSF Phase 2R: historische Korrekturen cad24d4 und b647281 mit der echten Vercel-CLI.
 	['test/vercel-cli-local.test.mjs :: VERCEL-CLI cad24d4 the real CLI upload set excludes .env and .env.* (except .env.example)', vercelCliMissing],
 	['test/vercel-cli-local.test.mjs :: VERCEL-CLI b647281 vercel build runs the installCommand of vercel.json and it refuses a lockfile that does not match', vercelCliMissing],

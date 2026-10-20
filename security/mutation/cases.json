@@ -20240,6 +20240,1242 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4ITWOOPEN",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "two open sessions per intent are allowed (the partial unique index is a plain index)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "create unique index if not exists cover_purchase_execution_sessions_one_open on",
+					"replace": "create index if not exists cover_purchase_execution_sessions_one_open on"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db-concurrency.test.mjs",
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-CONC-CREATE 40 concurrent sessions for one intent: exactly one is stored$"
+				},
+				{
+					"test": "^P4I-DB-CREATE a valid P4H session is stored with exactly its canonical fields and the recomputed hash; nothing else$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4INOSESSIONHASH",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "consume does not check the session hash",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "       and s.session_hash = shash\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-HASH a stored session hash cannot be reused for other block, block hash, target, data, wallet or expiry$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4INOINTENTID",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "consume does not check the intent id",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "       and s.intent_id = p_intent_id\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-CONSUME a session is consumed once; the same request gets the same record back, any other request ALREADY_CONSUMED$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4INOINTENTHASH",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "create does not compare the intent hash with the persisted intent",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "  if i.intent_hash is distinct from ihash then return jsonb_build_object('status', 'rejected', 'code', 'INTENT_HASH_MISMATCH'); end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-CREATE-INTENT creation fails closed unless the intent is exactly this BUILT row$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4INOCALLDATAHASH",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "create does not compare the calldata hash with the persisted intent",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "  if i.calldata_hash is distinct from chash then return jsonb_build_object('status', 'rejected', 'code', 'CALLDATA_HASH_MISMATCH'); end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-CREATE-INTENT creation fails closed unless the intent is exactly this BUILT row$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4IEXPIREDCONSUME",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "an expired session is consumed (the compare-and-set expiry condition and the table bound consumed_at < expires_at removed)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "       and now() < s.expires_at\n",
+					"replace": ""
+				},
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "and (consumed_at is null or (consumed_at >= created_at and consumed_at < expires_at))",
+					"replace": "and (consumed_at is null or consumed_at >= created_at)"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs",
+				"test/purchase-execution-session-db-concurrency.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-EXPIRY the database refuses consumption from expires_at on \\(exactly now\\(\\) is refused\\), without any cleanup job$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4ICONSUMEDAGAIN",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "a consumed session is consumed again by another request (compare-and-set condition and the set-once guards removed)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "       and s.consumed_at is null\n",
+					"replace": ""
+				},
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "  if old.consumed_at is not null and new.consumed_at is distinct from old.consumed_at then raise exception 'cover_purchase_execution_sessions: consumed_at is set once'; end if;\n",
+					"replace": ""
+				},
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "  if old.consumer_request_id is not null and new.consumer_request_id is distinct from old.consumer_request_id then raise exception 'cover_purchase_execution_sessions: consumer_request_id is set once'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs",
+				"test/purchase-execution-session-db-concurrency.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-CONSUME a session is consumed once; the same request gets the same record back, any other request ALREADY_CONSUMED$"
+				},
+				{
+					"test": "^P4I-CONC-CONSUME 40 concurrent consumers with different request ids: exactly one CONSUMED, 39 ALREADY_CONSUMED$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4ICLEARCONSUMED",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "consumed_at (and its request id) can be cleared",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "  if old.consumed_at is not null and new.consumed_at is distinct from old.consumed_at then raise exception 'cover_purchase_execution_sessions: consumed_at is set once'; end if;\n",
+					"replace": ""
+				},
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "  if old.consumer_request_id is not null and new.consumer_request_id is distinct from old.consumer_request_id then raise exception 'cover_purchase_execution_sessions: consumer_request_id is set once'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-IMMUTABLE after insert only consumed_at and consumer_request_id change, once; nothing is cleared, extended or deleted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4IEXTENDEXPIRY",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "expires_at can be extended",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "  if new.expires_at is distinct from old.expires_at then raise exception 'cover_purchase_execution_sessions: expires_at is immutable'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-IMMUTABLE after insert only consumed_at and consumer_request_id change, once; nothing is cleared, extended or deleted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4ITARGETMUTABLE",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "the target is mutable (trigger guard removed and the per-kind target pin relaxed to the address format)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "  if new.target is distinct from old.target then raise exception 'cover_purchase_execution_sessions: target is immutable'; end if;\n",
+					"replace": ""
+				},
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "target = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'",
+					"replace": "target ~ '^0x[0-9a-f]{40}$'"
+				},
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "target = '0xcb2b736652d2dbf7d72e4db880cf6b7d99507814'",
+					"replace": "target ~ '^0x[0-9a-f]{40}$'"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-IMMUTABLE after insert only consumed_at and consumer_request_id change, once; nothing is cleared, extended or deleted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4IWALLETMUTABLE",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "the wallet is mutable",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "  if new.wallet is distinct from old.wallet then raise exception 'cover_purchase_execution_sessions: wallet is immutable'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-IMMUTABLE after insert only consumed_at and consumer_request_id change, once; nothing is cleared, extended or deleted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4IBLOCKMUTABLE",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "the verified block is mutable",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "  if new.verified_block is distinct from old.verified_block then raise exception 'cover_purchase_execution_sessions: verified_block is immutable'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-IMMUTABLE after insert only consumed_at and consumer_request_id change, once; nothing is cleared, extended or deleted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4IBLOCKHASHMUTABLE",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "the verified block hash is mutable",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "  if new.verified_block_hash is distinct from old.verified_block_hash then raise exception 'cover_purchase_execution_sessions: verified_block_hash is immutable'; end if;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-IMMUTABLE after insert only consumed_at and consumer_request_id change, once; nothing is cleared, extended or deleted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4INOINTENTSTATUS",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "consume does not check the intent status",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "            and i.status = 'BUILT'\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-INTENT-STATE consumption requires the intent still BUILT, without tx hash or cover id, before build_deadline and expiry$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4ISUBMITTEDCONSUME",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "a SUBMITTED intent can consume (status admits SUBMITTED and the tx_hash guard is gone)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "            and i.status = 'BUILT'\n",
+					"replace": "            and i.status in ('BUILT', 'SUBMITTED')\n"
+				},
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "            and i.tx_hash is null\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-INTENT-STATE consumption requires the intent still BUILT, without tx hash or cover id, before build_deadline and expiry$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4ICANCELLEDCONSUME",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "a CANCELLED intent can consume",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "            and i.status = 'BUILT'\n",
+					"replace": "            and i.status in ('BUILT', 'CANCELLED')\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-INTENT-STATE consumption requires the intent still BUILT, without tx hash or cover id, before build_deadline and expiry$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4INODEADLINE",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "consume ignores the intent build deadline",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "            and now() < i.build_deadline\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-INTENT-STATE consumption requires the intent still BUILT, without tx hash or cover id, before build_deadline and expiry$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4INOINTENTEXPIRYEQ1",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "consume ignores the intent expiry (redundant layer)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "            and now() < i.expires_at\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [],
+			"expected_result": "EQUIVALENT",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"equivalence": {
+				"kind": "REDUNDANT_LAYER",
+				"proof": "CHECK cover_purchase_intents_build makes calldata_hash, built_at and build_deadline null together and requires build_deadline <= expires_at; CHECK cover_purchase_intents_state requires calldata_hash for BUILT. The compare-and-set requires status = BUILT and now() < build_deadline, so build_deadline is not null and now() < build_deadline <= expires_at: the removed condition is implied for every row the UPDATE can touch. The underlying property is proven by MUT-CR-PURCHASE-005-P12-P4IINTENTWINDOW (both intent bounds removed, KILLED)."
+			}
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4IINTENTWINDOW",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "consume ignores both the intent build deadline and the intent expiry",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "            and now() < i.build_deadline\n",
+					"replace": ""
+				},
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "            and now() < i.expires_at\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-INTENT-STATE consumption requires the intent still BUILT, without tx hash or cover id, before build_deadline and expiry$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4INOTXHASHEQ1",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "consume accepts an intent with a tx hash (redundant layer)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "            and i.tx_hash is null\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [],
+			"expected_result": "EQUIVALENT",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"equivalence": {
+				"kind": "REDUNDANT_LAYER",
+				"proof": "CHECK cover_purchase_intents_state admits status = BUILT only with tx_hash is null, and the compare-and-set requires status = BUILT, so i.tx_hash is null holds for every row the UPDATE can touch. Consumption after submission (status admitted and tx_hash guard removed) is MUT-CR-PURCHASE-005-P12-P4ISUBMITTEDCONSUME (KILLED)."
+			}
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4INOCOVERIDEQ1",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "consume accepts an intent with a cover id (redundant layer)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "            and i.cover_id is null\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [],
+			"expected_result": "EQUIVALENT",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"equivalence": {
+				"kind": "REDUNDANT_LAYER",
+				"proof": "CHECK cover_purchase_intents_state admits status = BUILT only with cover_id is null, and the compare-and-set requires status = BUILT, so i.cover_id is null holds for every row the UPDATE can touch. Consumption after confirmation (status admitted, tx_hash and cover_id guards removed) is MUT-CR-PURCHASE-005-P12-P4ICONFIRMEDCONSUME (KILLED)."
+			}
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4ICONFIRMEDCONSUME",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "a CONFIRMED intent can consume (status admits CONFIRMED, tx_hash and cover_id guards gone)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "            and i.status = 'BUILT'\n",
+					"replace": "            and i.status in ('BUILT', 'CONFIRMED')\n"
+				},
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "            and i.tx_hash is null\n",
+					"replace": ""
+				},
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "            and i.cover_id is null\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-INTENT-STATE consumption requires the intent still BUILT, without tx hash or cover id, before build_deadline and expiry$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4IIGNOREREQKEY",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "the idempotency key is ignored on retry (the same request gets ALREADY_CONSUMED)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "    if saved.consumer_request_id = p_consumer_request_id then\n",
+					"replace": "    if false then\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs",
+				"test/purchase-execution-session-db-concurrency.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-CONSUME a session is consumed once; the same request gets the same record back, any other request ALREADY_CONSUMED$"
+				},
+				{
+					"test": "^P4I-CONC-SAME-REQUEST 40 concurrent retries of one request: one consumption, every retry gets the same record back$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4IDIFFKEYSUCCESS",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "a different request id after consumption gets the consumed record (success)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "    if saved.consumer_request_id = p_consumer_request_id then\n",
+					"replace": "    if true then\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs",
+				"test/purchase-execution-session-db-concurrency.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-CONSUME a session is consumed once; the same request gets the same record back, any other request ALREADY_CONSUMED$"
+				},
+				{
+					"test": "^P4I-CONC-MIXED-REQUESTS 20 retries of request A and 20 other requests: one winner; only the winner's own retries replay$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4IKINDTWICE",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "a second session of an already consumed kind can be created and consumed",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "  if exists (select 1 from public.cover_purchase_execution_sessions s where s.intent_id = p_intent_id and s.transaction_kind = p_transaction_kind and s.consumed_at is not null) then\n",
+					"replace": "  if false then\n"
+				},
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "create unique index if not exists cover_purchase_execution_sessions_one_consumed on",
+					"replace": "create index if not exists cover_purchase_execution_sessions_one_consumed on"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-CONSUME a session is consumed once; the same request gets the same record back, any other request ALREADY_CONSUMED$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4IANONEXEC",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "anon may execute the consume function",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "grant execute on function public.consume_cover_purchase_execution_session(uuid, text, uuid, uuid) to service_role;",
+					"replace": "grant execute on function public.consume_cover_purchase_execution_session(uuid, text, uuid, uuid) to service_role;\ngrant execute on function public.consume_cover_purchase_execution_session(uuid, text, uuid, uuid) to anon;"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-PRIVILEGES RLS on, no direct table access for anyone \\(service_role included\\); service_role executes only the two functions; no delete path$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4IAUTHEXEC",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "authenticated may execute the create function",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "grant execute on function public.create_cover_purchase_execution_session(uuid, uuid, text, text, text, text, integer, text, text, numeric, text, bigint, text, bigint) to service_role;",
+					"replace": "grant execute on function public.create_cover_purchase_execution_session(uuid, uuid, text, text, text, text, integer, text, text, numeric, text, bigint, text, bigint) to service_role;\ngrant execute on function public.create_cover_purchase_execution_session(uuid, uuid, text, text, text, text, integer, text, text, numeric, text, bigint, text, bigint) to authenticated;"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-PRIVILEGES RLS on, no direct table access for anyone \\(service_role included\\); service_role executes only the two functions; no delete path$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4IDIRECTUPDATE",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "service_role may UPDATE the table directly",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "revoke all on table public.cover_purchase_execution_sessions from public, anon, authenticated, service_role;\n",
+					"replace": "revoke all on table public.cover_purchase_execution_sessions from public, anon, authenticated, service_role;\ngrant update on table public.cover_purchase_execution_sessions to service_role;\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-PRIVILEGES RLS on, no direct table access for anyone \\(service_role included\\); service_role executes only the two functions; no delete path$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4IDELETEPATH",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION-DB",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "a DELETE path exists (the guard lets DELETE through and service_role may delete)",
+			"edits": [
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "  if tg_op in ('DELETE', 'TRUNCATE') then\n",
+					"replace": "  if tg_op = 'DELETE' then return old; end if;\n  if tg_op in ('DELETE', 'TRUNCATE') then\n"
+				},
+				{
+					"file": "supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql",
+					"find": "revoke all on table public.cover_purchase_execution_sessions from public, anon, authenticated, service_role;\n",
+					"replace": "revoke all on table public.cover_purchase_execution_sessions from public, anon, authenticated, service_role;\ngrant delete on table public.cover_purchase_execution_sessions to service_role;\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-db.test.mjs"
+			],
+			"environment": [
+				"node",
+				"postgres"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-DB-PRIVILEGES RLS on, no direct table access for anyone \\(service_role included\\); service_role executes only the two functions; no delete path$"
+				},
+				{
+					"test": "^P4I-DB-IMMUTABLE after insert only consumed_at and consumer_request_id change, once; nothing is cleared, extended or deleted$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4ISERIALCONN",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "the runner observer counts serial statements on a single connection as E5 concurrency",
+			"edits": [
+				{
+					"file": "security/crsf/lib/pg-observer.mjs",
+					"find": "d.authenticated >= 2 && d.max_busy >= min_concurrent_connections && d.overlap_events >= min_overlap_events",
+					"replace": "d.completed >= min_concurrent_connections"
+				}
+			],
+			"tests": [
+				"test/crsf-real-system-observation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^E5-OBS observer: strictly sequential statements on several connections are not concurrency, overlapping ones are$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4IZEROOVERLAP",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "the runner observer accepts zero overlap (one busy connection at a time, no overlap event) as E5 concurrency",
+			"edits": [
+				{
+					"file": "security/crsf/lib/pg-observer.mjs",
+					"find": "d.authenticated >= 2 && d.max_busy >= min_concurrent_connections && d.overlap_events >= min_overlap_events",
+					"replace": "d.authenticated >= 2 && d.max_busy >= 1"
+				}
+			],
+			"tests": [
+				"test/crsf-real-system-observation.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^E5-OBS observer: strictly sequential statements on several connections are not concurrency, overlapping ones are$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4ITRUSTHASH",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "the helper persists the supplied session hash instead of the recomputed one",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session-db.mjs",
+					"find": "\tif (session.executionSessionHash !== c.hash) return rejected('TAMPERED');\n",
+					"replace": ""
+				},
+				{
+					"file": "src/purchase-execution-session-db.mjs",
+					"find": "p_session_id: f.sessionId, p_intent_id: f.intentId, p_session_hash: c.hash,",
+					"replace": "p_session_id: f.sessionId, p_intent_id: f.intentId, p_session_hash: session.executionSessionHash,"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-store.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-HASH-AUTHORITY the helper recomputes the P4H session hash and persists only that value; a tampered field with the old hash is refused before any call$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4IWALLETSEND",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "a wallet send method appears in the session store",
+			"edits": [
+				{
+					"file": "src/purchase-execution-session-db.mjs",
+					"find": "const HASH = /^0x[0-9a-f]{64}$/;\n",
+					"replace": "const HASH = /^0x[0-9a-f]{64}$/;\nexport const SEND_METHOD = 'eth_sendTransaction';\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-store.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-NOEXEC no wallet, send or sign method and no generic database path in the P4I code$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-PURCHASE-005-P12-P4IAPIIMPORT",
+			"origin": "new (P4I)",
+			"evidence_id": "EV-KB-PURCHASE-SESSION",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-005",
+					"property": "P12"
+				}
+			],
+			"description": "a public API route imports the session store",
+			"edits": [
+				{
+					"file": "api/nexus/quote.mjs",
+					"find": "import { resolveDashboardSession } from '../../src/dashboard-auth.mjs';\n",
+					"replace": "import { resolveDashboardSession } from '../../src/dashboard-auth.mjs';\nimport { consumeExecutionSession } from '../../src/purchase-execution-session-db.mjs';\nexport const CONSUME = consumeExecutionSession;\n"
+				}
+			],
+			"tests": [
+				"test/purchase-execution-session-store.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4I-IMPORT no runtime code reaches the session store; no purchase, execution or wallet route exists$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
 		}
 	]
 }

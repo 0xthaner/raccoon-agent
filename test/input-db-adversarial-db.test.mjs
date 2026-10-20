@@ -118,14 +118,17 @@ const reset = async () => {
 
 // Nach allen Migrationen (consume_dashboard_challenge und consume_telegram_handoff sind entfernt).
 // Nexus P4D (19.10.2026): dazu die Kauf-Intent-Funktionen und ihr Guard-Trigger (feste Parameter, kein EXECUTE).
-const KNOWN_FUNCTIONS = ['alert_subscriptions_page', 'cancel_cover_purchase_intent', 'check_agent_rate_limit', 'consume_wallet_link', 'consume_wallet_link_v2',
-	'cover_purchase_intent_json', 'cover_purchase_intents_guard', 'create_cover_purchase_intent', 'expire_cover_purchase_intent',
+const KNOWN_FUNCTIONS = ['alert_subscriptions_page', 'cancel_cover_purchase_intent', 'check_agent_rate_limit',
+	// Nexus P4I (20.10.2026): Ausfuehrungs-Sitzungen, zwei SECURITY-DEFINER-Funktionen (nur service_role), JSON-Helfer und Trigger (test/purchase-execution-session-db.test.mjs).
+	'consume_cover_purchase_execution_session', 'consume_wallet_link', 'consume_wallet_link_v2',
+	'cover_purchase_execution_session_json', 'cover_purchase_execution_sessions_guard',
+	'cover_purchase_intent_json', 'cover_purchase_intents_guard', 'create_cover_purchase_execution_session', 'create_cover_purchase_intent', 'expire_cover_purchase_intent',
 	// Nexus P4H (20.10.2026): feste Lesefunktion, SECURITY INVOKER, sql, nur service_role (test/purchase-runtime-loader-db.test.mjs).
 	'get_cover_purchase_intent_for_execution',
 	'link_wallet_to_chat_limited', 'lock_chat_wallets', 'mark_cover_purchase_intent_built', 'mark_cover_purchase_intent_confirmed', 'mark_cover_purchase_intent_failed',
 	'mark_cover_purchase_intent_late_confirmed', 'mark_cover_purchase_intent_submitted', 'revoke_dashboard_sessions_atomic', 'upsert_position_attribution_limited'];
-/** Der einzige Trigger in public: P4D-Unveraenderlichkeit (BEFORE UPDATE OR DELETE), selbst ohne dynamisches SQL. */
-const KNOWN_TRIGGERS = ['cover_purchase_intents.cover_purchase_intents_guard'];
+/** Die Trigger in public: P4D-Unveraenderlichkeit (BEFORE UPDATE OR DELETE) und P4I-Unveraenderlichkeit (BEFORE UPDATE OR DELETE, BEFORE TRUNCATE), selbst ohne dynamisches SQL. */
+const KNOWN_TRIGGERS = ['cover_purchase_execution_sessions.cover_purchase_execution_sessions_guard', 'cover_purchase_execution_sessions.cover_purchase_execution_sessions_no_truncate', 'cover_purchase_intents.cover_purchase_intents_guard'];
 
 test('INPUT-DB-PG', { skip, timeout: 300_000 }, async (t) => {
 	await setup();

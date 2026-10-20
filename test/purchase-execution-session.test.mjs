@@ -301,6 +301,7 @@ const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const walk = (dir) => readdirSync(new URL(`../${dir}/`, import.meta.url)).flatMap((n) => (n === 'node_modules' || n === 'dist' || n.startsWith('.') ? [] : statSync(new URL(`../${dir}/${n}`, import.meta.url)).isDirectory() ? walk(`${dir}/${n}`) : /\.(m?js|cjs|ts|tsx|jsx|html|svelte|vue)$/.test(n) ? [`${dir}/${n}`] : []));
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 const MODULE = 'src/purchase-execution-session.mjs';
+const STORE = 'src/purchase-execution-session-db.mjs';
 
 test('P4H-SESSION-STATIC no wallet, send, sign, provider or builder surface; the decoder and P4F are the only judges', () => {
 	const full = read(MODULE);
@@ -318,11 +319,14 @@ test('P4H-SESSION-STATIC no wallet, send, sign, provider or builder surface; the
 });
 
 test('P4H-SESSION-IMPORT only the P4H tests import the session module; no purchase, wallet or execution route exists', () => {
-	const runtime = [...walk('src'), ...walk('api'), ...walk('web'), ...walk('scripts')].filter((f) => f !== MODULE && !f.startsWith('web/dist'));
+	// P4I (20.10.2026): der Sitzungsspeicher src/purchase-execution-session-db.mjs importiert das Modul fuer den Hash; er selbst ist unerreichbar (P4I-IMPORT).
+	const runtime = [...walk('src'), ...walk('api'), ...walk('web'), ...walk('scripts')].filter((f) => f !== MODULE && f !== STORE && !f.startsWith('web/dist'));
 	assert.ok(runtime.includes('src/bot.mjs') && runtime.some((f) => f.startsWith('api/')) && runtime.some((f) => f.startsWith('web/src/')) && runtime.some((f) => /^src\/agent-/.test(f)));
 	for (const file of runtime) assert.doesNotMatch(read(file), /purchase-execution-session(\.mjs)?['"`]|prepareExecutionSession|createExecutionSession/, file);
+	assert.doesNotMatch(strip(read(STORE)), /prepareExecutionSession|createExecutionSession/, 'the store recomputes the hash, it never creates sessions');
 	const importing = /(?:from\s*|import\s*\(\s*)['"`][^'"`]*purchase-execution-session\.mjs/;
-	assert.deepEqual([...walk('src'), ...walk('api'), ...walk('test'), ...walk('test-support')].filter((f) => importing.test(read(f))).sort(), ['test/purchase-execution-session.test.mjs']);
+	assert.deepEqual([...walk('src'), ...walk('api'), ...walk('test'), ...walk('test-support')].filter((f) => importing.test(read(f))).sort(),
+		[STORE, 'test-support/purchase-execution-session-pg.mjs', 'test/purchase-execution-session-db.test.mjs', 'test/purchase-execution-session-store.test.mjs', 'test/purchase-execution-session.test.mjs']);
 	assert.deepEqual(walk('api').filter((f) => /purchase|buy|wallet|execution|session|intent|confirm/i.test(f)), []);
 	const vercel = JSON.parse(read('vercel.json'));
 	assert.doesNotMatch(JSON.stringify({ crons: vercel.crons ?? [], rewrites: vercel.rewrites ?? [] }), /purchase|buy|wallet|execution|intent|confirm/i, 'no route or cron');

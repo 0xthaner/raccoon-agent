@@ -1,6 +1,6 @@
 {
-	"crsf_version": "1.0-draft-phase2zi",
-	"profile_rules_digest": "0408f5d8ab00e6ec5829051c12ec5713e303de093937be60a5c09d90bf4f1bdc",
+	"crsf_version": "1.0-draft-phase2zj",
+	"profile_rules_digest": "8820b06d4a9432bce5995afd2db23198f1be5f73f1e0397fa180606696b60951",
 	"controls": {
 		"CR-ALLOC-001": {
 			"release_class": "RELEASE_BLOCKING",
@@ -1214,8 +1214,8 @@
 			"external_requirement_ids": [
 				"V2.3.1"
 			],
-			"properties_digest": "2f8b23c67c5fb4037216d19cb8c145a18bb808d89611c9441d62221d144653c4",
-			"derivation_digest": "1e6220f8199f8a59246e110dbe836ee59fd0f4216106a8761a0b184baef166c5"
+			"properties_digest": "fb71e3d75ac01989d956025c8b5c0cfaaa446c26211f8a90225eba506e941a57",
+			"derivation_digest": "52a02177477cd15010f426bae09563f7444149da9d7edaf08e482371928d82ca"
 		},
 		"CR-PURCHASE-006": {
 			"release_class": "RELEASE_BLOCKING",

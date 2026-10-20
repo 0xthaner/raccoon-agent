@@ -38,10 +38,16 @@ const LEGACY_SERVICE_RPCS = ['consume_wallet_link'];
 const PURCHASE_SERVICE_RPCS = ['cancel_cover_purchase_intent', 'create_cover_purchase_intent', 'expire_cover_purchase_intent', 'mark_cover_purchase_intent_built', 'mark_cover_purchase_intent_confirmed', 'mark_cover_purchase_intent_failed', 'mark_cover_purchase_intent_late_confirmed', 'mark_cover_purchase_intent_submitted'];
 /** Nexus P4H (20.10.2026): one fixed read of a purchase intent by id, SECURITY INVOKER, service_role only, no runtime caller yet. */
 const PURCHASE_READ_RPCS = ['get_cover_purchase_intent_for_execution'];
+/**
+ * Nexus P4I (20.10.2026): persisted single-use execution sessions. service_role only, SECURITY DEFINER (nobody has
+ * any direct table right, not even service_role), no runtime caller yet (P4I-IMPORT); behaviour in
+ * test/purchase-execution-session-db*.test.mjs.
+ */
+const PURCHASE_SESSION_RPCS = ['consume_cover_purchase_execution_session', 'create_cover_purchase_execution_session'];
 /** Internal helpers called only by other functions or as a trigger: no role may execute them. */
-const INTERNAL_HELPERS = ['cover_purchase_intent_json', 'cover_purchase_intents_guard', 'link_wallet_to_chat_limited', 'lock_chat_wallets'];
+const INTERNAL_HELPERS = ['cover_purchase_execution_session_json', 'cover_purchase_execution_sessions_guard', 'cover_purchase_intent_json', 'cover_purchase_intents_guard', 'link_wallet_to_chat_limited', 'lock_chat_wallets'];
 /** Current SECURITY DEFINER set; a new definer function must be added here deliberately. */
-const SECURITY_DEFINER = ['alert_subscriptions_page', 'check_agent_rate_limit', 'consume_wallet_link', 'consume_wallet_link_v2', 'link_wallet_to_chat_limited', 'lock_chat_wallets', ...PURCHASE_SERVICE_RPCS];
+const SECURITY_DEFINER = ['alert_subscriptions_page', 'check_agent_rate_limit', 'consume_wallet_link', 'consume_wallet_link_v2', 'link_wallet_to_chat_limited', 'lock_chat_wallets', ...PURCHASE_SERVICE_RPCS, ...PURCHASE_SESSION_RPCS];
 
 let pg, dbUrl, c;
 
@@ -142,7 +148,7 @@ test('DBPRIV-DB', { skip, timeout: 300_000 }, async (t) => {
 	await t.test('DBPRIV: function execute rights match the allowlist exactly', async () => {
 		const fns = await functions();
 		const names = fns.map((f) => f.proname).sort();
-		assert.deepEqual(names, [...RUNTIME_RPCS, ...LEGACY_SERVICE_RPCS, ...PURCHASE_SERVICE_RPCS, ...PURCHASE_READ_RPCS, ...INTERNAL_HELPERS].sort(), 'no unknown public function');
+		assert.deepEqual(names, [...RUNTIME_RPCS, ...LEGACY_SERVICE_RPCS, ...PURCHASE_SERVICE_RPCS, ...PURCHASE_READ_RPCS, ...PURCHASE_SESSION_RPCS, ...INTERNAL_HELPERS].sort(), 'no unknown public function');
 		const service = [];
 		for (const fn of fns) {
 			for (const role of API_ROLES) {
@@ -153,7 +159,7 @@ test('DBPRIV-DB', { skip, timeout: 300_000 }, async (t) => {
 			assert.equal(publicExec, false, `PUBLIC may not execute ${fn.sig}`);
 			if ((await c.query(`select has_function_privilege('service_role', $1::oid, 'EXECUTE') as x`, [fn.oid])).rows[0].x) service.push(fn.proname);
 		}
-		assert.deepEqual(service.sort(), [...RUNTIME_RPCS, ...LEGACY_SERVICE_RPCS, ...PURCHASE_SERVICE_RPCS, ...PURCHASE_READ_RPCS].sort(), 'service_role reaches exactly the runtime RPCs (+ the documented legacy one, the P4D purchase-intent functions and the P4H read)');
+		assert.deepEqual(service.sort(), [...RUNTIME_RPCS, ...LEGACY_SERVICE_RPCS, ...PURCHASE_SERVICE_RPCS, ...PURCHASE_READ_RPCS, ...PURCHASE_SESSION_RPCS].sort(), 'service_role reaches exactly the runtime RPCs (+ the documented legacy one, the P4D purchase-intent functions, the P4H read and the P4I session functions)');
 		for (const helper of INTERNAL_HELPERS) {
 			const fn = fns.find((f) => f.proname === helper);
 			assert.equal(await asRole('service_role', `select public.${helper}(${nullArgs(fn)})`), '42501', `internal helper ${helper} is not callable even by service_role`);

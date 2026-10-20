@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zi",
+	"crsf_version": "1.0-draft-phase2zj",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -10372,7 +10372,7 @@
 						"rule": "OBSERVED_CONCURRENCY_COVERAGE",
 						"ok": true,
 						"level": "E5",
-						"properties": 21,
+						"properties": 22,
 						"failing": []
 					}
 				}
@@ -10380,7 +10380,7 @@
 			"conformance_status": "CONFORMANT",
 			"conformance_status_reason": "all 1 requirement properties demonstrated",
 			"security_status": "PASS_AUTOMATED",
-			"security_status_reason": "all 1 sub-properties satisfied at >= E5 (P1 derived by OBSERVED_CONCURRENCY_COVERAGE over 21 properties)",
+			"security_status_reason": "all 1 sub-properties satisfied at >= E5 (P1 derived by OBSERVED_CONCURRENCY_COVERAGE over 22 properties)",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
@@ -12133,7 +12133,7 @@
 		{
 			"domain": "CR-PURCHASE",
 			"applicability": "APPLICABLE",
-			"applicability_reason": "Pure purchase-intent model in src/purchase-intent.mjs (Nexus P4A) and its local, server-only persistence (P4D migration and narrow helper); neither is reachable from any runtime path, no transaction capability.",
+			"applicability_reason": "Pure purchase-intent model in src/purchase-intent.mjs (Nexus P4A) and its local, server-only persistence (P4D migration and narrow helper); neither is reachable from any runtime path, no transaction capability; P4I adds the local, server-only persistence of the execution session (supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql, helper src/purchase-execution-session-db.mjs), equally unreachable.",
 			"profile_level": "ASVS_L2",
 			"release_class": "RELEASE_BLOCKING",
 			"minimum_evidence_level": "E3",
@@ -12145,7 +12145,9 @@
 			"applies_to": [
 				"src/purchase-intent.mjs",
 				"src/purchase-intent-db.mjs",
-				"supabase/migrations/20261019120000_cover_purchase_intents.sql"
+				"supabase/migrations/20261019120000_cover_purchase_intents.sql",
+				"src/purchase-execution-session-db.mjs",
+				"supabase/migrations/20261020140000_cover_purchase_execution_sessions.sql"
 			],
 			"id": "CR-PURCHASE-005",
 			"title": "Purchase-intent state model allows only the defined single-use transitions (P4A model, P4D database)",
@@ -12156,7 +12158,7 @@
 				"V2.3.1"
 			],
 			"external_requirement": "Business logic flows are processed in the expected sequential step order without skipping steps (V2.3.1).",
-			"coverraccoon_requirement": "Intent states OPEN, BUILT, SUBMITTED, CONFIRMED, FAILED, EXPIRED, CANCELLED with exactly the transitions OPEN->BUILT|EXPIRED|CANCELLED, BUILT->SUBMITTED|EXPIRED|CANCELLED, SUBMITTED->CONFIRMED|FAILED; terminal states never restart; a submitted transaction may still be mined, so SUBMITTED neither expires nor is cancelled and a late on-chain outcome stays observable. P4D enforces this in the database: each transition is one compare-and-set UPDATE, one active intent per wallet (partial unique index), idempotent creation per (wallet, client request id), one build with a permanently bound calldata hash, one transaction hash per intent and globally, idempotent confirmation with a globally unique cover id, expiry judged against the database clock without any cleanup job, and the only exit from a terminal state is the late confirmation of the same transaction. Verified on a real Postgres with independent connections whose overlap the runner observes.",
+			"coverraccoon_requirement": "Intent states OPEN, BUILT, SUBMITTED, CONFIRMED, FAILED, EXPIRED, CANCELLED with exactly the transitions OPEN->BUILT|EXPIRED|CANCELLED, BUILT->SUBMITTED|EXPIRED|CANCELLED, SUBMITTED->CONFIRMED|FAILED; terminal states never restart; a submitted transaction may still be mined, so SUBMITTED neither expires nor is cancelled and a late on-chain outcome stays observable. P4D enforces this in the database: each transition is one compare-and-set UPDATE, one active intent per wallet (partial unique index), idempotent creation per (wallet, client request id), one build with a permanently bound calldata hash, one transaction hash per intent and globally, idempotent confirmation with a globally unique cover id, expiry judged against the database clock without any cleanup job, and the only exit from a terminal state is the late confirmation of the same transaction. P4I makes the short P4H execution session a durable single-use capability: stored with a server-recomputed hash, immutable, one open session per intent, one consumed session per intent and transaction kind, consumed by one compare-and-set UPDATE with expiry and intent state checked in SQL and an idempotent replay only for the same consumer request id. Verified on a real Postgres with independent connections whose overlap the runner observes.",
 			"threat": "a step is skipped, an intent is reused after it ended, or a real late purchase is ignored because the intent was marked expired",
 			"expected_property": "only defined transitions; single use; late outcome kept",
 			"properties": [
@@ -12214,6 +12216,11 @@
 					"id": "P11",
 					"kind": "REQUIREMENT",
 					"text": "the only exit from a terminal state is the late confirmation FAILED->CONFIRMED for the same transaction hash and calldata hash with a unique cover id, which sets late; EXPIRED, CANCELLED and CONFIRMED are never reopened, also under concurrent late and normal confirmations"
+				},
+				{
+					"id": "P12",
+					"kind": "REQUIREMENT",
+					"text": "under concurrent requests on independent database connections a P4H execution session is a durable single-use capability: it is stored only through one service_role SECURITY DEFINER create function (no direct table right for anyone, RLS on, no delete or truncate path) with the session hash recomputed by the server helper from the canonical P4H fields (a supplied hash that does not match is refused, a stored hash belongs to exactly one session), only for an intent that is BUILT without tx hash and cover id with the same wallet, intent hash and calldata hash, for at most 30 s of the database clock and never past build_deadline or expires_at; its facts (intent, hashes, wallet, chain, kind, target pinned per kind, value 0, bytes, verified block and block hash, created_at, expires_at) never change and expires_at is never extended; an intent has at most one open session (an expired, never consumed one is superseded atomically by the next and never usable again) and at most one consumed session per transaction kind; a session is consumed at most once by one compare-and-set UPDATE that requires the expected session hash and intent id, consumed_at null, now() < expires_at (exactly at expires_at refused, no cleanup job) and the intent still BUILT without tx hash or cover id, with matching hashes and wallet, before build_deadline and expires_at; the same consumer request id gets the same consumed record back, any other request ALREADY_CONSUMED; consumed_at and the request id are set once and never cleared; the caller supplies only identifiers and the idempotency key; nothing sends, signs or reaches a wallet and no runtime code imports the store"
 				}
 			],
 			"required_evidence_types": [
@@ -12222,8 +12229,11 @@
 			"current_evidence_ids": [
 				"EV-KB-PURCHASE-DB",
 				"EV-KB-PURCHASE-INTENT",
+				"EV-KB-PURCHASE-SESSION",
+				"EV-KB-PURCHASE-SESSION-DB",
 				"EV-PURCHASE-DB",
-				"EV-PURCHASE-INTENT"
+				"EV-PURCHASE-INTENT",
+				"EV-PURCHASE-SESSION-DB"
 			],
 			"property_coverage": {
 				"P1": {
@@ -12313,12 +12323,21 @@
 					],
 					"partial_only": [],
 					"insufficient": []
+				},
+				"P12": {
+					"satisfied_by": [
+						"EV-PURCHASE-SESSION-DB",
+						"EV-KB-PURCHASE-SESSION",
+						"EV-KB-PURCHASE-SESSION-DB"
+					],
+					"partial_only": [],
+					"insufficient": []
 				}
 			},
 			"conformance_status": "CONFORMANT",
-			"conformance_status_reason": "all 11 requirement properties demonstrated",
+			"conformance_status_reason": "all 12 requirement properties demonstrated",
 			"security_status": "PASS_AUTOMATED",
-			"security_status_reason": "all 11 sub-properties satisfied at >= E3",
+			"security_status_reason": "all 12 sub-properties satisfied at >= E3",
 			"deviation_ids": [],
 			"independence": {
 				"evidence_classes": [
@@ -12327,7 +12346,9 @@
 					"real-system"
 				],
 				"independent_classes": 3,
-				"shared_fixture_groups": []
+				"shared_fixture_groups": [
+					"raw-pg"
+				]
 			}
 		},
 		{
