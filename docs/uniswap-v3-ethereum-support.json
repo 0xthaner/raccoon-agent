@@ -1,0 +1,30 @@
+[
+	{
+		"protocol": "Uniswap v3",
+		"chain": "Ethereum",
+		"chainId": 1,
+		"deploymentKey": "uniswap-v3-ethereum",
+		"factory": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+		"positionManager": "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+		"weth9": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+		"poolInitCodeHash": "0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54",
+		"feeTiers": [
+			100,
+			500,
+			3000,
+			10000
+		],
+		"enumeration": "ERC721Enumerable (balanceOf + tokenOfOwnerByIndex)",
+		"detectionReady": true,
+		"exposureModel": "UNISWAP_V3_LP_EXPOSURE_V1",
+		"feesInSuggestedExposure": false,
+		"priceSource": "AAVE_V3_ETHEREUM_CORE_ORACLE",
+		"pricingReady": false,
+		"nexusProductId": 72,
+		"nexusMapping": "MATCHED",
+		"termsReady": false,
+		"proofOfLossReady": false,
+		"quoteReady": false,
+		"productionEnabled": false
+	}
+]

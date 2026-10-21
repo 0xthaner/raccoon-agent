@@ -1,0 +1,657 @@
+{
+	"readAt": "2026-10-21T11:17:45.304Z",
+	"rpc": "ethereum-rpc.publicnode.com",
+	"chainId": 1,
+	"block": {
+		"number": "26240621",
+		"timestamp": "1792581455"
+	},
+	"npmTotalSupply": "1241683",
+	"sampleCounts": {
+		"in": 131,
+		"zero": 237,
+		"above": 16,
+		"below": 16
+	},
+	"vectors": [
+		{
+			"class": "below",
+			"tokenId": "1384767",
+			"owner": "0x2DE361134127481D6f3144A3A12D36CdD3e70024",
+			"pool": "0x84E7bdc2Afb390c00b611002368a86f16d9284Aa",
+			"token0": {
+				"address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"decimals": 18,
+				"symbol": "WETH"
+			},
+			"token1": {
+				"address": "0xe1Ac97e2616Ad80f69f705ff007A4bbb3655544a",
+				"decimals": 8,
+				"symbol": "kpdWBTC"
+			},
+			"position": {
+				"nonce": "0",
+				"operator": "0x0000000000000000000000000000000000000000",
+				"token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"token1": "0xe1Ac97e2616Ad80f69f705ff007A4bbb3655544a",
+				"fee": 3000,
+				"tickLower": -265440,
+				"tickUpper": -264840,
+				"liquidity": "2396241190",
+				"feeGrowthInside0LastX128": "0",
+				"feeGrowthInside1LastX128": "0",
+				"tokensOwed0": "0",
+				"tokensOwed1": "0"
+			},
+			"slot0": {
+				"sqrtPriceX96": "136488566807493032467055",
+				"tick": -265446
+			},
+			"feeGrowthGlobal0X128": "0",
+			"feeGrowthGlobal1X128": "0",
+			"tickLowerInfo": {
+				"feeGrowthOutside0X128": "0",
+				"feeGrowthOutside1X128": "0",
+				"initialized": true
+			},
+			"tickUpperInfo": {
+				"feeGrowthOutside0X128": "0",
+				"feeGrowthOutside1X128": "0",
+				"initialized": true
+			},
+			"reference": {
+				"method": "eth_call from owner at same block (no transaction)",
+				"decreaseLiquidityAll": [
+					"41096084722159",
+					"0"
+				],
+				"collectMaxWithoutDecrease": [
+					"0",
+					"0"
+				]
+			}
+		},
+		{
+			"class": "below",
+			"tokenId": "1383966",
+			"owner": "0x7A6f13E60C4238754ef82363eCc3c8cF88Be7D9b",
+			"pool": "0x5aE13BAAEF0620FdaE1D355495Dc51a17adb4082",
+			"token0": {
+				"address": "0x45804880De22913dAFE09f4980848ECE6EcbAf78",
+				"decimals": 18,
+				"symbol": "PAXG"
+			},
+			"token1": {
+				"address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"decimals": 6,
+				"symbol": "USDC"
+			},
+			"position": {
+				"nonce": "0",
+				"operator": "0x0000000000000000000000000000000000000000",
+				"token0": "0x45804880De22913dAFE09f4980848ECE6EcbAf78",
+				"token1": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"fee": 500,
+				"tickLower": -193020,
+				"tickUpper": -192280,
+				"liquidity": "4166109092870040",
+				"feeGrowthInside0LastX128": "28256326201511728764699972255389870392339",
+				"feeGrowthInside1LastX128": "132166685177644842877546016523565",
+				"tokensOwed0": "0",
+				"tokensOwed1": "0"
+			},
+			"slot0": {
+				"sqrtPriceX96": "5091069753847735542314632",
+				"tick": -193062
+			},
+			"feeGrowthGlobal0X128": "58564124598683718681459875367655715409914",
+			"feeGrowthGlobal1X128": "243073970741694487534800130291682",
+			"tickLowerInfo": {
+				"feeGrowthOutside0X128": "28513847070528296301963662039572005720862",
+				"feeGrowthOutside1X128": "133262137129217148173094919451296",
+				"initialized": true
+			},
+			"tickUpperInfo": {
+				"feeGrowthOutside0X128": "73021288776578098926385707737144765405",
+				"feeGrowthOutside1X128": "327149065692017704179180377137",
+				"initialized": true
+			},
+			"reference": {
+				"method": "eth_call from owner at same block (no transaction)",
+				"decreaseLiquidityAll": [
+					"2349999999999999607",
+					"0"
+				],
+				"collectMaxWithoutDecrease": [
+					"2258845751614021",
+					"9406404"
+				]
+			}
+		},
+		{
+			"class": "in",
+			"tokenId": "1387513",
+			"owner": "0x25408A85AF9ebA49F34bCc387455dAef0487CEaA",
+			"pool": "0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36",
+			"token0": {
+				"address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"decimals": 18,
+				"symbol": "WETH"
+			},
+			"token1": {
+				"address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"decimals": 6,
+				"symbol": "USDT"
+			},
+			"position": {
+				"nonce": "0",
+				"operator": "0x0000000000000000000000000000000000000000",
+				"token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"token1": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"fee": 3000,
+				"tickLower": -198960,
+				"tickUpper": -197580,
+				"liquidity": "20054229324792",
+				"feeGrowthInside0LastX128": "368072130270143606071584965202313263815229",
+				"feeGrowthInside1LastX128": "906184678254942191678498086010723",
+				"tokensOwed0": "0",
+				"tokensOwed1": "0"
+			},
+			"slot0": {
+				"sqrtPriceX96": "3927532789112662576684489",
+				"tick": -198252
+			},
+			"feeGrowthGlobal0X128": "2566966338588295693110260439591875226880853",
+			"feeGrowthGlobal1X128": "5980620397193541885520883744976717",
+			"tickLowerInfo": {
+				"feeGrowthOutside0X128": "1426042070550595170022232909405709492877445",
+				"feeGrowthOutside1X128": "2498320367413751339365928244123237",
+				"initialized": true
+			},
+			"tickUpperInfo": {
+				"feeGrowthOutside0X128": "772852137767556917016442564983852470188179",
+				"feeGrowthOutside1X128": "2576115351524848354476457414842757",
+				"initialized": true
+			},
+			"reference": {
+				"method": "eth_call from owner at same block (no transaction)",
+				"decreaseLiquidityAll": [
+					"13354956871118823",
+					"34602707"
+				],
+				"collectMaxWithoutDecrease": [
+					"0",
+					"0"
+				]
+			}
+		},
+		{
+			"class": "in",
+			"tokenId": "1387464",
+			"owner": "0x887fD1B7182b352f2D363523AC476F62b586E6D4",
+			"pool": "0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36",
+			"token0": {
+				"address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"decimals": 18,
+				"symbol": "WETH"
+			},
+			"token1": {
+				"address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"decimals": 6,
+				"symbol": "USDT"
+			},
+			"position": {
+				"nonce": "0",
+				"operator": "0x0000000000000000000000000000000000000000",
+				"token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"token1": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"fee": 3000,
+				"tickLower": -198960,
+				"tickUpper": -196920,
+				"liquidity": "406538470508580",
+				"feeGrowthInside0LastX128": "431931565690855895552683875581472014055621",
+				"feeGrowthInside1LastX128": "1032049298496138046389877343034221",
+				"tokensOwed0": "0",
+				"tokensOwed1": "0"
+			},
+			"slot0": {
+				"sqrtPriceX96": "3927532789112662576684489",
+				"tick": -198252
+			},
+			"feeGrowthGlobal0X128": "2566966338588295693110260439591875226880853",
+			"feeGrowthGlobal1X128": "5980620397193541885520883744976717",
+			"tickLowerInfo": {
+				"feeGrowthOutside0X128": "1426042070550595170022232909405709492877445",
+				"feeGrowthOutside1X128": "2498320367413751339365928244123237",
+				"initialized": true
+			},
+			"tickUpperInfo": {
+				"feeGrowthOutside0X128": "708974010331858834538008401263222239229713",
+				"feeGrowthOutside1X128": "2450157660707783676640047174140296",
+				"initialized": true
+			},
+			"reference": {
+				"method": "eth_call from owner at same block (no transaction)",
+				"decreaseLiquidityAll": [
+					"528143091315095469",
+					"701464582"
+				],
+				"collectMaxWithoutDecrease": [
+					"22331522058600",
+					"111192"
+				]
+			}
+		},
+		{
+			"class": "in",
+			"tokenId": "1387263",
+			"owner": "0x2cf9890d358235E466892e24C3ca65A24505e747",
+			"pool": "0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36",
+			"token0": {
+				"address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"decimals": 18,
+				"symbol": "WETH"
+			},
+			"token1": {
+				"address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"decimals": 6,
+				"symbol": "USDT"
+			},
+			"position": {
+				"nonce": "0",
+				"operator": "0x0000000000000000000000000000000000000000",
+				"token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"token1": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"fee": 3000,
+				"tickLower": -199140,
+				"tickUpper": -197580,
+				"liquidity": "51405854758919",
+				"feeGrowthInside0LastX128": "529393335771581662729382877760208451048291",
+				"feeGrowthInside1LastX128": "1353773639885720622634685287587188",
+				"tokensOwed0": "0",
+				"tokensOwed1": "0"
+			},
+			"slot0": {
+				"sqrtPriceX96": "3927532789112662576684489",
+				"tick": -198252
+			},
+			"feeGrowthGlobal0X128": "2566966338588295693110260439591875226880853",
+			"feeGrowthGlobal1X128": "5980620397193541885520883744976717",
+			"tickLowerInfo": {
+				"feeGrowthOutside0X128": "1264618348157859107870439364792407949765871",
+				"feeGrowthOutside1X128": "2050285263646124796408495672197608",
+				"initialized": true
+			},
+			"tickUpperInfo": {
+				"feeGrowthOutside0X128": "772852137767556917016442564983852470188179",
+				"feeGrowthOutside1X128": "2576115351524848354476457414842757",
+				"initialized": true
+			},
+			"reference": {
+				"method": "eth_call from owner at same block (no transaction)",
+				"decreaseLiquidityAll": [
+					"34233326153284233",
+					"110734702"
+				],
+				"collectMaxWithoutDecrease": [
+					"15487045279738",
+					"67397"
+				]
+			}
+		},
+		{
+			"class": "above",
+			"tokenId": "1387314",
+			"owner": "0xA3C95Ae2005B3035D3297dfDfFa3c2182BE6f800",
+			"pool": "0x56534741CD8B152df6d48AdF7ac51f75169A83b2",
+			"token0": {
+				"address": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+				"decimals": 8,
+				"symbol": "WBTC"
+			},
+			"token1": {
+				"address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"decimals": 6,
+				"symbol": "USDT"
+			},
+			"position": {
+				"nonce": "0",
+				"operator": "0x0000000000000000000000000000000000000000",
+				"token0": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+				"token1": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"fee": 500,
+				"tickLower": 67050,
+				"tickUpper": 67200,
+				"liquidity": "30660182560",
+				"feeGrowthInside0LastX128": "7507472939347601909285651731295604",
+				"feeGrowthInside1LastX128": "6335201665344036127740268283390726938",
+				"tokensOwed0": "0",
+				"tokensOwed1": "0"
+			},
+			"slot0": {
+				"sqrtPriceX96": "2286083666073002493222235346841",
+				"tick": 67248
+			},
+			"feeGrowthGlobal0X128": "973440215677338197107228148156706415",
+			"feeGrowthGlobal1X128": "625986883936294261550235750842143142978",
+			"tickLowerInfo": {
+				"feeGrowthOutside0X128": "965833162953245713657326486634130983",
+				"feeGrowthOutside1X128": "619561196736878858802610110926138742051",
+				"initialized": true
+			},
+			"tickUpperInfo": {
+				"feeGrowthOutside0X128": "973380947818966196371726434576222170",
+				"feeGrowthOutside1X128": "625929734805473317135793340780401209060",
+				"initialized": true
+			},
+			"reference": {
+				"method": "eth_call from owner at same block (no transaction)",
+				"decreaseLiquidityAll": [
+					"0",
+					"6593914073"
+				],
+				"collectMaxWithoutDecrease": [
+					"3632",
+					"3003682"
+				]
+			}
+		},
+		{
+			"class": "above",
+			"tokenId": "1380247",
+			"owner": "0xaE3b2731ab5EAAF06CF5583F62985b445e3D7991",
+			"pool": "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
+			"token0": {
+				"address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"decimals": 6,
+				"symbol": "USDC"
+			},
+			"token1": {
+				"address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"decimals": 18,
+				"symbol": "WETH"
+			},
+			"position": {
+				"nonce": "0",
+				"operator": "0x0000000000000000000000000000000000000000",
+				"token0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"token1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"fee": 500,
+				"tickLower": 197510,
+				"tickUpper": 198110,
+				"liquidity": "65106529420827",
+				"feeGrowthInside0LastX128": "521483098505189813345752772502527",
+				"feeGrowthInside1LastX128": "241290082553831073511426349654543145279861",
+				"tokensOwed0": "0",
+				"tokensOwed1": "0"
+			},
+			"slot0": {
+				"sqrtPriceX96": "1597264134518103365641649107502054",
+				"tick": 198239
+			},
+			"feeGrowthGlobal0X128": "4884066497525049741865705382925694",
+			"feeGrowthGlobal1X128": "2079664274850644163793764547628730251558600",
+			"tickLowerInfo": {
+				"feeGrowthOutside0X128": "4126052732260397734402207192095168",
+				"feeGrowthOutside1X128": "1721341443902612851689312540640344638807286",
+				"initialized": true
+			},
+			"tickUpperInfo": {
+				"feeGrowthOutside0X128": "4651089068566499880984560130245620",
+				"feeGrowthOutside1X128": "1964077106195500767144777427995204473724791",
+				"initialized": true
+			},
+			"reference": {
+				"method": "eth_call from owner at same block (no transaction)",
+				"decreaseLiquidityAll": [
+					"0",
+					"38540308677263358"
+				],
+				"collectMaxWithoutDecrease": [
+					"679844",
+					"276584063590115"
+				]
+			}
+		},
+		{
+			"class": "zero",
+			"tokenId": "1387153",
+			"owner": "0x976d17A0e86F3533C4873a4EcCe67a74D88f4ba5",
+			"pool": "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
+			"token0": {
+				"address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"decimals": 6,
+				"symbol": "USDC"
+			},
+			"token1": {
+				"address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"decimals": 18,
+				"symbol": "WETH"
+			},
+			"position": {
+				"nonce": "0",
+				"operator": "0x0000000000000000000000000000000000000000",
+				"token0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"token1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"fee": 500,
+				"tickLower": 198250,
+				"tickUpper": 198610,
+				"liquidity": "0",
+				"feeGrowthInside0LastX128": "43942920949000329537498422819267",
+				"feeGrowthInside1LastX128": "17291066924877844968668987179709509835225",
+				"tokensOwed0": "0",
+				"tokensOwed1": "0"
+			},
+			"slot0": {
+				"sqrtPriceX96": "1597264134518103365641649107502054",
+				"tick": 198239
+			},
+			"feeGrowthGlobal0X128": "4884066497525049741865705382925694",
+			"feeGrowthGlobal1X128": "2079664274850644163793764547628730251558600",
+			"tickLowerInfo": {
+				"feeGrowthOutside0X128": "548693742235348957779050675848790",
+				"feeGrowthOutside1X128": "275948377498309547573472502139980959267262",
+				"initialized": true
+			},
+			"tickUpperInfo": {
+				"feeGrowthOutside0X128": "504027398660891204898571950917769",
+				"feeGrowthOutside1X128": "258361503252371582239066635445491897316175",
+				"initialized": true
+			},
+			"reference": {
+				"method": "eth_call from owner at same block (no transaction)",
+				"decreaseLiquidityAll": null,
+				"collectMaxWithoutDecrease": [
+					"0",
+					"0"
+				]
+			}
+		},
+		{
+			"class": "zero",
+			"tokenId": "1386709",
+			"owner": "0x2dFd64BBBFd442d1723c30DBAf3147f74324Ba1e",
+			"pool": "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
+			"token0": {
+				"address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"decimals": 6,
+				"symbol": "USDC"
+			},
+			"token1": {
+				"address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"decimals": 18,
+				"symbol": "WETH"
+			},
+			"position": {
+				"nonce": "0",
+				"operator": "0x0000000000000000000000000000000000000000",
+				"token0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"token1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"fee": 500,
+				"tickLower": 198280,
+				"tickUpper": 198630,
+				"liquidity": "0",
+				"feeGrowthInside0LastX128": "1355640011917881656079930609460047",
+				"feeGrowthInside1LastX128": "843544327912167849647496329272571861993998",
+				"tokensOwed0": "0",
+				"tokensOwed1": "0"
+			},
+			"slot0": {
+				"sqrtPriceX96": "1597264134518103365641649107502054",
+				"tick": 198239
+			},
+			"feeGrowthGlobal0X128": "4884066497525049741865705382925694",
+			"feeGrowthGlobal1X128": "2079664274850644163793764547628730251558600",
+			"tickLowerInfo": {
+				"feeGrowthOutside0X128": "2002133200802390786841564543474172",
+				"feeGrowthOutside1X128": "1174178959857006678153466066683502445553126",
+				"initialized": true
+			},
+			"tickUpperInfo": {
+				"feeGrowthOutside0X128": "646052053481999448612594341516069",
+				"feeGrowthOutside1X128": "330453888127363880852137137446596585678293",
+				"initialized": true
+			},
+			"reference": {
+				"method": "eth_call from owner at same block (no transaction)",
+				"decreaseLiquidityAll": null,
+				"collectMaxWithoutDecrease": [
+					"0",
+					"0"
+				]
+			}
+		}
+	],
+	"multi": {
+		"owner": "0x887fD1B7182b352f2D363523AC476F62b586E6D4",
+		"balance": "3",
+		"tokenIds": [
+			"1254397",
+			"1259990",
+			"1387464"
+		],
+		"positions": [
+			{
+				"token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"token1": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"fee": 3000,
+				"tickLower": -203820,
+				"tickUpper": -198900,
+				"liquidity": "0"
+			},
+			{
+				"token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"token1": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"fee": 3000,
+				"tickLower": -203880,
+				"tickUpper": -197700,
+				"liquidity": "0"
+			},
+			{
+				"token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"token1": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"fee": 3000,
+				"tickLower": -198960,
+				"tickUpper": -196920,
+				"liquidity": "406538470508580"
+			}
+		]
+	},
+	"nonexistent": {
+		"positionsToken1": "exists",
+		"ownerOfHuge": "The contract function \"ownerOf\" reverted with the following reason:\nERC721: owner query for nonexistent token"
+	},
+	"_source": "Read-only 2026-10-21: live NonfungiblePositionManager positions, pool slot0/ticks/feeGrowth and token metadata at one block; reference amounts via eth_call of decreaseLiquidity(all) and collect(max) FROM the owner at the same block - simulation only, no transaction sent",
+	"aaveCorePrices": {
+		"block": {
+			"number": "26240621",
+			"timestamp": "1792581455"
+		},
+		"aaveCore": {
+			"pool": "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
+			"oracle": "0x54586bE62E3c3580375aE3723C145253060Ca0C2",
+			"baseCurrency": "0x0000000000000000000000000000000000000000",
+			"baseUnit": "100000000",
+			"reserveCount": 67,
+			"reserves": [
+				"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
+				"0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+				"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"0x6B175474E89094C44Da98b954EedeAC495271d0F",
+				"0x514910771AF9Ca656af840dff83E8264EcF986CA",
+				"0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
+				"0xBe9895146f7AF43049ca1c1AE358B0541Ea49704",
+				"0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"0xae78736Cd615f374D3085123A210448E74Fc6393",
+				"0x5f98805A4E8be255a32880FDeC7F6728C6568bA0",
+				"0xD533a949740bb3306d119CC777fa900bA034cd52",
+				"0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2",
+				"0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F",
+				"0xba100000625a3754423978a60c9317c58a424e3D",
+				"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+				"0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32",
+				"0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
+				"0x111111111117dC0aa78b770fA6A738034120C302",
+				"0x853d955aCEf822Db058eb8505911ED77F175b99e",
+				"0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f",
+				"0xD33526068D116cE69F19A9ee46F0bd304F21A51f",
+				"0x83F20F44975D03b1b09e64809B757c47f942BEeA",
+				"0xAf5191B0De278C7286d6C7CC6ab6BB8A73bA2Cd6",
+				"0xdeFA4e8a7bcBA345F687a2f1456F5Edd9CE97202",
+				"0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0",
+				"0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E",
+				"0x6c3ea9036406852006290770BEdFcAbA0e23A0e8",
+				"0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee",
+				"0xf1C9acDc66974dFB6dEcB12aA385b9cD01190E38",
+				"0x4c9EDD5852cd905f086C759E8383e09bff1E68B3",
+				"0xA35b1B31Ce002FBF2058D22F30f95D405200A15b",
+				"0x9D39A5DE30e57443BfF2A8307A4256c8797A3497",
+				"0x18084fbA666a33d37592fA2633fD49a74DD93a88",
+				"0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+				"0xdC035D45d973E3EC169d2276DDab16f1e407384F",
+				"0xA1290d69c65A6Fe4DF752f95823fae25cB99e5A7",
+				"0x8236a87084f8B84306f72007F36F2618A5634494",
+				"0x657e8C867D8B37dCC18fA4Caead9C45EB088C642",
+				"0x8292Bb45bf1Ee4d140127049757C2E0fF06317eD",
+				"0x50D2C7992b802Eef16c04FeADAB310f31866a545",
+				"0x3b3fB9C57858EF816833dC91565EFcd85D96f634",
+				"0xC139190F447e929f090Edeb554D95AbB8b18aC1C",
+				"0x917459337CaAC939D41d7493B3999f571D20D667",
+				"0x14Bdc3A3AE09f5518b923b69489CBcAfB238e617",
+				"0x90D2af7d622ca3141efA4d8f1F24d86E5974Cc8F",
+				"0xC96dE26018A54D51c097160568752c4E3BD6C364",
+				"0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c",
+				"0x9F56094C450763769BA0EA9Fe2876070c0fD5F77",
+				"0xBC6736d346a5eBC0dEbc997397912CD9b8FAe10a",
+				"0xD11c452fc99cF405034ee446803b6F6c1F6d5ED8",
+				"0xbf5495Efe5DB9ce00f80364C8B423567e58d2110",
+				"0x68749665FF8D2d112Fa859AA293F07A622782F38",
+				"0xe6A934089BBEe34F832060CE98848359883749B3",
+				"0x62C6E813b9589C3631Ba0Cdb013acdB8544038B7",
+				"0x1F84a51296691320478c98b8d77f2Bbd17D34350",
+				"0xE8483517077afa11A9B07f849cee2552f040d7b2",
+				"0xacA92E438df0B2401fF60dA7E4337B687a2435DA",
+				"0x356B8d89c1e1239Cbbb9dE4815c39A1474d5BA7D",
+				"0xe343167631d89B6Ffc58B88d6b7fB0228795491D",
+				"0xAeBf0Bb9f57E89260d57f31AF34eB58657d96Ce0",
+				"0x3de0ff76E8b528C092d47b9DaC775931cef80F49",
+				"0x9Bf45ab47747F4B4dD09B3C2c73953484b4eB375",
+				"0xB0F70C0bD6FD87dbEb7C10dC692a2a6106817072",
+				"0x619D75E3b790eBC21c289f2805Bb7177A7D732E2",
+				"0x9db38D74a0D29380899aD354121DfB521aDb0548",
+				"0x59bC9FaE5D62B19d4f8d07D758047aCb9EE19d34"
+			]
+		},
+		"prices": {
+			"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2": "245808160000",
+			"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": "99989137",
+			"0xdAC17F958D2ee523a2206206994597C13D831ec7": "99888425",
+			"0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599": "8319281204914"
+		},
+		"notReserve": {
+			"0xe1Ac97e2616Ad80f69f705ff007A4bbb3655544a": "REVERT: The contract function \"getAssetPrice\" reverted.",
+			"0x45804880De22913dAFE09f4980848ECE6EcbAf78": "REVERT: The contract function \"getAssetPrice\" reverted."
+		}
+	}
+}

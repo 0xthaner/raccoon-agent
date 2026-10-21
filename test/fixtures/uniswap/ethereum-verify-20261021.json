@@ -1,0 +1,355 @@
+{
+	"_source": "Read-only survey 2026-10-21: api.nexusmutual.io (v2 products, product-types, capacity, ipfs), Ethereum mainnet via ethereum-rpc.publicnode.com (eth_call only), Uniswap/sdks sdk-core addresses.ts + v3-sdk constants.ts, Uniswap/v3-periphery PoolAddress.sol",
+	"readAt": "2026-10-21T11:16:39.027Z",
+	"chainId": 1,
+	"block": {
+		"number": "26240616",
+		"timestamp": 1792581395
+	},
+	"nexus": {
+		"api": {
+			"product72": {
+				"id": 72,
+				"name": "Uniswap v3",
+				"minPrice": "10",
+				"coverAssets": [
+					{
+						"assetId": 0,
+						"assetSymbol": "ETH"
+					},
+					{
+						"assetId": 6,
+						"assetSymbol": "USDC"
+					},
+					{
+						"assetId": 7,
+						"assetSymbol": "cbBTC"
+					}
+				],
+				"initialPriceRatio": "300",
+				"capacityReductionRatio": "0",
+				"isDeprecated": false,
+				"useFixedPrice": false,
+				"metadata": "",
+				"allowedPools": [],
+				"timestamp": 1761821039,
+				"productType": 0,
+				"category": "dex",
+				"isPrivate": false,
+				"proofOfLossInputTypes": [
+					"address"
+				]
+			},
+			"productType0": {
+				"id": 0,
+				"name": "Single Protocol Cover",
+				"claimMethod": "0",
+				"gracePeriod": "3024000",
+				"assessmentCooldownPeriod": "86400",
+				"payoutRedemptionPeriod": "2592000",
+				"metadata": "QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY",
+				"commissionRatio": "1000",
+				"commissionDestination": "0x8e53D04644E9ab0412a8c6bd228C84da7664cFE3"
+			},
+			"capacity72Assets": [
+				{
+					"assetId": 0,
+					"symbol": "ETH"
+				},
+				{
+					"assetId": 1,
+					"symbol": "DAI"
+				},
+				{
+					"assetId": 6,
+					"symbol": "USDC"
+				},
+				{
+					"assetId": 7,
+					"symbol": "cbBTC"
+				},
+				{
+					"assetId": 255,
+					"symbol": "NXM"
+				}
+			],
+			"productsWithUniswapInName": [
+				{
+					"id": 71,
+					"name": "Uniswap v2",
+					"productType": 0,
+					"isDeprecated": false,
+					"isPrivate": false,
+					"metadata": ""
+				},
+				{
+					"id": 72,
+					"name": "Uniswap v3",
+					"productType": 0,
+					"isDeprecated": false,
+					"isPrivate": false,
+					"metadata": ""
+				},
+				{
+					"id": 168,
+					"name": "Beefy CLM + Uniswap v3",
+					"productType": 11,
+					"isDeprecated": true,
+					"isPrivate": false,
+					"metadata": {
+						"annex": "QmfZerropFXnEeZCG2kEyNvqRMW8dn6UvDnNB8JPBTozF8"
+					}
+				},
+				{
+					"id": 256,
+					"name": "Uniswap v4",
+					"productType": 0,
+					"isDeprecated": false,
+					"isPrivate": false,
+					"metadata": ""
+				}
+			],
+			"productCount": 478
+		},
+		"onchain": {
+			"coverProducts": "0xcafead81a2c2508e7344155eB0DA67a3a487AA8d",
+			"productCount": "478",
+			"name72": "Uniswap v3",
+			"name97": "Aave v3",
+			"productWithType72": [
+				{
+					"productType": 0,
+					"minPrice": 10,
+					"__gap": "0",
+					"coverAssets": 193,
+					"initialPriceRatio": 300,
+					"capacityReductionRatio": 0,
+					"isDeprecated": false,
+					"useFixedPrice": false
+				},
+				{
+					"claimMethod": 0,
+					"gracePeriod": 3024000,
+					"assessmentCooldownPeriod": 86400,
+					"payoutRedemptionPeriod": 2592000
+				}
+			],
+			"latestMetadata72": {
+				"ipfsHash": "",
+				"timestamp": "0"
+			},
+			"typeName0": "Single Protocol Cover",
+			"typeMetadata0": {
+				"ipfsHash": "QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY",
+				"timestamp": "1783377023"
+			},
+			"allowedPools72": [],
+			"uniswapNamed": [
+				[
+					71,
+					"Uniswap v2"
+				],
+				[
+					72,
+					"Uniswap v3"
+				],
+				[
+					93,
+					"Union Finance (Sherlock)"
+				],
+				[
+					163,
+					"Pocket Universe"
+				],
+				[
+					168,
+					"Beefy CLM + Uniswap v3"
+				],
+				[
+					256,
+					"Uniswap v4"
+				],
+				[
+					453,
+					"Ensuro Spot Junior"
+				]
+			]
+		},
+		"wording": {
+			"cid": "QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY",
+			"sha256": "9d831f51fc158b385d0daaa8aa4ae0294990a8e68f60aa8884611dc39e62003b",
+			"pages": 10,
+			"containsPhraseDepositedInTheDesignatedProtocol": false
+		}
+	},
+	"uniswap": {
+		"sources": {
+			"sdkCoreAddresses": {
+				"v3CoreFactoryAddress": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+				"nonfungiblePositionManagerAddress": "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+				"WETH9_chain1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+			},
+			"v3SdkPoolInitCodeHash": "0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54",
+			"v3PeripheryPoolAddressInitCodeHash": "0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54"
+		},
+		"positionManager": {
+			"code": "0x692e658b31cbe3407682854806658d315d61a58c7e4933a2f91d383dc00736c6",
+			"factory": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+			"WETH9": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+			"name": "Uniswap V3 Positions NFT-V1",
+			"symbol": "UNI-V3-POS",
+			"erc721": true,
+			"erc721Enumerable": true,
+			"erc721Metadata": true,
+			"totalSupply": "1241683"
+		},
+		"factory": {
+			"code": "0x4d7b8525cd5d14343fa67a732fba5b24cddba11620ca88392f4ec6c52f91fd69",
+			"owner": "0xf2371551Fe3937Db7c750f4DfABe5c2fFFdcBf5A",
+			"feeTiers": {
+				"1": 0,
+				"50": 0,
+				"100": 1,
+				"200": 0,
+				"250": 0,
+				"300": 0,
+				"400": 0,
+				"500": 10,
+				"1000": 0,
+				"2500": 0,
+				"3000": 60,
+				"5000": 0,
+				"10000": 200,
+				"20000": 0
+			},
+			"feeAmountEnabledLogs": "not available without an archive RPC; tiers probed via feeAmountTickSpacing instead"
+		},
+		"weth": {
+			"address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+			"symbol": "WETH",
+			"decimals": 18
+		},
+		"create2": [
+			{
+				"token0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"token1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"fee": 500,
+				"factoryGetPool": "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
+				"getPoolReversedArgs": "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
+				"derived": "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
+				"match": true,
+				"poolFactory": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+				"poolToken0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"poolToken1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"poolFee": 500,
+				"tickSpacing": 10,
+				"codeHash": "0xa981b66c747a3d9fa29d7e200d5faaa2826960523d0e5a0df8148e8868c480b4"
+			},
+			{
+				"token0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"token1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"fee": 3000,
+				"factoryGetPool": "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8",
+				"getPoolReversedArgs": "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8",
+				"derived": "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8",
+				"match": true,
+				"poolFactory": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+				"poolToken0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"poolToken1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"poolFee": 3000,
+				"tickSpacing": 60,
+				"codeHash": "0xf2b8b58f95b1471751302e520a0e7c410ce9846ed46020be253dbd25fbb6da11"
+			},
+			{
+				"token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"token1": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"fee": 3000,
+				"factoryGetPool": "0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36",
+				"getPoolReversedArgs": "0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36",
+				"derived": "0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36",
+				"match": true,
+				"poolFactory": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+				"poolToken0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"poolToken1": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"poolFee": 3000,
+				"tickSpacing": 60,
+				"codeHash": "0x97fa75f9d265c8e1eaa82fb01cbeb07677e39d709937493d728b0bf6d5e8a3a2"
+			},
+			{
+				"token0": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+				"token1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"fee": 3000,
+				"factoryGetPool": "0xCBCdF9626bC03E24f779434178A73a0B4bad62eD",
+				"getPoolReversedArgs": "0xCBCdF9626bC03E24f779434178A73a0B4bad62eD",
+				"derived": "0xCBCdF9626bC03E24f779434178A73a0B4bad62eD",
+				"match": true,
+				"poolFactory": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+				"poolToken0": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+				"poolToken1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"poolFee": 3000,
+				"tickSpacing": 60,
+				"codeHash": "0x385084b66be309c0ba96c1488cf8999e306533675a3826b64bf5b3c8f4949ae1"
+			},
+			{
+				"token0": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+				"token1": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"fee": 100,
+				"factoryGetPool": "0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168",
+				"getPoolReversedArgs": "0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168",
+				"derived": "0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168",
+				"match": true,
+				"poolFactory": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+				"poolToken0": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+				"poolToken1": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"poolFee": 100,
+				"tickSpacing": 1,
+				"codeHash": "0x745c067e705970688ce6589a8f7d4512df75e9203fb8e2f1a09a07ab11dcec7b"
+			},
+			{
+				"token0": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+				"token1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"fee": 500,
+				"factoryGetPool": "0x4585FE77225b41b697C938B018E2Ac67Ac5a20c0",
+				"getPoolReversedArgs": "0x4585FE77225b41b697C938B018E2Ac67Ac5a20c0",
+				"derived": "0x4585FE77225b41b697C938B018E2Ac67Ac5a20c0",
+				"match": true,
+				"poolFactory": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+				"poolToken0": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+				"poolToken1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"poolFee": 500,
+				"tickSpacing": 10,
+				"codeHash": "0x1c1a0540887263a5e1b597a4f5f5948e061749defb0a05d65c647eebc7663eca"
+			},
+			{
+				"token0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"token1": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"fee": 100,
+				"factoryGetPool": "0x3416cF6C708Da44DB2624D63ea0AAef7113527C6",
+				"getPoolReversedArgs": "0x3416cF6C708Da44DB2624D63ea0AAef7113527C6",
+				"derived": "0x3416cF6C708Da44DB2624D63ea0AAef7113527C6",
+				"match": true,
+				"poolFactory": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+				"poolToken0": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"poolToken1": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"poolFee": 100,
+				"tickSpacing": 1,
+				"codeHash": "0x2ff673bacc60a73fc85c678888296c6bce3de2a9d7475c032fe7aa6e0eacba86"
+			},
+			{
+				"token0": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+				"token1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"fee": 3000,
+				"factoryGetPool": "0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8",
+				"getPoolReversedArgs": "0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8",
+				"derived": "0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8",
+				"match": true,
+				"poolFactory": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+				"poolToken0": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+				"poolToken1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"poolFee": 3000,
+				"tickSpacing": 60,
+				"codeHash": "0x96615083847ebeebdbacb128178cfc2b71cffebc1c23c3091c4253f445c1c264"
+			}
+		]
+	}
+}
