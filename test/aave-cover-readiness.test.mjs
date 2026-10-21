@@ -119,6 +119,40 @@ test('AAVE-MAPPING only Core is MATCHED to product 97; Lido/Prime and EtherFi st
 	}
 });
 
+test('AAVE-MAPPING-LIDO-ETHERFI Lido/Prime and EtherFi stay AMBIGUOUS (Nexus scope unconfirmed); no other product, pool, chain or name maps them; no Nexus read and no quote', async () => {
+	// Recherche 20.10.2026: 364 (Lido) deckt das Lido-Protokoll, 167 (Ether.fi) laut Annex nur ueber Ether.fi gestakte Assets,
+	// 449 ist Aave v4, 2 Aave v2 (deprecated); 97 hat weder Annex noch Metadaten, die einen Markt nennen.
+	const { matchPositionToNexus } = await import('../src/positions/nexus-mapping.mjs');
+	for (const market of [LIDO, ETHERFI]) {
+		const match = matchPositionToNexus(position(market));
+		assert.deepEqual([match.status, match.reason], ['PROBABLE', 'NEXUS_SCOPE_UNCONFIRMED'], market.deploymentKey);
+		assert.deepEqual(R.nexusMappingClass(position(market)), { class: 'AMBIGUOUS', productId: null, reason: 'NEXUS_SCOPE_UNCONFIRMED' }, market.deploymentKey);
+		// falsche Produkte in der Position, falscher Pool, falsche Kette, Namen
+		for (const productId of [97, 2, 167, 364, 449, 115]) assert.equal(R.nexusMappingClass(position(market, { productId, nexusProductId: productId })).class, 'AMBIGUOUS', `${market.deploymentKey} ${productId}`);
+		assert.equal(R.nexusMappingClass(position(market, { marketAddress: CORE.pool })).class, 'AMBIGUOUS', 'core pool under the market key');
+		for (const chainId of [10, 42161, 8453]) assert.notEqual(R.nexusMappingClass(position(market, { chainId })).class, 'MATCHED');
+		for (const name of [market.label, 'Lido', 'Prime', 'EtherFi', 'ether.fi', 'aave-v3-ethereum-prime']) {
+			assert.equal(R.nexusMappingClass(position(market, { deploymentKey: name })).class, 'UNSUPPORTED', name);
+		}
+		// kein Nexus-Abruf, keine Details, keine Quote
+		let calls = 0;
+		const counting = async (...args) => { calls += 1; return fakeNexus()(...args); };
+		readCache.reset();
+		const model = await getNexusReadModel(position(market), { fetchImpl: counting, now: NOW });
+		assert.equal(calls, 0, 'no Nexus read for an ambiguous market');
+		assert.equal(model.eligibility.status, 'AMBIGUOUS');
+		assert.deepEqual(coverDetails(model, position(market), NOW), { ok: true, available: false, status: 'AMBIGUOUS' });
+		const request = parseCoverRequest({ action: 'quote', deploymentKey: market.deploymentKey, coverAsset: 'USDC', amount: '1000', periodDays: 30 });
+		assert.equal(checkQuoteRequest(request, model, position(market)).code, 'COVER_NOT_AVAILABLE');
+		const readiness = R.evaluateAavePurchaseReadiness(await allTechnical({ position: position(market), model }));
+		assert.equal(readiness.decision, 'BLOCKED');
+		assert.ok(readiness.reasons.includes('NEXUS_MAPPING_NOT_MATCHED') && readiness.reasons.includes('MARKET_NOT_IN_PURCHASE_SCOPE'));
+	}
+	// deprecated und andere Produkte sind fuer keinen Markt angepinnt
+	const { PINNED_PRODUCTS } = await import('../src/nexus-pinned.mjs');
+	assert.deepEqual(Object.keys(PINNED_PRODUCTS), ['97']);
+});
+
 /* -------------------------------------------------------------- Assets -- */
 
 test('AAVE-ASSETS quote assets are ETH, USDC, cbBTC; a later purchase only USDC; DAI and unknown symbols are refused', () => {

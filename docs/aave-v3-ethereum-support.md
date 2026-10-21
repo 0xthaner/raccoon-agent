@@ -22,6 +22,21 @@ Die Märkte stehen in `src/positions/aave-registry.mjs`. Quelle ist das Aave-Adr
 
 **AMBIGUOUS** heißt: Der Nexus-Katalog führt kein eigenes Produkt für diesen Markt, und Nexus hat nicht bestätigt, dass Produkt 97 ihn abdeckt. Deshalb gibt es dort weder Kapazität noch Quote. Die Positionen werden trotzdem erkannt und angezeigt.
 
+### Prüfung Lido/Prime und EtherFi (20.10.2026)
+
+Quellen: Nexus-API (`/v2/products/{id}`, `/v2/product-types/0`), Wording und Annex über `api.nexusmutual.io/ipfs`, Nexus-Forum, Aave-Changelog.
+
+| Kandidat | Befund | Passt auf den Markt? |
+|---|---|---|
+| 97 „Aave v3“ (Single Protocol Cover, aktiv, ETH/USDC/cbBTC) | `metadata` leer, kein Annex. Das Wording definiert „Designated Protocol“ als Code „marketed under one brand“ und nennt keine einzelnen Märkte. | nicht ausdrücklich bestätigt |
+| 364 „Lido“ (Single Protocol Cover, nur ETH) | Cover für das Lido-Protokoll selbst | nein (Prime ist Aave-Code) |
+| 167 „Ether.fi“ (Typ 11, Multi Protocol) | Laut Annex nur für „crypto assets staked through the Ether.fi protocol“; Designated Protocols sind EigenLayer, Ether.fi, Lombard, Symbiotic. Aave fehlt. | nein |
+| 449 „Aave v4“, 2 „Aave v2“ (deprecated) | andere Aave-Version | nein |
+
+Der Forumsbeitrag von 2023 („deposits in the Aave v3 markets on EVM-compatible networks“) bezieht sich auf Produkt 98. Unter dieser ID führt die API heute „Morpho Optimisers v1“ (deprecated). Für Produkt 97 ist er deshalb kein Beleg.
+
+Aus der Markenklausel des Wordings lässt sich ableiten, dass Prime und EtherFi unter Produkt 97 fallen könnten. Eine ausdrückliche, marktgenaue Bestätigung fehlt aber. Deshalb bleiben beide Märkte AMBIGUOUS, bis Nexus schriftlich bestätigt, dass Produkt 97 sie abdeckt.
+
 ## Ausgeschlossen
 
 Live gegen den Nexus-Katalog gelesen am 20.10.2026:
