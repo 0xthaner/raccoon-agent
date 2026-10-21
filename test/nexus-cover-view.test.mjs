@@ -249,8 +249,11 @@ test('VIEW-LANG-SWITCH an open panel follows the app language without reloading:
 
 test('VIEW-LANG-WIRING main.js hands the global language to every open cover panel on a DE/EN switch; no second language state', () => {
 	const main = readFileSync(new URL('../web/src/main.js', import.meta.url), 'utf8');
-	assert.match(main, /applyLanguage\(button\.dataset\.language\);\n\t\/\/[^\n]*\n\tfor \(const panel of coverPanels\.values\(\)\) panel\.setLanguage\(language\);/);
+	assert.match(main, /applyLanguage\(button\.dataset\.language\);\n\t\/\/[^\n]*\n\tfor \(const panel of \[\.\.\.coverPanels\.values\(\), \.\.\.uniswapPanels\.values\(\)\]\) panel\.setLanguage\(language\);/);
+	assert.match(main, /createUniswapPanel\(\{ tokenId, post: nexusQuoteApi\.post, language \}\)/);
 	assert.match(main, /createCoverPanel\(\{ deploymentKey: key, post: nexusQuoteApi\.post, language \}\)/);
 	const cover = readFileSync(new URL('../web/src/nexus-cover.js', import.meta.url), 'utf8');
 	assert.doesNotMatch(cover, /localStorage|navigator\.language|documentElement\.lang|raccoon_language/, 'the panel keeps no language of its own');
+	const uniswap = readFileSync(new URL('../web/src/uniswap-cover.js', import.meta.url), 'utf8');
+	assert.doesNotMatch(uniswap, /localStorage|navigator\.language|documentElement\.lang|raccoon_language/, 'the Uniswap panel keeps no language of its own');
 });

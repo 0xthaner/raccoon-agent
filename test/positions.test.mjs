@@ -522,6 +522,7 @@ function renderWith(state, dashboardData, lang = 'de', nextState = null) {
 	const { document, nodes } = fakeDom();
 	const source = `${main.slice(translationsStart, translationsEnd)}
 		const t = translations[lang];
+		function renderUniswapSection() {} // der Uniswap-Abschnitt hat eigene Tests (uniswap-v3-dashboard.test.mjs)
 		function addTextElement(parent, tag, value, className = '') { const el = document.createElement(tag); if (className) el.className = className; el.textContent = String(value ?? ''); parent.appendChild(el); return el; }
 		function formatDate(iso) { return iso ? iso.slice(0, 10) : '—'; }
 		let positionsState = state;

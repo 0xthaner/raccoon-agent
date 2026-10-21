@@ -1,10 +1,10 @@
 /*
-	UNISWAP V3 AUF ETHEREUM - POSITIONSERKENNUNG UND EXPOSURE, INAKTIV (21.10.2026).
+	UNISWAP V3 AUF ETHEREUM - POSITIONSERKENNUNG UND EXPOSURE (21.10.2026).
 
-	Vorbereitung, KEINE Produktionsfreigabe. Kein Produktionsmodul importiert
-	diese Datei (test/uniswap-v3-ethereum.test.mjs prueft das). Keine Quote, kein
-	Kauf, keine Transaktion, keine Signatur: nur eth_call (ueber Multicall3) und
-	eth_getCode, alles im selben Block.
+	Seit 21.10.2026 im Dashboard erreichbar, nur lesend und nur ueber den
+	Server (uniswap-v3-service.mjs fuer GET /api/positions und die
+	informative Quote). Kein Kauf, keine Transaktion, keine Signatur: nur
+	eth_call (ueber Multicall3) und eth_getCode, alles im selben Block.
 
 	Weg:  Wallet -> NFTs des kanonischen NonfungiblePositionManager (ERC721Enumerable)
 	      -> positions(tokenId) + ownerOf(tokenId) -> kanonischer Pool (CREATE2 UND
@@ -118,8 +118,8 @@ const ERC20_ABI = [
 	"address", Wording QmQQ88...EY (gleich wie Aave 97), kein Annex, keine
 	Produkt-Metadaten, keine allowedPools, Grace Period 35 Tage.
 	Die Identitaet ist exakt belegt; MATCHED gilt nur fuer den kanonischen
-	Ethereum-Deployment-Schluessel unten. Daraus folgt hier NICHTS fuer Quote
-	oder Kauf: runtimeEnabled ist false, quoteEligible immer false.
+	Ethereum-Deployment-Schluessel unten. Daraus folgt eine informative Quote
+	(runtimeEnabled, quoteEligible fuer MATCHED), nie ein Kauf.
 */
 export const NEXUS_UNISWAP_V3 = Object.freeze({
 	productId: 72,
@@ -139,7 +139,7 @@ export const NEXUS_UNISWAP_V3 = Object.freeze({
 	allowedPools: Object.freeze([]),
 	verifiedAt: '2026-10-21',
 	mappingClass: 'MATCHED',
-	runtimeEnabled: false
+	runtimeEnabled: true
 });
 export const NEXUS_MAPPING_CLASSES = Object.freeze(['MATCHED', 'AMBIGUOUS', 'UNSUPPORTED']);
 
@@ -606,10 +606,10 @@ export async function readUniswapV3Positions(wallet, { client, deployment = UNIS
 
 /**
  * Nexus-Sicht auf eine gepruefte Position. MATCHED nur fuer eine VALID-Position
- * des kanonischen Ethereum-Deployments. quoteEligible ist in dieser Phase immer false.
+ * des kanonischen Ethereum-Deployments. quoteEligible (nur informative Quote) genau fuer MATCHED.
  */
 export function uniswapNexusMapping(position) {
-	const result = (mappingClass, reason) => Object.freeze({ mappingClass, productId: mappingClass === 'MATCHED' ? NEXUS_UNISWAP_V3.productId : null, reason, quoteEligible: false });
+	const result = (mappingClass, reason) => Object.freeze({ mappingClass, productId: mappingClass === 'MATCHED' ? NEXUS_UNISWAP_V3.productId : null, reason, quoteEligible: mappingClass === 'MATCHED' });
 	if (position?.status !== 'VALID') return result('UNSUPPORTED', 'NOT_A_VALID_POSITION');
 	if (position.chainId !== CHAIN_ID) return result('UNSUPPORTED', 'WRONG_CHAIN');
 	// Andere Uniswap-Versionen und Vaults haben eigene Listings (71, 256, 168) und werden nie Produkt 72.
@@ -624,17 +624,18 @@ export function uniswapNexusMapping(position) {
 }
 
 /*
-	Feste Blocker dieser Phase. Solange einer davon gilt, sind quoteReady
-	(Anzeige in der Produktion) und purchaseReady false - auch wenn alle Daten
-	fuer eine informative Quote vorliegen (quoteDataReady, im Nexus-Modul).
-	Die drei externen Blocker sind offen; eine Nexus-Klaerung liegt nicht vor.
+	Feste Blocker dieser Phase. Solange einer davon gilt, ist purchaseReady
+	false - auch wenn alle Daten fuer eine informative Quote vorliegen
+	(quoteDataReady und quoteReady, im Nexus-Modul). Die drei externen Blocker
+	sind offen; eine Nexus-Klaerung liegt nicht vor. Seit 21.10.2026 gibt es
+	einen lesenden Produktionspfad, daher kein NO_PRODUCTION_PATH mehr.
 */
 export const EXTERNAL_BLOCKERS = Object.freeze([
 	'NEXUS_TERMS_INTERPRETATION_UNCONFIRMED',
 	'NEXUS_PROOF_OF_LOSS_UNCONFIRMED',
 	'WALLET_EXECUTION_NOT_AVAILABLE'
 ]);
-export const PHASE_BLOCKERS = Object.freeze(['NO_PRODUCTION_PATH', ...EXTERNAL_BLOCKERS]);
+export const PHASE_BLOCKERS = Object.freeze([...EXTERNAL_BLOCKERS]);
 
 export function uniswapV3Readiness(scan) {
 	const blockers = [];
@@ -698,12 +699,13 @@ export function uniswapV3SupportMatrix() {
 		coverAssetConversion: 'USD / CHAINLINK_PRICE_REFERENCE_V1 (ETH/USD, USDC/USD, cbBTC/USD), same block, floor',
 		quoteMode: 'PER_POSITION',
 		aggregateQuote: false,
-		quoteDataPath: 'INACTIVE_INTERNAL',
+		quoteDataPath: 'PRODUCTION_READ_ONLY',
+		informationalQuote: true,
 		termsReady: false,
 		proofOfLossReady: false,
 		quoteReady: false,
 		purchaseReady: false,
-		productionEnabled: false
+		productionEnabled: true
 	})]);
 }
 

@@ -4,6 +4,7 @@ import { submitDashboardLogin } from './onchain-login.js';
 import { startAnalytics } from './analytics.js';
 import { mountEye } from './eye.js';
 import { createCoverPanel } from './nexus-cover.js';
+import { createUniswapPanel, renderUniswapSection } from './uniswap-cover.js';
 import { mountDashboardNav, renderDashboardShell } from './dashboard-shell.js';
 
 const status = document.querySelector('#status');
@@ -29,7 +30,7 @@ const translations = {
 */
 Object.assign(translations.de, {
 	positionsTitle: 'DeFi-Positionen', positionsLoading: 'DeFi-Positionen werden gelesen …', positionsError: 'DeFi-Positionen konnten gerade nicht geladen werden.',
-	positionsNone: 'Keine Aave-v3-Positionen auf Ethereum gefunden.', positionsChecked: 'Geprüft: Aave v3 auf Ethereum',
+	positionsNone: 'Keine Aave-v3-Positionen auf Ethereum gefunden.', positionsChecked: 'Geprüft: Aave v3 und Uniswap v3 auf Ethereum',
 	marketUnavailableHelp: 'Dieser Markt konnte nicht gelesen werden und ist in den Summen nicht enthalten.', notAvailable: 'Nicht verfügbar',
 	allMarketsUnavailable: 'Die Aave-v3-Positionen konnten gerade nicht gelesen werden.',
 	totalsIncompleteOne: '{markets} konnte derzeit nicht gelesen werden. Die Summen enthalten nur verfügbare Märkte.',
@@ -58,7 +59,7 @@ Object.assign(translations.de, {
 });
 Object.assign(translations.en, {
 	positionsTitle: 'DeFi Positions', positionsLoading: 'Reading DeFi positions …', positionsError: 'DeFi positions could not be loaded right now.',
-	positionsNone: 'No Aave v3 positions found on Ethereum.', positionsChecked: 'Checked: Aave v3 on Ethereum',
+	positionsNone: 'No Aave v3 positions found on Ethereum.', positionsChecked: 'Checked: Aave v3 and Uniswap v3 on Ethereum',
 	marketUnavailableHelp: 'This market could not be read and is not included in the totals.', notAvailable: 'Not available',
 	allMarketsUnavailable: 'The Aave v3 positions could not be read right now.',
 	totalsIncompleteOne: '{markets} could not be read right now. The totals include only available markets.',
@@ -198,7 +199,7 @@ function applyLanguage(next) {
 document.querySelectorAll('[data-language]').forEach((button) => button.addEventListener('click', () => {
 	applyLanguage(button.dataset.language);
 	// Offene Cover-Panels behalten ihren Zustand (Quote, Eingaben) und folgen nur der Sprache.
-	for (const panel of coverPanels.values()) panel.setLanguage(language);
+	for (const panel of [...coverPanels.values(), ...uniswapPanels.values()]) panel.setLanguage(language);
 	if (window.dashboardData) renderDashboard(window.dashboardData);
 }));
 applyLanguage(language);
@@ -397,6 +398,7 @@ let attributionError = null;
 
 function resetAttributionState() {
 	coverPanels = new Map();
+	uniswapPanels = new Map();
 	attributionStore = { wallet: null, status: 'idle', links: new Map() };
 	attributionChooser = null;
 	attributionPending = null;
@@ -413,6 +415,8 @@ function persistedLinksFor(wallet) {
 	Das Panel kennt keinen Wallet-Provider; Produkt und Grenzen bestimmt der Server.
 */
 let coverPanels = new Map();
+// Uniswap v3: ein informatives Quote-Panel je LP-NFT (tokenId), gleiche Route, gleiche Sprache.
+let uniswapPanels = new Map();
 const nexusQuoteApi = {
 	post: (body) => authFetch('/api/nexus/quote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(25000) })
 		.then(async (response) => ({ status: response.status, body: await response.json().catch(() => null) }))
@@ -428,6 +432,19 @@ function renderCoverDetails(card, position) {
 		renderPositions();
 		panel.load();
 	}, 'cover-action cover-details-action');
+}
+
+function renderUniswapPositions(list) {
+	renderUniswapSection(list, positionsState.data?.uniswapV3, {
+		language,
+		panelFor: (tokenId) => uniswapPanels.get(tokenId) ?? null,
+		openPanel: (tokenId) => {
+			const panel = createUniswapPanel({ tokenId, post: nexusQuoteApi.post, language });
+			uniswapPanels.set(tokenId, panel);
+			renderPositions();
+			panel.load();
+		}
+	});
 }
 
 /* Server-Zugriff; die DEV-Fixture ersetzt ihn durch einen Speicher im Arbeitsspeicher. */
@@ -792,6 +809,8 @@ function renderPositions() {
 		if (positions.length) renderCoverAttributions(attribution);
 	}
 	addTextElement(list, 'p', t.positionsSource, 'position-source');
+	// Eigener Abschnitt, nie mit Aave zusammengelegt; faellt er aus, bleibt Aave stehen.
+	renderUniswapPositions(list);
 }
 
 function renderDashboard(data) {

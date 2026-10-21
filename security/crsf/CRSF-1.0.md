@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2zo
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2zp
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -416,6 +416,8 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | EV-KB-NEXUS-READ | known-bad | E4 | mutation | FULL | yes | Each listed weakening of the read-only Nexus integration is detected by its intended test: renamed or similar product name, wrong product type, changed wording, wrong chain, Aave v2 as v3, similar protocol key, malformed or fake-high capacity, followed redirect, missing capacity, API timeout, stale data after failure, ambiguous deployment accepted. |
 | EV-NEXUS-QUOTE | behavioral | E3 | node-test | FULL | yes | Offline, real handler with real session/origin/JSON checks, real read model and quote validation against captured Nexus responses: valid USDC and ETH quotes (server-derived productId 97, fixed GET path, no redirect); client productId rejected; ambiguous, unsupported and unavailable positions get a neutral status and no quote request; unsupported assets, amounts above exposure or capacity and periods outside 28..365 rejected before Nexus; malformed, foreign-pool, foreign-asset, mispriced, redirected or timed-out quotes never become a premium; quotes stale after 60 s and never usable; per-IP/wallet/global limits; responses without pools, fees or transaction fields; no purchase surface in runtime code; the cover panel (recording DOM) never calls a wallet method, renders remote strings as text and links only validated Nexus IPFS URLs. |
 | EV-KB-NEXUS-QUOTE | known-bad | E4 | mutation | FULL | yes | Each listed weakening of the quote display is detected by its intended test: client productId, ambiguous mapping, unsupported asset, amount above capacity or exposure, period below 28 or above 365 days, malformed/foreign-product/foreign-asset quote, followed redirect, arbitrary host, stale quote marked fresh, fallback premium on timeout, wallet method from the panel, exposed pools/fee fields, missing global quote budget. |
+| EV-UNISWAP-QUOTE | behavioral | E3 | node-test | PARTIAL | yes | Offline, real handlers (GET /api/positions, POST /api/nexus/quote actions uniswap-details and uniswap-quote) with real session, revocation, same-origin, JSON and rate-limit checks, real Uniswap v3 scan model, Chainlink price reference and Nexus product-72 validation against captured on-chain and Nexus fixtures: the scanned wallet is always the session wallet (client wallet, owner or transferred NFT refused); positions are a sanitized per-NFT section beside the unchanged Aave answer; any product field is rejected and the quote always uses productId 72; the amount is min(principal exposure converted via CHAINLINK_PRICE_REFERENCE_V1, capacity), fees excluded, never the pool spot price and never USDC = 1; ETH, USDC and cbBTC only; period 28..365; zero liquidity, fake pool, v2/v4, incomplete or stale price, stale position and stale capacity never reach a quote; tiny amounts are QUOTE_AMOUNT_TOO_SMALL; malformed or failing Nexus answers become QUOTE_UNAVAILABLE without upstream text; quotes cached <= 60 s per wallet, NFT, asset, period and amount; per-IP/wallet/global budgets; the Uniswap card and quote view (recording DOM and the real page) never call a wallet method, render remote strings as text, link only validated IPFS URLs, show only neutral actions and switch DE/EN without a new request. |
+| EV-KB-UNISWAP-QUOTE | known-bad | E4 | mutation | PARTIAL | yes | Each listed weakening of the Uniswap v3 read-only quote path is detected by its intended test: Uniswap v3: quote handler answers Uniswap actions without a session; Uniswap v3: positions handler returns a Uniswap section without a session; Uniswap v3: a revoked session still reaches the Uniswap scan; Uniswap v3: a client-supplied wallet is scanned instead of the session wallet; Uniswap v3: the tokenId is not bound to the session wallet and its scan; Uniswap v3: a client-supplied productId is accepted for a Uniswap quote; Uniswap v3: the Uniswap path uses product 97 instead of 72; Uniswap v3: Uniswap v2/v4 deployments are no longer excluded; Uniswap v3: the canonical-pool check is removed; Uniswap v3: a stale Chainlink price is accepted; Uniswap v3: stale capacity is treated as fresh; Uniswap v3: a stale position scan is accepted; Uniswap v3: an amount above the converted exposure is accepted; Uniswap v3: the server default amount is the capacity instead of min(exposure, capacity); Uniswap v3: uncollected fees are included in the suggested exposure; Uniswap v3: a spot-like price replaces the Chainlink reference in the conversion; Uniswap v3: USDC is assumed to be worth exactly 1 USD; Uniswap v3: a zero-liquidity NFT can be quoted; Uniswap v3: the quote button reads Buy cover; Uniswap v3: the German quote button reads Cover kaufen; Uniswap v3: the Uniswap service imports a purchase module; Uniswap v3: the wallet method allowlist gains eth_sendTransaction; Uniswap v3: the raw upstream rejection reason is returned to the client; Uniswap v3: the Uniswap view renders the raw server error text; Uniswap v3: unknown service codes are passed through instead of QUOTE_UNAVAILABLE; Uniswap v3: the quote cache is shared across wallets; Uniswap v3: a cached quote is served after quoteExpiresAt; Uniswap v3: the global quote budget is skipped; Uniswap v3: raw scan fields leak into the positions section; Uniswap v3: purchaseReady becomes true; Uniswap v3: a transferred NFT (owner mismatch) is shown; Uniswap v3: the scan cache is shared across wallets; Uniswap v3: the browser sends a productId with the quote request. |
 | EV-NEXUS-SOURCE | behavioral | E3 | node-test | FULL | yes | Offline against captured on-chain runtimes (eth_getCode identical at three RPCs) and independently recompiled candidate builds: the pinned CoverBroker (v2.12.1) and Cover implementation (v3.3.0) builds differ from the deployed code only inside compiler-declared immutable regions, carry the identical metadata hash and immutable values equal to the pin; the v3.4.0 broker (other program), the v3.4.0 Cover (other metadata) and every cross-substitution do not verify; the deployed broker dispatches exactly its build's 12 functions and none of the v3-only ones (pool, registry, tokenController); sources.json pins both separately, consistent with the code pin and the fixture hashes. |
 | EV-KB-NEXUS-SOURCE | known-bad | E4 | mutation | FULL | yes | The old v3.4.0 broker pin, a wrong broker immutable, the broker pinned to the Cover source, and the Cover pinned to v3.4.0 are each detected by the intended test. |
 | EV-PURCHASE-INTENT | behavioral | E3 | node-test | PARTIAL | yes | Behaviourally, against the pure module: a valid intent validates and hashes stably and independently of key order and wallet spelling; changing any model field or any contract pin changes the hash; every listed policy violation, unknown/derived/caller-hash field and non-canonical raw amount is rejected and has no hash, 2^96-1 and 2^53+1 round-trip exactly; exactly the 8 allowed transitions hold over all 49 pairs, terminal states have none, SUBMITTED expires never and keeps a late outcome; expiry only with an explicit time; readiness is never send-ready and proof of loss blocks every transaction; commission only 0/0x0; the real 1000 USDC quote (1000192871) passes, below-requested, off-total, over-cap, duplicate, zero and oversized lists fail; the module imports only viem and nexus-pinned, touches no network or clock when called, emits no transaction shape, and no file under src, api, web or scripts imports it. |
@@ -451,7 +453,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 
 ## 6. Mutation cases
 
-666 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+699 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -800,6 +802,39 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-QUOTE-007-P1-QTWALLET | CR-QUOTE-007.P1 | behavioral | KILLED |
 | MUT-CR-QUOTE-007-P2-QTEXPOSEDATA | CR-QUOTE-007.P2 | behavioral | KILLED |
 | MUT-CR-QUOTE-008-P1-QTGLOBALRATE | CR-QUOTE-008.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-002-P1-UNINOSESSION | CR-QUOTE-002.P1 | behavioral | KILLED |
+| MUT-CR-API-001-P2-UNINOSESSION | CR-API-001.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-002-P1-UNIREVOKED | CR-QUOTE-002.P1 | behavioral | KILLED |
+| MUT-CR-API-001-P2-UNICLIENTWALLET | CR-API-001.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-002-P1-UNIOWNER | CR-QUOTE-002.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-001-P1-UNICLIENTPID | CR-QUOTE-001.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-001-P1-UNIPRODUCT97 | CR-QUOTE-001.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-002-P1-UNIV4 | CR-QUOTE-002.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-002-P1-UNIFAKEPOOL | CR-QUOTE-002.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-003-P2-UNISTALEPRICE | CR-QUOTE-003.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-002-P1-UNISTALECAP | CR-QUOTE-002.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-002-P1-UNISTALEPOS | CR-QUOTE-002.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-003-P2-UNIEXPOSURE | CR-QUOTE-003.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-003-P2-UNIDEFAULTCAP | CR-QUOTE-003.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-003-P2-UNIFEES | CR-QUOTE-003.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-003-P2-UNISPOT | CR-QUOTE-003.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-003-P2-UNIUSDCONE | CR-QUOTE-003.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-002-P1-UNIZEROLIQ | CR-QUOTE-002.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-007-P1-UNIBUYCTA | CR-QUOTE-007.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-007-P1-UNIKAUFENCTA | CR-QUOTE-007.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-007-P2-UNIPURCHASEIMPORT | CR-QUOTE-007.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-007-P1-UNIWALLETMETHODS | CR-QUOTE-007.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-006-P1-UNILEAKSERVER | CR-QUOTE-006.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-007-P1-UNILEAKUI | CR-QUOTE-007.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-006-P1-UNIUNKNOWNCODE | CR-QUOTE-006.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-005-P1-UNICACHEWALLET | CR-QUOTE-005.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-005-P1-UNICACHESTALE | CR-QUOTE-005.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-008-P1-UNIGLOBALRATE | CR-QUOTE-008.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-007-P2-UNIRAWFIELDS | CR-QUOTE-007.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-007-P2-UNIPURCHASEREADY | CR-QUOTE-007.P2 | behavioral | KILLED |
+| MUT-CR-API-001-P2-UNITRANSFERRED | CR-API-001.P2 | behavioral | KILLED |
+| MUT-CR-API-001-P2-UNISCANCACHE | CR-API-001.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-001-P1-UNIUICLIENTPID | CR-QUOTE-001.P1 | behavioral | KILLED |
 | MUT-CR-NEXUS-006-P1-2ZBROKERV34 | CR-NEXUS-006.P1, CR-NEXUS-006.P3 | behavioral | KILLED |
 | MUT-CR-NEXUS-006-P1-2ZBROKERIMM | CR-NEXUS-006.P1 | behavioral | KILLED |
 | MUT-CR-NEXUS-006-P2-2ZSWAP | CR-NEXUS-006.P2 | behavioral | KILLED |
@@ -1348,6 +1383,10 @@ Drift output only prioritises review. security:verify always evaluates every con
 | `api/nexus/*` | CR-API, CR-PROVIDER, CR-QUOTE, CR-RESOURCE |
 | `web/src/nexus-cover.js` | CR-BROWSER, CR-QUOTE |
 | `src/positions/aave-v3.mjs` | CR-QUOTE |
+| `src/positions/uniswap-v3-*` | CR-API, CR-QUOTE |
+| `src/positions/price-reference.mjs` | CR-QUOTE |
+| `web/src/uniswap-cover.js` | CR-BROWSER, CR-QUOTE |
+| `docs/uniswap-v3-ethereum-support.json` | CR-QUOTE |
 | `src/positions/nexus-mapping.mjs` | CR-NEXUS |
 | `src/positions/exposure.mjs` | CR-NEXUS |
 | `src/positions/aave-registry.mjs` | CR-NEXUS |
@@ -1435,4 +1474,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2zm** — Safe pre-purchase production state: the Aave cover details show supplied value and debt as their own rows, a calm stop notice for cover through CoverRaccoon (always shown, also without a readiness field) and, for an AMBIGUOUS mapping (Lido/Prime, EtherFi), the neutral text that no cover mapping exists for the market yet. New always-running guard test/production-reach.test.mjs (transitive import graph from api/** and the web entry scripts: no purchase module, no transaction/typed-data/approve/buyCover/writeContract call, literal wallet methods from the sign-in list only, server RPC read-only, no computed import). A PID-dependent flake in P4I-HASH-AUTHORITY fixed. No control, property, threshold, release class or external blocker changed.
 - **1.0-draft-phase2zn** — Production read-only E2E findings (20.10.2026): (1) an open Nexus cover panel kept the language it was opened with; it now follows the app's single DE/EN state (main.js hands the language to every open panel, the panel keeps no language of its own). (2) A very small Aave Core position (0.000156433958752724 ETH, 90 d) got 'no valid quote': Nexus answered HTTP 200, but rounds the cover amount up to whole allocation units per pool (Cover.NXM_PER_ALLOCATION_UNIT = 0.01 NXM, read on-chain at block 26236251), here 0.000256687 ETH, above CoverRaccoon's 1 % amount tolerance. Such a quote stays rejected; when exactly that round-up (at most one unit per pool, unit value from the quote's own premiumInAsset/premiumInNXM) explains the excess and every other check passes, the reason is QUOTE_AMOUNT_ROUNDED_UP and the API answers 422 QUOTE_AMOUNT_TOO_SMALL with a neutral message; everything else stays QUOTE_UNAVAILABLE. No tolerance, bound, control, property, threshold or external blocker changed.
 - **1.0-draft-phase2zo** — Reference safety for future (inactive) Aave multichain support (21.10.2026). The production Aave reader matched its conversion reference tokens (REFERENCE_TOKENS: WETH, USDC, cbBTC; Ethereum addresses) by address alone, regardless of chain; cbBTC on Base has the same address as on Ethereum. The reader now uses REFERENCE_TOKENS only for chainId 1; any other chain gets a reference only from an injected chain-specific resolver (src/positions/aave-multichain-activation.mjs) answering SUPPORTED_REFERENCE, otherwise none; a missing or non-integer chainId makes the market UNAVAILABLE (INVALID_CHAIN_ID). Production reads only Ethereum and passes no resolver: Ethereum behaviour is unchanged. The inactive freshness model now evaluates Aave prices, reference feeds and the L2 sequencer in one block, with per-feed Chainlink heartbeats (Reference Data Directory) instead of a global 24 h bound; a missing heartbeat is UNKNOWN. No control, property, threshold, external blocker or production route changed; no new chain is enabled.
+- **1.0-draft-phase2zp** — Uniswap v3 Ethereum read-only integration (21.10.2026): GET /api/positions gains a sanitized uniswapV3 section and a protocols list; POST /api/nexus/quote gains the actions uniswap-details and uniswap-quote (product 72, informational only) behind the existing session, revocation, same-origin, JSON, size and rate-limit checks; the dashboard gains a separate Uniswap card and quote view (web/src/uniswap-cover.js). New behavioural evidence EV-UNISWAP-QUOTE and known-bad evidence EV-KB-UNISWAP-QUOTE (33 cases) on the existing CR-QUOTE controls and CR-API-001 P2; drift rules for the new paths. No control, property, threshold, release class, external blocker or finding changed; no purchase, approval, transaction or wallet method added; purchaseReady stays false.
 

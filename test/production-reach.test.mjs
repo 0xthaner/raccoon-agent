@@ -62,6 +62,8 @@ const reachable = [...graph.files.keys()].map(rel).sort();
 test('PROD-REACH-PURCHASE no purchase module is reachable from api/** or the web entry scripts', () => {
 	assert.ok(graph.entries.includes('api/nexus/quote.mjs') && graph.entries.includes('web/src/main.js'), 'entries found');
 	assert.ok(reachable.includes('src/aave-cover-readiness.mjs'), 'the graph reaches the readiness module (sanity)');
+	// Uniswap v3 (21.10.2026): der lesende Pfad ist erreichbar - und damit auch von den Pruefungen unten erfasst.
+	for (const file of ['src/positions/uniswap-v3-service.mjs', 'src/positions/uniswap-v3-nexus.mjs', 'src/positions/uniswap-v3-ethereum.mjs', 'src/positions/price-reference.mjs', 'web/src/uniswap-cover.js']) assert.ok(reachable.includes(file), `${file} is reachable (sanity)`);
 	const purchase = reachable.filter((file) => /(^|\/)purchase-/.test(file));
 	assert.deepEqual(purchase, [], 'purchase modules reachable from production');
 	for (const [file, { code }] of graph.files) assert.doesNotMatch(withoutComments(code), /purchase-(intent|tx-builder|tx-decode|pre-send|receipt|confirmation|runtime-loader|execution|db|intent-db)/, rel(file));

@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zo",
+	"crsf_version": "1.0-draft-phase2zp",
 	"rules": [
 		{
 			"pattern": "src/*auth*",
@@ -143,6 +143,32 @@
 		},
 		{
 			"pattern": "src/positions/aave-v3.mjs",
+			"domains": [
+				"CR-QUOTE"
+			]
+		},
+		{
+			"pattern": "src/positions/uniswap-v3-*",
+			"domains": [
+				"CR-API",
+				"CR-QUOTE"
+			]
+		},
+		{
+			"pattern": "src/positions/price-reference.mjs",
+			"domains": [
+				"CR-QUOTE"
+			]
+		},
+		{
+			"pattern": "web/src/uniswap-cover.js",
+			"domains": [
+				"CR-BROWSER",
+				"CR-QUOTE"
+			]
+		},
+		{
+			"pattern": "docs/uniswap-v3-ethereum-support.json",
 			"domains": [
 				"CR-QUOTE"
 			]

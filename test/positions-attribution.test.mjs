@@ -65,6 +65,7 @@ function load(server = fakeServer(), lang = 'de') {
 	const slice = main.slice(main.indexOf('function formatAmount('), main.indexOf('function renderDashboard('));
 	const page = new Function('document', 'window', 'lang', 'language', 'server', `${translations}
 		const t = translations[lang];
+		function renderUniswapSection() {} // der Uniswap-Abschnitt hat eigene Tests (uniswap-v3-dashboard.test.mjs)
 		function addTextElement(parent, tag, value, className = '') { const el = document.createElement(tag); if (className) el.className = className; el.textContent = String(value ?? ''); parent.appendChild(el); return el; }
 		function formatDate(iso) { return iso ? iso.slice(0, 10) : '—'; }
 		function authFetch() { throw new Error('im Test laeuft alles ueber den Server-Nachbau'); }

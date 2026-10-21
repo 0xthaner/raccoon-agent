@@ -253,7 +253,7 @@ test('UNI-NEXUS product 72 identity is proven exactly by API and on-chain CoverP
 	assert.equal(N.annexCid, null);
 	assert.equal(VERIFY.nexus.wording.containsPhraseDepositedInTheDesignatedProtocol, false);
 	assert.equal(N.mappingClass, 'MATCHED');
-	assert.equal(N.runtimeEnabled, false);
+	assert.equal(N.runtimeEnabled, true, 'informational quotes only (21.10.2026)');
 	// alle Listings mit "Uniswap" im Namen: nur 72 ist Uniswap v3 als Single Protocol Cover
 	const listings = VERIFY.nexus.api.productsWithUniswapInName.map((p) => p.id).sort((a, b) => a - b);
 	assert.deepEqual(listings, [71, 72, 168, 256]);
@@ -637,14 +637,14 @@ test('UNI-EXPOSURE definition, principal only, fees separate, invalid positions 
 	assert.equal(agg.suggestedExposureUsd, null, 'never a sum for an unreadable scan');
 });
 
-test('UNI-READINESS quoteReady stays false even with MATCHED mapping and a complete exposure', async () => {
+test('UNI-READINESS detection alone never makes a quote ready, even with MATCHED mapping and a complete exposure', async () => {
 	const { result } = await scan([IN, ABOVE_WBTC]);
 	const r = U.uniswapV3Readiness(result);
 	assert.deepEqual([r.deploymentClass, r.nexusMappingClass, r.positionValid, r.exposureReady], ['CANONICAL', 'MATCHED', true, true]);
 	assert.deepEqual([r.pricingReady, r.capacityReady, r.quoteDataReady, r.termsReady, r.proofOfLossReady, r.quoteReady, r.purchaseReady], [true, false, false, false, false, false, false]);
 	assert.deepEqual([...r.blockers], ['CAPACITY_NOT_VERIFIED', 'QUOTE_DATA_NOT_READY', ...U.PHASE_BLOCKERS], 'detection alone never verifies Nexus data');
-	assert.deepEqual([...U.PHASE_BLOCKERS], ['NO_PRODUCTION_PATH', 'NEXUS_TERMS_INTERPRETATION_UNCONFIRMED', 'NEXUS_PROOF_OF_LOSS_UNCONFIRMED', 'WALLET_EXECUTION_NOT_AVAILABLE']);
-	for (const position of result.positions) assert.deepEqual(U.uniswapNexusMapping(position), { mappingClass: 'MATCHED', productId: 72, reason: 'CANONICAL_DEPLOYMENT_PRODUCT_72', quoteEligible: false });
+	assert.deepEqual([...U.PHASE_BLOCKERS], ['NEXUS_TERMS_INTERPRETATION_UNCONFIRMED', 'NEXUS_PROOF_OF_LOSS_UNCONFIRMED', 'WALLET_EXECUTION_NOT_AVAILABLE']);
+	for (const position of result.positions) assert.deepEqual(U.uniswapNexusMapping(position), { mappingClass: 'MATCHED', productId: 72, reason: 'CANONICAL_DEPLOYMENT_PRODUCT_72', quoteEligible: true });
 	assert.equal(U.uniswapNexusMapping({ ...result.positions[0], chainId: 10 }).mappingClass, 'UNSUPPORTED');
 	assert.equal(U.uniswapNexusMapping({ ...result.positions[0], positionManager: OTHER }).mappingClass, 'AMBIGUOUS');
 	assert.equal(U.uniswapNexusMapping({ ...result.positions[0], deploymentKey: 'uniswap-v3-arbitrum' }).mappingClass, 'AMBIGUOUS');
@@ -668,35 +668,45 @@ test('UNI-READINESS quoteReady stays false even with MATCHED mapping and a compl
 	const bad = await scan([IN, BELOW_PAXG], { patch: (c) => (c.functionName === 'latestRoundData' && lc(c.address) === lc(P.CHAINLINK_FEEDS['paxg-usd'].proxy) ? { status: 'failure', error: new Error('x') } : undefined) });
 	assert.ok(U.uniswapV3Readiness(bad.result).blockers.includes('EXPOSURE_NOT_READY'));
 	assert.ok(U.uniswapV3Readiness(bad.result).blockers.includes('PRICING_INCOMPLETE'));
-	assert.ok(U.uniswapV3SupportMatrix().every((row) => row.quoteReady === false && row.purchaseReady === false && row.productionEnabled === false && row.usdFromPoolSpotPrice === false && row.feesInSuggestedExposure === false && row.aggregateQuote === false));
+	assert.ok(U.uniswapV3SupportMatrix().every((row) => row.quoteReady === false && row.purchaseReady === false && row.productionEnabled === true && row.informationalQuote === true && row.quoteDataPath === 'PRODUCTION_READ_ONLY' && row.usdFromPoolSpotPrice === false && row.feesInSuggestedExposure === false && row.aggregateQuote === false));
 });
 
 /* -------------------------------------------------------------- Isolation -- */
 
-test('UNI-ISOLATION no production import, no route, no browser RPC, no wallet call, no quote; Aave and Nexus runtime unchanged', async () => {
+test('UNI-REACH only the server service imports the Uniswap modules; no new route, no browser RPC, no wallet call; Aave and Nexus runtime unchanged', async () => {
 	const walk = (dir) => readdirSync(dir).flatMap((name) => {
 		const full = path.join(dir, name);
 		return statSync(full).isDirectory() ? (name === 'node_modules' ? [] : walk(full)) : [full];
 	});
 	const sources = ['api', 'src', 'web', 'scripts'].flatMap((dir) => walk(path.join(REPO, dir))).filter((file) => /\.(m?js|html)$/.test(file));
-	const importers = sources.filter((file) => /uniswap-v3-(ethereum|math)/.test(readFileSync(file, 'utf8'))).map((file) => path.relative(REPO, file));
-	assert.deepEqual(importers, ['src/positions/uniswap-v3-ethereum.mjs', 'src/positions/uniswap-v3-nexus.mjs'], 'only the Uniswap modules refer to each other');
-	assert.deepEqual(sources.filter((file) => /uniswap-v3-nexus/.test(readFileSync(file, 'utf8'))).map((file) => path.relative(REPO, file)), [], 'nothing imports the Nexus preparation');
-	const priceImporters = sources.filter((file) => /price-reference/.test(readFileSync(file, 'utf8'))).map((file) => path.relative(REPO, file));
-	assert.deepEqual(priceImporters, ['src/positions/aave-multichain-activation.mjs', 'src/positions/uniswap-v3-ethereum.mjs', 'src/positions/uniswap-v3-nexus.mjs'], 'only the inactive preparations use the price layer');
-	assert.deepEqual(walk(path.join(REPO, 'api')).map((f) => path.relative(REPO, f)).filter((f) => /uniswap|liquidity|lp-|-lp/i.test(f)), [], 'no API route');
+	// Wer ein Modul wirklich importiert (statisch oder dynamisch), nicht wer es im Kommentar nennt.
+	const importers = (name) => sources.filter((file) => new RegExp(`(?:from\\s*|import\\(\\s*)['"][^'"]*/${name}(?:\\.mjs)?['"]`).test(readFileSync(file, 'utf8'))).map((file) => path.relative(REPO, file));
+	const mentions = (pattern) => sources.filter((file) => pattern.test(readFileSync(file, 'utf8'))).map((file) => path.relative(REPO, file));
+	// Seit 21.10.2026 erreichbar - aber nur ueber den Server-Dienst, den die beiden bestehenden Routen nutzen.
+	assert.deepEqual(importers('uniswap-v3-math'), ['src/positions/uniswap-v3-ethereum.mjs']);
+	assert.deepEqual(importers('uniswap-v3-ethereum'), ['src/positions/uniswap-v3-nexus.mjs', 'src/positions/uniswap-v3-service.mjs']);
+	assert.deepEqual(importers('uniswap-v3-nexus'), ['src/positions/uniswap-v3-service.mjs']);
+	assert.deepEqual(importers('uniswap-v3-service'), ['api/nexus/quote.mjs', 'api/positions.mjs']);
+	assert.deepEqual(importers('price-reference'), ['src/positions/aave-multichain-activation.mjs', 'src/positions/uniswap-v3-ethereum.mjs', 'src/positions/uniswap-v3-nexus.mjs'], 'the price layer stays server-side');
+	assert.deepEqual(mentions(/uniswap-v3-(ethereum|math|nexus|service)|price-reference/).filter((file) => !file.startsWith('src/positions/') && !file.startsWith('api/')), [], 'no browser or script file refers to the server modules');
+	assert.deepEqual(walk(path.join(REPO, 'api')).map((f) => path.relative(REPO, f)).filter((f) => /uniswap|liquidity|lp-|-lp/i.test(f)), [], 'no new API route');
+	const feeds = Object.values(P.CHAINLINK_FEEDS).flatMap((feed) => [feed.proxy, feed.aggregator].filter(Boolean)).map((address) => address.toLowerCase());
 	for (const file of sources.filter((f) => path.relative(REPO, f).startsWith('web/'))) {
 		const code = readFileSync(file, 'utf8');
-		assert.doesNotMatch(code, /uniswap|C36442b4a4522E871399CD717aBDD847Ab11FE88|publicnode|alchemy\.com/i, path.relative(REPO, file));
+		assert.doesNotMatch(code, /C36442b4a4522E871399CD717aBDD847Ab11FE88|1F98431c8aD98523631AE4a59f267346ea31F984|publicnode|alchemy\.com|infura|latestRoundData|multicall|uniswap-v3-(ethereum|math|nexus|service)|price-reference/i, path.relative(REPO, file));
+		for (const feed of feeds) assert.ok(!code.toLowerCase().includes(feed), `${path.relative(REPO, file)}: Chainlink feed address in the browser`);
 	}
 	// keine Transaktions- oder Wallet-Methode in den neuen Modulen (Kommentare ausgenommen)
 	const strip = (code) => code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\s\/\/ .*$/gm, '');
-	for (const file of ['src/positions/uniswap-v3-ethereum.mjs', 'src/positions/uniswap-v3-math.mjs', 'src/positions/price-reference.mjs', 'src/positions/uniswap-v3-nexus.mjs']) {
+	for (const file of ['src/positions/uniswap-v3-ethereum.mjs', 'src/positions/uniswap-v3-math.mjs', 'src/positions/price-reference.mjs', 'src/positions/uniswap-v3-nexus.mjs', 'src/positions/uniswap-v3-service.mjs', 'web/src/uniswap-cover.js']) {
 		const code = strip(readFileSync(path.join(REPO, file), 'utf8'));
 		assert.doesNotMatch(code, /decreaseLiquidity|increaseLiquidity|collect\b|['"]burn['"]|['"]mint['"]|safeTransferFrom|transferFrom|approve|setApprovalForAll|permit|sendTransaction|sendRawTransaction|writeContract|signTypedData|signMessage|personal_sign|createWalletClient|walletActions|\.request\(|eth_call|buyCover|fetch\(/, file);
 		assert.doesNotMatch(code, /stateMutability: '(nonpayable|payable)'/, `${file}: only view ABI entries`);
-		assert.doesNotMatch(code, /process\.env|https?:\/\//, `${file}: no RPC endpoint, no secret`);
+		assert.doesNotMatch(code, /process\.env|https?:\/\/|createPublicClient|http\(/, `${file}: no RPC endpoint, no own client, no secret`);
 	}
+	// Der Dienst nutzt den einen, bereits geprueften Positions-Client (Alchemy, retryCount 0) - keinen eigenen.
+	assert.match(readFileSync(path.join(REPO, 'src/positions/uniswap-v3-service.mjs'), 'utf8'), /^import \{ defaultClient, LookupNotAdmittedError, PositionsBusyError \} from '\.\/index\.mjs';$/m);
+	assert.doesNotMatch(strip(readFileSync(path.join(REPO, 'web/src/uniswap-cover.js'), 'utf8')), /process\.env|https?:\/\/|^\s*import\s|\bfetch\b|window\.ethereum/m);
 	// Nexus- und Aave-Laufzeit: kein Produkt 72, keine Zuordnung, keine Quote
 	assert.deepEqual(Object.keys(PINNED_PRODUCTS), ['97']);
 	assert.equal(nexusProductIdFor('uniswap-v3-ethereum'), null);

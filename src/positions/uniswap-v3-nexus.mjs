@@ -1,6 +1,6 @@
 /*
-	UNISWAP V3 ETHEREUM -> NEXUS PRODUKT 72: KAPAZITAET UND INFORMATIVE QUOTE,
-	INAKTIV (21.10.2026).
+	UNISWAP V3 ETHEREUM -> NEXUS PRODUKT 72: KAPAZITAET UND INFORMATIVE QUOTE
+	(21.10.2026).
 
 	  gepruefte LP-Position (uniswap-v3-ethereum.mjs)
 	  -> Principal-Exposure in USD (UNISWAP_V3_LP_EXPOSURE_V1, ohne Gebuehren)
@@ -14,10 +14,10 @@
 	Asset, Betrag, Pools und Praemie), capacityView (nexus-read-model.mjs) sowie
 	QUOTE_TTL_MS, parseAssetAmount und quoteFreshness (nexus-quote.mjs).
 
-	Kein Produktionsmodul importiert diese Datei; es gibt keine Route, keine
-	Anzeige, keinen Kauf, keine Wallet-Methode. purchaseReady ist immer false.
-	Die Zuordnung bleibt in nexus-pinned.mjs / nexus-mapping.mjs unveraendert
-	(nur Produkt 97).
+	Erreichbar nur ueber den Server (uniswap-v3-service.mjs hinter
+	POST /api/nexus/quote): informative Quote, kein Kauf, keine Wallet-Methode.
+	purchaseReady ist immer false. Die Aave-Zuordnung in nexus-pinned.mjs /
+	nexus-mapping.mjs bleibt unveraendert (nur Produkt 97).
 */
 import { formatUnits, isAddress } from 'viem';
 import { productTerms } from '../nexus-facts.mjs';
@@ -363,7 +363,7 @@ export function aggregateQuoteBasis(scan) {
 /**
  * Bereitschaft je NFT.
  *   quoteDataReady: technisch kann eine informative Quote angefragt werden
- *   quoteReady:     Anzeige in der Produktion - in dieser Phase immer false
+ *   quoteReady:     eine frische informative Quote liegt vor (nur Anzeige)
  *   purchaseReady:  immer false
  */
 export function uniswapV3QuoteReadiness({ position, exposure, model, priceBook, quote = null, now = Date.now() } = {}) {
@@ -394,7 +394,7 @@ export function uniswapV3QuoteReadiness({ position, exposure, model, priceBook, 
 		quoteDataReady,
 		termsReady: false,
 		proofOfLossReady: false,
-		quoteReady: false,
+		quoteReady: quoteDataReady && quote?.status === 'FRESH',
 		purchaseReady: false,
 		blockers: Object.freeze([...new Set(blockers)])
 	});

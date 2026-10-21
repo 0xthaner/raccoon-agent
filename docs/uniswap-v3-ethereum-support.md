@@ -1,27 +1,29 @@
-# Uniswap v3 auf Ethereum – Erkennung und Exposure (inaktiv)
+# Uniswap v3 auf Ethereum – Erkennung, Exposure und informative Quote (read-only)
 
-Stand: 21.10.2026. **Nur Vorbereitung.** Es gibt keine Quote, keinen Kauf, keine Transaktion und keine Produktionsfreigabe.
+Stand: 21.10.2026. **Read-only in der Produktion** (Abschnitt 13): Erkennung, Exposure, Produkt 72, Kapazität und eine informative Quote je NFT im Dashboard. Es gibt keinen Kauf, keine Freigabe und keine Transaktion.
 
 Code:
 - `src/positions/uniswap-v3-math.mjs`: reine Mathematik.
 - `src/positions/uniswap-v3-ethereum.mjs`: Registry, Validierung, Leser, Exposure und Readiness.
 - `src/positions/price-reference.mjs`: protokollunabhängige USD-Preis-Referenzen (Chainlink, geprüft, selber Block). Rein, ohne Netzaufrufe.
 - `src/positions/uniswap-v3-nexus.mjs`: Nexus-Produkt 72, Kapazität, Umrechnung in Cover-Assets, informative Quote je NFT und Readiness (Abschnitt 12).
+- `src/positions/uniswap-v3-service.mjs`: Produktionspfad (Scan-Cache, bereinigte Ansicht, Anfrageprüfung, Quote-Cache). Importiert von `api/positions.mjs` und `api/nexus/quote.mjs` (Abschnitt 13).
+- `web/src/uniswap-cover.js`: Uniswap-Karte und Quote-Ansicht im Dashboard.
 
-Kein Produktionsmodul importiert diese Dateien. Tests: `test/uniswap-v3-ethereum.test.mjs` (UNI-*), `test/price-reference.test.mjs` (PR-*) und `test/uniswap-v3-nexus.test.mjs` (NX72-*). Nachweise: `test/fixtures/uniswap/` und `test/fixtures/prices/chainlink-ethereum-20261021.json`. Support-Matrix: `docs/uniswap-v3-ethereum-support.json`, erzeugt aus `uniswapV3SupportMatrix()`.
+Tests zusätzlich: `test/uniswap-v3-dashboard.test.mjs` (UNI-AUTH, UNI-POS, UNI-QUOTE, UNI-UI, UNI-SEC). Tests: `test/uniswap-v3-ethereum.test.mjs` (UNI-*), `test/price-reference.test.mjs` (PR-*) und `test/uniswap-v3-nexus.test.mjs` (NX72-*). Nachweise: `test/fixtures/uniswap/` und `test/fixtures/prices/chainlink-ethereum-20261021.json`. Support-Matrix: `docs/uniswap-v3-ethereum-support.json`, erzeugt aus `uniswapV3SupportMatrix()`.
 
 ## Kurzfassung
 
 | Frage | Ergebnis |
 |---|---|
 | Nexus-Listing | Produkt **72 „Uniswap v3“**, Single Protocol Cover, aktiv, öffentlich |
-| Zuordnung | **MATCHED**, nur für das kanonische Ethereum-Deployment. Zur Laufzeit nicht aktiv. |
+| Zuordnung | **MATCHED**, nur für das kanonische Ethereum-Deployment. Zur Laufzeit aktiv (read-only). |
 | Kanonische Verträge | Factory `0x1F98431c8aD98523631AE4a59f267346ea31F984`, NonfungiblePositionManager `0xC36442b4a4522E871399CD717aBDD847Ab11FE88`, WETH9 `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2` |
 | Positionen finden | Rein über RPC: `balanceOf` + `tokenOfOwnerByIndex` (der Manager ist ERC721Enumerable) |
 | Mengen | Exakt in BigInt, identisch zum Pool. Gegen `eth_call` auf 9 Live-Positionen geprüft: 0 Abweichung |
 | Gebühren | Werden getrennt ausgewiesen und sind **nicht** im Vorschlag |
 | Preise | Eigene Preisschicht: chainId + exakte Adresse → gepinnter Chainlink-Feed, Frische gegen `block.timestamp`, alles im Scan-Block. WETH, USDC, cbBTC, USDT, WBTC, PAXG. Alles andere hat keinen Preis und schließt. **Nie** der Pool-Spotpreis. |
-| Quote | Nur intern und informativ, je NFT (`quoteDataReady`). `quoteReady` (Anzeige in der Produktion) und `purchaseReady` sind immer false. |
+| Quote | Informativ, je NFT, im Dashboard der angemeldeten Wallet. `quoteReady` nur mit frischer Quote; `purchaseReady` ist immer false. |
 
 ## 1. Nexus: welches Listing gilt?
 
@@ -280,7 +282,7 @@ Beide liefern dieselben Felder:
 | Feld | Bedeutung |
 |---|---|
 | `quoteDataReady` | Technisch kann eine informative Quote angefragt werden: Position gültig und MATCHED, aktiv, voll bewertet, ein Cover-Asset umrechenbar, Kapazität frisch und > 0. |
-| `quoteReady` | Anzeige für Nutzer in der Produktion. In dieser Phase **immer false**. |
+| `quoteReady` | Eine frische, informative Quote liegt vor (`quoteDataReady` und Quote `FRESH`). Kein Kaufrecht. |
 | `purchaseReady` | **Immer false.** Es gibt keinen Kauf. |
 | `termsReady`, `proofOfLossReady` | Immer false, bis Nexus schriftlich antwortet. |
 
@@ -288,7 +290,6 @@ Feste Blocker (`PHASE_BLOCKERS`):
 
 | Blocker | Bedeutung |
 |---|---|
-| `NO_PRODUCTION_PATH` | Kein Produktionsmodul nutzt die Vorbereitung. |
 | `NEXUS_TERMS_INTERPRETATION_UNCONFIRMED` | Nexus hat nicht bestätigt, wie Produkt 72 eine LP-Position bewertet (Gebühren, Zusammensetzung zum Schadenszeitpunkt). |
 | `NEXUS_PROOF_OF_LOSS_UNCONFIRMED` | Proof of Loss ist `address`. Ungeklärt ist, ob das für ein NFT reicht, das später übertragen oder gestakt wird. |
 | `WALLET_EXECUTION_NOT_AVAILABLE` | Es gibt keinen Wallet- oder Kaufpfad für Uniswap. |
@@ -299,19 +300,15 @@ Je nach Lage kommen hinzu:
 - Wallet-Ebene: `SCAN_UNAVAILABLE`, `NO_VALID_POSITION`, `INVALID_OR_UNREADABLE_POSITION`, `NEXUS_MAPPING_NOT_MATCHED`, `EXPOSURE_NOT_READY`, `PRICING_INCOMPLETE`.
 - NFT-Ebene: `POSITION_NOT_VALID`, `ZERO_LIQUIDITY`, `PRICING_NOT_READY`, `CAPACITY_NOT_READY`, `QUOTE_DATA_NOT_READY`, `QUOTE_STALE`.
 
-Der frühere Blocker `NO_QUOTE_PATH` entfällt; es gibt jetzt einen inaktiven, internen Quote-Datenpfad.
+Die früheren Blocker `NO_QUOTE_PATH` und `NO_PRODUCTION_PATH` entfallen: Es gibt einen read-only Produktionspfad (Abschnitt 13).
 
 ## 9. Abgrenzung zur Produktion
 
-Die Tests UNI-ISOLATION und NX72-PIN beweisen:
-- Kein Modul unter `api/`, `src/`, `web/` oder `scripts/` importiert die Uniswap-Dateien. Auch `uniswap-v3-nexus.mjs` wird von nichts importiert.
-- `price-reference.mjs` nutzen nur die inaktiven Vorbereitungen: `uniswap-v3-ethereum.mjs`, `uniswap-v3-nexus.mjs` und `aave-multichain-activation.mjs`. `test/production-reach.test.mjs` bestätigt, dass keine davon produktiv erreichbar ist.
-- Es gibt keine neue API-Route und keine Anzeige im Browser.
-- Im Browser-Code gibt es keine Uniswap- und keine RPC-Adresse.
-- Die neuen Module enthalten keine Transaktions-, Signatur- oder Freigabe-Methode und nur `view`-ABI-Einträge. Sie lesen keine Umgebungsvariablen und enthalten keine URL; Client bzw. `fetchImpl` werden übergeben.
-- `PINNED_PRODUCTS` enthält nur 97. `verifyPinnedProduct(72, …)` ergibt `NOT_PINNED`, und die produktive Nexus-Zuordnung liefert für Uniswap `NO_LISTING`.
-- Das produktive Read-Model fragt Nexus für Uniswap nicht ab, und die produktive Quote-Prüfung ergibt `COVER_NOT_AVAILABLE`.
-- Die Nexus-Leser (`nexus-read-api.mjs`), `nexus-read-model.mjs` und `nexus-quote.mjs` werden nur **importiert**, nicht geändert.
+Seit 21.10.2026 ist der Pfad read-only in der Produktion (Abschnitt 13). Die Tests UNI-REACH, NX72-PIN und UNI-SEC beweisen:
+- Importe nur entlang der geprüften Kette: `uniswap-v3-math` ← `uniswap-v3-ethereum` ← `uniswap-v3-nexus` ← `uniswap-v3-service` ← `api/positions.mjs`, `api/nexus/quote.mjs`. Kein Browser- oder Skript-Code importiert ein Server-Modul.
+- Im Browser-Code gibt es keine Uniswap-Vertrags-, Feed- oder RPC-Adresse und keine Chainlink-Lesung.
+- Die Server-Module enthalten keine Transaktions-, Signatur- oder Freigabe-Methode, kein Kaufmodul und nur `view`-ABI-Einträge. Sie lesen keine Umgebungsvariablen; der RPC-Client ist der bestehende `defaultClient` aus `src/positions/index.mjs`.
+- `PINNED_PRODUCTS` des Aave-Pfads enthält weiter nur 97; Produkt 72 wird nur über die eigene Uniswap-Prüfung (Pin in `uniswap-v3-nexus.mjs`) gelesen.
 - Die produktive Aave-Bewertung (`aave-v3.mjs`, `AAVE_NET_EXPOSURE_V1`) und der Aave-Quote-Pfad sind unverändert.
 - Es gibt keine Migration und keine Änderung an Secrets.
 
@@ -325,7 +322,7 @@ Die Tests UNI-ISOLATION und NX72-PIN beweisen:
 3. **Wallet-Ausführung:** Für Uniswap gibt es keinen Kauf- und keinen Transaktionspfad. Er entsteht erst auf ausdrückliche Anweisung.
 4. **Preis-Abdeckung:** Nur WETH, USDC, cbBTC, USDT, WBTC und PAXG haben einen Preis. Positionen mit anderen Token (mit Menge ≠ 0) bekommen keinen Vorschlag. Weitere Token nur mit eigenem, geprüftem Feed (Abschnitt 11).
 5. **Preis-Betrieb:** Feed-Wechsel (neuer Proxy, neue Beschreibung, geänderter Heartbeat) brechen bewusst. Dann `PRICE_SOURCE_INVALID`, bis der Pin neu geprüft ist. Für die Produktion fehlt eine regelmäßige Gegenprobe des Pins gegen das Chainlink-Directory.
-6. **Produktion:** Route, Anzeige, Rate-Limits, Cache, Budgets und Monitoring für Kapazität und Quote. Erst auf ausdrückliche Anweisung.
+6. **Betrieb:** Route, Anzeige, Rate-Limits, Cache und Budgets sind umgesetzt (Abschnitt 13). Ein Monitoring für Kapazität und Quote fehlt noch.
 7. **Wallet-Quote (Aggregat):** bewusst nicht aktiviert (Abschnitt 12).
 8. **Weitere Chains:** Uniswap v3 auf L2s ist nicht Teil dieser Phase. Dort gelten andere Adressen und teils andere Init-Code-Hashes.
 
@@ -603,3 +600,56 @@ Ein NFT mit Liquidität 0 bleibt sichtbar, Gebühren getrennt. Es hat keine Prin
 | winzige Beträge | `QUOTE_AMOUNT_TOO_SMALL` |
 | Zeitüberschreitung, Teilausfall (Produkt, Typ oder Kapazität) | `QUOTE_UNAVAILABLE` bzw. Modell `UNAVAILABLE` |
 
+## 13. Produktionspfad (read-only)
+
+Kein neuer API-Endpunkt. Alles läuft über bestehende Routen und deren Schutz.
+
+### Positionen: `GET /api/positions`
+
+Gleiche Sitzung, gleicher Widerruf, gleiche Limits wie bisher. Die Wallet stammt nur aus der Sitzung; ein `wallet`-Parameter ergibt 400. Neu in der Antwort:
+- `protocols`: `[{ protocol: 'Aave v3', chainId: 1, status }, { protocol: 'Uniswap v3', chainId: 1, status }]`.
+- `uniswapV3`: `{ protocol, chainId, status, reason?, positions, unsupported, suggestedExposureUsd }`.
+
+Je NFT nur die bereinigten Felder: `protocol`, `chainId`, `tokenId`, `pool`, `feeTier`, `feeTierPercent`, `rangeState`, `token0`/`token1` (`address`, `symbol`, `decimals`, `amount`), `liquidityState`, `principalExposureUsd`, `suggestedExposureUsd`, `fees` (`token0Amount`, `token1Amount`, `includedInSuggestedExposure: false`), `pricingStatus`, `nexus` (`productId: 72`, `productName`, `productTypeName`, `mapping: 'MATCHED'`), `coverOptions`, `purchaseAvailable: false`. Keine Fee-Growth-Werte, keine Ticks, keine RPC-Rohdaten. Übertragene NFTs (`OWNER_MISMATCH`) erscheinen nicht.
+
+Der Uniswap-Scan läuft parallel zu Aave. Fällt er aus, bleibt Aave unverändert und der Abschnitt meldet `UNAVAILABLE`.
+
+### Details und Quote: `POST /api/nexus/quote`
+
+Dieselbe Route wie die Aave-Quote, mit Sitzung, Widerruf, Same-Origin, JSON ≤ 1 KiB und strengem Schema:
+- `{ action: 'uniswap-details', tokenId }`
+- `{ action: 'uniswap-quote', tokenId, coverAsset, periodDays }`, optional `amount`.
+
+Der Server leitet Wallet, Position, Exposure, Produkt 72 und den Höchstbetrag selbst ab. Jeder Schlüssel mit `product` ergibt `PRODUCT_ID_NOT_ACCEPTED`; Wallet, Pool, Exposure, Prämie oder Kapazität sind unbekannte Schlüssel und werden abgelehnt. `tokenId` muss im Scan der Sitzungs-Wallet liegen, sonst `POSITION_NOT_FOUND`.
+
+Höchstbetrag = min(Exposure über `CHAINLINK_PRICE_REFERENCE_V1`, Kapazität). Gebühren zählen nicht, nie der Spotpreis, nie USDC = 1 USD. Ohne `amount` gilt der Höchstbetrag; ein `amount` darüber ergibt `AMOUNT_ABOVE_EXPOSURE` bzw. `AMOUNT_OUT_OF_RANGE`. Zu kleine Beträge ergeben `QUOTE_AMOUNT_TOO_SMALL`, ohne automatische Erhöhung. Cover-Assets: ETH, USDC, cbBTC; Laufzeit 28–365 Tage.
+
+Antworten (Fehler mit festen Codes, nie Rohdaten von Nexus oder RPC): `ZERO_LIQUIDITY`, `MAPPING_AMBIGUOUS`, `NOT_SUPPORTED`, `UNSUPPORTED_TOKEN_PRICE`, `STALE_PRICE`, `PRICE_UNAVAILABLE`, `POSITION_STALE`, `CAPACITY_UNAVAILABLE`, `SCAN_INCOMPLETE`, `QUOTE_UNAVAILABLE`, `QUOTE_AMOUNT_TOO_SMALL`, `RATE_LIMITED`.
+
+### Cache
+
+| Was | Dauer | Schlüssel |
+|---|---|---|
+| Scan (Positionen, Preise im Scan-Block) | 30 s, Fehlschlag 15 s, höchstens 4 parallel | Wallet (klein) |
+| Kapazität | ≤ 60 s | Produkt 72 |
+| Quote | bis `quoteExpiresAt` (60 s) | Wallet, Chain, tokenId, Asset, Laufzeit, Betrag, Block |
+
+Nichts wird zwischen Wallets geteilt. Ein Cache-Treffer verbraucht kein Quote-Budget.
+
+### Rate-Limits (HMAC-Schlüssel, keine rohen IPs)
+
+| Budget | Grenze je 600 s |
+|---|---|
+| `nexus-cover-ip` | 30 |
+| `nexus-cover-wallet` | 20 |
+| `nexus-read-global` | 400 |
+| `nexus-quote-wallet` | 10 |
+| `nexus-quote-global` | 200 |
+| `positions-lookup-global` (Quote-Scan) | 200 |
+| `positions-uniswap-lookup-global` (Positions-Scan, still) | 200 |
+
+### Anzeige
+
+Eigene Karte „Uniswap v3“ je NFT: Paar, Fee-Tier, NFT-Nummer, LP-Mengen, Suggested Exposure, nicht eingesammelte Gebühren („Nicht in der vorgeschlagenen Exposure enthalten“), „Nexus Mutual Uniswap v3 – Single Protocol Cover“ und „Cover-Optionen ansehen“. Die Quote-Ansicht zeigt Produkt, Anbieter, Exposure, Asset-Auswahl, Laufzeit, Kapazität, Prämie, Jahrespreis und Frische. Der Knopf heißt „Informative Quote abrufen“, nie Kaufen, Freigeben oder Bestätigen. Hinweise: Exposure ist eine Schätzung, Impermanent Loss ist nicht als gedeckt dargestellt, Gebühren sind ausgeschlossen, die Quote ist informativ, ein Kauf ist noch nicht möglich. Der Sprachwechsel DE/EN aktualisiert offene Ansichten ohne Neuladen und ohne neue Nexus-Anfrage.
+
+Die Wallet-Methodenliste bleibt unverändert (`eth_requestAccounts`, `eth_accounts`, `personal_sign` nur für SIWE, `wallet_switchEthereumChain`).

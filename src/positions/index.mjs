@@ -31,7 +31,8 @@ let activeLookups = 0;
 const cache = new Map();
 const inFlight = new Map();
 
-function defaultClient() {
+/** Der eine lesende Ethereum-Client fuer Positionen (Aave und, seit 21.10.2026, Uniswap v3). */
+export function defaultClient() {
 	const apiKey = process.env.ALCHEMY_API_KEY?.trim();
 	if (!apiKey) return null;
 	// retryCount 0: viem wiederholt sonst bis zu dreimal im Hintergrund - auch dann

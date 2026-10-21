@@ -22,6 +22,7 @@ const source = (file) => readFileSync(new URL(`../web/src/${file}`, import.meta.
 	.replace(/\bimport\(/g, '__import(');
 
 const TEMPLATE = { 'main.js': 'index.html', 'guide.js': 'guide.html' };
+const INLINE_MODULES = ['nexus-cover.js', 'uniswap-cover.js'];
 
 /** Antwort fuer fetch: { status, body } je "METHOD /pfad". */
 function makeFetch(routes, calls, events) {
@@ -83,7 +84,15 @@ export async function loadPage(file, { search = '', routes = {}, storage = {}, e
 	};
 	// Ausgangs-DOM ist die echte Vorlage (web/index.html bzw. web/guide.html).
 	dom.loadTemplate(readFileSync(new URL(`../web/${TEMPLATE[file]}`, import.meta.url), 'utf8'));
-	const body = `return (async () => {\n${source(file)}\n})();`;
+	// Darstellungsmodule, die selbst das DOM anfassen, laufen als Quelltext in derselben Welt (sonst saehen sie kein document).
+	// Je Modul ein eigener Gueltigkeitsbereich; nach aussen nur seine Exporte.
+	const inline = (name) => {
+		const code = source(name);
+		const names = [...code.matchAll(/^export (?:async )?(?:function|const|let) ([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);
+		return `const { ${names.join(', ')} } = (() => {\n${code.replace(/^export /gm, '')}\nreturn { ${names.join(', ')} };\n})();`;
+	};
+	const inlined = file === 'main.js' ? INLINE_MODULES.map(inline).join('\n') : '';
+	const body = `return (async () => {\n${inlined}\n${source(file)}\n})();`;
 	const run = new Function(...Object.keys(globals), body);
 	const started = run(...Object.values(globals));
 	const settle = async () => {

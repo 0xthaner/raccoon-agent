@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zo",
+	"crsf_version": "1.0-draft-phase2zp",
 	"evidence": [
 		{
 			"id": "EV-ATTRIB",
@@ -8286,6 +8286,278 @@
 			],
 			"coverage": "FULL",
 			"reason_for_partial": null
+		},
+		{
+			"id": "EV-UNISWAP-QUOTE",
+			"control_ids": [
+				"CR-API-001",
+				"CR-QUOTE-001",
+				"CR-QUOTE-002",
+				"CR-QUOTE-003",
+				"CR-QUOTE-005",
+				"CR-QUOTE-006",
+				"CR-QUOTE-007",
+				"CR-QUOTE-008"
+			],
+			"type": "behavioral",
+			"level": "E3",
+			"source": "repository",
+			"artifact": "test/uniswap-v3-dashboard.test.mjs",
+			"test_or_proof": "test/uniswap-v3-dashboard.test.mjs, test/uniswap-v3-nexus.test.mjs, test/uniswap-v3-ethereum.test.mjs, test/price-reference.test.mjs",
+			"property_proven": "Offline, real handlers (GET /api/positions, POST /api/nexus/quote actions uniswap-details and uniswap-quote) with real session, revocation, same-origin, JSON and rate-limit checks, real Uniswap v3 scan model, Chainlink price reference and Nexus product-72 validation against captured on-chain and Nexus fixtures: the scanned wallet is always the session wallet (client wallet, owner or transferred NFT refused); positions are a sanitized per-NFT section beside the unchanged Aave answer; any product field is rejected and the quote always uses productId 72; the amount is min(principal exposure converted via CHAINLINK_PRICE_REFERENCE_V1, capacity), fees excluded, never the pool spot price and never USDC = 1; ETH, USDC and cbBTC only; period 28..365; zero liquidity, fake pool, v2/v4, incomplete or stale price, stale position and stale capacity never reach a quote; tiny amounts are QUOTE_AMOUNT_TOO_SMALL; malformed or failing Nexus answers become QUOTE_UNAVAILABLE without upstream text; quotes cached <= 60 s per wallet, NFT, asset, period and amount; per-IP/wallet/global budgets; the Uniswap card and quote view (recording DOM and the real page) never call a wallet method, render remote strings as text, link only validated IPFS URLs, show only neutral actions and switch DE/EN without a new request.",
+			"property_not_proven": "the live Ethereum RPC and Nexus API (manual read-only smoke only); a real browser; the legal effect of the product-72 wording for LP positions (NEXUS_TERMS_INTERPRETATION_UNCONFIRMED, NEXUS_PROOF_OF_LOSS_UNCONFIRMED); any purchase (none exists)",
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-001[P2]: Uniswap v3 section of /api/positions and the uniswap-* quote actions only; CR-QUOTE-003[P1,P2,P3]: Uniswap v3: conversion via CHAINLINK_PRICE_REFERENCE_V1, not the Aave oracle named in P2; P2 for the Aave path stays with EV-NEXUS-QUOTE",
+			"covers": [
+				{
+					"control": "CR-API-001",
+					"properties": [
+						"P2"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "Uniswap v3 section of /api/positions and the uniswap-* quote actions only"
+				},
+				{
+					"control": "CR-QUOTE-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "Uniswap v3: productId 72 from the pinned MATCHED mapping"
+				},
+				{
+					"control": "CR-QUOTE-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "Uniswap v3: MATCHED mapping (the product-72 counterpart of EXACT), session-wallet NFT from the scan, AVAILABLE model"
+				},
+				{
+					"control": "CR-QUOTE-003",
+					"properties": [
+						"P1",
+						"P2",
+						"P3"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "Uniswap v3: conversion via CHAINLINK_PRICE_REFERENCE_V1, not the Aave oracle named in P2; P2 for the Aave path stays with EV-NEXUS-QUOTE"
+				},
+				{
+					"control": "CR-QUOTE-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-QUOTE-006",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-QUOTE-007",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				},
+				{
+					"control": "CR-QUOTE-008",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": null
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node 24"
+			],
+			"known_bad_checked": false,
+			"known_bad_result": "NOT_APPLICABLE",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "node-test",
+				"test_files": [
+					"test/uniswap-v3-dashboard.test.mjs",
+					"test/uniswap-v3-nexus.test.mjs",
+					"test/uniswap-v3-ethereum.test.mjs",
+					"test/price-reference.test.mjs"
+				],
+				"environment": [
+					"node"
+				],
+				"timeout_ms": 300000,
+				"expected_result": "PASS",
+				"known_bad_required": false
+			}
+		},
+		{
+			"id": "EV-KB-UNISWAP-QUOTE",
+			"type": "known-bad",
+			"level": "E4",
+			"source": "repository",
+			"artifact": "security/mutation/cases.json",
+			"test_or_proof": "npm run security:verify (mutation runner): 33 case(s)",
+			"property_proven": "Each listed weakening of the Uniswap v3 read-only quote path is detected by its intended test: Uniswap v3: quote handler answers Uniswap actions without a session; Uniswap v3: positions handler returns a Uniswap section without a session; Uniswap v3: a revoked session still reaches the Uniswap scan; Uniswap v3: a client-supplied wallet is scanned instead of the session wallet; Uniswap v3: the tokenId is not bound to the session wallet and its scan; Uniswap v3: a client-supplied productId is accepted for a Uniswap quote; Uniswap v3: the Uniswap path uses product 97 instead of 72; Uniswap v3: Uniswap v2/v4 deployments are no longer excluded; Uniswap v3: the canonical-pool check is removed; Uniswap v3: a stale Chainlink price is accepted; Uniswap v3: stale capacity is treated as fresh; Uniswap v3: a stale position scan is accepted; Uniswap v3: an amount above the converted exposure is accepted; Uniswap v3: the server default amount is the capacity instead of min(exposure, capacity); Uniswap v3: uncollected fees are included in the suggested exposure; Uniswap v3: a spot-like price replaces the Chainlink reference in the conversion; Uniswap v3: USDC is assumed to be worth exactly 1 USD; Uniswap v3: a zero-liquidity NFT can be quoted; Uniswap v3: the quote button reads Buy cover; Uniswap v3: the German quote button reads Cover kaufen; Uniswap v3: the Uniswap service imports a purchase module; Uniswap v3: the wallet method allowlist gains eth_sendTransaction; Uniswap v3: the raw upstream rejection reason is returned to the client; Uniswap v3: the Uniswap view renders the raw server error text; Uniswap v3: unknown service codes are passed through instead of QUOTE_UNAVAILABLE; Uniswap v3: the quote cache is shared across wallets; Uniswap v3: a cached quote is served after quoteExpiresAt; Uniswap v3: the global quote budget is skipped; Uniswap v3: raw scan fields leak into the positions section; Uniswap v3: purchaseReady becomes true; Uniswap v3: a transferred NFT (owner mismatch) is shown; Uniswap v3: the scan cache is shared across wallets; Uniswap v3: the browser sends a productId with the quote request.",
+			"property_not_proven": "other conceivable weakenings beyond the listed cases",
+			"covers": [
+				{
+					"control": "CR-API-001",
+					"properties": [
+						"P2"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-API-001-P2-UNINOSESSION, MUT-CR-API-001-P2-UNICLIENTWALLET, MUT-CR-API-001-P2-UNITRANSFERRED, MUT-CR-API-001-P2-UNISCANCACHE"
+				},
+				{
+					"control": "CR-QUOTE-001",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-QUOTE-001-P1-UNICLIENTPID, MUT-CR-QUOTE-001-P1-UNIPRODUCT97, MUT-CR-QUOTE-001-P1-UNIUICLIENTPID"
+				},
+				{
+					"control": "CR-QUOTE-002",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-QUOTE-002-P1-UNINOSESSION, MUT-CR-QUOTE-002-P1-UNIREVOKED, MUT-CR-QUOTE-002-P1-UNIOWNER, MUT-CR-QUOTE-002-P1-UNIV4, MUT-CR-QUOTE-002-P1-UNIFAKEPOOL, MUT-CR-QUOTE-002-P1-UNISTALECAP, MUT-CR-QUOTE-002-P1-UNISTALEPOS, MUT-CR-QUOTE-002-P1-UNIZEROLIQ"
+				},
+				{
+					"control": "CR-QUOTE-003",
+					"properties": [
+						"P2"
+					],
+					"scope": "PARTIAL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-QUOTE-003-P2-UNISTALEPRICE, MUT-CR-QUOTE-003-P2-UNIEXPOSURE, MUT-CR-QUOTE-003-P2-UNIDEFAULTCAP, MUT-CR-QUOTE-003-P2-UNIFEES, MUT-CR-QUOTE-003-P2-UNISPOT, MUT-CR-QUOTE-003-P2-UNIUSDCONE"
+				},
+				{
+					"control": "CR-QUOTE-005",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-QUOTE-005-P1-UNICACHEWALLET, MUT-CR-QUOTE-005-P1-UNICACHESTALE"
+				},
+				{
+					"control": "CR-QUOTE-006",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-QUOTE-006-P1-UNILEAKSERVER, MUT-CR-QUOTE-006-P1-UNIUNKNOWNCODE"
+				},
+				{
+					"control": "CR-QUOTE-007",
+					"properties": [
+						"P1",
+						"P2"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-QUOTE-007-P1-UNIBUYCTA, MUT-CR-QUOTE-007-P1-UNIKAUFENCTA, MUT-CR-QUOTE-007-P1-UNIWALLETMETHODS, MUT-CR-QUOTE-007-P1-UNILEAKUI, MUT-CR-QUOTE-007-P2-UNIPURCHASEIMPORT, MUT-CR-QUOTE-007-P2-UNIRAWFIELDS, MUT-CR-QUOTE-007-P2-UNIPURCHASEREADY"
+				},
+				{
+					"control": "CR-QUOTE-008",
+					"properties": [
+						"P1"
+					],
+					"scope": "FULL",
+					"result": "SUPPORTS",
+					"note": "mutation cases: MUT-CR-QUOTE-008-P1-UNIGLOBALRATE"
+				}
+			],
+			"reproducible": true,
+			"environment_requirements": [
+				"node"
+			],
+			"known_bad_checked": true,
+			"known_bad_result": "KILLED",
+			"weakness": null,
+			"recorded": null,
+			"fixture_group": null,
+			"execution": {
+				"runner": "mutation",
+				"mutation_ids": [
+					"MUT-CR-QUOTE-002-P1-UNINOSESSION",
+					"MUT-CR-API-001-P2-UNINOSESSION",
+					"MUT-CR-QUOTE-002-P1-UNIREVOKED",
+					"MUT-CR-API-001-P2-UNICLIENTWALLET",
+					"MUT-CR-QUOTE-002-P1-UNIOWNER",
+					"MUT-CR-QUOTE-001-P1-UNICLIENTPID",
+					"MUT-CR-QUOTE-001-P1-UNIPRODUCT97",
+					"MUT-CR-QUOTE-002-P1-UNIV4",
+					"MUT-CR-QUOTE-002-P1-UNIFAKEPOOL",
+					"MUT-CR-QUOTE-003-P2-UNISTALEPRICE",
+					"MUT-CR-QUOTE-002-P1-UNISTALECAP",
+					"MUT-CR-QUOTE-002-P1-UNISTALEPOS",
+					"MUT-CR-QUOTE-003-P2-UNIEXPOSURE",
+					"MUT-CR-QUOTE-003-P2-UNIDEFAULTCAP",
+					"MUT-CR-QUOTE-003-P2-UNIFEES",
+					"MUT-CR-QUOTE-003-P2-UNISPOT",
+					"MUT-CR-QUOTE-003-P2-UNIUSDCONE",
+					"MUT-CR-QUOTE-002-P1-UNIZEROLIQ",
+					"MUT-CR-QUOTE-007-P1-UNIBUYCTA",
+					"MUT-CR-QUOTE-007-P1-UNIKAUFENCTA",
+					"MUT-CR-QUOTE-007-P2-UNIPURCHASEIMPORT",
+					"MUT-CR-QUOTE-007-P1-UNIWALLETMETHODS",
+					"MUT-CR-QUOTE-006-P1-UNILEAKSERVER",
+					"MUT-CR-QUOTE-007-P1-UNILEAKUI",
+					"MUT-CR-QUOTE-006-P1-UNIUNKNOWNCODE",
+					"MUT-CR-QUOTE-005-P1-UNICACHEWALLET",
+					"MUT-CR-QUOTE-005-P1-UNICACHESTALE",
+					"MUT-CR-QUOTE-008-P1-UNIGLOBALRATE",
+					"MUT-CR-QUOTE-007-P2-UNIRAWFIELDS",
+					"MUT-CR-QUOTE-007-P2-UNIPURCHASEREADY",
+					"MUT-CR-API-001-P2-UNITRANSFERRED",
+					"MUT-CR-API-001-P2-UNISCANCACHE",
+					"MUT-CR-QUOTE-001-P1-UNIUICLIENTPID"
+				],
+				"environment": [
+					"node"
+				],
+				"expected_result": "KILLED",
+				"known_bad_required": true
+			},
+			"control_ids": [
+				"CR-API-001",
+				"CR-QUOTE-001",
+				"CR-QUOTE-002",
+				"CR-QUOTE-003",
+				"CR-QUOTE-005",
+				"CR-QUOTE-006",
+				"CR-QUOTE-007",
+				"CR-QUOTE-008"
+			],
+			"coverage": "PARTIAL",
+			"reason_for_partial": "CR-API-001[P2]: mutation cases: MUT-CR-API-001-P2-UNINOSESSION, MUT-CR-API-001-P2-UNICLIENTWALLET, MUT-CR-API-001-P2-UNITRANSFERRED, MUT-CR-API-001-P2-UNISCANCACHE; CR-QUOTE-003[P2]: mutation cases: MUT-CR-QUOTE-003-P2-UNISTALEPRICE, MUT-CR-QUOTE-003-P2-UNIEXPOSURE, MUT-CR-QUOTE-003-P2-UNIDEFAULTCAP, MUT-CR-QUOTE-003-P2-UNIFEES, MUT-CR-QUOTE-003-P2-UNISPOT, MUT-CR-QUOTE-003-P2-UNIUSDCONE"
 		},
 		{
 			"id": "EV-NEXUS-SOURCE",

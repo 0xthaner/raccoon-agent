@@ -60,7 +60,12 @@ const positions = (h) => ({
 		{ deploymentKey: h, label: h, nexus: { state: 'MATCHED', productId: 97, productName: h }, supplied: [{ symbol: h, amount: h, usdValue: h, isCollateral: true }], borrowed: [{ symbol: h, amount: '1', usdValue: '1' }], totals: { suppliedUsd: '1', debtUsd: h, netUsd: '0', healthFactor: h } },
 		{ deploymentKey: 'aave-v3-ethereum-core', label: h, nexus: { state: 'MATCHED', productId: 97, productName: h }, supplied: [{ symbol: 'USDC', amount: '1', usdValue: '1', isCollateral: false }], borrowed: [], totals: { suppliedUsd: '1', debtUsd: '0', netUsd: '1', healthFactor: null } }
 	],
-	checkedDeployments: [{ deploymentKey: 'a', label: h, status: 'UNAVAILABLE' }, { deploymentKey: 'b', label: h, status: 'OK' }]
+	checkedDeployments: [{ deploymentKey: 'a', label: h, status: 'UNAVAILABLE' }, { deploymentKey: 'b', label: h, status: 'OK' }],
+	// Uniswap v3 (21.10.2026): jedes Feld feindselig, auch Status- und Zustandscodes
+	uniswapV3: { protocol: h, chainId: h, status: 'INCOMPLETE', reason: h, positions: [
+		{ tokenId: h, pool: h, feeTier: h, feeTierPercent: h, rangeState: h, liquidityState: h, token0: { address: h, symbol: h, decimals: h, amount: h }, token1: { address: h, symbol: h, decimals: 1, amount: '1' }, suggestedExposureUsd: h, fees: { token0Amount: h, token1Amount: h }, pricingStatus: h, nexus: { productId: h, productName: h, mapping: 'MATCHED' }, coverOptions: 'AVAILABLE' },
+		{ tokenId: '7', token0: { symbol: h }, token1: { symbol: h }, coverOptions: h, nexus: { mapping: h } }
+	], unsupported: [{ tokenId: h, reason: h }] }
 });
 const config = (h, paused = false) => ({ ok: true, telegramUsername: h, reownProjectId: h, anmeldungPausiert: paused });
 

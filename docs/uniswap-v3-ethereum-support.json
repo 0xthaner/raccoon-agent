@@ -77,11 +77,12 @@
 		"coverAssetConversion": "USD / CHAINLINK_PRICE_REFERENCE_V1 (ETH/USD, USDC/USD, cbBTC/USD), same block, floor",
 		"quoteMode": "PER_POSITION",
 		"aggregateQuote": false,
-		"quoteDataPath": "INACTIVE_INTERNAL",
+		"quoteDataPath": "PRODUCTION_READ_ONLY",
+		"informationalQuote": true,
 		"termsReady": false,
 		"proofOfLossReady": false,
 		"quoteReady": false,
 		"purchaseReady": false,
-		"productionEnabled": false
+		"productionEnabled": true
 	}
 ]

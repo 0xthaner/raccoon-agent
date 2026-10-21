@@ -405,12 +405,14 @@ test('NX72-ROUNDING product 72 rounds per pool to 0.01 NXM allocation units like
 
 /* -------------------------------------------------------- Readiness -- */
 
-test('NX72-READINESS quoteDataReady only with valid, matched, priced, fresh capacity; quoteReady and purchaseReady stay false', async () => {
+test('NX72-READINESS quoteDataReady only with valid, matched, priced, fresh capacity; quoteReady only with a fresh quote; purchaseReady stays false', async () => {
 	const ok = await modelFor(IN);
 	const r = N.uniswapV3QuoteReadiness({ position: ok.position, exposure: ok.exposure, model: ok.model, priceBook: ok.priceBook, now: NOW });
 	assert.deepEqual([r.deploymentClass, r.nexusMappingClass, r.positionValid, r.exposureReady, r.pricingReady, r.capacityReady, r.quoteDataReady], ['CANONICAL', 'MATCHED', true, true, true, true, true]);
 	assert.deepEqual([r.termsReady, r.proofOfLossReady, r.quoteReady, r.purchaseReady], [false, false, false, false]);
-	assert.deepEqual([...r.blockers], ['NO_PRODUCTION_PATH', 'NEXUS_TERMS_INTERPRETATION_UNCONFIRMED', 'NEXUS_PROOF_OF_LOSS_UNCONFIRMED', 'WALLET_EXECUTION_NOT_AVAILABLE']);
+	assert.deepEqual([...r.blockers], ['NEXUS_TERMS_INTERPRETATION_UNCONFIRMED', 'NEXUS_PROOF_OF_LOSS_UNCONFIRMED', 'WALLET_EXECUTION_NOT_AVAILABLE']);
+	const quoted = N.uniswapV3QuoteReadiness({ position: ok.position, exposure: ok.exposure, model: ok.model, priceBook: ok.priceBook, quote: { status: 'FRESH' }, now: NOW });
+	assert.deepEqual([quoted.quoteDataReady, quoted.quoteReady, quoted.purchaseReady], [true, true, false], 'an informational quote is ready; a purchase never');
 	const later = N.uniswapV3QuoteReadiness({ position: ok.position, exposure: ok.exposure, model: ok.model, priceBook: ok.priceBook, now: NOW + 60_001 });
 	assert.deepEqual([later.capacityReady, later.quoteDataReady], [false, false]);
 	assert.ok(later.blockers.includes('CAPACITY_NOT_READY'));
@@ -422,6 +424,7 @@ test('NX72-READINESS quoteDataReady only with valid, matched, priced, fresh capa
 	assert.deepEqual([noModel.pricingReady, noModel.capacityReady, noModel.quoteDataReady], [false, false, false]);
 	const stale = N.uniswapV3QuoteReadiness({ position: ok.position, exposure: ok.exposure, model: ok.model, priceBook: ok.priceBook, quote: { status: 'STALE' }, now: NOW });
 	assert.ok(stale.blockers.includes('QUOTE_STALE'));
+	assert.equal(stale.quoteReady, false);
 	for (const input of [undefined, {}, { position: { status: 'INVALID' } }]) {
 		const x = N.uniswapV3QuoteReadiness(input);
 		assert.deepEqual([x.quoteDataReady, x.quoteReady, x.purchaseReady], [false, false, false]);

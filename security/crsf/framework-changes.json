@@ -3673,6 +3673,42 @@
 					"reason": "MC-EDGE-REFERENCE and MC-ORACLE (inactive preparation), sanity-checked by five ad-hoc mutations (Ethereum table for every chain, weakened chainId guard, non-SUPPORTED resolver answer accepted, price block not checked, global 24 h bound instead of heartbeat), each failing the intended test. Not mapped as CRSF evidence in this version."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zp",
+			"summary": "Uniswap v3 Ethereum read-only integration (21.10.2026): GET /api/positions gains a sanitized uniswapV3 section and a protocols list; POST /api/nexus/quote gains the actions uniswap-details and uniswap-quote (product 72, informational only) behind the existing session, revocation, same-origin, JSON, size and rate-limit checks; the dashboard gains a separate Uniswap card and quote view (web/src/uniswap-cover.js). New behavioural evidence EV-UNISWAP-QUOTE and known-bad evidence EV-KB-UNISWAP-QUOTE (33 cases) on the existing CR-QUOTE controls and CR-API-001 P2; drift rules for the new paths. No control, property, threshold, release class, external blocker or finding changed; no purchase, approval, transaction or wallet method added; purchaseReady stays false.",
+			"changes": [
+				{
+					"id": "EV-UNISWAP-QUOTE",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "behavioural evidence for the Uniswap v3 read-only quote path on CR-QUOTE-001/002/003/005/006/007/008 and CR-API-001 P2 (partial). CR-QUOTE-003 P2 is mapped PARTIAL: its text names the Aave oracle while the Uniswap path converts via CHAINLINK_PRICE_REFERENCE_V1; the property text is unchanged and its Aave proof stays with EV-NEXUS-QUOTE. CR-QUOTE-004 is not claimed by this item: the Uniswap quote reuses readQuote (src/nexus-read-api.mjs) whose evidence is unchanged."
+				},
+				{
+					"id": "EV-KB-UNISWAP-QUOTE",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "known-bad evidence: MUT-CR-QUOTE-002-P1-UNINOSESSION, MUT-CR-API-001-P2-UNINOSESSION, MUT-CR-QUOTE-002-P1-UNIREVOKED, MUT-CR-API-001-P2-UNICLIENTWALLET, MUT-CR-QUOTE-002-P1-UNIOWNER, MUT-CR-QUOTE-001-P1-UNICLIENTPID, MUT-CR-QUOTE-001-P1-UNIPRODUCT97, MUT-CR-QUOTE-002-P1-UNIV4, MUT-CR-QUOTE-002-P1-UNIFAKEPOOL, MUT-CR-QUOTE-003-P2-UNISTALEPRICE, MUT-CR-QUOTE-002-P1-UNISTALECAP, MUT-CR-QUOTE-002-P1-UNISTALEPOS, MUT-CR-QUOTE-003-P2-UNIEXPOSURE, MUT-CR-QUOTE-003-P2-UNIDEFAULTCAP, MUT-CR-QUOTE-003-P2-UNIFEES, MUT-CR-QUOTE-003-P2-UNISPOT, MUT-CR-QUOTE-003-P2-UNIUSDCONE, MUT-CR-QUOTE-002-P1-UNIZEROLIQ, MUT-CR-QUOTE-007-P1-UNIBUYCTA, MUT-CR-QUOTE-007-P1-UNIKAUFENCTA, MUT-CR-QUOTE-007-P2-UNIPURCHASEIMPORT, MUT-CR-QUOTE-007-P1-UNIWALLETMETHODS, MUT-CR-QUOTE-006-P1-UNILEAKSERVER, MUT-CR-QUOTE-007-P1-UNILEAKUI, MUT-CR-QUOTE-006-P1-UNIUNKNOWNCODE, MUT-CR-QUOTE-005-P1-UNICACHEWALLET, MUT-CR-QUOTE-005-P1-UNICACHESTALE, MUT-CR-QUOTE-008-P1-UNIGLOBALRATE, MUT-CR-QUOTE-007-P2-UNIRAWFIELDS, MUT-CR-QUOTE-007-P2-UNIPURCHASEREADY, MUT-CR-API-001-P2-UNITRANSFERRED, MUT-CR-API-001-P2-UNISCANCACHE, MUT-CR-QUOTE-001-P1-UNIUICLIENTPID"
+				},
+				{
+					"id": "drift-model",
+					"kind": "SCHEMA_SCOPE_EXTENDED",
+					"reason": "new rules src/positions/uniswap-v3-* (CR-API, CR-QUOTE), src/positions/price-reference.mjs (CR-QUOTE), web/src/uniswap-cover.js (CR-BROWSER, CR-QUOTE), docs/uniswap-v3-ethereum-support.json (CR-QUOTE); domains only added"
+				},
+				{
+					"id": "inventories-uniswap",
+					"kind": "TEST_INFRA",
+					"reason": "reviewed inventories extended, nothing removed: URL_SINKS (test/browser-dynamic-code.test.mjs) gains web/src/uniswap-cover.js href Identifier(url) (IPFS_URL-checked, class B; README CR-BROWSER-004 rows added); check:quellen gains the syntax check of src/positions/uniswap-v3-service.mjs; test-support/browser-world.mjs inlines nexus-cover.js and uniswap-cover.js each in its own scope"
+				},
+				{
+					"id": "test/uniswap-v3-*.test.mjs",
+					"kind": "TEST_INFRA",
+					"reason": "UNI-ISOLATION (no production import) replaced by UNI-REACH: exact import edges math <- ethereum <- nexus <- service <- api/positions.mjs, api/nexus/quote.mjs; still no browser/script import, no RPC/feed address in web code and no tx, env or URL in the server modules. NO_PRODUCTION_PATH removed from the phase blockers, runtimeEnabled true and quoteReady true only with a FRESH quote, because the path is now production read-only by explicit request; the three external blockers and purchaseReady false are unchanged and asserted."
+				},
+				{
+					"id": "test/positions*.test.mjs",
+					"kind": "TEST_INFRA",
+					"reason": "slice-based main.js harnesses stub renderUniswapSection (tested in test/uniswap-v3-dashboard.test.mjs); the language-wiring test (VIEW-LANG-WIRING) covers both panel maps; browser-render-sinks feeds a hostile uniswapV3 section. No assertion weakened."
+				}
+			]
 		}
 	]
 }

@@ -12444,6 +12444,1201 @@
 			"timeout_ms": 300000
 		},
 		{
+			"id": "MUT-CR-QUOTE-002-P1-UNINOSESSION",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-002",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: quote handler answers Uniswap actions without a session",
+			"edits": [
+				{
+					"file": "api/nexus/quote.mjs",
+					"find": "\t\tif (!session?.wallet) return response.status(401).json({ ok: false, code: 'NO_SESSION', error: 'Keine aktive Dashboard-Sitzung.' });\n\t\tlet revoked;",
+					"replace": "\t\tlet revoked;"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-AUTH without a session"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-API-001-P2-UNINOSESSION",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-API-001",
+					"property": "P2"
+				}
+			],
+			"description": "Uniswap v3: positions handler returns a Uniswap section without a session",
+			"edits": [
+				{
+					"file": "api/positions.mjs",
+					"find": "\t\tif (!session?.wallet) return response.status(401).json({ ok: false, code: 'NO_SESSION', error: 'Keine aktive Dashboard-Sitzung.' });",
+					"replace": "\t\tif (!session?.wallet) return response.status(200).json({ ok: true, wallet: null, positions: [], uniswapV3: uniswapSection(await getUniswap(String(request.headers['x-wallet'] ?? ''), {}).catch(() => null)) });"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-AUTH without a session"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-002-P1-UNIREVOKED",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-002",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: a revoked session still reaches the Uniswap scan",
+			"edits": [
+				{
+					"file": "api/nexus/quote.mjs",
+					"find": "\t\tif (revoked) return response.status(401).json({ ok: false, code: 'SESSION_REVOKED', error: 'Die Wallet-Verbindung wurde vollständig zurückgesetzt.' });\n\t\tconst wallet = session.wallet.toLowerCase();\n\t\tif (!await rateLimitFor(response, 'nexus-cover-wallet'",
+					"replace": "\t\tconst wallet = session.wallet.toLowerCase();\n\t\tif (!await rateLimitFor(response, 'nexus-cover-wallet'"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-AUTH a revoked session"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-API-001-P2-UNICLIENTWALLET",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-API-001",
+					"property": "P2"
+				}
+			],
+			"description": "Uniswap v3: a client-supplied wallet is scanned instead of the session wallet",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-service.mjs",
+					"find": "const BODY_KEYS = { 'uniswap-details': ['action', 'tokenId'], 'uniswap-quote': ['action', 'tokenId', 'coverAsset', 'periodDays'] };",
+					"replace": "const BODY_KEYS = { 'uniswap-details': ['action', 'tokenId'], 'uniswap-quote': ['action', 'tokenId', 'coverAsset', 'periodDays'] };\nconst CLIENT = ['wallet'];"
+				},
+				{
+					"file": "src/positions/uniswap-v3-service.mjs",
+					"find": "\tconst optional = body.action === 'uniswap-quote' ? ['amount'] : [];",
+					"replace": "\tconst optional = body.action === 'uniswap-quote' ? ['amount', ...CLIENT] : [...CLIENT];"
+				},
+				{
+					"file": "api/nexus/quote.mjs",
+					"find": "\t\tif (uniswap) return uniswapAction(response, parsed, wallet);",
+					"replace": "\t\tif (uniswap) return uniswapAction(response, parsed, String(request.body.wallet ?? wallet).toLowerCase());"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-AUTH the scanned wallet is always the session wallet"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-002-P1-UNIOWNER",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-002",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: the tokenId is not bound to the session wallet and its scan",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-service.mjs",
+					"find": "\tif (scan?.status !== 'OK' || typeof wallet !== 'string' || scan.wallet !== wallet.toLowerCase()) return null;",
+					"replace": "\tif (scan?.status !== 'OK') return null;"
+				},
+				{
+					"file": "src/positions/uniswap-v3-service.mjs",
+					"find": "\tif (!position || (position.status === 'INVALID' && position.reason === 'OWNER_MISMATCH')) return null;",
+					"replace": "\tif (!position) return null;"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-AUTH a transferred NFT"
+				},
+				{
+					"test": "^UNI-AUTH the scanned wallet"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-001-P1-UNICLIENTPID",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-001",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: a client-supplied productId is accepted for a Uniswap quote",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-service.mjs",
+					"find": "\tif (keys.some((key) => /product/i.test(key))) return fail('PRODUCT_ID_NOT_ACCEPTED');\n\tconst allowed = BODY_KEYS[body.action];",
+					"replace": "\tconst allowed = BODY_KEYS[body.action];"
+				},
+				{
+					"file": "src/positions/uniswap-v3-service.mjs",
+					"find": "\tconst optional = body.action === 'uniswap-quote' ? ['amount'] : [];",
+					"replace": "\tconst optional = body.action === 'uniswap-quote' ? ['amount', 'productId'] : ['productId'];"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-QUOTE input bounds"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-001-P1-UNIPRODUCT97",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-001",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: the Uniswap path uses product 97 instead of 72",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-nexus.mjs",
+					"find": "export const PRODUCT_ID = NEXUS_UNISWAP_V3.productId;",
+					"replace": "export const PRODUCT_ID = 97;"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-nexus.test.mjs",
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NX72-"
+				},
+				{
+					"test": "^UNI-QUOTE"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-002-P1-UNIV4",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-002",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: Uniswap v2/v4 deployments are no longer excluded",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-ethereum.mjs",
+					"find": "/^uniswap-v(2|4)-/",
+					"replace": "/^uniswap-v(1)-/"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-ethereum.test.mjs",
+				"test/uniswap-v3-nexus.test.mjs",
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-"
+				},
+				{
+					"test": "^NX72-GATE"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-002-P1-UNIFAKEPOOL",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-002",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: the canonical-pool check is removed",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-ethereum.mjs",
+					"find": "\tif (!same(raw.registeredPool, derived)) return invalid(tokenId, 'NON_CANONICAL_POOL');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-ethereum.test.mjs",
+				"test/uniswap-v3-nexus.test.mjs",
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-POS zero liquidity"
+				},
+				{
+					"test": "^UNI-QUOTE zero liquidity"
+				},
+				{
+					"test": "^UNI-VALIDATE"
+				},
+				{
+					"test": "^NX72-GATE"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-003-P2-UNISTALEPRICE",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-003",
+					"property": "P2"
+				}
+			],
+			"description": "Uniswap v3: a stale Chainlink price is accepted",
+			"edits": [
+				{
+					"file": "src/positions/price-reference.mjs",
+					"find": "\tif (block.timestamp - updatedAt > BigInt(maxFeedAgeSec(meta.heartbeatSec, policy))) return ['PRICE_STALE', 'OLDER_THAN_HEARTBEAT'];\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/price-reference.test.mjs",
+				"test/uniswap-v3-nexus.test.mjs",
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^PR-"
+				},
+				{
+					"test": "^NX72-"
+				},
+				{
+					"test": "^UNI-"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-002-P1-UNISTALECAP",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-002",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: stale capacity is treated as fresh",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-nexus.mjs",
+					"find": "return now - fetched <= CAPACITY_MAX_AGE_MS ? 'FRESH' : 'STALE';",
+					"replace": "return 'FRESH';"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-nexus.test.mjs",
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NX72-CAPACITY"
+				},
+				{
+					"test": "^UNI-QUOTE zero liquidity"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-002-P1-UNISTALEPOS",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-002",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: a stale position scan is accepted",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-nexus.mjs",
+					"find": "return now - at <= POSITION_MAX_AGE_MS ? null : 'POSITION_STALE';",
+					"replace": "return null;"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-nexus.test.mjs",
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NX72-GATE"
+				},
+				{
+					"test": "^UNI-QUOTE zero liquidity"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-003-P2-UNIEXPOSURE",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-003",
+					"property": "P2"
+				}
+			],
+			"description": "Uniswap v3: an amount above the converted exposure is accepted",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-nexus.mjs",
+					"find": "\tif (amount > BigInt(bound.maxFromExposureRaw)) return fail('AMOUNT_ABOVE_EXPOSURE', { maxAmount: bound.maxAmount, limitedBy: 'EXPOSURE' });\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-nexus.test.mjs",
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NX72-QUOTE"
+				},
+				{
+					"test": "^UNI-QUOTE input bounds"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-003-P2-UNIDEFAULTCAP",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-003",
+					"property": "P2"
+				}
+			],
+			"description": "Uniswap v3: the server default amount is the capacity instead of min(exposure, capacity)",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-service.mjs",
+					"find": "amount: parsed.amount ?? bound.maxAmount,",
+					"replace": "amount: parsed.amount ?? bound.capacity,"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-QUOTE ETH, USDC and cbBTC"
+				},
+				{
+					"test": "^UNI-QUOTE a tiny amount"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-003-P2-UNIFEES",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-003",
+					"property": "P2"
+				}
+			],
+			"description": "Uniswap v3: uncollected fees are included in the suggested exposure",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-ethereum.mjs",
+					"find": "\t\tsuggestedExposureUsd8: principal.total === null ? null : principal.total.toString(),",
+					"replace": "\t\tsuggestedExposureUsd8: principal.total === null ? null : (principal.total + (fees.total ?? 0n)).toString(),"
+				},
+				{
+					"file": "src/positions/uniswap-v3-ethereum.mjs",
+					"find": "\t\tsuggestedExposureUsd: usd(principal.total),",
+					"replace": "\t\tsuggestedExposureUsd: usd(principal.total === null ? null : principal.total + (fees.total ?? 0n)),"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-ethereum.test.mjs",
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-EXPOSURE"
+				},
+				{
+					"test": "^UNI-POS GET"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-003-P2-UNISPOT",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-003",
+					"property": "P2"
+				}
+			],
+			"description": "Uniswap v3: a spot-like price replaces the Chainlink reference in the conversion",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-nexus.mjs",
+					"find": "\tconst amount = (usd8 * 10n ** BigInt(asset.decimals)) / entry.priceUsd8;",
+					"replace": "\tconst spot = ref.symbol === 'USDC' ? 100_000_000n : entry.priceUsd8 * 11n / 10n;\n\tconst amount = (usd8 * 10n ** BigInt(asset.decimals)) / spot;"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-nexus.test.mjs",
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NX72-CONVERSION"
+				},
+				{
+					"test": "^UNI-QUOTE ETH, USDC and cbBTC"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-003-P2-UNIUSDCONE",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-003",
+					"property": "P2"
+				}
+			],
+			"description": "Uniswap v3: USDC is assumed to be worth exactly 1 USD",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-nexus.mjs",
+					"find": "\tconst amount = (usd8 * 10n ** BigInt(asset.decimals)) / entry.priceUsd8;",
+					"replace": "\tconst amount = (usd8 * 10n ** BigInt(asset.decimals)) / (ref.symbol === 'USDC' ? 100_000_000n : entry.priceUsd8);"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-nexus.test.mjs",
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NX72-CONVERSION"
+				},
+				{
+					"test": "^UNI-QUOTE ETH, USDC and cbBTC"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-002-P1-UNIZEROLIQ",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-002",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: a zero-liquidity NFT can be quoted",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-nexus.mjs",
+					"find": "\tif (position.liquidityState !== 'ACTIVE' || exposure.liquidityState !== 'ACTIVE') return fail('ZERO_LIQUIDITY');\n",
+					"replace": ""
+				},
+				{
+					"file": "src/positions/uniswap-v3-service.mjs",
+					"find": "\tif (position.liquidityState !== 'ACTIVE') return 'ZERO_LIQUIDITY';\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-nexus.test.mjs",
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^NX72-GATE"
+				},
+				{
+					"test": "^UNI-QUOTE zero liquidity"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-007-P1-UNIBUYCTA",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-007",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: the quote button reads Buy cover",
+			"edits": [
+				{
+					"file": "web/src/uniswap-cover.js",
+					"find": "getQuote: 'Get informational quote'",
+					"replace": "getQuote: 'Buy cover'"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-UI"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-007-P1-UNIKAUFENCTA",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-007",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: the German quote button reads Cover kaufen",
+			"edits": [
+				{
+					"file": "web/src/uniswap-cover.js",
+					"find": "getQuote: 'Informative Quote abrufen'",
+					"replace": "getQuote: 'Cover kaufen'"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-UI"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-007-P2-UNIPURCHASEIMPORT",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-007",
+					"property": "P2"
+				}
+			],
+			"description": "Uniswap v3: the Uniswap service imports a purchase module",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-service.mjs",
+					"find": "import { isAddress } from 'viem';",
+					"replace": "import { isAddress } from 'viem';\nimport { PURCHASE_INTENT_DOMAIN } from '../purchase-intent.mjs';\nexport const PURCHASE_DOMAIN = PURCHASE_INTENT_DOMAIN;"
+				}
+			],
+			"tests": [
+				"test/production-reach.test.mjs",
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^PROD-REACH-PURCHASE"
+				},
+				{
+					"test": "^UNI-SEC"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-007-P1-UNIWALLETMETHODS",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-007",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: the wallet method allowlist gains eth_sendTransaction",
+			"edits": [
+				{
+					"file": "web/src/wallet-methods.js",
+					"find": "export const WALLET_METHODEN_ANMELDEN = [...BASIS, 'personal_sign', 'wallet_switchEthereumChain'];",
+					"replace": "export const WALLET_METHODEN_ANMELDEN = [...BASIS, 'personal_sign', 'wallet_switchEthereumChain', 'eth_sendTransaction'];"
+				}
+			],
+			"tests": [
+				"test/appkit-features.test.mjs",
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^AppKit: the requested methods"
+				},
+				{
+					"test": "^UNI-SEC"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-006-P1-UNILEAKSERVER",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-006",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: the raw upstream rejection reason is returned to the client",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-service.mjs",
+					"find": "\t\tif (result.code === 'QUOTE_UNAVAILABLE' || result.code === 'QUOTE_REJECTED') return fail('QUOTE_UNAVAILABLE');",
+					"replace": "\t\tif (result.code === 'QUOTE_UNAVAILABLE' || result.code === 'QUOTE_REJECTED') return fail('QUOTE_UNAVAILABLE', { limitedBy: result.reason });"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-QUOTE a tiny amount"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-007-P1-UNILEAKUI",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-007",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: the Uniswap view renders the raw server error text",
+			"edits": [
+				{
+					"file": "web/src/uniswap-cover.js",
+					"find": "\t\t\t\tstate.error = codeOf(result);\n",
+					"replace": "\t\t\t\tstate.error = codeOf(result);\n\t\t\t\tif (typeof result?.body?.error === 'string') t.errors[state.error] = result.body.error;\n"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-UI explicit failure states"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-006-P1-UNIUNKNOWNCODE",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-006",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: unknown service codes are passed through instead of QUOTE_UNAVAILABLE",
+			"edits": [
+				{
+					"file": "api/nexus/quote.mjs",
+					"find": "const replyUniswap = (response, result) => reply(response, UNISWAP_CODES.has(result.code) ? result : { ok: false, code: 'QUOTE_UNAVAILABLE' });",
+					"replace": "const replyUniswap = (response, result) => reply(response, result);"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-QUOTE a tiny amount"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-005-P1-UNICACHEWALLET",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-005",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: the quote cache is shared across wallets",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-service.mjs",
+					"find": "\treturn [wallet.toLowerCase(), CHAIN_ID,",
+					"replace": "\treturn ['any', CHAIN_ID,"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-QUOTE quotes are reused"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-005-P1-UNICACHESTALE",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-005",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: a cached quote is served after quoteExpiresAt",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-service.mjs",
+					"find": "\tif (!(now < Date.parse(hit.quoteExpiresAt))) { quotes.delete(key); return null; }\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-QUOTE quotes are reused"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-008-P1-UNIGLOBALRATE",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-008",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: the global quote budget is skipped",
+			"edits": [
+				{
+					"file": "api/nexus/quote.mjs",
+					"find": "\t\tif (!await rateLimitFor(response, 'nexus-quote-global', 'all', ...LIMITS.quoteGlobal)) return;\n\t\tconst result = await uniswapQuote(",
+					"replace": "\t\tconst result = await uniswapQuote("
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-QUOTE rate limits"
+				},
+				{
+					"test": "^UNI-QUOTE ETH, USDC and cbBTC"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-007-P2-UNIRAWFIELDS",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-007",
+					"property": "P2"
+				}
+			],
+			"description": "Uniswap v3: raw scan fields leak into the positions section",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-service.mjs",
+					"find": "\treturn Object.freeze({\n\t\tprotocol: 'Uniswap v3',\n\t\tchainId: CHAIN_ID,\n\t\ttokenId: position.tokenId,",
+					"replace": "\treturn Object.freeze({\n\t\t...position,\n\t\tprotocol: 'Uniswap v3',\n\t\tchainId: CHAIN_ID,\n\t\ttokenId: position.tokenId,"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-POS GET /api/positions keeps"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-007-P2-UNIPURCHASEREADY",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-007",
+					"property": "P2"
+				}
+			],
+			"description": "Uniswap v3: purchaseReady becomes true",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-service.mjs",
+					"find": "\tquoteDataReady: readiness.quoteDataReady,\n\tpurchaseReady: false,",
+					"replace": "\tquoteDataReady: readiness.quoteDataReady,\n\tpurchaseReady: readiness.quoteDataReady,"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-QUOTE details"
+				},
+				{
+					"test": "^UNI-QUOTE ETH, USDC and cbBTC"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-API-001-P2-UNITRANSFERRED",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-API-001",
+					"property": "P2"
+				}
+			],
+			"description": "Uniswap v3: a transferred NFT (owner mismatch) is shown",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-service.mjs",
+					"find": "\t\tif (position.status === 'INVALID' && position.reason === 'OWNER_MISMATCH') continue;\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-AUTH a transferred NFT"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-API-001-P2-UNISCANCACHE",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-API-001",
+					"property": "P2"
+				}
+			],
+			"description": "Uniswap v3: the scan cache is shared across wallets",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-service.mjs",
+					"find": "\tconst key = wallet.toLowerCase();\n\tconst hit = scans.get(key);",
+					"replace": "\tconst key = 'all';\n\tconst hit = scans.get(key);"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-POS the scan cache"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-QUOTE-001-P1-UNIUICLIENTPID",
+			"origin": "new (Uniswap v3 read-only, 21.10.2026)",
+			"evidence_id": "EV-KB-UNISWAP-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-001",
+					"property": "P1"
+				}
+			],
+			"description": "Uniswap v3: the browser sends a productId with the quote request",
+			"edits": [
+				{
+					"file": "web/src/uniswap-cover.js",
+					"find": "post({ action: 'uniswap-quote', tokenId, coverAsset: state.asset, periodDays })",
+					"replace": "post({ action: 'uniswap-quote', tokenId, coverAsset: state.asset, periodDays, productId: 72 })"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-dashboard.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^UNI-UI quote view"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
 			"id": "MUT-CR-NEXUS-006-P1-2ZBROKERV34",
 			"origin": "new (F-2Z-1)",
 			"evidence_id": "EV-KB-NEXUS-SOURCE",

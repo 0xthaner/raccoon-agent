@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zo",
+	"crsf_version": "1.0-draft-phase2zp",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -2027,10 +2027,12 @@
 				"EV-KB-L3",
 				"EV-KB-L5",
 				"EV-KB-SCOPE",
+				"EV-KB-UNISWAP-QUOTE",
 				"EV-L3",
 				"EV-L5-DB",
 				"EV-SCOPE",
-				"EV-SESSION"
+				"EV-SESSION",
+				"EV-UNISWAP-QUOTE"
 			],
 			"property_coverage": {
 				"P1": {
@@ -2048,7 +2050,10 @@
 					"satisfied_by": [
 						"EV-KB-SCOPE"
 					],
-					"partial_only": [],
+					"partial_only": [
+						"EV-UNISWAP-QUOTE",
+						"EV-KB-UNISWAP-QUOTE"
+					],
 					"insufficient": [
 						"EV-SCOPE(E3: type not acceptable for minimum level)"
 					]
@@ -11329,13 +11334,17 @@
 			],
 			"current_evidence_ids": [
 				"EV-KB-NEXUS-QUOTE",
-				"EV-NEXUS-QUOTE"
+				"EV-KB-UNISWAP-QUOTE",
+				"EV-NEXUS-QUOTE",
+				"EV-UNISWAP-QUOTE"
 			],
 			"property_coverage": {
 				"P1": {
 					"satisfied_by": [
 						"EV-NEXUS-QUOTE",
-						"EV-KB-NEXUS-QUOTE"
+						"EV-KB-NEXUS-QUOTE",
+						"EV-UNISWAP-QUOTE",
+						"EV-KB-UNISWAP-QUOTE"
 					],
 					"partial_only": [],
 					"insufficient": []
@@ -11400,13 +11409,17 @@
 			],
 			"current_evidence_ids": [
 				"EV-KB-NEXUS-QUOTE",
-				"EV-NEXUS-QUOTE"
+				"EV-KB-UNISWAP-QUOTE",
+				"EV-NEXUS-QUOTE",
+				"EV-UNISWAP-QUOTE"
 			],
 			"property_coverage": {
 				"P1": {
 					"satisfied_by": [
 						"EV-NEXUS-QUOTE",
-						"EV-KB-NEXUS-QUOTE"
+						"EV-KB-NEXUS-QUOTE",
+						"EV-UNISWAP-QUOTE",
+						"EV-KB-UNISWAP-QUOTE"
 					],
 					"partial_only": [],
 					"insufficient": []
@@ -11479,7 +11492,9 @@
 			],
 			"current_evidence_ids": [
 				"EV-KB-NEXUS-QUOTE",
-				"EV-NEXUS-QUOTE"
+				"EV-KB-UNISWAP-QUOTE",
+				"EV-NEXUS-QUOTE",
+				"EV-UNISWAP-QUOTE"
 			],
 			"property_coverage": {
 				"P1": {
@@ -11487,7 +11502,9 @@
 						"EV-NEXUS-QUOTE",
 						"EV-KB-NEXUS-QUOTE"
 					],
-					"partial_only": [],
+					"partial_only": [
+						"EV-UNISWAP-QUOTE"
+					],
 					"insufficient": []
 				},
 				"P2": {
@@ -11495,7 +11512,10 @@
 						"EV-NEXUS-QUOTE",
 						"EV-KB-NEXUS-QUOTE"
 					],
-					"partial_only": [],
+					"partial_only": [
+						"EV-UNISWAP-QUOTE",
+						"EV-KB-UNISWAP-QUOTE"
+					],
 					"insufficient": []
 				},
 				"P3": {
@@ -11503,7 +11523,9 @@
 						"EV-NEXUS-QUOTE",
 						"EV-KB-NEXUS-QUOTE"
 					],
-					"partial_only": [],
+					"partial_only": [
+						"EV-UNISWAP-QUOTE"
+					],
 					"insufficient": []
 				}
 			},
@@ -11648,13 +11670,17 @@
 			],
 			"current_evidence_ids": [
 				"EV-KB-NEXUS-QUOTE",
-				"EV-NEXUS-QUOTE"
+				"EV-KB-UNISWAP-QUOTE",
+				"EV-NEXUS-QUOTE",
+				"EV-UNISWAP-QUOTE"
 			],
 			"property_coverage": {
 				"P1": {
 					"satisfied_by": [
 						"EV-NEXUS-QUOTE",
-						"EV-KB-NEXUS-QUOTE"
+						"EV-KB-NEXUS-QUOTE",
+						"EV-UNISWAP-QUOTE",
+						"EV-KB-UNISWAP-QUOTE"
 					],
 					"partial_only": [],
 					"insufficient": []
@@ -11717,13 +11743,17 @@
 			],
 			"current_evidence_ids": [
 				"EV-KB-NEXUS-QUOTE",
-				"EV-NEXUS-QUOTE"
+				"EV-KB-UNISWAP-QUOTE",
+				"EV-NEXUS-QUOTE",
+				"EV-UNISWAP-QUOTE"
 			],
 			"property_coverage": {
 				"P1": {
 					"satisfied_by": [
 						"EV-NEXUS-QUOTE",
-						"EV-KB-NEXUS-QUOTE"
+						"EV-KB-NEXUS-QUOTE",
+						"EV-UNISWAP-QUOTE",
+						"EV-KB-UNISWAP-QUOTE"
 					],
 					"partial_only": [],
 					"insufficient": []
@@ -11792,13 +11822,17 @@
 			],
 			"current_evidence_ids": [
 				"EV-KB-NEXUS-QUOTE",
-				"EV-NEXUS-QUOTE"
+				"EV-KB-UNISWAP-QUOTE",
+				"EV-NEXUS-QUOTE",
+				"EV-UNISWAP-QUOTE"
 			],
 			"property_coverage": {
 				"P1": {
 					"satisfied_by": [
 						"EV-NEXUS-QUOTE",
-						"EV-KB-NEXUS-QUOTE"
+						"EV-KB-NEXUS-QUOTE",
+						"EV-UNISWAP-QUOTE",
+						"EV-KB-UNISWAP-QUOTE"
 					],
 					"partial_only": [],
 					"insufficient": []
@@ -11806,7 +11840,9 @@
 				"P2": {
 					"satisfied_by": [
 						"EV-NEXUS-QUOTE",
-						"EV-KB-NEXUS-QUOTE"
+						"EV-KB-NEXUS-QUOTE",
+						"EV-UNISWAP-QUOTE",
+						"EV-KB-UNISWAP-QUOTE"
 					],
 					"partial_only": [],
 					"insufficient": []
@@ -11869,13 +11905,17 @@
 			],
 			"current_evidence_ids": [
 				"EV-KB-NEXUS-QUOTE",
-				"EV-NEXUS-QUOTE"
+				"EV-KB-UNISWAP-QUOTE",
+				"EV-NEXUS-QUOTE",
+				"EV-UNISWAP-QUOTE"
 			],
 			"property_coverage": {
 				"P1": {
 					"satisfied_by": [
 						"EV-NEXUS-QUOTE",
-						"EV-KB-NEXUS-QUOTE"
+						"EV-KB-NEXUS-QUOTE",
+						"EV-UNISWAP-QUOTE",
+						"EV-KB-UNISWAP-QUOTE"
 					],
 					"partial_only": [],
 					"insufficient": []

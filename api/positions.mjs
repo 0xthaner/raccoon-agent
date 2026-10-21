@@ -10,17 +10,26 @@
 
 	Getrennt von /api/dashboard: faellt die Positionsabfrage aus, bleiben
 	Covers und Anmeldung unberuehrt.
+
+	Uniswap v3 auf Ethereum (21.10.2026): eigener Abschnitt `uniswapV3`
+	(protocol, chainId, status, positions), parallel zu Aave gelesen und nur
+	als bereinigte Ansicht (uniswapSection). Faellt der Uniswap-Scan aus, bleibt
+	die Aave-Antwort unveraendert und der Abschnitt meldet UNAVAILABLE.
+	`protocols` nennt beide Abschnitte mit ihrem Status.
 */
 import { resolveDashboardSession } from '../src/dashboard-auth.mjs';
 import { isDashboardSessionRevoked } from '../src/db.mjs';
 import { enforceRateLimit, enforceRateLimitFor } from '../src/http-security.mjs';
 import { getWalletPositions, LookupNotAdmittedError, PositionsBusyError } from '../src/positions/index.mjs';
 import { queryKeys, queryParams } from '../src/request-query.mjs';
+import { getUniswapScan, uniswapSection } from '../src/positions/uniswap-v3-service.mjs';
 
 function sessionIssuedAt(session) {
 	return Number.isFinite(session?.iat) ? session.iat : session?.exp - 7 * 24 * 60 * 60_000;
 }
 
+/* Antwort-Attrappe fuer ein Budget, dessen Nein keine eigene Antwort schreibt. */
+const SILENT = Object.freeze({ status() { return this; }, json() { return this; }, setHeader() {} });
 const unavailable = (response) => response.status(503).json({ ok: false, code: 'POSITIONS_UNAVAILABLE', error: 'DeFi-Positionen konnten gerade nicht geladen werden.' });
 
 export function createPositionsHandler(deps) {
@@ -36,7 +45,7 @@ export function createPositionsHandler(deps) {
 	};
 }
 
-function createInnerHandler({ getPositions, isRevoked, rateLimit = enforceRateLimit, rateLimitFor = enforceRateLimitFor, resolveSession = resolveDashboardSession }) {
+function createInnerHandler({ getPositions, isRevoked, getUniswap = async () => null, rateLimit = enforceRateLimit, rateLimitFor = enforceRateLimitFor, resolveSession = resolveDashboardSession }) {
 	return async function handler(request, response) {
 		response.setHeader('cache-control', 'no-store');
 		if (request.method !== 'GET') return response.status(405).json({ ok: false, error: 'Method not allowed' });
@@ -65,8 +74,18 @@ function createInnerHandler({ getPositions, isRevoked, rateLimit = enforceRateLi
 		// Zweites, engeres Budget nur fuer echte Kette-Abfragen (Cache-Fehlschlag) ueber
 		// alle Wallets: viele angemeldete Wallets koennen die RPC so nicht vervielfachen.
 		const admit = () => rateLimitFor(response, 'positions-lookup-global', 'all', 200, 600);
+		// Eigenes Budget fuer kalte Uniswap-Scans; ein Nein dort schreibt kein 429, der Abschnitt bleibt nur leer.
+		const admitUniswap = () => rateLimitFor(SILENT, 'positions-uniswap-lookup-global', 'all', 200, 600);
+		const uniswap = Promise.resolve().then(() => getUniswap(wallet, { admit: admitUniswap })).catch(() => null);
 		try {
-			return response.status(200).json(await getPositions(wallet, { admit }));
+			const positions = await getPositions(wallet, { admit });
+			const section = uniswapSection(await uniswap);
+			const aaveStatus = positions?.complete ? 'OK' : (positions?.checkedDeployments ?? []).some((entry) => entry.status === 'OK') ? 'INCOMPLETE' : 'UNAVAILABLE';
+			return response.status(200).json({
+				...positions,
+				protocols: [{ protocol: 'Aave v3', chainId: 1, status: aaveStatus }, { protocol: section.protocol, chainId: section.chainId, status: section.status }],
+				uniswapV3: section
+			});
 		} catch (error) {
 			if (error instanceof LookupNotAdmittedError) return; // 429 ist bereits geschrieben
 			if (error instanceof PositionsBusyError) {
@@ -78,4 +97,8 @@ function createInnerHandler({ getPositions, isRevoked, rateLimit = enforceRateLi
 	};
 }
 
-export default createPositionsHandler({ getPositions: (wallet, options) => getWalletPositions(wallet, options), isRevoked: isDashboardSessionRevoked });
+export default createPositionsHandler({
+	getPositions: (wallet, options) => getWalletPositions(wallet, options),
+	getUniswap: (wallet, options) => getUniswapScan(wallet, options),
+	isRevoked: isDashboardSessionRevoked
+});

@@ -42,7 +42,9 @@ const URL_SINKS = [
 	'web/src/main.js href ConditionalExpression(TemplateLiteral:https://t.me/|TemplateLiteral:https://t.me/)',
 	'web/src/main.js href TemplateLiteral:https://t.me/',
 	'web/src/main.js href Literal:/',
-	'web/src/nexus-cover.js href Identifier(url)'
+	'web/src/nexus-cover.js href Identifier(url)',
+	// Uniswap v3 (21.10.2026): derselbe Wording-Link, nur nach derselben IPFS-Pruefung wie nexus-cover.js
+	'web/src/uniswap-cover.js href Identifier(url)'
 ];
 
 function walk(node, visit, parent = null) {
