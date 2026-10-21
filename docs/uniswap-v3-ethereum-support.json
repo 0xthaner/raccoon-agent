@@ -18,8 +18,60 @@
 		"detectionReady": true,
 		"exposureModel": "UNISWAP_V3_LP_EXPOSURE_V1",
 		"feesInSuggestedExposure": false,
-		"priceSource": "AAVE_V3_ETHEREUM_CORE_ORACLE",
-		"pricingReady": false,
+		"priceModel": "CHAINLINK_PRICE_REFERENCE_V1",
+		"priceReferences": [
+			{
+				"symbol": "WETH",
+				"token": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"sourceType": "CHAINLINK_DIRECT",
+				"feeds": [
+					"0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419"
+				]
+			},
+			{
+				"symbol": "USDC",
+				"token": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"sourceType": "CHAINLINK_DIRECT",
+				"feeds": [
+					"0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6"
+				]
+			},
+			{
+				"symbol": "cbBTC",
+				"token": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+				"sourceType": "CHAINLINK_DIRECT",
+				"feeds": [
+					"0x2665701293fCbEB223D11A08D826563EDcCE423A"
+				]
+			},
+			{
+				"symbol": "USDT",
+				"token": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"sourceType": "CHAINLINK_DIRECT",
+				"feeds": [
+					"0x3E7d1eAB13ad0104d2750B8863b489D65364e32D"
+				]
+			},
+			{
+				"symbol": "WBTC",
+				"token": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+				"sourceType": "CHAINLINK_COMPOSITE",
+				"feeds": [
+					"0xfdFD9C85aD200c506Cf9e21F1FD8dd01932FBB23",
+					"0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c"
+				]
+			},
+			{
+				"symbol": "PAXG",
+				"token": "0x45804880De22913dAFE09f4980848ECE6EcbAf78",
+				"sourceType": "CHAINLINK_DIRECT",
+				"feeds": [
+					"0x9944D86CEB9160aF5C5feB251FD671923323f8C3"
+				]
+			}
+		],
+		"pricing": "PER_SCAN_SAME_BLOCK",
+		"usdFromPoolSpotPrice": false,
 		"nexusProductId": 72,
 		"nexusMapping": "MATCHED",
 		"termsReady": false,

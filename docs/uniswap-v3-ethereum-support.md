@@ -5,8 +5,9 @@ Stand: 21.10.2026. **Nur Vorbereitung.** Es gibt keine Quote, keinen Kauf, keine
 Code:
 - `src/positions/uniswap-v3-math.mjs`: reine Mathematik.
 - `src/positions/uniswap-v3-ethereum.mjs`: Registry, Validierung, Leser, Exposure und Readiness.
+- `src/positions/price-reference.mjs`: protokollunabhängige USD-Preis-Referenzen (Chainlink, geprüft, selber Block). Rein, ohne Netzaufrufe.
 
-Kein Produktionsmodul importiert diese Dateien. Tests: `test/uniswap-v3-ethereum.test.mjs` (UNI-*). Support-Matrix: `docs/uniswap-v3-ethereum-support.json`, erzeugt aus `uniswapV3SupportMatrix()`.
+Kein Produktionsmodul importiert diese Dateien. Tests: `test/uniswap-v3-ethereum.test.mjs` (UNI-*) und `test/price-reference.test.mjs` (PR-*). Nachweise: `test/fixtures/uniswap/` und `test/fixtures/prices/chainlink-ethereum-20261021.json`. Support-Matrix: `docs/uniswap-v3-ethereum-support.json`, erzeugt aus `uniswapV3SupportMatrix()`.
 
 ## Kurzfassung
 
@@ -18,7 +19,7 @@ Kein Produktionsmodul importiert diese Dateien. Tests: `test/uniswap-v3-ethereum
 | Positionen finden | Rein über RPC: `balanceOf` + `tokenOfOwnerByIndex` (der Manager ist ERC721Enumerable) |
 | Mengen | Exakt in BigInt, identisch zum Pool. Gegen `eth_call` auf 9 Live-Positionen geprüft: 0 Abweichung |
 | Gebühren | Werden getrennt ausgewiesen und sind **nicht** im Vorschlag |
-| Preise | Aave-v3-Core-Orakel, nur nach exakter Adresse. Alles andere ist UNKNOWN und schließt. |
+| Preise | Eigene Preisschicht: chainId + exakte Adresse → gepinnter Chainlink-Feed, Frische gegen `block.timestamp`, alles im Scan-Block. WETH, USDC, cbBTC, USDT, WBTC, PAXG. Alles andere hat keinen Preis und schließt. **Nie** der Pool-Spotpreis. |
 | Quote | **nein**, `quoteReady` ist in dieser Phase immer false |
 
 ## 1. Nexus: welches Listing gilt?
@@ -109,14 +110,13 @@ Alle Schritte laufen im **selben Block**, über `eth_call` per Multicall3 und `e
 
 0. **Chain und Code:**
    - `chainId` muss 1 sein,
-   - Blocknummer lesen,
+   - Block lesen (`getBlock`: Nummer **und** Zeitstempel); alle weiteren Aufrufe laufen an genau dieser Nummer,
    - keccak des Runtime-Codes von Factory und NPM prüfen.
 1. **Kopf:**
    - `NPM.factory()` und `NPM.WETH9()`,
    - `supportsInterface(0x780e9d63)` (Enumerable),
    - `balanceOf(wallet)`,
-   - `feeAmountTickSpacing` für die vier Stufen,
-   - von Aave Core die Reserve-Liste, `BASE_CURRENCY` und `BASE_CURRENCY_UNIT`.
+   - `feeAmountTickSpacing` für die vier Stufen.
 2. **Token-IDs:** `tokenOfOwnerByIndex(wallet, i)` für alle i < balance. Doppelte IDs oder eine fehlende Antwort ergeben `ENUMERATION_FAILED`.
 3. **Je NFT:** `positions(id)` und `ownerOf(id)`. Ist eine Antwort nicht lesbar, ist der ganze Scan `UNAVAILABLE`. Er wird nie als „keine Position“ gemeldet.
 4. **Je Pool, je Position, je Token:**
@@ -124,7 +124,9 @@ Alle Schritte laufen im **selben Block**, über `eth_call` per Multicall3 und `e
    - am per CREATE2 abgeleiteten Pool: `factory`, `token0`, `token1`, `fee`, `tickSpacing`, `slot0` und `feeGrowthGlobal{0,1}X128`,
    - `ticks(tickLower)` und `ticks(tickUpper)`,
    - je Token `decimals` und `symbol`,
-   - einmal `AaveOracle.getAssetsPrices` für die Token, die Core-Reserven sind.
+   - je benötigtem Chainlink-Feed `description`, `decimals` und `latestRoundData` (nur für Token mit gepinnter Quelle).
+
+   Pool-Zustand, Positionen und Preise stammen damit aus **einem** Block. Das Ergebnis nennt `blockNumber` und `blockTimestamp`, und jede Exposure trägt beide Werte.
 
 **Grenzen:**
 - höchstens 50 NFTs je Wallet (darüber `POSITION_LIMIT`),
@@ -211,23 +213,31 @@ USD-Beträge sind Dezimal-Strings mit 8 Stellen, gerundet nach unten.
 
 ### Preise
 
-- **Quelle:** das AaveOracle von Aave v3 Ethereum Core (`0x54586bE6…a0C2`), dieselbe Quelle wie `AAVE_NET_EXPOSURE_V1`. Nie der Spotpreis des Uniswap-Pools.
-- **Bedingungen:**
-  - Der Token ist im **selben Block** eine Reserve des Core-Pools, nach exakter Adresse.
-  - Die Basiswährung ist USD mit 8 Stellen.
-  - Der Preis ist > 0.
-  - Der Eintrag im Preisbuch gehört genau zu dieser Adresse.
-- **Sonst `UNKNOWN`:** `NOT_AN_AAVE_CORE_RESERVE`, `ZERO_PRICE` oder `ORACLE_UNAVAILABLE`.
-  - Ein benötigter Token ohne Preis bedeutet keinen Vorschlag.
-  - Ein Token mit Menge 0 braucht keinen Preis. Beispiel: WETH/kpdWBTC unter der Spanne besteht nur aus WETH.
-  - Ein Token, der sich „USDC“ nennt, aber eine andere Adresse hat, bekommt keinen USDC-Preis.
-- **Frische:** Das AaveOracle liefert keinen Zeitstempel. Die Frische ist deshalb nicht belegt (`PROTOCOL_ORACLE_NO_TIMESTAMP`), und `pricingReady` bleibt false.
+Die USD-Preise kommen aus der eigenen Schicht `price-reference.mjs` (Abschnitt 11). Kurz:
+- Ein Preis gilt nur mit `PRICE_OK`, für die exakte Adresse, für chainId 1 und aus **demselben Block** wie die Position (`NOT_SAME_BLOCK` sonst).
+- Die on-chain gelesenen Dezimalstellen des Tokens müssen zum Pin passen, sonst `PRICE_AMBIGUOUS`.
+- `principal = amount0 × price0 / 10^dec0 + amount1 × price1 / 10^dec1`, in BigInt, je Bein abgerundet.
+- Ein Bein mit Menge ≠ 0 ohne gültigen Preis: `pricingStatus UNKNOWN`, `principalExposureUsd` und `suggestedExposureUsd` sind `null`, `counted` ist false. `missingPrices` nennt Token, Status und Grund (z. B. `PRICE_STALE` / `paxg-usd:OLDER_THAN_HEARTBEAT`).
+- Ein Bein mit Menge 0 braucht keinen Preis. Beispiel: WETH/kpdWBTC unter der Spanne besteht nur aus WETH; kpdWBTC ist `UNSUPPORTED_TOKEN` und blockiert nicht.
+- Ein Token, der sich „USDC“ nennt, aber eine andere Adresse hat, bekommt keinen Preis. Auch nicht über den Pool und den bekannten Preis des anderen Tokens.
+- `priceSources` nennt je bewertetem Bein Quelle, Feed-Adresse(n), Preis und `updatedAt`.
+
+**Der Spotpreis des Pools ist nie die USD-Autorität.** `slot0` bestimmt nur, wie sich die Position auf token0 und token1 verteilt (Tick-Mathematik). Der Wert in USD kommt ausschließlich aus den externen Feeds. Grund: Wer einen Pool manipuliert oder angreift, darf damit nicht zugleich die Bewertung des Schadens festlegen. Ein manipulierter Kurs verschiebt höchstens die Zusammensetzung. Deren Summe wird mit unabhängigen Preisen bewertet.
 
 ### Mehrere NFTs, Summe
 
 Jedes NFT bleibt eine eigene Position. Das gilt auch für mehrere im selben Pool, für mehrere Gebührenstufen und für mehrere Paare. Nichts wird vor der Validierung zusammengelegt.
 
-`aggregateUniswapLpExposure` summiert nur gezählte, bewertete Positionen (`countedExposureUsd`). Einen Gesamtvorschlag (`suggestedExposureUsd`) gibt es nur, wenn der Scan OK war **und** jede gefundene Position gezählt wurde (`COMPLETE`). Sonst lautet der Status `INCOMPLETE`, und `excluded` nennt die Gründe.
+`aggregateUniswapLpExposure` summiert nur gezählte, voll bewertete Positionen (`countedExposureUsd`). Einen Gesamtvorschlag (`suggestedExposureUsd`) gibt es nur, wenn der Scan OK war **und** jede gefundene Position gezählt wurde (`COMPLETE`). Eine einzige unbewertete, ungültige oder unlesbare Position macht die Summe `INCOMPLETE`, und es gibt keinen Gesamtvorschlag.
+
+Das Aggregat nennt:
+- `positions`: alle gefundenen NFTs,
+- `activePositions`: NFTs mit Liquidität > 0,
+- `pricedPositions`: voll bewertet (`PRICED`),
+- `unpricedPositions`: ein benötigter Preis fehlt (`UNKNOWN`),
+- `countedPositions`: gezählt (`PRICED` oder `NOT_REQUIRED`),
+- `countedExposureUsd` und `suggestedExposureUsd` (nur bei `COMPLETE`),
+- `excluded` (je NFT mit Grund) und `incompleteReasons` (z. B. `PRICING_UNKNOWN`, `POOL_READ_FAILED`, `SCAN_UNAVAILABLE`).
 
 ### Geschlossene und Sonderfälle
 
@@ -254,34 +264,37 @@ Jedes NFT bleibt eine eigene Position. Das gilt auch für mehrere im selben Pool
 | zu viele NFTs oder Aufrufe | `POSITION_LIMIT` / `CALL_LIMIT` |
 | ein Pool nicht lesbar | diese Position `UNAVAILABLE POOL_READ_FAILED`, Summe `INCOMPLETE` |
 | Pool nicht kanonisch, falsche Stufe, falsche Ticks, Überlauf, unmöglicher slot0 | Position `INVALID` (Abschnitt 5) |
-| Token-Metadaten oder Preis fehlen | `INVALID TOKEN_METADATA_MISSING` bzw. `pricingStatus UNKNOWN`, kein Vorschlag |
+| Token-Metadaten fehlen | `INVALID TOKEN_METADATA_MISSING` |
+| Preis fehlt, veraltet, ungültig, aus anderem Block | `pricingStatus UNKNOWN`, kein Vorschlag, Summe `INCOMPLETE` |
 
 ## 8. Readiness
 
 `uniswapV3Readiness(scan)` liefert `deploymentClass`, `nexusMappingClass`, `positionValid`, `exposureReady`, `pricingReady`, `termsReady`, `proofOfLossReady`, `quoteReady` und `blockers`.
 
-`pricingReady`, `termsReady`, `proofOfLossReady` und `quoteReady` sind in dieser Phase **immer false**, auch bei `MATCHED` und vollständiger Exposure. Die festen Blocker sind:
+`pricingReady` ist true, wenn die Exposure vollständig ist und jede Position voll bewertet ist (Chainlink, frisch, selber Block). `termsReady`, `proofOfLossReady` und `quoteReady` sind in dieser Phase **immer false**, auch bei `MATCHED`, vollständiger Exposure und gültigen Preisen. Die festen Blocker sind:
 
 | Blocker | Bedeutung |
 |---|---|
 | `NO_QUOTE_PATH` | Es gibt keinen Quote-Pfad für Uniswap. |
 | `NO_PRODUCTION_PATH` | Kein Produktionsmodul nutzt die Vorbereitung. |
-| `PRICE_FRESHNESS_NOT_VERIFIED` | Das AaveOracle liefert keinen Zeitstempel. Die Frische der Quell-Feeds ist je Asset nicht nachgewiesen. |
 | `TERMS_LP_TREATMENT_UNCONFIRMED` | Nexus hat nicht bestätigt, wie LP-Positionen bewertet werden (Gebühren, Zusammensetzung zum Schadenszeitpunkt). |
 | `PROOF_OF_LOSS_LP_UNCONFIRMED` | Proof of Loss ist `address`. Ungeklärt ist, ob das für ein NFT reicht, das später übertragen oder gestakt wird. |
 
-Je nach Scan kommen hinzu: `SCAN_UNAVAILABLE`, `NO_VALID_POSITION`, `INVALID_OR_UNREADABLE_POSITION`, `NEXUS_MAPPING_NOT_MATCHED` und `EXPOSURE_NOT_READY`.
+Je nach Scan kommen hinzu: `SCAN_UNAVAILABLE`, `NO_VALID_POSITION`, `INVALID_OR_UNREADABLE_POSITION`, `NEXUS_MAPPING_NOT_MATCHED`, `EXPOSURE_NOT_READY` und `PRICING_INCOMPLETE`.
+
+Der frühere Blocker `PRICE_FRESHNESS_NOT_VERIFIED` entfällt: Die Frische ist jetzt je Feed nachgewiesen (Abschnitt 11).
 
 ## 9. Abgrenzung zur Produktion
 
 Der Test UNI-ISOLATION beweist:
-- Kein Modul unter `api/`, `src/`, `web/` oder `scripts/` importiert die neuen Dateien.
+- Kein Modul unter `api/`, `src/`, `web/` oder `scripts/` importiert die Uniswap-Dateien.
+- `price-reference.mjs` wird nur von den beiden inaktiven Vorbereitungen genutzt: `uniswap-v3-ethereum.mjs` und `aave-multichain-activation.mjs` (gemeinsame Frische-Regel). `test/production-reach.test.mjs` bestätigt, dass keine davon produktiv erreichbar ist.
 - Es gibt keine neue API-Route.
 - Im Browser-Code gibt es keine Uniswap- und keine RPC-Adresse.
 - Die neuen Module enthalten keine Transaktions-, Signatur- oder Freigabe-Methode und nur `view`-ABI-Einträge. Sie lesen keine Umgebungsvariablen und enthalten keine RPC-URL; der Client wird übergeben.
 - `PINNED_PRODUCTS` enthält nur 97, und die Nexus-Zuordnung liefert für Uniswap `NO_LISTING`.
 - Das Read-Model fragt Nexus nicht ab, und die Quote-Prüfung ergibt `COVER_NOT_AVAILABLE`.
-- Aave-Dateien sind unverändert.
+- Die produktive Aave-Bewertung (`aave-v3.mjs`, `AAVE_NET_EXPOSURE_V1`) ist unverändert. Geändert hat sich nur die inaktive `aave-multichain-activation.mjs`: Sie übernimmt die Frische-Regel jetzt aus der Preisschicht, mit identischen Werten.
 
 ## 10. Offene Blocker
 
@@ -290,7 +303,103 @@ Der Test UNI-ISOLATION beweist:
    - Zusammensetzung zum Schadenszeitpunkt,
    - Umgang mit Positionen im Staker oder in Vaults.
 2. **Nexus:** Proof of Loss `address` für NFT-Positionen (Übertragung des Positions-NFT, Staker).
-3. **Preise:** Frische je Asset nachweisen (Quell-Feed und Heartbeat hinter dem AaveOracle) oder eine eigene geprüfte Referenz festlegen. Bis dahin bleibt `pricingReady` false.
-4. **Abdeckung:** Token, die keine Aave-Core-Reserve sind (z. B. PAXG), haben keinen Preis. Ihre Positionen bekommen keinen Vorschlag.
+3. **Preis-Abdeckung:** Nur WETH, USDC, cbBTC, USDT, WBTC und PAXG haben einen Preis. Positionen mit anderen Token (mit Menge ≠ 0) bekommen keinen Vorschlag. Weitere Token nur mit eigenem, geprüftem Feed (Abschnitt 11).
+4. **Preis-Betrieb:** Feed-Wechsel (neuer Proxy, neue Beschreibung, geänderter Heartbeat) brechen bewusst. Dann `PRICE_SOURCE_INVALID`, bis der Pin neu geprüft ist. Für die Produktion fehlt eine regelmäßige Gegenprobe des Pins gegen das Chainlink-Directory.
 5. **Produktion:** Quote- und Anzeigepfad, Cache, Budgets und Monitoring. Erst auf ausdrückliche Anweisung.
 6. **Weitere Chains:** Uniswap v3 auf L2s ist nicht Teil dieser Phase. Dort gelten andere Adressen und teils andere Init-Code-Hashes.
+
+## 11. Preis-Referenzen (`price-reference.mjs`)
+
+### Architektur
+
+Eingabe `{ chainId, token, decimals?, block: { number, timestamp }, readings }`. Ausgabe:
+
+```
+{ status, reason, token, chainId, priceUsd8, sourceType, sourceAddress, feeds,
+  updatedAt, blockNumber, blockTimestamp }
+```
+
+- `status`: `PRICE_OK`, `PRICE_UNAVAILABLE`, `PRICE_STALE`, `PRICE_SOURCE_INVALID` oder `PRICE_AMBIGUOUS`.
+- `priceUsd8` ist ein BigInt (USD mit 8 Stellen). Es gibt kein Gleitkomma.
+- Die Schicht ist rein. `priceReadContracts` liefert die Aufrufliste, die der Leser **im Scan-Block** ausführt. `readingsFromResults` ordnet die Antworten zu, und `evaluatePriceReference` bewertet sie. Damit kann jeder spätere Scanner (Uniswap, Aave, andere) dieselbe Regel nutzen und den gleichen Block erzwingen.
+
+**Reihenfolge der Quellen:**
+1. direkter Chainlink-USD-Feed,
+2. geprüfter Chainlink-Pfad aus zwei Feeds (nur WBTC),
+3. AaveOracle nur über `evaluateAaveOracleReference` und nur, wo Reserve und Quelle exakt geprüft sind. **Nie** als Standard,
+4. sonst kein Preis.
+
+**Nie verwendet:** Uniswap-Spotpreis, Symbol-Abgleich, CoinGecko oder andere Web-APIs zur Laufzeit, DEX-Quotes, ein angenommener 1-USD-Wert, ein ähnlich benannter Token.
+
+### Identität
+
+Schlüssel ist ausschließlich `${chainId}:${adresse in Kleinbuchstaben}`.
+- Die Adresse wird klein oder mit gültiger Prüfsumme angenommen. Gemischte Schreibweise mit falscher Prüfsumme ist `INVALID_TOKEN`.
+- chainId muss eine positive ganze Zahl sein. `'1'`, `1n` oder `1.5` ergeben `INVALID_CHAIN_ID`.
+- Dieselbe Adresse auf einer anderen Chain (z. B. USDC-Adresse auf Base) ergibt `UNSUPPORTED_TOKEN`.
+- Meldet der Token on-chain andere Dezimalstellen als gepinnt, ist das Ergebnis `PRICE_AMBIGUOUS` (`TOKEN_DECIMALS_CONFLICT`).
+
+### Token und Quellen (Ethereum, chainId 1)
+
+| Token | Adresse | Stellen | Quelle | Feed-Proxy | Heartbeat | Abweichung | max. Alter |
+|---|---|---|---|---|---|---|---|
+| WETH | `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2` | 18 | ETH / USD (direkt; WETH9 ist 1:1 in ETH einlösbar) | `0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419` | 3 600 s | 0,5 % | 3 780 s |
+| USDC | `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48` | 6 | USDC / USD (direkt) | `0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6` | 82 800 s | 0,25 % | 86 940 s |
+| cbBTC | `0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf` | 8 | cbBTC / USD (direkt) | `0x2665701293fCbEB223D11A08D826563EDcCE423A` | 86 400 s | 2 % | 90 720 s |
+| USDT | `0xdAC17F958D2ee523a2206206994597C13D831ec7` | 6 | USDT / USD (direkt) | `0x3E7d1eAB13ad0104d2750B8863b489D65364e32D` | 86 400 s | 0,25 % | 90 720 s |
+| WBTC | `0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599` | 8 | WBTC / BTC × BTC / USD (Pfad) | `0xfdFD9C85aD200c506Cf9e21F1FD8dd01932FBB23` und `0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c` | 86 400 s / 3 600 s | 0,5 % / 0,5 % | 90 720 s / 3 780 s |
+| PAXG | `0x45804880De22913dAFE09f4980848ECE6EcbAf78` | 18 | PAXG / USD (direkt) | `0x9944D86CEB9160aF5C5feB251FD671923323f8C3` | 86 400 s | 0,5 % | 90 720 s |
+
+**Belege** (21.10.2026, `test/fixtures/prices/chainlink-ethereum-20261021.json`):
+- **Chainlink Reference Data Directory** (`reference-data-directory.vercel.app/feeds-mainnet.json`, Datenquelle von docs.chain.link): Proxy, Heartbeat, Abweichung, Aggregator. Gepinnt ist je Paar der kanonische ENS-Pfad. Die Varianten „Aave SVR“ und „Shared SVR“ werden nicht genutzt.
+- **On-chain im Block 26240768:** je Proxy Code vorhanden, `decimals` = 8, `description` wie gepinnt, `aggregator()` = Directory-Aggregator, `latestRoundData` mit Antwort > 0, `updatedAt` > 0 und `answeredInRound` ≥ `roundId`, frisch.
+- **Token:** `name`/`symbol`/`decimals` on-chain, dazu die Uniswap-Labs-Standardliste v22.27.0. Symbole dienen nur dem Abgleich der Belege, nie der Laufzeit.
+
+**PAXG:** Ein eigener, kanonischer Chainlink-Feed PAXG / USD existiert (Basis XAU-Preis, `cex_price`). PAXG wird deshalb unterstützt. Positionen mit PAXG, die vorher `UNKNOWN` waren, sind jetzt bewertet, solange der Feed frisch ist.
+
+**cbBTC:** Der eigene Feed cbBTC / USD wird genutzt, **nicht** BTC / USD. Letzterer wäre ein ähnlich benannter Ersatz. Hinweis: Das Directory führt cbBTC / USD als `dex_state_price` (aus Handelsplätzen abgeleitet) mit 2 % Abweichung und 24 h Heartbeat. Das ist die gröbste Quelle der Liste.
+
+**USDC und USDT:** Die kanonischen Feeds sind laut Directory „stablecoin capped“ (Obergrenze der Meldung). Unter 1 USD fallen sie normal mit. Es wird nie 1 USD angenommen.
+
+### Frische
+
+- `maxAge = heartbeat + max(60 s, ⌈5 % × heartbeat⌉)`, in ganzen Zahlen. Dieselbe Regel nutzt die inaktive Aave-Multichain-Vorbereitung (sie importiert sie jetzt von hier).
+- „Jetzt“ ist `block.timestamp` des Scan-Blocks, nie die Uhr der Maschine.
+- Der Heartbeat ist je Feed aus dem Directory gepinnt und wird nie geschätzt.
+
+Es schließt:
+
+| Lage | Status / Grund |
+|---|---|
+| Heartbeat fehlt oder ist ungültig | `PRICE_UNAVAILABLE` / `HEARTBEAT_UNKNOWN` |
+| Feed nicht lesbar | `PRICE_UNAVAILABLE` / `FEED_READ_FAILED` |
+| Lesung aus anderem Block | `PRICE_UNAVAILABLE` / `NOT_SAME_BLOCK` |
+| `description` oder `decimals` weicht vom Pin ab | `PRICE_SOURCE_INVALID` / `DESCRIPTION_MISMATCH`, `DECIMALS_MISMATCH` |
+| Antwort ≤ 0 | `PRICE_SOURCE_INVALID` / `NON_POSITIVE_ANSWER` |
+| `updatedAt` = 0 | `PRICE_SOURCE_INVALID` / `ROUND_INCOMPLETE` |
+| `updatedAt` > `block.timestamp` | `PRICE_SOURCE_INVALID` / `UPDATED_IN_FUTURE` |
+| `answeredInRound` < `roundId` | `PRICE_STALE` / `ANSWERED_IN_OLDER_ROUND` |
+| Alter > maxAge | `PRICE_STALE` / `OLDER_THAN_HEARTBEAT` |
+
+Beim WBTC-Pfad müssen beide Feeds bestehen. `updatedAt` ist dann der ältere der beiden Zeitstempel.
+
+### AaveOracle: nur geprüfter Adapter
+
+`evaluateAaveOracleReference` akzeptiert einen Aave-Preis nur, wenn alles zutrifft:
+- chainId ist 1,
+- der Token ist im selben Block exakt eine Reserve von Aave v3 Ethereum Core,
+- die Basiswährung ist USD mit 8 Stellen,
+- `getSourceOfAsset` meldet genau die gepinnte Quelle,
+- diese Quelle besteht alle Feed-Prüfungen oben,
+- Aaves Preis ist genau deren Antwort.
+
+Gepinnt ist nur WETH: Aave nutzt die „Aave SVR“-Variante von ETH / USD (`0x5424384B256154046E9667dDFaaa5e550145215e`).
+
+Nicht nutzbar sind:
+- **USDC, USDT:** „Capped“-Adapter ohne `latestRoundData`.
+- **WBTC:** Rechenadapter ohne `latestRoundData`.
+- **cbBTC:** Aave bewertet cbBTC mit BTC / USD.
+- **PAXG:** keine Reserve.
+
+**Redundant:** Für WETH liefert der direkte Feed dasselbe Paar ohne den Umweg über Aave. Der Adapter ist deshalb nirgends Standard und wird vom Uniswap-Leser nicht aufgerufen. Die produktive Aave-Bewertung bleibt unverändert.
+

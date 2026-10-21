@@ -5,8 +5,13 @@
  *  - ethereum-verify: Nexus-Produkt 72 (API und CoverProducts on-chain), kanonische
  *    Uniswap-Adressen aus dem SDK und ihre on-chain-Gegenprobe, CREATE2-Ableitung
  *  - positions: neun Live-Positionen in einem Block, mit Referenzmengen aus eth_call
- *    (decreaseLiquidity/collect vom Eigentuemer simuliert, nichts gesendet), dazu
- *    die Aave-Core-Preise desselben Blocks
+ *    (decreaseLiquidity/collect vom Eigentuemer simuliert, nichts gesendet)
+ *  - prices/chainlink-ethereum: die Chainlink-Runden (ETH, USDC, cbBTC, USDT,
+ *    WBTC/BTC, BTC, PAXG), gelesen in Block 26240768. Jede dieser Runden ist
+ *    VOR dem Positionsblock 26240621 veroeffentlicht und bis 26240768 nicht
+ *    ersetzt worden - sie ist also genau die Runde, die im Positionsblock galt.
+ *    Der nachgebaute Client liefert sie unveraendert zum Zeitstempel des
+ *    Positionsblocks; Frische und Pruefungen laufen wie on-chain.
  *  - reference-vectors: TickMath-Snapshot aus v3-core und Positionswerte aus dem v3-sdk
  * Geprueft werden Mathematik, Validierung, Leser (ueber einen nachgebauten
  * Client), Exposure, Readiness und dass nichts davon produktiv erreichbar ist.
@@ -25,6 +30,7 @@ Object.assign(process.env, {
 
 const M = await import('../src/positions/uniswap-v3-math.mjs');
 const U = await import('../src/positions/uniswap-v3-ethereum.mjs');
+const P = await import('../src/positions/price-reference.mjs');
 const { AAVE_V3_MARKETS, nexusProductIdFor } = await import('../src/positions/aave-registry.mjs');
 const { PINNED_PRODUCTS } = await import('../src/nexus-pinned.mjs');
 const { matchPositionToNexus } = await import('../src/positions/nexus-mapping.mjs');
@@ -36,6 +42,7 @@ const load = (name) => JSON.parse(readFileSync(new URL(`./fixtures/uniswap/${nam
 const VERIFY = load('ethereum-verify-20261021.json');
 const LIVE = load('positions-20261021.json');
 const REF = load('reference-vectors.json');
+const PRICES = JSON.parse(readFileSync(new URL('./fixtures/prices/chainlink-ethereum-20261021.json', import.meta.url), 'utf8'));
 const CODE = {
 	npm: readFileSync(new URL('./fixtures/uniswap/runtime-npm-c36442b4.hex', import.meta.url), 'utf8').trim(),
 	factory: readFileSync(new URL('./fixtures/uniswap/runtime-factory-1f98431c.hex', import.meta.url), 'utf8').trim()
@@ -46,6 +53,8 @@ const ZERO = '0x0000000000000000000000000000000000000000';
 const WALLET = '0x1111111111111111111111111111111111111111';
 const OTHER = '0x2222222222222222222222222222222222222222';
 const BLOCK = BigInt(LIVE.block.number);
+const BLOCK_TIME = BigInt(LIVE.block.timestamp);
+const FEED_BY_PROXY = new Map(Object.entries(PRICES.feeds).map(([key, f]) => [f.directory.proxyAddress.toLowerCase(), { key, ...f.onchain }]));
 const B = (x) => BigInt(x);
 const byId = Object.fromEntries(LIVE.vectors.map((v) => [v.tokenId, v]));
 const lc = (a) => a.toLowerCase();
@@ -77,7 +86,6 @@ function world(ids, { patch = () => undefined, chainId = 1, code = CODE, extraPo
 	for (const [id, entry] of Object.entries(extraPositions)) positions.set(B(id), entry);
 	for (const [address, pool] of Object.entries(extraPools)) pools.set(lc(address), pool);
 	for (const [address, token] of Object.entries(extraTokens)) tokens.set(lc(address), token);
-	const prices = LIVE.aaveCorePrices;
 	const calls = [];
 	const success = (result) => ({ status: 'success', result });
 	const failure = (why) => ({ status: 'failure', error: new Error(why) });
@@ -113,14 +121,12 @@ function world(ids, { patch = () => undefined, chainId = 1, code = CODE, extraPo
 			if (fn === 'decimals') return t.decimals === undefined ? failure('no decimals') : success(t.decimals);
 			if (fn === 'symbol') return success(t.symbol);
 		}
-		if (a === lc(CORE.pool) && fn === 'getReservesList') return success(prices.aaveCore.reserves.map((a) => getAddress(a)));
-		if (a === lc(CORE.oracle)) {
-			if (fn === 'BASE_CURRENCY') return success(prices.aaveCore.baseCurrency);
-			if (fn === 'BASE_CURRENCY_UNIT') return success(B(prices.aaveCore.baseUnit));
-			if (fn === 'getAssetsPrices') {
-				const out = c.args[0].map((asset) => Object.entries(prices.prices).find(([k]) => lc(k) === lc(asset))?.[1]);
-				return out.every((x) => x !== undefined) ? success(out.map(B)) : failure('price revert');
-			}
+		if (FEED_BY_PROXY.has(a)) {
+			const f = FEED_BY_PROXY.get(a);
+			const r = f.latestRoundData;
+			if (fn === 'description') return success(f.description);
+			if (fn === 'decimals') return success(f.decimals);
+			if (fn === 'latestRoundData') return success([B(r.roundId), B(r.answer), B(r.startedAt), B(r.updatedAt), B(r.answeredInRound)]);
 		}
 		return failure('no contract');
 	};
@@ -128,7 +134,7 @@ function world(ids, { patch = () => undefined, chainId = 1, code = CODE, extraPo
 		calls,
 		client: {
 			async getChainId() { return chainId; },
-			async getBlockNumber() { if (delay === 'block') return new Promise(() => {}); return BLOCK; },
+			async getBlock() { if (delay === 'block') return new Promise(() => {}); return { number: BLOCK, timestamp: BLOCK_TIME, hash: '0x00' }; },
 			async getCode({ address, blockNumber }) {
 				assert.equal(blockNumber, BLOCK, 'getCode at the scan block');
 				if (lc(address) === lc(D.positionManager)) return code.npm;
@@ -174,7 +180,14 @@ function rawFor(id, patch = {}) {
 const validate = (raw, opts = {}) => U.validatePosition(raw, { wallet: WALLET, chainId: 1, ...opts });
 
 const IN = '1387464', IN2 = '1387513', IN3 = '1387263', ABOVE_WBTC = '1387314', ABOVE_USDC = '1380247', ZERO_LIQ = '1387153', BELOW_PAXG = '1383966', BELOW_WETH = '1384767';
-const priceOf = (address) => B(Object.entries(LIVE.aaveCorePrices.prices).find(([k]) => lc(k) === lc(address))[1]);
+// Erwarteter Preis unabhaengig vom Modul: Antwort des Feeds aus dem Mitschnitt; WBTC = WBTC/BTC x BTC/USD / 1e8.
+const answerOf = (key) => B(PRICES.feeds[key].onchain.latestRoundData.answer);
+const FEED_OF_SYMBOL = { WETH: 'eth-usd', USDC: 'usdc-usd', cbBTC: 'cbbtc-usd', USDT: 'usdt-usd', PAXG: 'paxg-usd' };
+const priceOf = (address) => {
+	const symbol = Object.entries(PRICES.tokens).find(([, t]) => lc(t.address) === lc(address))[0];
+	return symbol === 'WBTC' ? (answerOf('wbtc-btc') * answerOf('btc-usd')) / 10n ** 8n : answerOf(FEED_OF_SYMBOL[symbol]);
+};
+const PROXIES = Object.values(PRICES.feeds).map((f) => f.directory.proxyAddress);
 const usd8 = (amount, decimals, price) => (B(amount) * price) / 10n ** BigInt(decimals);
 
 /* ------------------------------------------------------------- Registry -- */
@@ -418,23 +431,28 @@ test('UNI-READER multiple NFTs: same pool twice, two fee tiers, three pairs, 6/8
 		const e = result.exposures[i];
 		const [a0, a1] = v.reference.decreaseLiquidityAll;
 		const legs = [[a0, v.token0], [a1, v.token1]].map(([amount, token]) => (amount === '0' ? 0n : usd8(amount, token.decimals, priceOf(token.address))));
-		assert.equal(e.suggestedExposureUsd8, String(legs[0] + legs[1]), `exposure ${id} from the eth_call reference and the Aave price`);
+		assert.equal(e.suggestedExposureUsd8, String(legs[0] + legs[1]), `exposure ${id} from the eth_call reference and the Chainlink price`);
 		assert.equal(e.pricingStatus, 'PRICED');
+		assert.deepEqual([e.blockNumber, e.blockTimestamp], [String(BLOCK), String(BLOCK_TIME)], 'exposure carries its block');
+		assert.ok(e.priceSources.every((source) => PROXIES.some((proxy) => source.feeds.includes(proxy))), 'priced by a pinned Chainlink feed');
 		assert.equal(e.feesIncluded, false);
 		assert.equal(e.suggestedExposureUsd, e.principalExposureUsd, 'suggested = principal only');
 	}
 	// WETH/kpdWBTC unterhalb der Spanne: nur WETH vorhanden, der unbekannte Token braucht keinen Preis
 	const weird = result.exposures[5];
 	assert.deepEqual([weird.amount1, weird.pricingStatus, weird.value1Usd], ['0', 'PRICED', '0']);
-	assert.equal(result.priceBook[lc(byId[BELOW_WETH].token1.address)].status, 'UNKNOWN');
+	assert.deepEqual([result.priceBook[lc(byId[BELOW_WETH].token1.address)].status, result.priceBook[lc(byId[BELOW_WETH].token1.address)].reason], ['PRICE_UNAVAILABLE', 'UNSUPPORTED_TOKEN'], 'zero leg: missing price does not block');
+	assert.equal(result.blockTimestamp, String(BLOCK_TIME));
+	assert.ok(Object.values(result.priceBook).every((entry) => entry.blockNumber === String(BLOCK)), 'prices from the scan block');
 	const sum = result.exposures.reduce((total, e) => total + B(e.suggestedExposureUsd8), 0n);
-	assert.deepEqual([result.aggregate.status, result.aggregate.countedPositions, result.aggregate.activePositions], ['COMPLETE', 6, 6]);
+	assert.deepEqual([result.aggregate.status, result.aggregate.positions, result.aggregate.countedPositions, result.aggregate.activePositions, result.aggregate.pricedPositions, result.aggregate.unpricedPositions], ['COMPLETE', 6, 6, 6, 6, 0]);
 	assert.equal(result.aggregate.suggestedExposureUsd, formatUnits(sum, 8), 'exact sum of the six valid positions');
 	assert.equal(result.aggregate.suggestedExposureUsd, result.aggregate.countedExposureUsd);
 	// nur gepruefte Vertraege, nur lesende Funktionen
-	const allowed = new Set([D.positionManager, D.factory, CORE.pool, CORE.oracle, ...pools, ...result.positions.flatMap((p) => [p.token0.address, p.token1.address])].map(lc));
-	assert.ok(calls.every((c) => allowed.has(lc(c.address))), 'only canonical contracts, derived pools and the position tokens');
-	const views = new Set(['factory', 'WETH9', 'supportsInterface', 'balanceOf', 'tokenOfOwnerByIndex', 'positions', 'ownerOf', 'feeAmountTickSpacing', 'getPool', 'token0', 'token1', 'fee', 'tickSpacing', 'slot0', 'feeGrowthGlobal0X128', 'feeGrowthGlobal1X128', 'ticks', 'decimals', 'symbol', 'getReservesList', 'BASE_CURRENCY', 'BASE_CURRENCY_UNIT', 'getAssetsPrices']);
+	const allowed = new Set([D.positionManager, D.factory, ...PROXIES, ...pools, ...result.positions.flatMap((p) => [p.token0.address, p.token1.address])].map(lc));
+	assert.ok(calls.every((c) => allowed.has(lc(c.address))), 'only canonical contracts, derived pools, the position tokens and pinned Chainlink proxies');
+	assert.ok(!calls.some((c) => lc(c.address) === lc(CORE.oracle) || lc(c.address) === lc(CORE.pool)), 'Aave is not the price source');
+	const views = new Set(['factory', 'WETH9', 'supportsInterface', 'balanceOf', 'tokenOfOwnerByIndex', 'positions', 'ownerOf', 'feeAmountTickSpacing', 'getPool', 'token0', 'token1', 'fee', 'tickSpacing', 'slot0', 'feeGrowthGlobal0X128', 'feeGrowthGlobal1X128', 'ticks', 'decimals', 'symbol', 'description', 'latestRoundData']);
 	assert.deepEqual(calls.filter((c) => !views.has(c.functionName)).map((c) => c.functionName), []);
 	assert.ok(calls.every((c) => c.abi.find((f) => f.name === c.functionName).stateMutability === 'view'));
 });
@@ -459,15 +477,27 @@ test('UNI-READER zero liquidity: closed NFT is not active principal; fees left a
 	assert.equal(U.uniswapV3Readiness(onlyClosed).exposureReady, false);
 });
 
-test('UNI-READER missing price and look-alike symbols fail closed for the suggestion; the sum is marked incomplete', async () => {
-	const { result } = await scan([IN, BELOW_PAXG]);
+test('UNI-READER PAXG is priced by its own feed; one stale required price makes the NFT unpriced and the sum incomplete', async () => {
+	const priced = (await scan([IN, BELOW_PAXG])).result;
+	const paxgAddress = getAddress(byId[BELOW_PAXG].token0.address);
+	assert.deepEqual([priced.exposures[1].pricingStatus, priced.exposures[1].priceSources[0].sourceAddress], ['PRICED', P.CHAINLINK_FEEDS['paxg-usd'].proxy]);
+	assert.equal(priced.exposures[1].suggestedExposureUsd8, String(usd8(byId[BELOW_PAXG].reference.decreaseLiquidityAll[0], 18, answerOf('paxg-usd'))));
+	assert.equal(priced.aggregate.status, 'COMPLETE');
+
+	// PAXG-Runde aelter als 86400 + 4320 s: diese Position ohne Preis, die andere bleibt gezaehlt
+	const stale = (c) => (c.functionName === 'latestRoundData' && lc(c.address) === lc(P.CHAINLINK_FEEDS['paxg-usd'].proxy) ? { status: 'success', result: [5n, 412282751395n, 1n, BLOCK_TIME - 90_721n, 5n] } : undefined);
+	const { result } = await scan([IN, BELOW_PAXG], { patch: stale });
 	assert.equal(result.status, 'OK');
 	const paxg = result.exposures[1];
 	assert.deepEqual([paxg.pricingStatus, paxg.principalExposureUsd, paxg.suggestedExposureUsd, paxg.counted], ['UNKNOWN', null, null, false]);
-	assert.deepEqual(paxg.missingPrices, [getAddress(byId[BELOW_PAXG].token0.address)]);
-	assert.equal(result.priceBook[lc(byId[BELOW_PAXG].token0.address)].reason, 'NOT_AN_AAVE_CORE_RESERVE');
+	assert.deepEqual(paxg.missingPrices, [{ token: paxgAddress, status: 'PRICE_STALE', reason: 'paxg-usd:OLDER_THAN_HEARTBEAT' }]);
 	assert.deepEqual([result.aggregate.status, result.aggregate.suggestedExposureUsd, result.aggregate.excluded], ['INCOMPLETE', null, [{ tokenId: BELOW_PAXG, reason: 'PRICING_UNKNOWN' }]]);
+	assert.deepEqual([result.aggregate.positions, result.aggregate.activePositions, result.aggregate.pricedPositions, result.aggregate.unpricedPositions, [...result.aggregate.incompleteReasons]], [2, 2, 1, 1, ['PRICING_UNKNOWN']]);
 	assert.equal(result.aggregate.countedExposureUsd, result.exposures[0].suggestedExposureUsd, 'valid positions are still summed, but not suggested');
+	assert.equal(U.uniswapV3Readiness(result).pricingReady, false);
+	// eine Sekunde frischer: wieder bewertet (Grenze genau bei maxAge)
+	const edge = (c) => (c.functionName === 'latestRoundData' && lc(c.address) === lc(P.CHAINLINK_FEEDS['paxg-usd'].proxy) ? { status: 'success', result: [5n, 412282751395n, 1n, BLOCK_TIME - 90_720n, 5n] } : undefined);
+	assert.equal((await scan([BELOW_PAXG], { patch: edge })).result.exposures[0].pricingStatus, 'PRICED');
 
 	// gleicher Name/Symbol, andere Adresse: ein falscher "USDC" (6 Stellen) neben WETH bekommt keinen USDC-Preis
 	const FAKE_USDC = '0x00000000000000000000000000000000000fa4e1';
@@ -484,10 +514,13 @@ test('UNI-READER missing price and look-alike symbols fail closed for the sugges
 	assert.equal(spoof.positions[0].status, 'VALID');
 	const fake = spoof.positions[0][lc(token0) === lc(FAKE_USDC) ? 'token0' : 'token1'];
 	assert.deepEqual([fake.symbol, fake.address], ['USDC', getAddress(FAKE_USDC)]);
-	assert.equal(spoof.priceBook[lc(FAKE_USDC)].status, 'UNKNOWN');
+	assert.deepEqual([spoof.priceBook[lc(FAKE_USDC)].status, spoof.priceBook[lc(FAKE_USDC)].reason], ['PRICE_UNAVAILABLE', 'UNSUPPORTED_TOKEN']);
 	assert.equal(spoof.exposures[0].pricingStatus, 'UNKNOWN');
 	assert.equal(spoof.exposures[0].suggestedExposureUsd, null);
 	assert.ok(!Object.keys(spoof.priceBook).includes('usdc'), 'never keyed by symbol');
+	assert.ok(spoof.exposures[0].missingPrices.some((m) => m.token === getAddress(FAKE_USDC)));
+	// kein Rueckgriff auf den Pool: trotz bekanntem WETH-Preis und Pool-Kurs kein USD-Wert fuer den falschen USDC
+	assert.equal(spoof.exposures[0][lc(token0) === lc(FAKE_USDC) ? 'value0Usd' : 'value1Usd'], null);
 });
 
 test('UNI-READER transferred, burned, fake and cross-pool NFTs are rejected individually or fail the scan closed', async () => {
@@ -546,14 +579,22 @@ test('UNI-READER wrong chain, wrong contracts, partial multicall, timeouts and l
 	const { result } = await scan([IN, ABOVE_USDC], { patch: (c) => (c.functionName === 'slot0' && lc(c.address) === lc(byId[ABOVE_USDC].pool) ? { status: 'failure', error: new Error('x') } : undefined) });
 	assert.deepEqual(result.positions.map((p) => [p.status, p.reason]), [['VALID', undefined], ['UNAVAILABLE', 'POOL_READ_FAILED']]);
 	assert.deepEqual([result.aggregate.status, result.aggregate.suggestedExposureUsd], ['INCOMPLETE', null]);
-	// Preisaufruf faellt aus: kein Vorschlag
-	const noPrice = (await scan([IN], { patch: (c) => (c.functionName === 'getAssetsPrices' ? { status: 'failure', error: new Error('x') } : undefined) })).result;
-	assert.deepEqual([noPrice.exposures[0].pricingStatus, noPrice.exposures[0].suggestedExposureUsd, noPrice.priceBook[lc(D.weth9)].reason], ['UNKNOWN', null, 'ORACLE_UNAVAILABLE']);
-	const badBase = (await scan([IN], { patch: (c) => (c.functionName === 'BASE_CURRENCY_UNIT' ? { status: 'success', result: 10n ** 18n } : undefined) })).result;
-	assert.equal(badBase.exposures[0].suggestedExposureUsd, null);
-	const zeroPrice = (await scan([IN], { patch: (c) => (c.functionName === 'getAssetsPrices' ? { status: 'success', result: c.args[0].map(() => 0n) } : undefined) })).result;
-	assert.equal(zeroPrice.priceBook[lc(D.weth9)].reason, 'ZERO_PRICE');
-	assert.equal(zeroPrice.exposures[0].suggestedExposureUsd, null);
+	// Preis-Feed faellt aus oder liefert Unsinn: kein Vorschlag
+	const ethFeed = lc(P.CHAINLINK_FEEDS['eth-usd'].proxy);
+	const feedPatch = (functionName, response) => (c) => (c.functionName === functionName && lc(c.address) === ethFeed ? response : undefined);
+	const noPrice = (await scan([IN], { patch: feedPatch('latestRoundData', { status: 'failure', error: new Error('x') }) })).result;
+	assert.deepEqual([noPrice.exposures[0].pricingStatus, noPrice.exposures[0].suggestedExposureUsd, noPrice.priceBook[lc(D.weth9)].reason], ['UNKNOWN', null, 'eth-usd:FEED_READ_FAILED']);
+	for (const [fn, result, reason] of [
+		['latestRoundData', [9n, 0n, 1n, BLOCK_TIME - 10n, 9n], 'eth-usd:NON_POSITIVE_ANSWER'],
+		['latestRoundData', [9n, -1n, 1n, BLOCK_TIME - 10n, 9n], 'eth-usd:NON_POSITIVE_ANSWER'],
+		['latestRoundData', [9n, 245545211980n, 1n, BLOCK_TIME + 1n, 9n], 'eth-usd:UPDATED_IN_FUTURE'],
+		['latestRoundData', [9n, 245545211980n, 0n, 0n, 9n], 'eth-usd:ROUND_INCOMPLETE'],
+		['description', 'ETH / EUR', 'eth-usd:DESCRIPTION_MISMATCH'],
+		['decimals', 18, 'eth-usd:DECIMALS_MISMATCH']
+	]) {
+		const bad = (await scan([IN], { patch: feedPatch(fn, { status: 'success', result }) })).result;
+		assert.deepEqual([bad.exposures[0].pricingStatus, bad.exposures[0].suggestedExposureUsd, bad.priceBook[lc(D.weth9)].reason, bad.aggregate.status], ['UNKNOWN', null, reason, 'INCOMPLETE'], reason);
+	}
 	// leere Wallet: OK und vollstaendig, Summe 0, aber nicht exposure-bereit
 	const empty = (await scan([])).result;
 	assert.deepEqual([empty.status, empty.positions.length, empty.aggregate.status, empty.aggregate.suggestedExposureUsd], ['OK', 0, 'COMPLETE', '0']);
@@ -580,10 +621,16 @@ test('UNI-EXPOSURE definition, principal only, fees separate, invalid positions 
 		assert.deepEqual([x.counted, x.suggestedExposureUsd, x.pricingStatus], [false, null, 'NOT_APPLICABLE']);
 	}
 	// ein Preis, der nicht zur exakten Adresse gehoert, gilt nicht
-	const forged = { ...result.priceBook, [lc(D.weth9)]: { ...result.priceBook[lc(D.weth9)], address: OTHER } };
+	const forged = { ...result.priceBook, [lc(D.weth9)]: { ...result.priceBook[lc(D.weth9)], token: OTHER } };
 	assert.equal(U.computeUniswapLpExposure(result.positions[0], forged).pricingStatus, 'UNKNOWN');
 	assert.equal(U.computeUniswapLpExposure(result.positions[0], {}).pricingStatus, 'UNKNOWN');
-	assert.equal(U.computeUniswapLpExposure(result.positions[0], { [lc(D.weth9)]: { ...result.priceBook[lc(D.weth9)], priceUsd8: 245808160000 } }).pricingStatus, 'UNKNOWN', 'number price is not accepted');
+	assert.equal(U.computeUniswapLpExposure(result.positions[0], { ...result.priceBook, [lc(D.weth9)]: { ...result.priceBook[lc(D.weth9)], priceUsd8: 245545211980 } }).pricingStatus, 'UNKNOWN', 'number price is not accepted');
+	assert.equal(U.computeUniswapLpExposure(result.positions[0], { ...result.priceBook, [lc(D.weth9)]: { ...result.priceBook[lc(D.weth9)], chainId: 10 } }).pricingStatus, 'UNKNOWN', 'price from another chain');
+	// selber Block: ein Preis aus einem anderen Block gilt nicht fuer diese Position
+	const otherBlock = { ...result.priceBook, [lc(D.weth9)]: { ...result.priceBook[lc(D.weth9)], blockNumber: String(BLOCK - 1n) } };
+	const moved = U.computeUniswapLpExposure(result.positions[0], otherBlock);
+	assert.deepEqual([moved.pricingStatus, moved.missingPrices[0].reason], ['UNKNOWN', 'NOT_SAME_BLOCK']);
+	assert.equal(U.computeUniswapLpExposure({ ...result.positions[0], blockNumber: null }, result.priceBook).pricingStatus, 'UNKNOWN', 'position without block');
 	const agg = U.aggregateUniswapLpExposure(result.exposures, { scanStatus: 'UNAVAILABLE' });
 	assert.equal(agg.suggestedExposureUsd, null, 'never a sum for an unreadable scan');
 });
@@ -592,7 +639,7 @@ test('UNI-READINESS quoteReady stays false even with MATCHED mapping and a compl
 	const { result } = await scan([IN, ABOVE_WBTC]);
 	const r = U.uniswapV3Readiness(result);
 	assert.deepEqual([r.deploymentClass, r.nexusMappingClass, r.positionValid, r.exposureReady], ['CANONICAL', 'MATCHED', true, true]);
-	assert.deepEqual([r.pricingReady, r.termsReady, r.proofOfLossReady, r.quoteReady], [false, false, false, false]);
+	assert.deepEqual([r.pricingReady, r.termsReady, r.proofOfLossReady, r.quoteReady], [true, false, false, false]);
 	assert.deepEqual([...r.blockers], [...U.PHASE_BLOCKERS]);
 	for (const position of result.positions) assert.deepEqual(U.uniswapNexusMapping(position), { mappingClass: 'MATCHED', productId: 72, reason: 'CANONICAL_DEPLOYMENT_PRODUCT_72', quoteEligible: false });
 	assert.equal(U.uniswapNexusMapping({ ...result.positions[0], chainId: 10 }).mappingClass, 'UNSUPPORTED');
@@ -607,9 +654,10 @@ test('UNI-READINESS quoteReady stays false even with MATCHED mapping and a compl
 		assert.equal(x.quoteReady, false);
 		assert.ok(x.blockers.length >= U.PHASE_BLOCKERS.length);
 	}
-	const bad = await scan([IN, BELOW_PAXG]);
+	const bad = await scan([IN, BELOW_PAXG], { patch: (c) => (c.functionName === 'latestRoundData' && lc(c.address) === lc(P.CHAINLINK_FEEDS['paxg-usd'].proxy) ? { status: 'failure', error: new Error('x') } : undefined) });
 	assert.ok(U.uniswapV3Readiness(bad.result).blockers.includes('EXPOSURE_NOT_READY'));
-	assert.ok(U.uniswapV3SupportMatrix().every((row) => row.quoteReady === false && row.productionEnabled === false && row.pricingReady === false && row.feesInSuggestedExposure === false));
+	assert.ok(U.uniswapV3Readiness(bad.result).blockers.includes('PRICING_INCOMPLETE'));
+	assert.ok(U.uniswapV3SupportMatrix().every((row) => row.quoteReady === false && row.productionEnabled === false && row.usdFromPoolSpotPrice === false && row.feesInSuggestedExposure === false));
 });
 
 /* -------------------------------------------------------------- Isolation -- */
@@ -622,6 +670,8 @@ test('UNI-ISOLATION no production import, no route, no browser RPC, no wallet ca
 	const sources = ['api', 'src', 'web', 'scripts'].flatMap((dir) => walk(path.join(REPO, dir))).filter((file) => /\.(m?js|html)$/.test(file));
 	const importers = sources.filter((file) => /uniswap-v3-(ethereum|math)/.test(readFileSync(file, 'utf8'))).map((file) => path.relative(REPO, file));
 	assert.deepEqual(importers, ['src/positions/uniswap-v3-ethereum.mjs'], 'only the module itself refers to the math; nothing refers to the module');
+	const priceImporters = sources.filter((file) => /price-reference/.test(readFileSync(file, 'utf8'))).map((file) => path.relative(REPO, file));
+	assert.deepEqual(priceImporters, ['src/positions/aave-multichain-activation.mjs', 'src/positions/uniswap-v3-ethereum.mjs'], 'only the two inactive preparations use the price layer');
 	assert.deepEqual(walk(path.join(REPO, 'api')).map((f) => path.relative(REPO, f)).filter((f) => /uniswap|liquidity|lp-|-lp/i.test(f)), [], 'no API route');
 	for (const file of sources.filter((f) => path.relative(REPO, f).startsWith('web/'))) {
 		const code = readFileSync(file, 'utf8');
@@ -629,7 +679,7 @@ test('UNI-ISOLATION no production import, no route, no browser RPC, no wallet ca
 	}
 	// keine Transaktions- oder Wallet-Methode in den neuen Modulen (Kommentare ausgenommen)
 	const strip = (code) => code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\s\/\/ .*$/gm, '');
-	for (const file of ['src/positions/uniswap-v3-ethereum.mjs', 'src/positions/uniswap-v3-math.mjs']) {
+	for (const file of ['src/positions/uniswap-v3-ethereum.mjs', 'src/positions/uniswap-v3-math.mjs', 'src/positions/price-reference.mjs']) {
 		const code = strip(readFileSync(path.join(REPO, file), 'utf8'));
 		assert.doesNotMatch(code, /decreaseLiquidity|increaseLiquidity|collect\b|['"]burn['"]|['"]mint['"]|safeTransferFrom|transferFrom|approve|setApprovalForAll|permit|sendTransaction|sendRawTransaction|writeContract|signTypedData|signMessage|personal_sign|createWalletClient|walletActions|\.request\(|eth_call|buyCover|fetch\(/, file);
 		assert.doesNotMatch(code, /stateMutability: '(nonpayable|payable)'/, `${file}: only view ABI entries`);

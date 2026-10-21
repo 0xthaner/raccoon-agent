@@ -9,7 +9,12 @@
 	Weg:  Wallet -> NFTs des kanonischen NonfungiblePositionManager (ERC721Enumerable)
 	      -> positions(tokenId) + ownerOf(tokenId) -> kanonischer Pool (CREATE2 UND
 	      Factory.getPool UND der Pool selbst) -> Tokenmengen (uniswap-v3-math.mjs)
-	      -> USD ueber das Aave-v3-Core-Orakel -> UNISWAP_V3_LP_EXPOSURE_V1.
+	      -> USD ueber gepruefte Preis-Referenzen (price-reference.mjs, Chainlink,
+	      selber Block) -> UNISWAP_V3_LP_EXPOSURE_V1.
+
+	Der Spotpreis des Pools (slot0) bestimmt NUR, wie sich die Position auf
+	token0/token1 verteilt (Tick-Mathematik). USD kommt nie aus dem Pool: ein
+	Angriff auf den Pool darf nicht zugleich die Bewertung des Schadens festlegen.
 
 	Quellen der Adressen (am 21.10.2026 gelesen und on-chain gegengeprueft):
 	Uniswap/sdks sdk-core src/addresses.ts (Factory, NPM), v3-sdk constants.ts und
@@ -17,8 +22,8 @@
 	Nachweis: docs/uniswap-v3-ethereum-support.md.
 */
 import { encodeAbiParameters, formatUnits, getAddress, getContractAddress, isAddress, keccak256 } from 'viem';
-import { AAVE_V3_MARKETS } from './aave-registry.mjs';
 import { safeSymbol } from './aave-v3.mjs';
+import { evaluatePriceReference, priceReadContracts, readingsFromResults, supportedPriceReferences, valueUsd8 } from './price-reference.mjs';
 import { UniswapMathError, MAX_UINT128, MAX_UINT160, feeGrowthInside, isTick, principalAmounts, uncollectedFees } from './uniswap-v3-math.mjs';
 
 export const CHAIN_ID = 1;
@@ -105,12 +110,6 @@ const ERC20_ABI = [
 	{ type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint8' }] },
 	{ type: 'function', name: 'symbol', stateMutability: 'view', inputs: [], outputs: [{ type: 'string' }] }
 ];
-const AAVE_POOL_ABI = [{ type: 'function', name: 'getReservesList', stateMutability: 'view', inputs: [], outputs: [{ type: 'address[]' }] }];
-const AAVE_ORACLE_ABI = [
-	{ type: 'function', name: 'BASE_CURRENCY', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
-	{ type: 'function', name: 'BASE_CURRENCY_UNIT', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
-	{ type: 'function', name: 'getAssetsPrices', stateMutability: 'view', inputs: [{ name: 'assets', type: 'address[]' }], outputs: [{ type: 'uint256[]' }] }
-];
 
 /*
 	NEXUS (21.10.2026, api.nexusmutual.io/v2 und CoverProducts on-chain):
@@ -182,7 +181,7 @@ function invalid(tokenId, reason) {
 	return Object.freeze({ tokenId: String(tokenId), status: 'INVALID', reason });
 }
 
-export function validatePosition(raw, { wallet, chainId, deployment = UNISWAP_V3_ETHEREUM } = {}) {
+export function validatePosition(raw, { wallet, chainId, deployment = UNISWAP_V3_ETHEREUM, block = null } = {}) {
 	const tokenId = raw?.tokenId;
 	if (typeof tokenId !== 'bigint' || tokenId < 0n) return invalid(String(tokenId), 'TOKEN_ID_INVALID');
 	if (chainId !== CHAIN_ID || deployment.chainId !== CHAIN_ID) return invalid(tokenId, 'WRONG_CHAIN');
@@ -234,6 +233,8 @@ export function validatePosition(raw, { wallet, chainId, deployment = UNISWAP_V3
 		tokenId: tokenId.toString(),
 		status: 'VALID',
 		chainId: CHAIN_ID,
+		blockNumber: typeof block?.number === 'bigint' ? block.number.toString() : null,
+		blockTimestamp: typeof block?.timestamp === 'bigint' ? block.timestamp.toString() : null,
 		deploymentKey: deployment.deploymentKey,
 		positionManager: deployment.positionManager,
 		factory: deployment.factory,
@@ -255,36 +256,17 @@ export function validatePosition(raw, { wallet, chainId, deployment = UNISWAP_V3
 }
 
 /*
-	PREISMODELL (21.10.2026). Nie der Pool-Spotpreis, nie ein Symbol.
-	Quelle ist das AaveOracle von Aave v3 Ethereum Core - dieselbe Quelle wie
-	AAVE_NET_EXPOSURE_V1 - und nur fuer Token, die im SELBEN Block Reserve des
-	Core-Pools sind (exakte Adresse). Alles andere ist UNKNOWN.
-	Frische: das AaveOracle liefert keinen Zeitstempel. Der Preis ist ein
-	Protokollpreis aus demselben Block, aber seine Frische ist NICHT geprueft
-	(freshness PROTOCOL_ORACLE_NO_TIMESTAMP); deshalb ist pricingReady false.
+	PREISE (21.10.2026): price-reference.mjs, je Token chainId + exakte Adresse
+	-> gepinnter Chainlink-Feed -> Frische gegen block.timestamp, alles im
+	Scan-Block. Die Dezimalstellen, die der Token on-chain meldet, muessen zum
+	Pin passen. Kein Pool-Spotpreis, kein Symbol, kein Aave-Orakel als Standard.
 */
-export const PRICE_SOURCE = 'AAVE_V3_ETHEREUM_CORE_ORACLE';
-const AAVE_CORE = AAVE_V3_MARKETS.find((market) => market.deploymentKey === 'aave-v3-ethereum-core');
+export const PRICE_MODEL = 'CHAINLINK_PRICE_REFERENCE_V1';
 
-export function buildPriceBook({ tokens, reserves, baseCurrency, baseUnit, prices, blockNumber }) {
+export function buildPriceBook({ tokens, block, readings }) {
 	const book = {};
-	const unknown = (reason) => Object.freeze({ status: 'UNKNOWN', reason });
-	const header = same(baseCurrency, ZERO) && baseUnit === 100_000_000n;
-	const reserveSet = new Set(Array.isArray(reserves) ? reserves.filter((a) => isAddress(a)).map(lower) : []);
-	const priced = Array.isArray(prices) ? prices : null;
-	const asked = tokens.filter((t) => reserveSet.has(lower(t)));
-	for (const address of tokens) {
-		const key = lower(address);
-		if (!header) { book[key] = unknown('ORACLE_UNAVAILABLE'); continue; }
-		if (!reserveSet.has(key)) { book[key] = unknown('NOT_AN_AAVE_CORE_RESERVE'); continue; }
-		const index = asked.findIndex((t) => lower(t) === key);
-		const price = priced && priced.length === asked.length ? priced[index] : undefined;
-		if (typeof price !== 'bigint') { book[key] = unknown('ORACLE_UNAVAILABLE'); continue; }
-		if (price <= 0n) { book[key] = unknown('ZERO_PRICE'); continue; }
-		book[key] = Object.freeze({
-			status: 'PRICED', address: getAddress(address), priceUsd8: price, source: PRICE_SOURCE, oracle: AAVE_CORE.oracle,
-			blockNumber: String(blockNumber), freshness: 'PROTOCOL_ORACLE_NO_TIMESTAMP'
-		});
+	for (const { address, decimals } of tokens) {
+		book[lower(address)] = evaluatePriceReference({ chainId: CHAIN_ID, token: address, decimals, block, readings });
 	}
 	return Object.freeze(book);
 }
@@ -305,24 +287,35 @@ export const EXPOSURE_DEFINITION = 'current estimated economic value of assets r
 export const EXPOSURE_IS_NOT = Object.freeze(['guaranteed claimable amount', 'insured value', 'protection against impermanent loss', 'protection against normal market losses']);
 
 const USD_DECIMALS = 8;
-const toUsd8 = (amount, decimals, price) => (amount * price) / 10n ** BigInt(decimals);
 const usd = (value) => (value === null ? null : formatUnits(value, USD_DECIMALS));
+
+/* Ein Preis gilt nur: PRICE_OK, exakte Adresse, chainId 1 und derselbe Block wie die Position. */
+function priceFor(position, token, priceBook) {
+	const entry = Object.hasOwn(priceBook ?? {}, lower(token.address)) ? priceBook[lower(token.address)] : null;
+	if (!entry) return { problem: 'NO_PRICE_REFERENCE' };
+	if (entry.status !== 'PRICE_OK') return { problem: entry.status, reason: entry.reason };
+	if (typeof entry.priceUsd8 !== 'bigint' || entry.priceUsd8 <= 0n || !same(entry.token, token.address) || entry.chainId !== CHAIN_ID) return { problem: 'PRICE_SOURCE_INVALID', reason: 'PRICE_ENTRY_MISMATCH' };
+	if (position.blockNumber === null || entry.blockNumber !== position.blockNumber) return { problem: 'PRICE_UNAVAILABLE', reason: 'NOT_SAME_BLOCK' };
+	return { entry };
+}
 
 function valuePair(position, amounts, priceBook) {
 	const legs = [[position.token0, BigInt(amounts.amount0Raw)], [position.token1, BigInt(amounts.amount1Raw)]];
 	const missing = [];
+	const sources = [];
 	const values = legs.map(([token, amount]) => {
 		if (amount === 0n) return 0n;
-		const entry = Object.hasOwn(priceBook ?? {}, lower(token.address)) ? priceBook[lower(token.address)] : null;
-		if (entry?.status !== 'PRICED' || typeof entry.priceUsd8 !== 'bigint' || entry.priceUsd8 <= 0n || !same(entry.address, token.address)) {
-			missing.push(token.address);
+		const { entry, problem, reason } = priceFor(position, token, priceBook);
+		if (!entry) {
+			missing.push(Object.freeze({ token: token.address, status: problem, reason: reason ?? null }));
 			return null;
 		}
-		return toUsd8(amount, token.decimals, entry.priceUsd8);
+		sources.push(Object.freeze({ token: token.address, sourceType: entry.sourceType, sourceAddress: entry.sourceAddress, feeds: entry.feeds, priceUsd8: entry.priceUsd8.toString(), updatedAt: entry.updatedAt }));
+		return valueUsd8(amount, token.decimals, entry.priceUsd8);
 	});
 	const needed = legs.some(([, amount]) => amount > 0n);
 	const status = missing.length ? 'UNKNOWN' : needed ? 'PRICED' : 'NOT_REQUIRED';
-	return { values, status, missing, total: missing.length ? null : values[0] + values[1] };
+	return { values, status, missing, sources, total: missing.length ? null : values[0] + values[1] };
 }
 
 export function computeUniswapLpExposure(position, priceBook) {
@@ -336,6 +329,8 @@ export function computeUniswapLpExposure(position, priceBook) {
 		model: EXPOSURE_MODEL,
 		protocol: 'Uniswap v3',
 		chainId: CHAIN_ID,
+		blockNumber: position.blockNumber,
+		blockTimestamp: position.blockTimestamp,
 		tokenId: position.tokenId,
 		pool: position.pool,
 		fee: position.fee,
@@ -357,6 +352,8 @@ export function computeUniswapLpExposure(position, priceBook) {
 		suggestedExposureUsd8: principal.total === null ? null : principal.total.toString(),
 		pricingStatus: principal.status,
 		missingPrices: Object.freeze(principal.missing),
+		priceSources: Object.freeze(principal.sources),
+		priceModel: PRICE_MODEL,
 		counted: principal.total !== null,
 		definition: EXPOSURE_DEFINITION,
 		isNot: EXPOSURE_IS_NOT
@@ -364,8 +361,9 @@ export function computeUniswapLpExposure(position, priceBook) {
 }
 
 /**
- * Summe nur gepruefter, bewerteter Positionen. Vollstaendig nur, wenn der Scan
- * OK war und JEDE gefundene Position gezaehlt wurde; sonst kein Gesamtvorschlag.
+ * Summe nur gepruefter, voll bewerteter Positionen. Vollstaendig (COMPLETE) nur,
+ * wenn der Scan OK war und JEDE gefundene Position gezaehlt wurde; sonst gibt es
+ * keinen Gesamtvorschlag, und incompleteReasons nennt die Gruende.
  */
 export function aggregateUniswapLpExposure(exposures, { scanStatus = 'OK' } = {}) {
 	const list = Array.isArray(exposures) ? exposures : [];
@@ -373,13 +371,17 @@ export function aggregateUniswapLpExposure(exposures, { scanStatus = 'OK' } = {}
 	const excluded = list.filter((entry) => !counted.includes(entry)).map((entry) => Object.freeze({ tokenId: entry.tokenId, reason: entry.reason ?? `PRICING_${entry.pricingStatus}` }));
 	const sum = counted.reduce((total, entry) => total + BigInt(entry.suggestedExposureUsd8), 0n);
 	const complete = scanStatus === 'OK' && excluded.length === 0;
+	const incompleteReasons = [...new Set([...(scanStatus === 'OK' ? [] : [`SCAN_${scanStatus}`]), ...excluded.map((entry) => entry.reason)])];
 	return Object.freeze({
 		model: EXPOSURE_MODEL,
 		status: complete ? 'COMPLETE' : 'INCOMPLETE',
 		positions: list.length,
+		activePositions: list.filter((entry) => entry.liquidityState === 'ACTIVE').length,
+		pricedPositions: list.filter((entry) => entry.pricingStatus === 'PRICED').length,
+		unpricedPositions: list.filter((entry) => entry.pricingStatus === 'UNKNOWN').length,
 		countedPositions: counted.length,
-		activePositions: counted.filter((entry) => entry.liquidityState === 'ACTIVE').length,
 		excluded: Object.freeze(excluded),
+		incompleteReasons: Object.freeze(incompleteReasons),
 		countedExposureUsd: usd(sum),
 		suggestedExposureUsd: complete ? usd(sum) : null
 	});
@@ -422,7 +424,9 @@ const maybe = (entry) => (entry?.status === 'success' ? entry.result : undefined
 
 /**
  * Liest alle Uniswap-v3-Positionen einer Wallet auf Ethereum, nur lesend.
- * `client` braucht getChainId(), getBlockNumber(), getCode() und multicall() (viem).
+ * `client` braucht getChainId(), getBlock(), getCode() und multicall() (viem).
+ * Positionen, Pools, Token und Preis-Feeds stammen aus EINEM Block; das Ergebnis
+ * nennt blockNumber und blockTimestamp, und "jetzt" fuer die Frische ist dieser Zeitstempel.
  * Ergebnis: { status: 'OK', ... } oder { status: 'UNAVAILABLE', reason } - nie
  * "keine Position", wenn nicht vollstaendig gelesen werden konnte.
  */
@@ -433,12 +437,16 @@ export async function readUniswapV3Positions(wallet, { client, deployment = UNIS
 	const detectedAt = new Date(now()).toISOString();
 	const counter = { calls: 0 };
 	let blockNumber = null;
+	let blockTimestamp = null;
 	try {
 		if (deployment !== UNISWAP_V3_ETHEREUM) throw new ScanUnavailable('UNKNOWN_DEPLOYMENT');
 		const chainId = await withTimeout(Promise.resolve().then(() => client.getChainId()), budget(deadline, rpcTimeoutMs), 'RPC_TIMEOUT');
 		if (chainId !== CHAIN_ID) throw new ScanUnavailable('WRONG_CHAIN');
-		blockNumber = await withTimeout(Promise.resolve().then(() => client.getBlockNumber()), budget(deadline, rpcTimeoutMs), 'RPC_TIMEOUT');
-		if (typeof blockNumber !== 'bigint' || blockNumber <= 0n) throw new ScanUnavailable('BAD_BLOCK');
+		const head0 = await withTimeout(Promise.resolve().then(() => client.getBlock()), budget(deadline, rpcTimeoutMs), 'RPC_TIMEOUT');
+		if (typeof head0?.number !== 'bigint' || head0.number <= 0n || typeof head0.timestamp !== 'bigint' || head0.timestamp <= 0n) throw new ScanUnavailable('BAD_BLOCK');
+		blockNumber = head0.number;
+		blockTimestamp = head0.timestamp;
+		const block = Object.freeze({ number: blockNumber, timestamp: blockTimestamp });
 
 		// Runde 0: Code der beiden Kernvertraege - Name und Adresse allein reichen nicht.
 		const [factoryCode, npmCode] = await withTimeout(Promise.all([
@@ -448,17 +456,14 @@ export async function readUniswapV3Positions(wallet, { client, deployment = UNIS
 		if (typeof factoryCode !== 'string' || factoryCode.length <= 2 || keccak256(factoryCode) !== deployment.factoryCodeHash) throw new ScanUnavailable('WRONG_FACTORY');
 		if (typeof npmCode !== 'string' || npmCode.length <= 2 || keccak256(npmCode) !== deployment.positionManagerCodeHash) throw new ScanUnavailable('WRONG_POSITION_MANAGER');
 
-		// Runde 1: Kopf - NPM-Verweise, Enumerable, Bestand, Gebuehrenstufen, Preisquelle.
+		// Runde 1: Kopf - NPM-Verweise, Enumerable, Bestand, Gebuehrenstufen.
 		const fees = Object.keys(deployment.feeTickSpacing).map(Number);
 		const head = await multicall(client, [
 			{ address: deployment.positionManager, abi: NPM_ABI, functionName: 'factory' },
 			{ address: deployment.positionManager, abi: NPM_ABI, functionName: 'WETH9' },
 			{ address: deployment.positionManager, abi: NPM_ABI, functionName: 'supportsInterface', args: [ERC721_ENUMERABLE] },
 			{ address: deployment.positionManager, abi: NPM_ABI, functionName: 'balanceOf', args: [user] },
-			...fees.map((fee) => ({ address: deployment.factory, abi: FACTORY_ABI, functionName: 'feeAmountTickSpacing', args: [fee] })),
-			{ address: AAVE_CORE.pool, abi: AAVE_POOL_ABI, functionName: 'getReservesList' },
-			{ address: AAVE_CORE.oracle, abi: AAVE_ORACLE_ABI, functionName: 'BASE_CURRENCY' },
-			{ address: AAVE_CORE.oracle, abi: AAVE_ORACLE_ABI, functionName: 'BASE_CURRENCY_UNIT' }
+			...fees.map((fee) => ({ address: deployment.factory, abi: FACTORY_ABI, functionName: 'feeAmountTickSpacing', args: [fee] }))
 		], blockNumber, deadline, rpcTimeoutMs, counter);
 		if (!same(ok(head[0]), deployment.factory)) throw new ScanUnavailable('WRONG_FACTORY');
 		if (!same(ok(head[1]), deployment.weth9)) throw new ScanUnavailable('WRONG_POSITION_MANAGER');
@@ -467,10 +472,9 @@ export async function readUniswapV3Positions(wallet, { client, deployment = UNIS
 		if (typeof balance !== 'bigint' || balance < 0n) throw new ScanUnavailable('BAD_BALANCE');
 		if (balance > BigInt(LIMITS.maxPositionsPerWallet)) throw new ScanUnavailable('POSITION_LIMIT');
 		const factorySpacing = Object.fromEntries(fees.map((fee, i) => [fee, Number(ok(head[4 + i]))]));
-		const priceHead = { reserves: maybe(head[4 + fees.length]), baseCurrency: maybe(head[5 + fees.length]), baseUnit: maybe(head[6 + fees.length]) };
 		const count = Number(balance);
 		if (count === 0) {
-			return Object.freeze({ status: 'OK', wallet: lower(user), chainId: CHAIN_ID, blockNumber: blockNumber.toString(), detectedAt, positions: Object.freeze([]), exposures: Object.freeze([]), priceBook: Object.freeze({}), aggregate: aggregateUniswapLpExposure([]) });
+			return Object.freeze({ status: 'OK', wallet: lower(user), chainId: CHAIN_ID, blockNumber: blockNumber.toString(), blockTimestamp: blockTimestamp.toString(), detectedAt, positions: Object.freeze([]), exposures: Object.freeze([]), priceBook: Object.freeze({}), aggregate: aggregateUniswapLpExposure([]) });
 		}
 
 		// Runde 2: Token-IDs der Wallet.
@@ -493,14 +497,12 @@ export async function readUniswapV3Positions(wallet, { client, deployment = UNIS
 		});
 		if (raws.some((raw) => raw.readFailed)) throw new ScanUnavailable('POSITION_READ_FAILED');
 
-		// Runde 4: Pools, Ticks, Token-Metadaten, Preise - nur fuer formal brauchbare Positionen.
+		// Runde 4: Pools, Ticks, Token-Metadaten und Preis-Feeds - ein Multicall, ein Block.
 		const usable = raws.filter((raw) => raw.position && isAddress(raw.position.token0) && isAddress(raw.position.token1) && BigInt(raw.position.token0) < BigInt(raw.position.token1)
 			&& Object.hasOwn(deployment.feeTickSpacing, raw.position.fee) && isTick(raw.position.tickLower) && isTick(raw.position.tickUpper));
 		const poolKey = (p) => `${lower(p.token0)}|${lower(p.token1)}|${p.fee}`;
 		const pools = [...new Map(usable.map((raw) => [poolKey(raw.position), raw.position])).values()];
 		const tokens = [...new Map(usable.flatMap((raw) => [raw.position.token0, raw.position.token1]).map((t) => [lower(t), getAddress(t)])).values()];
-		const reserveSet = new Set(Array.isArray(priceHead.reserves) ? priceHead.reserves.filter((a) => isAddress(a)).map(lower) : []);
-		const priceable = tokens.filter((t) => reserveSet.has(lower(t)));
 		const calls = [];
 		const poolCalls = pools.map((p) => {
 			const address = computePoolAddress(p.token0, p.token1, p.fee, deployment);
@@ -517,7 +519,9 @@ export async function readUniswapV3Positions(wallet, { client, deployment = UNIS
 		});
 		const tokenStart = calls.length;
 		for (const token of tokens) calls.push({ address: token, abi: ERC20_ABI, functionName: 'decimals' }, { address: token, abi: ERC20_ABI, functionName: 'symbol' });
-		const priceIndex = priceable.length ? calls.push({ address: AAVE_CORE.oracle, abi: AAVE_ORACLE_ABI, functionName: 'getAssetsPrices', args: [priceable] }) - 1 : -1;
+		const priceContracts = priceReadContracts(CHAIN_ID, tokens);
+		const priceStart = calls.length;
+		for (const { address, abi, functionName } of priceContracts) calls.push({ address, abi, functionName });
 		const round4 = await multicall(client, calls, blockNumber, deadline, rpcTimeoutMs, counter);
 
 		const meta = new Map(tokens.map((token, i) => {
@@ -559,16 +563,18 @@ export async function readUniswapV3Positions(wallet, { client, deployment = UNIS
 				tickUpperInfo: upperInfo,
 				token0Meta: meta.get(lower(raw.position.token0)),
 				token1Meta: meta.get(lower(raw.position.token1))
-			}, { wallet: user, chainId, deployment });
+			}, { wallet: user, chainId, deployment, block });
 		});
 
-		const priceBook = buildPriceBook({ tokens, reserves: priceHead.reserves, baseCurrency: priceHead.baseCurrency, baseUnit: priceHead.baseUnit, prices: priceIndex === -1 ? [] : maybe(round4[priceIndex]), blockNumber });
+		const readings = readingsFromResults(priceContracts, round4.slice(priceStart), blockNumber);
+		const priceBook = buildPriceBook({ tokens: tokens.map((address) => ({ address, decimals: meta.get(lower(address)).decimals ?? null })), block, readings });
 		const exposures = positions.map((position) => computeUniswapLpExposure(position, priceBook));
 		return Object.freeze({
 			status: 'OK',
 			wallet: lower(user),
 			chainId: CHAIN_ID,
 			blockNumber: blockNumber.toString(),
+			blockTimestamp: blockTimestamp.toString(),
 			detectedAt,
 			positions: Object.freeze(positions),
 			priceBook,
@@ -576,7 +582,7 @@ export async function readUniswapV3Positions(wallet, { client, deployment = UNIS
 			aggregate: aggregateUniswapLpExposure(exposures)
 		});
 	} catch (error) {
-		return Object.freeze({ status: 'UNAVAILABLE', reason: error instanceof ScanUnavailable ? error.reason : 'RPC_FAILED', wallet: lower(user), chainId: CHAIN_ID, blockNumber: blockNumber === null ? null : String(blockNumber), detectedAt });
+		return Object.freeze({ status: 'UNAVAILABLE', reason: error instanceof ScanUnavailable ? error.reason : 'RPC_FAILED', wallet: lower(user), chainId: CHAIN_ID, blockNumber: blockNumber === null ? null : String(blockNumber), blockTimestamp: blockTimestamp === null ? null : String(blockTimestamp), detectedAt });
 	}
 }
 
@@ -601,7 +607,6 @@ export function uniswapNexusMapping(position) {
 export const PHASE_BLOCKERS = Object.freeze([
 	'NO_QUOTE_PATH',
 	'NO_PRODUCTION_PATH',
-	'PRICE_FRESHNESS_NOT_VERIFIED',
 	'TERMS_LP_TREATMENT_UNCONFIRMED',
 	'PROOF_OF_LOSS_LP_UNCONFIRMED'
 ]);
@@ -620,13 +625,17 @@ export function uniswapV3Readiness(scan) {
 	if (nexusMappingClass !== 'MATCHED') blockers.push('NEXUS_MAPPING_NOT_MATCHED');
 	const exposureReady = scanned && scan.aggregate?.status === 'COMPLETE' && valid.some((position) => position.liquidityState === 'ACTIVE');
 	if (!exposureReady) blockers.push('EXPOSURE_NOT_READY');
+	// Preise bereit: jede gezaehlte Position voll bewertet (Chainlink, frisch, selber Block), mindestens eine mit Preis.
+	const exposures = scanned && Array.isArray(scan.exposures) ? scan.exposures : [];
+	const pricingReady = exposureReady && exposures.every((entry) => entry.pricingStatus === 'PRICED' || entry.pricingStatus === 'NOT_REQUIRED') && exposures.some((entry) => entry.pricingStatus === 'PRICED');
+	if (!pricingReady) blockers.push('PRICING_INCOMPLETE');
 	blockers.push(...PHASE_BLOCKERS);
 	return Object.freeze({
 		deploymentClass: scanned ? 'CANONICAL' : 'UNVERIFIED',
 		nexusMappingClass,
 		positionValid,
 		exposureReady,
-		pricingReady: false,
+		pricingReady,
 		termsReady: false,
 		proofOfLossReady: false,
 		quoteReady: false,
@@ -651,8 +660,10 @@ export function uniswapV3SupportMatrix() {
 		detectionReady: true,
 		exposureModel: EXPOSURE_MODEL,
 		feesInSuggestedExposure: false,
-		priceSource: PRICE_SOURCE,
-		pricingReady: false,
+		priceModel: PRICE_MODEL,
+		priceReferences: supportedPriceReferences().map((entry) => Object.freeze({ symbol: entry.symbol, token: entry.token, sourceType: entry.sourceType, feeds: entry.feeds.map((f) => f.proxy) })),
+		pricing: 'PER_SCAN_SAME_BLOCK',
+		usdFromPoolSpotPrice: false,
 		nexusProductId: NEXUS_UNISWAP_V3.productId,
 		nexusMapping: NEXUS_UNISWAP_V3.mappingClass,
 		termsReady: false,
@@ -662,4 +673,4 @@ export function uniswapV3SupportMatrix() {
 	})]);
 }
 
-export const _abi = { NPM_ABI, FACTORY_ABI, POOL_ABI, ERC20_ABI, AAVE_POOL_ABI, AAVE_ORACLE_ABI };
+export const _abi = { NPM_ABI, FACTORY_ABI, POOL_ABI, ERC20_ABI };

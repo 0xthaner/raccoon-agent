@@ -1,0 +1,547 @@
+{
+	"_source": "Read-only 2026-10-21: reference-data-directory.vercel.app/feeds-mainnet.json (data source of docs.chain.link, 300 Ethereum feeds); on-chain reads via ethereum-rpc.publicnode.com at one block (eth_call only); tokens.uniswap.org (Uniswap Labs Default list) for token addresses",
+	"readAt": "2026-10-21T11:47:10.583Z",
+	"chainId": 1,
+	"block": {
+		"number": "26240768",
+		"timestamp": "1792583219"
+	},
+	"feeds": {
+		"eth-usd": {
+			"directory": {
+				"name": "ETH / USD",
+				"proxyAddress": "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+				"contractAddress": "0x7d4E742018fb52E48b08BE73d041C18B21de6Fb5",
+				"decimals": 8,
+				"heartbeat": 3600,
+				"threshold": 0.5,
+				"ens": "eth-usd",
+				"feedCategory": "low",
+				"attributeType": "cex_price",
+				"stablecoinCapped": false,
+				"baseAsset": "ETH",
+				"quoteAsset": "USD",
+				"maxSubmissionValue": "95780971304118053647396689196894323976171195136475135"
+			},
+			"onchain": {
+				"codeBytes": 9571,
+				"decimals": 8,
+				"description": "ETH / USD",
+				"version": "6",
+				"aggregator": "0x7d4E742018fb52E48b08BE73d041C18B21de6Fb5",
+				"phaseId": 7,
+				"latestRoundData": {
+					"roundId": "129127208515966896174",
+					"answer": "245545211980",
+					"startedAt": "1792579855",
+					"updatedAt": "1792579883",
+					"answeredInRound": "129127208515966896174"
+				}
+			}
+		},
+		"usdc-usd": {
+			"directory": {
+				"name": "USDC / USD",
+				"proxyAddress": "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6",
+				"contractAddress": "0x54bCC589d9743E521c64233706FC8cB36D275b07",
+				"decimals": 8,
+				"heartbeat": 82800,
+				"threshold": 0.25,
+				"ens": "usdc-usd",
+				"feedCategory": "low",
+				"attributeType": "cex_price",
+				"stablecoinCapped": true,
+				"baseAsset": "USDC",
+				"quoteAsset": "USD",
+				"maxSubmissionValue": "105000000"
+			},
+			"onchain": {
+				"codeBytes": 9571,
+				"decimals": 8,
+				"description": "USDC / USD",
+				"version": "6",
+				"aggregator": "0x54bCC589d9743E521c64233706FC8cB36D275b07",
+				"phaseId": 4,
+				"latestRoundData": {
+					"roundId": "73786976294838206503",
+					"answer": "99981255",
+					"startedAt": "1792550639",
+					"updatedAt": "1792550651",
+					"answeredInRound": "73786976294838206503"
+				}
+			}
+		},
+		"cbbtc-usd": {
+			"directory": {
+				"name": "cbBTC / USD",
+				"proxyAddress": "0x2665701293fCbEB223D11A08D826563EDcCE423A",
+				"contractAddress": "0x5e2420cACE3650622f62B2713B2B3727FC8bCDd1",
+				"decimals": 8,
+				"heartbeat": 86400,
+				"threshold": 2,
+				"ens": "cbbtc-usd",
+				"feedCategory": "low",
+				"attributeType": "dex_state_price",
+				"stablecoinCapped": false,
+				"baseAsset": "CBBTC",
+				"quoteAsset": "USD",
+				"maxSubmissionValue": "95780971304118053647396689196894323976171195136475135"
+			},
+			"onchain": {
+				"codeBytes": 9571,
+				"decimals": 8,
+				"description": "cbBTC / USD",
+				"version": "6",
+				"aggregator": "0x5e2420cACE3650622f62B2713B2B3727FC8bCDd1",
+				"phaseId": 1,
+				"latestRoundData": {
+					"roundId": "18446744073709552918",
+					"answer": "8275941172942",
+					"startedAt": "1792551029",
+					"updatedAt": "1792551047",
+					"answeredInRound": "18446744073709552918"
+				}
+			}
+		},
+		"usdt-usd": {
+			"directory": {
+				"name": "USDT / USD",
+				"proxyAddress": "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D",
+				"contractAddress": "0x9c41663bB8d6800c8050E2Fbf98E86AD01c973e3",
+				"decimals": 8,
+				"heartbeat": 86400,
+				"threshold": 0.25,
+				"ens": "usdt-usd",
+				"feedCategory": "low",
+				"attributeType": "cex_price",
+				"stablecoinCapped": true,
+				"baseAsset": "USDT",
+				"quoteAsset": "USD",
+				"maxSubmissionValue": "105000000"
+			},
+			"onchain": {
+				"codeBytes": 9571,
+				"decimals": 8,
+				"description": "USDT / USD",
+				"version": "6",
+				"aggregator": "0x9c41663bB8d6800c8050E2Fbf98E86AD01c973e3",
+				"phaseId": 4,
+				"latestRoundData": {
+					"roundId": "73786976294838206501",
+					"answer": "99888425",
+					"startedAt": "1792507373",
+					"updatedAt": "1792507391",
+					"answeredInRound": "73786976294838206501"
+				}
+			}
+		},
+		"wbtc-btc": {
+			"directory": {
+				"name": "WBTC / BTC",
+				"proxyAddress": "0xfdFD9C85aD200c506Cf9e21F1FD8dd01932FBB23",
+				"contractAddress": "0xA5e3A55cEa42B86560a5215094981c300899199D",
+				"decimals": 8,
+				"heartbeat": 86400,
+				"threshold": 0.5,
+				"ens": "wbtc-btc",
+				"feedCategory": "medium",
+				"attributeType": "cex_price",
+				"stablecoinCapped": false,
+				"baseAsset": "WBTC",
+				"quoteAsset": "BTC",
+				"maxSubmissionValue": "95780971304118053647396689196894323976171195136475135"
+			},
+			"onchain": {
+				"codeBytes": 9571,
+				"decimals": 8,
+				"description": "WBTC / BTC",
+				"version": "6",
+				"aggregator": "0xA5e3A55cEa42B86560a5215094981c300899199D",
+				"phaseId": 2,
+				"latestRoundData": {
+					"roundId": "36893488147419104068",
+					"answer": "99816000",
+					"startedAt": "1792531585",
+					"updatedAt": "1792531607",
+					"answeredInRound": "36893488147419104068"
+				}
+			}
+		},
+		"btc-usd": {
+			"directory": {
+				"name": "BTC / USD",
+				"proxyAddress": "0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c",
+				"contractAddress": "0x4a3411ac2948B33c69666B35cc6d055B27Ea84f1",
+				"decimals": 8,
+				"heartbeat": 3600,
+				"threshold": 0.5,
+				"ens": "btc-usd",
+				"feedCategory": "low",
+				"attributeType": "cex_price",
+				"stablecoinCapped": false,
+				"baseAsset": "BTC",
+				"quoteAsset": "USD",
+				"maxSubmissionValue": "95780971304118053647396689196894323976171195136475135"
+			},
+			"onchain": {
+				"codeBytes": 9571,
+				"decimals": 8,
+				"description": "BTC / USD",
+				"version": "6",
+				"aggregator": "0x4a3411ac2948B33c69666B35cc6d055B27Ea84f1",
+				"phaseId": 7,
+				"latestRoundData": {
+					"roundId": "129127208515966886624",
+					"answer": "8336817809987",
+					"startedAt": "1792580661",
+					"updatedAt": "1792580675",
+					"answeredInRound": "129127208515966886624"
+				}
+			}
+		},
+		"paxg-usd": {
+			"directory": {
+				"name": "PAXG / USD",
+				"proxyAddress": "0x9944D86CEB9160aF5C5feB251FD671923323f8C3",
+				"contractAddress": "0x6795D4A47c9c8F4117b409D966259CdCf6A9Eb6E",
+				"decimals": 8,
+				"heartbeat": 86400,
+				"threshold": 0.5,
+				"ens": "paxg-usd",
+				"feedCategory": "low",
+				"attributeType": "cex_price",
+				"stablecoinCapped": false,
+				"baseAsset": "PAXG",
+				"quoteAsset": "USD",
+				"maxSubmissionValue": "95780971304118053647396689196894323976171195136475135"
+			},
+			"onchain": {
+				"codeBytes": 9571,
+				"decimals": 8,
+				"description": "PAXG / USD",
+				"version": "6",
+				"aggregator": "0x6795D4A47c9c8F4117b409D966259CdCf6A9Eb6E",
+				"phaseId": 1,
+				"latestRoundData": {
+					"roundId": "18446744073709555159",
+					"answer": "412282751395",
+					"startedAt": "1792513119",
+					"updatedAt": "1792513139",
+					"answeredInRound": "18446744073709555159"
+				}
+			}
+		}
+	},
+	"allDirectoryEntriesForThesePairs": [
+		{
+			"name": "BTC / USD",
+			"path": "btc-usd",
+			"proxyAddress": "0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c",
+			"secondaryProxyAddress": null,
+			"heartbeat": 3600,
+			"threshold": 0.5,
+			"ens": "btc-usd",
+			"svrDisplayLabel": null
+		},
+		{
+			"name": "BTC / USD",
+			"path": "btc-usd-shared-svr",
+			"proxyAddress": "0x8adE2c8d55F7ee2C9234ad868D44a60Eb9C07f8c",
+			"secondaryProxyAddress": "0x91D32e6f01d6473b596f54c6E304e06d774f86b2",
+			"heartbeat": 3600,
+			"threshold": 0.5,
+			"ens": null,
+			"svrDisplayLabel": "Shared SVR"
+		},
+		{
+			"name": "BTC / USD",
+			"path": "btc-usd-svr",
+			"proxyAddress": "0x85355da30ee4b35F4B30759Bd49a1EBE3fc41Bdb",
+			"secondaryProxyAddress": "0xb41E773f507F7a7EA890b1afB7d2b660c30C8B0A",
+			"heartbeat": 3600,
+			"threshold": 0.5,
+			"ens": null,
+			"svrDisplayLabel": "Aave SVR"
+		},
+		{
+			"name": "cbBTC / USD",
+			"path": "cbbtc-usd",
+			"proxyAddress": "0x2665701293fCbEB223D11A08D826563EDcCE423A",
+			"secondaryProxyAddress": null,
+			"heartbeat": 86400,
+			"threshold": 2,
+			"ens": "cbbtc-usd",
+			"svrDisplayLabel": null
+		},
+		{
+			"name": "CBBTC / USD",
+			"path": "cbbtc-usd-shared-svr",
+			"proxyAddress": "0x7922912AB91eb6A4b0350b01Dd066994BA64f882",
+			"secondaryProxyAddress": "0x50C1008722Ffa2d3170f3bA5cB9e7C0238bfa2a9",
+			"heartbeat": 86400,
+			"threshold": 2,
+			"ens": null,
+			"svrDisplayLabel": "Shared SVR"
+		},
+		{
+			"name": "ETH / USD",
+			"path": "eth-usd",
+			"proxyAddress": "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+			"secondaryProxyAddress": null,
+			"heartbeat": 3600,
+			"threshold": 0.5,
+			"ens": "eth-usd",
+			"svrDisplayLabel": null
+		},
+		{
+			"name": "ETH / USD",
+			"path": "eth-usd-shared-svr",
+			"proxyAddress": "0xd82562bb17557231Cd871e1B2525F3AB8d63D409",
+			"secondaryProxyAddress": "0xc0053f3FBcCD593758258334Dfce24C2A9A673aD",
+			"heartbeat": 3600,
+			"threshold": 0.5,
+			"ens": null,
+			"svrDisplayLabel": "Shared SVR"
+		},
+		{
+			"name": "ETH / USD",
+			"path": "eth-usd-svr",
+			"proxyAddress": "0x5147eA642CAEF7BD9c1265AadcA78f997AbB9649",
+			"secondaryProxyAddress": "0x5424384B256154046E9667dDFaaa5e550145215e",
+			"heartbeat": 3600,
+			"threshold": 0.5,
+			"ens": null,
+			"svrDisplayLabel": "Aave SVR"
+		},
+		{
+			"name": "PAXG / USD",
+			"path": "paxg-usd",
+			"proxyAddress": "0x9944D86CEB9160aF5C5feB251FD671923323f8C3",
+			"secondaryProxyAddress": null,
+			"heartbeat": 86400,
+			"threshold": 0.5,
+			"ens": "paxg-usd",
+			"svrDisplayLabel": null
+		},
+		{
+			"name": "USDC / USD",
+			"path": "usdc-usd",
+			"proxyAddress": "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6",
+			"secondaryProxyAddress": null,
+			"heartbeat": 82800,
+			"threshold": 0.25,
+			"ens": "usdc-usd",
+			"svrDisplayLabel": null
+		},
+		{
+			"name": "USDC / USD",
+			"path": "usdc-usd-shared-svr",
+			"proxyAddress": "0x84E045745ED829c5b778aBB17104FC2600020850",
+			"secondaryProxyAddress": "0x37be050e75C7F0a80F0E8abBFC2c4Ff826728cAa",
+			"heartbeat": 82800,
+			"threshold": 0.25,
+			"ens": null,
+			"svrDisplayLabel": "Shared SVR"
+		},
+		{
+			"name": "USDC / USD",
+			"path": "usdc-usd-svr",
+			"proxyAddress": "0xfB6471ACD42c91FF265344Ff73E88353521d099F",
+			"secondaryProxyAddress": "0xEa674bBC33AE708Bc9EB4ba348b04E4eB55b496b",
+			"heartbeat": 86400,
+			"threshold": 0.25,
+			"ens": null,
+			"svrDisplayLabel": "Aave SVR"
+		},
+		{
+			"name": "USDT / USD",
+			"path": "usdt-usd",
+			"proxyAddress": "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D",
+			"secondaryProxyAddress": null,
+			"heartbeat": 86400,
+			"threshold": 0.25,
+			"ens": "usdt-usd",
+			"svrDisplayLabel": null
+		},
+		{
+			"name": "USDT / USD",
+			"path": "usdt-usd-shared-svr",
+			"proxyAddress": "0xe108E75d6bA28F14EA51F24F886c0B6BBeca575a",
+			"secondaryProxyAddress": "0x023dfc789db466DD5C900DC04706727a3A9Cf3DE",
+			"heartbeat": 86400,
+			"threshold": 0.25,
+			"ens": null,
+			"svrDisplayLabel": "Shared SVR"
+		},
+		{
+			"name": "USDT / USD",
+			"path": "usdt-usd-svr",
+			"proxyAddress": "0x7bB7bF4ca536DbC49545704BFAcaa13633D18718",
+			"secondaryProxyAddress": "0x62c2ab773B7324ad9e030D777989B3b5d5c54c0A",
+			"heartbeat": 86400,
+			"threshold": 0.25,
+			"ens": null,
+			"svrDisplayLabel": "Aave SVR"
+		},
+		{
+			"name": "WBTC / BTC",
+			"path": "wbtc-btc",
+			"proxyAddress": "0xfdFD9C85aD200c506Cf9e21F1FD8dd01932FBB23",
+			"secondaryProxyAddress": null,
+			"heartbeat": 86400,
+			"threshold": 0.5,
+			"ens": "wbtc-btc",
+			"svrDisplayLabel": null
+		}
+	],
+	"tokens": {
+		"WETH": {
+			"address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+			"name": "Wrapped Ether",
+			"symbol": "WETH",
+			"decimals": 18,
+			"codeHash": "0xd0a06b12ac47863b5c7be4185c2deaad1c61557033f56c7d4ea74429cbb25e23"
+		},
+		"USDC": {
+			"address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+			"name": "USD Coin",
+			"symbol": "USDC",
+			"decimals": 6,
+			"codeHash": "0xd80d4b7c890cb9d6a4893e6b52bc34b56b25335cb13716e0d1d31383e6b41505"
+		},
+		"cbBTC": {
+			"address": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+			"name": "Coinbase Wrapped BTC",
+			"symbol": "cbBTC",
+			"decimals": 8,
+			"codeHash": "0x91149353e08445ba77a52bf7e4cef919054027f4ad42812b4314bbaf2abd8b71"
+		},
+		"USDT": {
+			"address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+			"name": "Tether USD",
+			"symbol": "USDT",
+			"decimals": 6,
+			"codeHash": "0xb44fb4e949d0f78f87f79ee46428f23a2a5713ce6fc6e0beb3dda78c2ac1ea55"
+		},
+		"WBTC": {
+			"address": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+			"name": "Wrapped BTC",
+			"symbol": "WBTC",
+			"decimals": 8,
+			"codeHash": "0x131ff5c755b710d543ea70fede2eb38e5d15b1456df0ae932ba12e2786f7e5df"
+		},
+		"PAXG": {
+			"address": "0x45804880De22913dAFE09f4980848ECE6EcbAf78",
+			"name": "Paxos Gold",
+			"symbol": "PAXG",
+			"decimals": 18,
+			"codeHash": "0xdcdc97bea5436354845afab66a9dc621e9ebe642db18e81a95c66b770f60bb3d"
+		}
+	},
+	"uniswapTokenList": {
+		"name": "Uniswap Labs Default",
+		"version": {
+			"major": 22,
+			"minor": 27,
+			"patch": 0
+		},
+		"timestamp": "2026-10-15T17:02:28.631Z",
+		"tokens": [
+			{
+				"symbol": "cbBTC",
+				"address": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+				"decimals": 8,
+				"name": "Coinbase Wrapped BTC"
+			},
+			{
+				"symbol": "PAXG",
+				"address": "0x45804880De22913dAFE09f4980848ECE6EcbAf78",
+				"decimals": 18,
+				"name": "PAX Gold"
+			},
+			{
+				"symbol": "USDC",
+				"address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"decimals": 6,
+				"name": "USDCoin"
+			},
+			{
+				"symbol": "USDT",
+				"address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"decimals": 6,
+				"name": "Tether USD"
+			},
+			{
+				"symbol": "WBTC",
+				"address": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+				"decimals": 8,
+				"name": "Wrapped BTC"
+			},
+			{
+				"symbol": "WETH",
+				"address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				"decimals": 18,
+				"name": "Wrapped Ether"
+			}
+		]
+	},
+	"aaveCoreOracle": {
+		"oracle": "0x54586bE62E3c3580375aE3723C145253060Ca0C2",
+		"fallbackOracle": "0x0000000000000000000000000000000000000000",
+		"sources": {
+			"WETH": {
+				"source": "0x5424384B256154046E9667dDFaaa5e550145215e",
+				"aavePrice": "245808160000",
+				"sourceDescription": "ETH / USD",
+				"sourceDecimals": 8,
+				"sourceLatestRoundData": {
+					"answer": "245808160000",
+					"updatedAt": "1792580603"
+				}
+			},
+			"USDC": {
+				"source": "0x3f73F03aa83B2A48ed27E964eD0fDb590332095B",
+				"aavePrice": "99989137",
+				"sourceDescription": "Capped USDC / USD",
+				"sourceDecimals": 8,
+				"sourceLatestRoundData": {
+					"error": "The contract function \"latestRoundData\" reverted."
+				}
+			},
+			"cbBTC": {
+				"source": "0xb41E773f507F7a7EA890b1afB7d2b660c30C8B0A",
+				"aavePrice": "8334616900011",
+				"sourceDescription": "BTC / USD",
+				"sourceDecimals": 8,
+				"sourceLatestRoundData": {
+					"answer": "8334616900011",
+					"updatedAt": "1792579847"
+				}
+			},
+			"USDT": {
+				"source": "0x260326c220E469358846b187eE53328303Efe19C",
+				"aavePrice": "99888425",
+				"sourceDescription": "Capped USDT/USD",
+				"sourceDecimals": 8,
+				"sourceLatestRoundData": {
+					"error": "The contract function \"latestRoundData\" reverted."
+				}
+			},
+			"WBTC": {
+				"source": "0xDaa4B74C6bAc4e25188e64ebc68DB5050b690cAc",
+				"aavePrice": "8319281204914",
+				"sourceDescription": "wBTC/BTC/USD",
+				"sourceDecimals": 8,
+				"sourceLatestRoundData": {
+					"error": "The contract function \"latestRoundData\" reverted."
+				}
+			},
+			"PAXG": {
+				"source": "0x0000000000000000000000000000000000000000",
+				"aavePrice": {
+					"error": "The contract function \"getAssetPrice\" reverted."
+				}
+			}
+		}
+	}
+}

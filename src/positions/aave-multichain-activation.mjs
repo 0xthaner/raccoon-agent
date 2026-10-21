@@ -22,6 +22,7 @@
 import { readAaveV3Positions, LIMITS } from './aave-v3.mjs';
 import { AAVE_V3_MARKETS } from './aave-registry.mjs';
 import { AAVE_V3_MULTICHAIN_CANDIDATES } from './aave-multichain-candidates.mjs';
+import { FRESHNESS_POLICY, maxFeedAgeSec as sharedMaxFeedAgeSec } from './price-reference.mjs';
 
 const ZERO = '0x0000000000000000000000000000000000000000';
 export const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11';
@@ -201,8 +202,9 @@ export const FEED_HEARTBEATS = Object.freeze(Object.fromEntries([
 	aelter als Heartbeat + max(60 s, 5 % des Heartbeats) ist. Sequencer-
 	Schonfrist 3600 s nach einem Neustart.
 */
-export const ORACLE_POLICY = Object.freeze({ heartbeatMarginMinSec: 60, heartbeatMarginRatio: 0.05, sequencerGraceSec: 3_600 });
-export const maxFeedAgeSec = (heartbeatSec, policy = ORACLE_POLICY) => heartbeatSec + Math.max(policy.heartbeatMarginMinSec, Math.ceil(heartbeatSec * policy.heartbeatMarginRatio));
+// Die Heartbeat-Reserve ist die gemeinsame Regel aus price-reference.mjs (eine Quelle fuer alle Integrationen).
+export const ORACLE_POLICY = Object.freeze({ ...FRESHNESS_POLICY, sequencerGraceSec: 3_600 });
+export const maxFeedAgeSec = (heartbeatSec, policy = ORACLE_POLICY) => sharedMaxFeedAgeSec(heartbeatSec, policy);
 
 const state = (value, reason) => Object.freeze({ state: value, reason });
 const isBlock = (value) => typeof value === 'bigint' && value > 0n;
