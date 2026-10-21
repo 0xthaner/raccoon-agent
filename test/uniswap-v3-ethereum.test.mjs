@@ -444,6 +444,8 @@ test('UNI-READER multiple NFTs: same pool twice, two fee tiers, three pairs, 6/8
 	assert.deepEqual([result.priceBook[lc(byId[BELOW_WETH].token1.address)].status, result.priceBook[lc(byId[BELOW_WETH].token1.address)].reason], ['PRICE_UNAVAILABLE', 'UNSUPPORTED_TOKEN'], 'zero leg: missing price does not block');
 	assert.equal(result.blockTimestamp, String(BLOCK_TIME));
 	assert.ok(Object.values(result.priceBook).every((entry) => entry.blockNumber === String(BLOCK)), 'prices from the scan block');
+	// Referenzpreise der Nexus-Cover-Assets (ETH, USDC, cbBTC) werden im selben Block mitgelesen
+	for (const ref of Object.values(U.COVER_ASSET_REFERENCES)) assert.equal(result.priceBook[lc(ref.token)].status, 'PRICE_OK', ref.symbol);
 	const sum = result.exposures.reduce((total, e) => total + B(e.suggestedExposureUsd8), 0n);
 	assert.deepEqual([result.aggregate.status, result.aggregate.positions, result.aggregate.countedPositions, result.aggregate.activePositions, result.aggregate.pricedPositions, result.aggregate.unpricedPositions], ['COMPLETE', 6, 6, 6, 6, 0]);
 	assert.equal(result.aggregate.suggestedExposureUsd, formatUnits(sum, 8), 'exact sum of the six valid positions');
@@ -639,12 +641,21 @@ test('UNI-READINESS quoteReady stays false even with MATCHED mapping and a compl
 	const { result } = await scan([IN, ABOVE_WBTC]);
 	const r = U.uniswapV3Readiness(result);
 	assert.deepEqual([r.deploymentClass, r.nexusMappingClass, r.positionValid, r.exposureReady], ['CANONICAL', 'MATCHED', true, true]);
-	assert.deepEqual([r.pricingReady, r.termsReady, r.proofOfLossReady, r.quoteReady], [true, false, false, false]);
-	assert.deepEqual([...r.blockers], [...U.PHASE_BLOCKERS]);
+	assert.deepEqual([r.pricingReady, r.capacityReady, r.quoteDataReady, r.termsReady, r.proofOfLossReady, r.quoteReady, r.purchaseReady], [true, false, false, false, false, false, false]);
+	assert.deepEqual([...r.blockers], ['CAPACITY_NOT_VERIFIED', 'QUOTE_DATA_NOT_READY', ...U.PHASE_BLOCKERS], 'detection alone never verifies Nexus data');
+	assert.deepEqual([...U.PHASE_BLOCKERS], ['NO_PRODUCTION_PATH', 'NEXUS_TERMS_INTERPRETATION_UNCONFIRMED', 'NEXUS_PROOF_OF_LOSS_UNCONFIRMED', 'WALLET_EXECUTION_NOT_AVAILABLE']);
 	for (const position of result.positions) assert.deepEqual(U.uniswapNexusMapping(position), { mappingClass: 'MATCHED', productId: 72, reason: 'CANONICAL_DEPLOYMENT_PRODUCT_72', quoteEligible: false });
 	assert.equal(U.uniswapNexusMapping({ ...result.positions[0], chainId: 10 }).mappingClass, 'UNSUPPORTED');
 	assert.equal(U.uniswapNexusMapping({ ...result.positions[0], positionManager: OTHER }).mappingClass, 'AMBIGUOUS');
 	assert.equal(U.uniswapNexusMapping({ ...result.positions[0], deploymentKey: 'uniswap-v3-arbitrum' }).mappingClass, 'AMBIGUOUS');
+	// andere Versionen und Vaults: nie Produkt 72
+	for (const [deploymentKey, reason] of [['uniswap-v2-ethereum', 'OTHER_PROTOCOL_VERSION'], ['uniswap-v4-ethereum', 'OTHER_PROTOCOL_VERSION'], ['beefy-clm-uniswap-v3-ethereum', 'VAULT_OR_WRAPPER']]) {
+		assert.deepEqual(U.uniswapNexusMapping({ ...result.positions[0], deploymentKey }), { mappingClass: 'UNSUPPORTED', productId: null, reason, quoteEligible: false }, deploymentKey);
+	}
+	// Pool, der nicht die CREATE2-Ableitung ist (gefaelschter Pool im Positionsobjekt)
+	assert.deepEqual([U.uniswapNexusMapping({ ...result.positions[0], pool: byId[ABOVE_USDC].pool }).mappingClass, U.uniswapNexusMapping({ ...result.positions[0], pool: byId[ABOVE_USDC].pool }).reason], ['AMBIGUOUS', 'NON_CANONICAL_POOL']);
+	assert.equal(U.uniswapNexusMapping({ ...result.positions[0], fee: 500 }).reason, 'NON_CANONICAL_POOL');
+	assert.equal(U.uniswapNexusMapping({ ...result.positions[0], token0: { ...result.positions[0].token0, address: OTHER } }).reason, 'NON_CANONICAL_POOL');
 	assert.equal(U.uniswapNexusMapping({ status: 'INVALID' }).mappingClass, 'UNSUPPORTED');
 	// auch ein konstruiert perfekter Scan bleibt ohne Quote
 	const perfect = { ...result, aggregate: { status: 'COMPLETE' } };
@@ -657,7 +668,7 @@ test('UNI-READINESS quoteReady stays false even with MATCHED mapping and a compl
 	const bad = await scan([IN, BELOW_PAXG], { patch: (c) => (c.functionName === 'latestRoundData' && lc(c.address) === lc(P.CHAINLINK_FEEDS['paxg-usd'].proxy) ? { status: 'failure', error: new Error('x') } : undefined) });
 	assert.ok(U.uniswapV3Readiness(bad.result).blockers.includes('EXPOSURE_NOT_READY'));
 	assert.ok(U.uniswapV3Readiness(bad.result).blockers.includes('PRICING_INCOMPLETE'));
-	assert.ok(U.uniswapV3SupportMatrix().every((row) => row.quoteReady === false && row.productionEnabled === false && row.usdFromPoolSpotPrice === false && row.feesInSuggestedExposure === false));
+	assert.ok(U.uniswapV3SupportMatrix().every((row) => row.quoteReady === false && row.purchaseReady === false && row.productionEnabled === false && row.usdFromPoolSpotPrice === false && row.feesInSuggestedExposure === false && row.aggregateQuote === false));
 });
 
 /* -------------------------------------------------------------- Isolation -- */
@@ -669,9 +680,10 @@ test('UNI-ISOLATION no production import, no route, no browser RPC, no wallet ca
 	});
 	const sources = ['api', 'src', 'web', 'scripts'].flatMap((dir) => walk(path.join(REPO, dir))).filter((file) => /\.(m?js|html)$/.test(file));
 	const importers = sources.filter((file) => /uniswap-v3-(ethereum|math)/.test(readFileSync(file, 'utf8'))).map((file) => path.relative(REPO, file));
-	assert.deepEqual(importers, ['src/positions/uniswap-v3-ethereum.mjs'], 'only the module itself refers to the math; nothing refers to the module');
+	assert.deepEqual(importers, ['src/positions/uniswap-v3-ethereum.mjs', 'src/positions/uniswap-v3-nexus.mjs'], 'only the Uniswap modules refer to each other');
+	assert.deepEqual(sources.filter((file) => /uniswap-v3-nexus/.test(readFileSync(file, 'utf8'))).map((file) => path.relative(REPO, file)), [], 'nothing imports the Nexus preparation');
 	const priceImporters = sources.filter((file) => /price-reference/.test(readFileSync(file, 'utf8'))).map((file) => path.relative(REPO, file));
-	assert.deepEqual(priceImporters, ['src/positions/aave-multichain-activation.mjs', 'src/positions/uniswap-v3-ethereum.mjs'], 'only the two inactive preparations use the price layer');
+	assert.deepEqual(priceImporters, ['src/positions/aave-multichain-activation.mjs', 'src/positions/uniswap-v3-ethereum.mjs', 'src/positions/uniswap-v3-nexus.mjs'], 'only the inactive preparations use the price layer');
 	assert.deepEqual(walk(path.join(REPO, 'api')).map((f) => path.relative(REPO, f)).filter((f) => /uniswap|liquidity|lp-|-lp/i.test(f)), [], 'no API route');
 	for (const file of sources.filter((f) => path.relative(REPO, f).startsWith('web/'))) {
 		const code = readFileSync(file, 'utf8');
@@ -679,7 +691,7 @@ test('UNI-ISOLATION no production import, no route, no browser RPC, no wallet ca
 	}
 	// keine Transaktions- oder Wallet-Methode in den neuen Modulen (Kommentare ausgenommen)
 	const strip = (code) => code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\s\/\/ .*$/gm, '');
-	for (const file of ['src/positions/uniswap-v3-ethereum.mjs', 'src/positions/uniswap-v3-math.mjs', 'src/positions/price-reference.mjs']) {
+	for (const file of ['src/positions/uniswap-v3-ethereum.mjs', 'src/positions/uniswap-v3-math.mjs', 'src/positions/price-reference.mjs', 'src/positions/uniswap-v3-nexus.mjs']) {
 		const code = strip(readFileSync(path.join(REPO, file), 'utf8'));
 		assert.doesNotMatch(code, /decreaseLiquidity|increaseLiquidity|collect\b|['"]burn['"]|['"]mint['"]|safeTransferFrom|transferFrom|approve|setApprovalForAll|permit|sendTransaction|sendRawTransaction|writeContract|signTypedData|signMessage|personal_sign|createWalletClient|walletActions|\.request\(|eth_call|buyCover|fetch\(/, file);
 		assert.doesNotMatch(code, /stateMutability: '(nonpayable|payable)'/, `${file}: only view ABI entries`);

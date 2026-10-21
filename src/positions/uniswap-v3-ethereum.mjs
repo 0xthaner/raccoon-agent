@@ -23,7 +23,7 @@
 */
 import { encodeAbiParameters, formatUnits, getAddress, getContractAddress, isAddress, keccak256 } from 'viem';
 import { safeSymbol } from './aave-v3.mjs';
-import { evaluatePriceReference, priceReadContracts, readingsFromResults, supportedPriceReferences, valueUsd8 } from './price-reference.mjs';
+import { PRICE_SOURCES, evaluatePriceReference, priceReadContracts, readingsFromResults, supportedPriceReferences, valueUsd8 } from './price-reference.mjs';
 import { UniswapMathError, MAX_UINT128, MAX_UINT160, feeGrowthInside, isTick, principalAmounts, uncollectedFees } from './uniswap-v3-math.mjs';
 
 export const CHAIN_ID = 1;
@@ -263,10 +263,24 @@ export function validatePosition(raw, { wallet, chainId, deployment = UNISWAP_V3
 */
 export const PRICE_MODEL = 'CHAINLINK_PRICE_REFERENCE_V1';
 
+/*
+	Referenz-Token je Nexus-Cover-Asset (Asset-ID -> Token in price-reference).
+	Der Leser bewertet sie in jedem Scan mit, im selben Block wie die Positionen,
+	damit eine USD-Exposure spaeter in ETH, USDC oder cbBTC umgerechnet werden
+	kann. ETH = WETH9 (1:1 einloesbar, Feed ETH / USD); USDC hat seinen eigenen
+	Feed, es gibt keine angenommene Paritaet.
+*/
+const reference = (symbol) => Object.values(PRICE_SOURCES).find((entry) => entry.chainId === CHAIN_ID && entry.symbol === symbol).token;
+export const COVER_ASSET_REFERENCES = Object.freeze({
+	0: Object.freeze({ assetId: 0, symbol: 'ETH', token: reference('WETH'), feed: 'eth-usd' }),
+	6: Object.freeze({ assetId: 6, symbol: 'USDC', token: reference('USDC'), feed: 'usdc-usd' }),
+	7: Object.freeze({ assetId: 7, symbol: 'cbBTC', token: reference('cbBTC'), feed: 'cbbtc-usd' })
+});
+
 export function buildPriceBook({ tokens, block, readings }) {
 	const book = {};
 	for (const { address, decimals } of tokens) {
-		book[lower(address)] = evaluatePriceReference({ chainId: CHAIN_ID, token: address, decimals, block, readings });
+		book[lower(address)] = evaluatePriceReference({ chainId: CHAIN_ID, token: address, ...(decimals === undefined ? {} : { decimals }), block, readings });
 	}
 	return Object.freeze(book);
 }
@@ -519,7 +533,9 @@ export async function readUniswapV3Positions(wallet, { client, deployment = UNIS
 		});
 		const tokenStart = calls.length;
 		for (const token of tokens) calls.push({ address: token, abi: ERC20_ABI, functionName: 'decimals' }, { address: token, abi: ERC20_ABI, functionName: 'symbol' });
-		const priceContracts = priceReadContracts(CHAIN_ID, tokens);
+		// Positions-Token plus die Referenz-Token der Cover-Assets (deren Stellen sind gepinnt, nicht gelesen).
+		const coverTokens = Object.values(COVER_ASSET_REFERENCES).map((entry) => entry.token).filter((token) => !tokens.some((t) => same(t, token)));
+		const priceContracts = priceReadContracts(CHAIN_ID, [...tokens, ...coverTokens]);
 		const priceStart = calls.length;
 		for (const { address, abi, functionName } of priceContracts) calls.push({ address, abi, functionName });
 		const round4 = await multicall(client, calls, blockNumber, deadline, rpcTimeoutMs, counter);
@@ -567,7 +583,7 @@ export async function readUniswapV3Positions(wallet, { client, deployment = UNIS
 		});
 
 		const readings = readingsFromResults(priceContracts, round4.slice(priceStart), blockNumber);
-		const priceBook = buildPriceBook({ tokens: tokens.map((address) => ({ address, decimals: meta.get(lower(address)).decimals ?? null })), block, readings });
+		const priceBook = buildPriceBook({ tokens: [...tokens.map((address) => ({ address, decimals: meta.get(lower(address)).decimals ?? null })), ...coverTokens.map((address) => ({ address }))], block, readings });
 		const exposures = positions.map((position) => computeUniswapLpExposure(position, priceBook));
 		return Object.freeze({
 			status: 'OK',
@@ -596,20 +612,29 @@ export function uniswapNexusMapping(position) {
 	const result = (mappingClass, reason) => Object.freeze({ mappingClass, productId: mappingClass === 'MATCHED' ? NEXUS_UNISWAP_V3.productId : null, reason, quoteEligible: false });
 	if (position?.status !== 'VALID') return result('UNSUPPORTED', 'NOT_A_VALID_POSITION');
 	if (position.chainId !== CHAIN_ID) return result('UNSUPPORTED', 'WRONG_CHAIN');
+	// Andere Uniswap-Versionen und Vaults haben eigene Listings (71, 256, 168) und werden nie Produkt 72.
+	if (typeof position.deploymentKey === 'string' && /^uniswap-v(2|4)-/.test(position.deploymentKey)) return result('UNSUPPORTED', 'OTHER_PROTOCOL_VERSION');
+	if (typeof position.deploymentKey === 'string' && /beefy|clm|vault|arrakis|gamma/i.test(position.deploymentKey)) return result('UNSUPPORTED', 'VAULT_OR_WRAPPER');
 	if (position.deploymentKey !== UNISWAP_V3_ETHEREUM.deploymentKey || !same(position.positionManager, UNISWAP_V3_ETHEREUM.positionManager) || !same(position.factory, UNISWAP_V3_ETHEREUM.factory)) return result('AMBIGUOUS', 'DEPLOYMENT_CONFLICT');
+	// Pool: genau die CREATE2-Ableitung aus Token-Paar und Gebuehrenstufe des kanonischen Deployments.
+	let derived = null;
+	try { derived = computePoolAddress(position.token0?.address, position.token1?.address, position.fee); } catch { derived = null; }
+	if (!derived || !same(position.pool, derived)) return result('AMBIGUOUS', 'NON_CANONICAL_POOL');
 	return result(NEXUS_UNISWAP_V3.mappingClass, 'CANONICAL_DEPLOYMENT_PRODUCT_72');
 }
 
 /*
-	Feste Blocker dieser Phase. Solange einer davon gilt, ist quoteReady false -
-	und quoteReady ist in dieser Phase auch dann false, wenn alles andere passt.
+	Feste Blocker dieser Phase. Solange einer davon gilt, sind quoteReady
+	(Anzeige in der Produktion) und purchaseReady false - auch wenn alle Daten
+	fuer eine informative Quote vorliegen (quoteDataReady, im Nexus-Modul).
+	Die drei externen Blocker sind offen; eine Nexus-Klaerung liegt nicht vor.
 */
-export const PHASE_BLOCKERS = Object.freeze([
-	'NO_QUOTE_PATH',
-	'NO_PRODUCTION_PATH',
-	'TERMS_LP_TREATMENT_UNCONFIRMED',
-	'PROOF_OF_LOSS_LP_UNCONFIRMED'
+export const EXTERNAL_BLOCKERS = Object.freeze([
+	'NEXUS_TERMS_INTERPRETATION_UNCONFIRMED',
+	'NEXUS_PROOF_OF_LOSS_UNCONFIRMED',
+	'WALLET_EXECUTION_NOT_AVAILABLE'
 ]);
+export const PHASE_BLOCKERS = Object.freeze(['NO_PRODUCTION_PATH', ...EXTERNAL_BLOCKERS]);
 
 export function uniswapV3Readiness(scan) {
 	const blockers = [];
@@ -629,16 +654,20 @@ export function uniswapV3Readiness(scan) {
 	const exposures = scanned && Array.isArray(scan.exposures) ? scan.exposures : [];
 	const pricingReady = exposureReady && exposures.every((entry) => entry.pricingStatus === 'PRICED' || entry.pricingStatus === 'NOT_REQUIRED') && exposures.some((entry) => entry.pricingStatus === 'PRICED');
 	if (!pricingReady) blockers.push('PRICING_INCOMPLETE');
-	blockers.push(...PHASE_BLOCKERS);
+	// Ohne Nexus-Daten (nur Erkennung): Kapazitaet und Quote-Daten sind nicht geprueft.
+	blockers.push('CAPACITY_NOT_VERIFIED', 'QUOTE_DATA_NOT_READY', ...PHASE_BLOCKERS);
 	return Object.freeze({
 		deploymentClass: scanned ? 'CANONICAL' : 'UNVERIFIED',
 		nexusMappingClass,
 		positionValid,
 		exposureReady,
 		pricingReady,
+		capacityReady: false,
+		quoteDataReady: false,
 		termsReady: false,
 		proofOfLossReady: false,
 		quoteReady: false,
+		purchaseReady: false,
 		blockers: Object.freeze([...new Set(blockers)])
 	});
 }
@@ -666,9 +695,14 @@ export function uniswapV3SupportMatrix() {
 		usdFromPoolSpotPrice: false,
 		nexusProductId: NEXUS_UNISWAP_V3.productId,
 		nexusMapping: NEXUS_UNISWAP_V3.mappingClass,
+		coverAssetConversion: 'USD / CHAINLINK_PRICE_REFERENCE_V1 (ETH/USD, USDC/USD, cbBTC/USD), same block, floor',
+		quoteMode: 'PER_POSITION',
+		aggregateQuote: false,
+		quoteDataPath: 'INACTIVE_INTERNAL',
 		termsReady: false,
 		proofOfLossReady: false,
 		quoteReady: false,
+		purchaseReady: false,
 		productionEnabled: false
 	})]);
 }

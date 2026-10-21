@@ -6,8 +6,9 @@ Code:
 - `src/positions/uniswap-v3-math.mjs`: reine Mathematik.
 - `src/positions/uniswap-v3-ethereum.mjs`: Registry, Validierung, Leser, Exposure und Readiness.
 - `src/positions/price-reference.mjs`: protokollunabhängige USD-Preis-Referenzen (Chainlink, geprüft, selber Block). Rein, ohne Netzaufrufe.
+- `src/positions/uniswap-v3-nexus.mjs`: Nexus-Produkt 72, Kapazität, Umrechnung in Cover-Assets, informative Quote je NFT und Readiness (Abschnitt 12).
 
-Kein Produktionsmodul importiert diese Dateien. Tests: `test/uniswap-v3-ethereum.test.mjs` (UNI-*) und `test/price-reference.test.mjs` (PR-*). Nachweise: `test/fixtures/uniswap/` und `test/fixtures/prices/chainlink-ethereum-20261021.json`. Support-Matrix: `docs/uniswap-v3-ethereum-support.json`, erzeugt aus `uniswapV3SupportMatrix()`.
+Kein Produktionsmodul importiert diese Dateien. Tests: `test/uniswap-v3-ethereum.test.mjs` (UNI-*), `test/price-reference.test.mjs` (PR-*) und `test/uniswap-v3-nexus.test.mjs` (NX72-*). Nachweise: `test/fixtures/uniswap/` und `test/fixtures/prices/chainlink-ethereum-20261021.json`. Support-Matrix: `docs/uniswap-v3-ethereum-support.json`, erzeugt aus `uniswapV3SupportMatrix()`.
 
 ## Kurzfassung
 
@@ -20,7 +21,7 @@ Kein Produktionsmodul importiert diese Dateien. Tests: `test/uniswap-v3-ethereum
 | Mengen | Exakt in BigInt, identisch zum Pool. Gegen `eth_call` auf 9 Live-Positionen geprüft: 0 Abweichung |
 | Gebühren | Werden getrennt ausgewiesen und sind **nicht** im Vorschlag |
 | Preise | Eigene Preisschicht: chainId + exakte Adresse → gepinnter Chainlink-Feed, Frische gegen `block.timestamp`, alles im Scan-Block. WETH, USDC, cbBTC, USDT, WBTC, PAXG. Alles andere hat keinen Preis und schließt. **Nie** der Pool-Spotpreis. |
-| Quote | **nein**, `quoteReady` ist in dieser Phase immer false |
+| Quote | Nur intern und informativ, je NFT (`quoteDataReady`). `quoteReady` (Anzeige in der Produktion) und `purchaseReady` sind immer false. |
 
 ## 1. Nexus: welches Listing gilt?
 
@@ -73,7 +74,7 @@ Laut Nexus-FAQ deckt ein Listing standardmäßig jede EVM-Chain; Ausnahmen stün
 Die Produktidentität ist exakt belegt: Name, Typ, Assets, Wording und das Fehlen eines Annex sind über API **und** Chain gleich. Für die kanonische Ethereum-Deployment-Kennung `uniswap-v3-ethereum` gilt deshalb `MATCHED`.
 
 Trotzdem bleibt die Zuordnung inaktiv:
-- `NEXUS_UNISWAP_V3.runtimeEnabled` ist false.
+- `NEXUS_UNISWAP_V3.runtimeEnabled` ist false. Die Uniswap-Zuordnung lebt nur in `uniswapNexusMapping` und dem inaktiven Modul `uniswap-v3-nexus.mjs`.
 - `quoteEligible` ist immer false.
 - `PINNED_PRODUCTS` in `nexus-pinned.mjs` enthält weiterhin nur 97.
 - `nexus-mapping.mjs` kennt Uniswap nicht.
@@ -269,32 +270,50 @@ Das Aggregat nennt:
 
 ## 8. Readiness
 
-`uniswapV3Readiness(scan)` liefert `deploymentClass`, `nexusMappingClass`, `positionValid`, `exposureReady`, `pricingReady`, `termsReady`, `proofOfLossReady`, `quoteReady` und `blockers`.
+Es gibt zwei Ebenen:
+- `uniswapV3Readiness(scan)` ist die Erkennung je Wallet, ohne Nexus-Daten. `capacityReady` und `quoteDataReady` sind dort immer false (`CAPACITY_NOT_VERIFIED`, `QUOTE_DATA_NOT_READY`).
+- `uniswapV3QuoteReadiness({ position, exposure, model, priceBook, quote, now })` ist die Sicht je NFT, mit Nexus-Daten (Abschnitt 12).
 
-`pricingReady` ist true, wenn die Exposure vollständig ist und jede Position voll bewertet ist (Chainlink, frisch, selber Block). `termsReady`, `proofOfLossReady` und `quoteReady` sind in dieser Phase **immer false**, auch bei `MATCHED`, vollständiger Exposure und gültigen Preisen. Die festen Blocker sind:
+Beide liefern dieselben Felder:
+`deploymentClass`, `nexusMappingClass`, `positionValid`, `exposureReady`, `pricingReady`, `capacityReady`, `quoteDataReady`, `termsReady`, `proofOfLossReady`, `quoteReady`, `purchaseReady` und `blockers`.
+
+| Feld | Bedeutung |
+|---|---|
+| `quoteDataReady` | Technisch kann eine informative Quote angefragt werden: Position gültig und MATCHED, aktiv, voll bewertet, ein Cover-Asset umrechenbar, Kapazität frisch und > 0. |
+| `quoteReady` | Anzeige für Nutzer in der Produktion. In dieser Phase **immer false**. |
+| `purchaseReady` | **Immer false.** Es gibt keinen Kauf. |
+| `termsReady`, `proofOfLossReady` | Immer false, bis Nexus schriftlich antwortet. |
+
+Feste Blocker (`PHASE_BLOCKERS`):
 
 | Blocker | Bedeutung |
 |---|---|
-| `NO_QUOTE_PATH` | Es gibt keinen Quote-Pfad für Uniswap. |
 | `NO_PRODUCTION_PATH` | Kein Produktionsmodul nutzt die Vorbereitung. |
-| `TERMS_LP_TREATMENT_UNCONFIRMED` | Nexus hat nicht bestätigt, wie LP-Positionen bewertet werden (Gebühren, Zusammensetzung zum Schadenszeitpunkt). |
-| `PROOF_OF_LOSS_LP_UNCONFIRMED` | Proof of Loss ist `address`. Ungeklärt ist, ob das für ein NFT reicht, das später übertragen oder gestakt wird. |
+| `NEXUS_TERMS_INTERPRETATION_UNCONFIRMED` | Nexus hat nicht bestätigt, wie Produkt 72 eine LP-Position bewertet (Gebühren, Zusammensetzung zum Schadenszeitpunkt). |
+| `NEXUS_PROOF_OF_LOSS_UNCONFIRMED` | Proof of Loss ist `address`. Ungeklärt ist, ob das für ein NFT reicht, das später übertragen oder gestakt wird. |
+| `WALLET_EXECUTION_NOT_AVAILABLE` | Es gibt keinen Wallet- oder Kaufpfad für Uniswap. |
 
-Je nach Scan kommen hinzu: `SCAN_UNAVAILABLE`, `NO_VALID_POSITION`, `INVALID_OR_UNREADABLE_POSITION`, `NEXUS_MAPPING_NOT_MATCHED`, `EXPOSURE_NOT_READY` und `PRICING_INCOMPLETE`.
+Eine Klärung durch Nexus liegt **nicht** vor.
 
-Der frühere Blocker `PRICE_FRESHNESS_NOT_VERIFIED` entfällt: Die Frische ist jetzt je Feed nachgewiesen (Abschnitt 11).
+Je nach Lage kommen hinzu:
+- Wallet-Ebene: `SCAN_UNAVAILABLE`, `NO_VALID_POSITION`, `INVALID_OR_UNREADABLE_POSITION`, `NEXUS_MAPPING_NOT_MATCHED`, `EXPOSURE_NOT_READY`, `PRICING_INCOMPLETE`.
+- NFT-Ebene: `POSITION_NOT_VALID`, `ZERO_LIQUIDITY`, `PRICING_NOT_READY`, `CAPACITY_NOT_READY`, `QUOTE_DATA_NOT_READY`, `QUOTE_STALE`.
+
+Der frühere Blocker `NO_QUOTE_PATH` entfällt; es gibt jetzt einen inaktiven, internen Quote-Datenpfad.
 
 ## 9. Abgrenzung zur Produktion
 
-Der Test UNI-ISOLATION beweist:
-- Kein Modul unter `api/`, `src/`, `web/` oder `scripts/` importiert die Uniswap-Dateien.
-- `price-reference.mjs` wird nur von den beiden inaktiven Vorbereitungen genutzt: `uniswap-v3-ethereum.mjs` und `aave-multichain-activation.mjs` (gemeinsame Frische-Regel). `test/production-reach.test.mjs` bestätigt, dass keine davon produktiv erreichbar ist.
-- Es gibt keine neue API-Route.
+Die Tests UNI-ISOLATION und NX72-PIN beweisen:
+- Kein Modul unter `api/`, `src/`, `web/` oder `scripts/` importiert die Uniswap-Dateien. Auch `uniswap-v3-nexus.mjs` wird von nichts importiert.
+- `price-reference.mjs` nutzen nur die inaktiven Vorbereitungen: `uniswap-v3-ethereum.mjs`, `uniswap-v3-nexus.mjs` und `aave-multichain-activation.mjs`. `test/production-reach.test.mjs` bestätigt, dass keine davon produktiv erreichbar ist.
+- Es gibt keine neue API-Route und keine Anzeige im Browser.
 - Im Browser-Code gibt es keine Uniswap- und keine RPC-Adresse.
-- Die neuen Module enthalten keine Transaktions-, Signatur- oder Freigabe-Methode und nur `view`-ABI-Einträge. Sie lesen keine Umgebungsvariablen und enthalten keine RPC-URL; der Client wird übergeben.
-- `PINNED_PRODUCTS` enthält nur 97, und die Nexus-Zuordnung liefert für Uniswap `NO_LISTING`.
-- Das Read-Model fragt Nexus nicht ab, und die Quote-Prüfung ergibt `COVER_NOT_AVAILABLE`.
-- Die produktive Aave-Bewertung (`aave-v3.mjs`, `AAVE_NET_EXPOSURE_V1`) ist unverändert. Geändert hat sich nur die inaktive `aave-multichain-activation.mjs`: Sie übernimmt die Frische-Regel jetzt aus der Preisschicht, mit identischen Werten.
+- Die neuen Module enthalten keine Transaktions-, Signatur- oder Freigabe-Methode und nur `view`-ABI-Einträge. Sie lesen keine Umgebungsvariablen und enthalten keine URL; Client bzw. `fetchImpl` werden übergeben.
+- `PINNED_PRODUCTS` enthält nur 97. `verifyPinnedProduct(72, …)` ergibt `NOT_PINNED`, und die produktive Nexus-Zuordnung liefert für Uniswap `NO_LISTING`.
+- Das produktive Read-Model fragt Nexus für Uniswap nicht ab, und die produktive Quote-Prüfung ergibt `COVER_NOT_AVAILABLE`.
+- Die Nexus-Leser (`nexus-read-api.mjs`), `nexus-read-model.mjs` und `nexus-quote.mjs` werden nur **importiert**, nicht geändert.
+- Die produktive Aave-Bewertung (`aave-v3.mjs`, `AAVE_NET_EXPOSURE_V1`) und der Aave-Quote-Pfad sind unverändert.
+- Es gibt keine Migration und keine Änderung an Secrets.
 
 ## 10. Offene Blocker
 
@@ -303,10 +322,12 @@ Der Test UNI-ISOLATION beweist:
    - Zusammensetzung zum Schadenszeitpunkt,
    - Umgang mit Positionen im Staker oder in Vaults.
 2. **Nexus:** Proof of Loss `address` für NFT-Positionen (Übertragung des Positions-NFT, Staker).
-3. **Preis-Abdeckung:** Nur WETH, USDC, cbBTC, USDT, WBTC und PAXG haben einen Preis. Positionen mit anderen Token (mit Menge ≠ 0) bekommen keinen Vorschlag. Weitere Token nur mit eigenem, geprüftem Feed (Abschnitt 11).
-4. **Preis-Betrieb:** Feed-Wechsel (neuer Proxy, neue Beschreibung, geänderter Heartbeat) brechen bewusst. Dann `PRICE_SOURCE_INVALID`, bis der Pin neu geprüft ist. Für die Produktion fehlt eine regelmäßige Gegenprobe des Pins gegen das Chainlink-Directory.
-5. **Produktion:** Quote- und Anzeigepfad, Cache, Budgets und Monitoring. Erst auf ausdrückliche Anweisung.
-6. **Weitere Chains:** Uniswap v3 auf L2s ist nicht Teil dieser Phase. Dort gelten andere Adressen und teils andere Init-Code-Hashes.
+3. **Wallet-Ausführung:** Für Uniswap gibt es keinen Kauf- und keinen Transaktionspfad. Er entsteht erst auf ausdrückliche Anweisung.
+4. **Preis-Abdeckung:** Nur WETH, USDC, cbBTC, USDT, WBTC und PAXG haben einen Preis. Positionen mit anderen Token (mit Menge ≠ 0) bekommen keinen Vorschlag. Weitere Token nur mit eigenem, geprüftem Feed (Abschnitt 11).
+5. **Preis-Betrieb:** Feed-Wechsel (neuer Proxy, neue Beschreibung, geänderter Heartbeat) brechen bewusst. Dann `PRICE_SOURCE_INVALID`, bis der Pin neu geprüft ist. Für die Produktion fehlt eine regelmäßige Gegenprobe des Pins gegen das Chainlink-Directory.
+6. **Produktion:** Route, Anzeige, Rate-Limits, Cache, Budgets und Monitoring für Kapazität und Quote. Erst auf ausdrückliche Anweisung.
+7. **Wallet-Quote (Aggregat):** bewusst nicht aktiviert (Abschnitt 12).
+8. **Weitere Chains:** Uniswap v3 auf L2s ist nicht Teil dieser Phase. Dort gelten andere Adressen und teils andere Init-Code-Hashes.
 
 ## 11. Preis-Referenzen (`price-reference.mjs`)
 
@@ -402,4 +423,183 @@ Nicht nutzbar sind:
 - **PAXG:** keine Reserve.
 
 **Redundant:** Für WETH liefert der direkte Feed dasselbe Paar ohne den Umweg über Aave. Der Adapter ist deshalb nirgends Standard und wird vom Uniswap-Leser nicht aufgerufen. Die produktive Aave-Bewertung bleibt unverändert.
+
+## 12. Nexus Produkt 72: Kapazität und informative Quote (`uniswap-v3-nexus.mjs`)
+
+Ablauf je NFT:
+
+```
+gültige LP-Position  ->  Principal-Exposure (USD, ohne Gebühren)  ->  Produkt 72
+  ->  Kapazität (≤ 60 s)  ->  Umrechnung in ETH / USDC / cbBTC (Chainlink, selber Block)
+  ->  eine informative Quote
+```
+
+Wiederverwendet werden, unverändert:
+- die Nexus-Leser und -Parser aus `nexus-read-api.mjs`: Produkt, Produkttyp, Kapazität und Quote, mit Bindung an Asset, Betrag, Pools und Prämie,
+- `capacityView` aus `nexus-read-model.mjs`,
+- `QUOTE_TTL_MS`, `parseAssetAmount` und `quoteFreshness` aus `nexus-quote.mjs`.
+
+Neu ist nur, was für Produkt 72 eigen ist: der Pin, das Gate, die Umrechnung über Chainlink und die Readiness.
+
+### Produkt 72 (neu gelesen am 21.10.2026, 12:08 UTC)
+
+Gelesen über `GET /v2/products/72`, `/v2/product-types/0` und `/v2/capacity/72`. Die Antworten liegen unverändert in `test/fixtures/uniswap/nexus-72/`. Das Produkt ist identisch mit dem Stand der Erkennungsphase (gleicher Zeitstempel 1761821039).
+
+| Feld | Wert | Prüfung (`verifyUniswapProduct`) |
+|---|---|---|
+| Produkt-ID | 72 | `PRODUCT_ID_MISMATCH` |
+| Name | Uniswap v3 | `PRODUCT_NAME_MISMATCH` (auch für „Uniswap v2/v4“, „Beefy CLM + Uniswap v3“) |
+| Produkttyp | 0, Single Protocol Cover | `PRODUCT_TYPE_MISMATCH` |
+| Status | aktiv, öffentlich | `PRODUCT_DEPRECATED` / `PRODUCT_PRIVATE` |
+| Kategorie | dex | `CATEGORY_MISMATCH` |
+| Cover-Assets | genau ETH (0), USDC (6), cbBTC (7) | `COVER_ASSETS_CHANGED` / `ASSET_IDENTITY_MISMATCH` |
+| Proof of Loss | `address` | `PROOF_OF_LOSS_CHANGED` |
+| Grace Period | 3 024 000 s = 35 Tage | `GRACE_PERIOD_CHANGED` |
+| Wording | `QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY` | `TERMS_CHANGED` |
+| Metadata / Annex | leer, kein Annex | `TERMS_CHANGED`, sobald ein Annex auftaucht |
+| Kapazität | ETH ≈ 3 629, USDC ≈ 8 922 543, cbBTC ≈ 108, aus 19 Pools; Jahrespreis 0,5–0,81 % | siehe unten |
+
+Der Pin ist strenger als der für Produkt 97: Cover-Assets und Grace Period müssen exakt passen. Produkt 97 und `PINNED_PRODUCTS` bleiben unverändert. Produkt 72 steht bewusst **nicht** dort, weil es sonst produktiv erreichbar würde.
+
+### Zuordnung
+
+`uniswapNexusMapping(position)` liefert MATCHED nur unter diesen Bedingungen:
+- `status` VALID und chainId genau 1,
+- `deploymentKey` `uniswap-v3-ethereum` mit kanonischer Factory und kanonischem NonfungiblePositionManager,
+- der Pool ist genau die CREATE2-Ableitung aus Token-Paar und Gebührenstufe.
+
+Alle anderen Fälle:
+
+| Fall | Ergebnis |
+|---|---|
+| `uniswap-v2-*`, `uniswap-v4-*` | `UNSUPPORTED` / `OTHER_PROTOCOL_VERSION` (Produkte 71 und 256 werden nie zugeordnet) |
+| Beefy CLM, Vaults, Arrakis, Gamma | `UNSUPPORTED` / `VAULT_OR_WRAPPER` (Produkt 168 wird nie zugeordnet) |
+| andere Chain | `UNSUPPORTED` / `WRONG_CHAIN` |
+| anderes Deployment, anderer NPM oder andere Factory | `AMBIGUOUS` / `DEPLOYMENT_CONFLICT` |
+| Pool ≠ Ableitung (gefälschter Pool) | `AMBIGUOUS` / `NON_CANONICAL_POOL` |
+
+Namen werden nicht unscharf verglichen.
+
+### Gate vor jedem Nexus-Abruf
+
+`uniswapQuoteGate` prüft, bevor Nexus überhaupt gefragt wird. Fällt eine Bedingung durch, gibt es keinen einzigen Abruf:
+- Position VALID und MATCHED,
+- die Exposure gehört zu genau diesem NFT, Pool und Block,
+- Liquidität > 0 (sonst `ZERO_LIQUIDITY`),
+- `pricingStatus PRICED` mit Vorschlag > 0 (sonst `PRICING_INCOMPLETE`),
+- Gebühren nicht enthalten,
+- der Scan ist höchstens 5 Minuten alt (`POSITION_STALE`). Ein Block aus der Zukunft ergibt `POSITION_CLOCK_SKEW`.
+
+### Kapazität
+
+Die Kapazität wird über den bestehenden Leser `readCapacity(72)` geholt. Er prüft Form, Produkt-ID und die Summe der Pools. Zusätzlich gilt:
+- **Frische:** höchstens 60 s alt (`CAPACITY_MAX_AGE_MS = QUOTE_TTL_MS`, wie beim Aave-Quote-Pfad). Ein Zeitstempel in der Zukunft gilt nie als frisch (`CAPACITY_CLOCK_SKEW`). Die Frische wird zur Quote-Zeit erneut geprüft.
+- **Assets:** nur ETH, USDC und cbBTC. DAI und NXM aus der API fallen weg. Fehlt eines der drei, ergibt das `CAPACITY_ASSET_MISSING`.
+- **Fehlerfälle:** Null überall ergibt `NO_CAPACITY`. Kaputte, inkonsistente oder fremde Antworten, HTTP-Fehler und Zeitüberschreitung ergeben `UNAVAILABLE`.
+- Eine Kapazität bedeutet nie, dass ein Kauf möglich ist.
+
+### Umrechnung USD → Cover-Asset
+
+```
+amount = floor(suggestedExposureUsd8 × 10^decimals / priceUsd8)
+```
+
+- ETH wird über ETH / USD bewertet (Referenz WETH9, 1:1 einlösbar), USDC über USDC / USD, cbBTC über cbBTC / USD.
+- Alle drei Feeds liest der Uniswap-Leser in jedem Scan im **selben Block** wie die Positionen mit (`COVER_ASSET_REFERENCES`).
+- Bedingungen an den Preis:
+  - Status `PRICE_OK`,
+  - exakter Referenz-Token, chainId 1,
+  - Quelle `CHAINLINK_DIRECT` mit genau dem gepinnten Feed,
+  - Preis als BigInt,
+  - derselbe Block wie die Exposure.
+- Sonst ist dieses Asset nicht wählbar: `COVER_ASSET_PRICE_UNAVAILABLE`, `_INVALID` oder `_NOT_SAME_BLOCK`.
+- **Nie** verwendet werden der Spotpreis des Pools, die Nexus-Quote als Preisquelle, Symbole oder eine angenommene Stablecoin-Parität. Beispiel: 1 000 USD ergeben bei USDC / USD = 0,99981255 genau 1 000,187… USDC, nicht 1 000.
+- Grenze je Asset: `min(Exposure umgerechnet, Kapazität)`.
+
+### Quote je NFT
+
+Anfrage, streng geparst (`parseUniswapQuoteRequest`):
+
+```
+{ mode: 'POSITION', tokenId, coverAsset: 'ETH'|'USDC'|'cbBTC', amount, periodDays }
+```
+
+- Eine Produkt-ID im Body ergibt `PRODUCT_ID_NOT_ACCEPTED`. Weitere Felder wie Pool oder Adressen ergeben `INVALID_BODY`.
+- Die Laufzeit ist eine ganze Zahl von 28 bis 365 Tagen.
+- Die Prüfung (`checkUniswapQuoteRequest`) verlangt:
+  - das Modell ist AVAILABLE, Produkt 72 und MATCHED, und die `tokenId` stimmt,
+  - die Kapazität ist zur Quote-Zeit frisch,
+  - der Betrag ist > 0, höchstens die Kapazität (`AMOUNT_OUT_OF_RANGE`) und höchstens die umgerechnete Principal-Exposure (`AMOUNT_ABOVE_EXPOSURE`).
+- Danach folgt genau ein `GET /v2/quote` für Produkt 72 über `readQuote`. Der bestehende Parser prüft:
+  - Asset (`QUOTE_ASSET_MISMATCH`),
+  - Betrag nicht unter der Anfrage und höchstens 1 % + 1 Einheit darüber (`QUOTE_AMOUNT_MISMATCH`),
+  - Pools des Produkts mit Platz (`QUOTE_PRODUCT_MISMATCH`),
+  - Prämie = Betrag × Jahrespreis × Tage / 365 (`QUOTE_PRICE_INCONSISTENT`),
+  - Form (`MALFORMED_QUOTE`).
+- Zusätzlich prüft die Uniswap-Schicht:
+  - die Bindung an Produkt 72, Asset und Laufzeit,
+  - dass der gequotete Betrag nicht über der Exposure plus derselben Toleranz liegt (`QUOTE_AMOUNT_ABOVE_EXPOSURE`).
+- Ergebniscodes bei Fehlern:
+  - `QUOTE_UNAVAILABLE` mit Grund (`TIMEOUT`, `HTTP_ERROR`, …),
+  - `QUOTE_REJECTED` mit dem Grund des Parsers,
+  - `QUOTE_AMOUNT_TOO_SMALL` (siehe Rundung).
+
+  Nie gibt es eine Ersatz-Prämie.
+
+Interne Ansicht (`uniswapQuoteView`):
+
+```
+{ provider: 'Nexus Mutual', productId: 72, productName, productTypeName, tokenId, pool,
+  suggestedExposureUsd, coverAsset, requestedCoverAmount, quotedCoverAmount, periodDays,
+  premium, premiumAsset, annualPricePercent, capacity, quoteFetchedAt, quoteExpiresAt,
+  informationalOnly: true, purchaseAvailable: false, status: 'FRESH' | 'STALE' }
+```
+
+- Die Ansicht enthält keine Pool-Zuteilungen, keine NXM-Werte und keine Vertragsdaten.
+- Gültig ist sie 60 s, danach `STALE`.
+
+### Kleine Beträge (Rundung)
+
+Am 21.10.2026 wurden 14 Quotes für Produkt 72 mit 30 Tagen Laufzeit gelesen. Ergebnis:
+
+| Asset | angefragt | gequotet | Einordnung (bestehender Parser) |
+|---|---|---|---|
+| ETH | 0,000001 / 0,0001 | je 0,000256527 | `QUOTE_AMOUNT_ROUNDED_UP` → `QUOTE_AMOUNT_TOO_SMALL` |
+| ETH | 0,001 | 0,001026 (+2,6 %) | `QUOTE_AMOUNT_ROUNDED_UP` |
+| ETH | 0,01 / 0,1 / 1 | +0,05 % / +0,05 % / +0,02 % | OK |
+| USDC | 1 | 1,261446 (+26 %) | `QUOTE_AMOUNT_ROUNDED_UP` |
+| USDC | 10 / 100 / 1 000 | +0,9 % / +0,3 % / +0,03 % | OK |
+| cbBTC | 0,00001 | 0,00001528, Prämie 0 | `QUOTE_AMOUNT_MISMATCH` (nicht einmal als Rundung einordenbar) |
+| cbBTC | 0,0001 | +7 % | `QUOTE_AMOUNT_ROUNDED_UP` |
+| cbBTC | 0,001 / 0,01 | +0,09 % / +0,01 % | OK |
+
+Belegt ist damit:
+- **Rundung wie bei 97:** Nexus rundet auch Produkt 72 je Pool auf ganze Allokations-Einheiten auf. Die kleinste Summe ist genau eine Einheit von 0,01 NXM (`Cover.NXM_PER_ALLOCATION_UNIT = 1e16`, ein Vertragswert und kein Produktwert). Sie entspricht hier 0,000256527 ETH, ≈ 0,63 USDC bzw. ≈ 0,0000076 cbBTC.
+- **Gleiche Einheit:** Die Einheit in ETH stimmt auf 1 % mit dem Aave-Mitschnitt vom 20.10. überein. Die Abweichung kommt vom NXM-Kurs.
+- **Klassifikator wiederverwendbar:** `isAllocationRoundUp` in `parseQuote` ordnet die Fälle korrekt ein. Wo er nicht einordnen kann (Prämie 0), schließt er mit `QUOTE_AMOUNT_MISMATCH`.
+- **Keine Aufblähung:** Es gibt keinen höheren Betrag und keine automatische neue Anfrage. Jede angenommene Quote liegt höchstens 1 % + 1 Einheit über der Anfrage, und die Anfrage liegt höchstens bei der umgerechneten Exposure. Liegt die Rundung materiell darüber, wird die Quote mit `QUOTE_AMOUNT_TOO_SMALL` abgelehnt.
+
+### Eine NFT oder die ganze Wallet
+
+- **Je NFT (diese Phase):** Jede Quote gehört zu genau einem NFT (`mode: 'POSITION'`, `tokenId`). Mehrere NFTs werden nie still zusammengelegt.
+- **Wallet / Aggregat (später):** `aggregateQuoteBasis(scan)` beschreibt nur die Grundlage: Das Aggregat ist `COMPLETE`, und jede aktive Position ist MATCHED. NFTs ohne Liquidität gehören nicht dazu. Eine solche Quote wird nicht angefragt: `mode: 'AGGREGATE'` ergibt `AGGREGATE_QUOTE_NOT_ENABLED`, und `quoteEnabled` ist false.
+
+### NFTs ohne Liquidität
+
+Ein NFT mit Liquidität 0 bleibt sichtbar, Gebühren getrennt. Es hat keine Principal-Exposure, fragt weder Kapazität noch Quote an (`ZERO_LIQUIDITY`, kein einziger Abruf) und gilt nicht als aktive Exposure.
+
+### Fehlerfälle (alle schließen)
+
+| Fall | Ergebnis |
+|---|---|
+| falsches Produkt (97 statt 72, anderer Name) | `PRODUCT_ID_MISMATCH` / `PRODUCT_NAME_MISMATCH` / `PRODUCT_MISMATCH` |
+| v2, v4, Beefy CLM | `UNSUPPORTED` |
+| gefälschter Pool | `AMBIGUOUS NON_CANONICAL_POOL` |
+| gefälschtes NFT, falscher Eigentümer | `POSITION_NOT_VALID` |
+| unvollständige Bewertung, veralteter Chainlink-Preis | `PRICING_INCOMPLETE` bzw. `COVER_ASSET_PRICE_UNAVAILABLE` |
+| nicht unterstütztes Cover-Asset (DAI, NXM, `eth`) | `ASSET_NOT_SUPPORTED` |
+| veraltete oder kaputte Kapazität | `CAPACITY_STALE` / `CAPACITY_UNAVAILABLE:MALFORMED_CAPACITY` u. a. |
+| kaputte Quote, falsches Asset, Betrag darunter oder materiell darüber, Prämie unstimmig | `QUOTE_REJECTED` mit Grund |
+| winzige Beträge | `QUOTE_AMOUNT_TOO_SMALL` |
+| Zeitüberschreitung, Teilausfall (Produkt, Typ oder Kapazität) | `QUOTE_UNAVAILABLE` bzw. Modell `UNAVAILABLE` |
 
