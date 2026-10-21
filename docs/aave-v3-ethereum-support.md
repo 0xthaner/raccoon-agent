@@ -46,7 +46,7 @@ Live gegen den Nexus-Katalog gelesen am 20.10.2026:
 | Aave v2 (Ethereum) | DEPRECATED | Nexus-Produkt 2 „aave v2“ ist deprecated |
 | Aave v4 | UNSUPPORTED | eigenes Nexus-Produkt 449, nicht abgebildet |
 | Aave v3 Ethereum Horizon | UNSUPPORTED | zugangsbeschränkter RWA-Markt |
-| Aave v3 auf anderen Chains (Arbitrum, Base, Optimism, Polygon, Avalanche …) | UNSUPPORTED | nur Ethereum-Mainnet |
+| Aave v3 auf anderen Chains (Arbitrum, Base, Optimism, Polygon, Avalanche …) | UNSUPPORTED | nur Ethereum-Mainnet; inaktive, on-chain geprüfte Kandidaten mit Nexus-Scope PROBABLE in `docs/aave-v3-multichain-support.md` |
 
 ## Engagement (AAVE_NET_EXPOSURE_V1)
 
