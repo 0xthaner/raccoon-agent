@@ -153,7 +153,8 @@ export async function scanDeployment(wallet, config, { client, allowInactive = f
 	if (chainId !== config.chainId) return Object.freeze({ status: 'UNAVAILABLE', reason: 'CHAIN_MISMATCH' });
 	const market = [...AAVE_V3_MARKETS, ...AAVE_V3_MULTICHAIN_CANDIDATES].find((entry) => entry.deploymentKey === config.deploymentKey && entry.chainId === config.chainId);
 	if (!market) return Object.freeze({ status: 'UNAVAILABLE', reason: 'UNKNOWN_DEPLOYMENT' });
-	const result = await readAaveV3Positions(wallet, { client, markets: [market], rpcTimeoutMs: budget.requestTimeoutMs, lookupBudgetMs: budget.scanBudgetMs, ...(now ? { now } : {}) });
+	// Referenzen nur ueber den chain-spezifischen Resolver; Ethereum bleibt im Leser auf REFERENCE_TOKENS.
+	const result = await readAaveV3Positions(wallet, { client, markets: [market], rpcTimeoutMs: budget.requestTimeoutMs, lookupBudgetMs: budget.scanBudgetMs, referenceResolver: classifyReserveForConversion, ...(now ? { now } : {}) });
 	const [entry] = result.markets;
 	return Object.freeze({ status: entry.status, reason: entry.reason ?? null, chainId, position: entry.position ?? null });
 }
@@ -164,49 +165,98 @@ export async function scanDeployment(wallet, config, { client, allowInactive = f
 	AaveOracle selbst liefert keinen Zeitstempel (nur getAssetPrice); ein
 	Fallback-Oracle ist auf keiner der fuenf Chains gesetzt, ein
 	PriceOracleSentinel auch nicht. Lesbar sind:
-	  - direkte Chainlink-Feeds (ETH/USD, BTC/USD): latestRoundData().updatedAt
+	  - Chainlink-Feeds (auf Arbitrum und Base die SVR-Proxies, die Aave als
+	    Quelle nutzt): latestRoundData().updatedAt
 	  - "Capped USDC/USD"-Adapter: kein latestRoundData; der innere Feed
 	    (ASSET_TO_USD_AGGREGATOR, "USDC / USD") liefert updatedAt
 	  - L2-Sequencer-Feeds (Arbitrum, Base, Optimism): answer 0 = up, startedAt
 	Geprueft werden nur die Referenz-Feeds der Umrechnung, nicht jede Reserve.
-	Die Hoechstalter sind eine obere Grenze (24-h-Heartbeat + 15 min), nicht die
-	je Feed tatsaechlichen Heartbeats - die sind on-chain nicht lesbar.
+
+	Heartbeat und Abweichungsschwelle je Feed stammen aus Chainlinks Reference
+	Data Directory (Datenquelle von docs.chain.link), am 21.10.2026 gelesen und
+	ueber proxyAddress bzw. secondaryProxyAddress (SVR) exakt zugeordnet.
+	Fehlt ein Heartbeat, ist das Ergebnis UNKNOWN - es gibt keinen pauschalen
+	Ersatzwert.
 */
 export const ORACLE_STATES = Object.freeze(['ORACLE_FRESH', 'ORACLE_STALE', 'SEQUENCER_DOWN', 'SEQUENCER_GRACE_PERIOD', 'UNKNOWN']);
-export const ORACLE_POLICY = Object.freeze({ maxFeedAgeSec: 86_400 + 900, sequencerGraceSec: 3_600, futureSkewSec: 60 });
+
+const RDD = 'Chainlink Reference Data Directory 21.10.2026';
+const heartbeat = (chainId, feed, path, heartbeatSec, deviationPercent) => [`${chainId}:${feed.toLowerCase()}`, Object.freeze({ chainId, feed, path, heartbeatSec, deviationPercent, source: RDD, confidence: 'OFFICIAL_METADATA' })];
+export const FEED_HEARTBEATS = Object.freeze(Object.fromEntries([
+	heartbeat(42161, '0xbD41b1548a5A06544cBcf87c0c54864312842C00', 'eth-usd-svr', 86_400, 0.05),
+	heartbeat(42161, '0xDbFF913E9058C1E60446150D23Bb0fFE9144d531', 'usdc-usd-svr', 86_400, 0.1),
+	heartbeat(8453, '0x9dA00D23465282005DB222a441a663eE7B9dfCc8', 'eth-usd-svr', 1_200, 0.15),
+	heartbeat(8453, '0x1550207eAeB590D1557a6E6C066D3d57B5A4Dc65', 'usdc-usd-svr', 86_400, 0.3),
+	heartbeat(8453, '0x3A932b286715abc4A86a4ACAF68A6cdD89E0d446', 'btc-usd-svr', 1_200, 0.1),
+	heartbeat(10, '0x13e3Ee699D1909E989722E753853AE30b17e08c5', 'eth-usd', 1_200, 0.15),
+	heartbeat(10, '0x16a9FA2FDa030272Ce99B29CF780dFA30361E0f3', 'usdc-usd', 86_400, 0.1),
+	heartbeat(137, '0xF9680D99D6C9589e2a93a78A04A279e509205945', 'eth-usd', 27, 0.1),
+	heartbeat(137, '0xfE4A8cc5b5B2366C1B58Bea3858e81843581b2F7', 'usdc-usd', 27, 0.005),
+	heartbeat(43114, '0x976B3D034E162d8bD72D6b9C989d545b839003b0', 'eth-usd', 86_400, 0.1),
+	heartbeat(43114, '0xF096872672F44d6EBA71458D74fe67F9a77a23B9', 'usdc-usd', 86_400, 0.1)
+]));
+
+/*
+	Politik (nicht von Chainlink vorgegeben): ein Feed ist veraltet, wenn er
+	aelter als Heartbeat + max(60 s, 5 % des Heartbeats) ist. Sequencer-
+	Schonfrist 3600 s nach einem Neustart.
+*/
+export const ORACLE_POLICY = Object.freeze({ heartbeatMarginMinSec: 60, heartbeatMarginRatio: 0.05, sequencerGraceSec: 3_600 });
+export const maxFeedAgeSec = (heartbeatSec, policy = ORACLE_POLICY) => heartbeatSec + Math.max(policy.heartbeatMarginMinSec, Math.ceil(heartbeatSec * policy.heartbeatMarginRatio));
 
 const state = (value, reason) => Object.freeze({ state: value, reason });
+const isBlock = (value) => typeof value === 'bigint' && value > 0n;
+const intAnswer = (value) => (typeof value === 'bigint' ? value : (typeof value === 'number' && Number.isSafeInteger(value) ? BigInt(value) : (typeof value === 'string' && /^-?\d+$/.test(value) ? BigInt(value) : null)));
 
 /**
- * `observation` = { nowSec, sequencer: { answer, startedAt } | null, feeds: [{ feed, answer, updatedAt }] }.
- * Fehlt etwas oder ist es unplausibel: UNKNOWN. Nur ORACLE_FRESH erlaubt spaeter eine Quote.
+ * Frische in EINEM gewaehlten Block. `snapshot` =
+ *   { block: { number: bigint, timestamp: int },
+ *     prices: { blockNumber },                        // Aave-Reservepreise
+ *     sequencer: { answer, startedAt, blockNumber } | null,
+ *     feeds: [{ feed, answer, updatedAt, blockNumber }] }
+ * Alles muss aus genau diesem Block stammen; "jetzt" ist der Block-Zeitstempel,
+ * nie die Serveruhr. Fehlt etwas, stammt es aus einem anderen Block oder ist es
+ * unplausibel: UNKNOWN. Nur ORACLE_FRESH erlaubt spaeter eine Quote.
  */
-export function oracleFreshness(chainId, observation, policy = ORACLE_POLICY) {
-	const config = CHAIN_CLIENT_CONFIGS.find((entry) => entry.chainId === chainId && entry.chainId !== 1);
+export function oracleFreshness(chainId, snapshot, { policy = ORACLE_POLICY, heartbeats = FEED_HEARTBEATS } = {}) {
+	if (!Number.isSafeInteger(chainId) || chainId === 1) return state('UNKNOWN', 'UNSUPPORTED_CHAIN');
+	const config = CHAIN_CLIENT_CONFIGS.find((entry) => entry.chainId === chainId);
 	if (!config) return state('UNKNOWN', 'UNSUPPORTED_CHAIN');
-	const references = REFERENCES[chainId] ?? [];
-	if (!observation || typeof observation !== 'object' || !Number.isSafeInteger(observation.nowSec) || observation.nowSec <= 0) return state('UNKNOWN', 'NO_OBSERVATION');
-	const { nowSec } = observation;
+	if (!snapshot || typeof snapshot !== 'object') return state('UNKNOWN', 'NO_SNAPSHOT');
+	const block = snapshot.block;
+	if (!block || !isBlock(block.number) || !Number.isSafeInteger(block.timestamp) || block.timestamp <= 0) return state('UNKNOWN', 'NO_BLOCK');
+	const inBlock = (value) => isBlock(value) && value === block.number;
+	if (!inBlock(snapshot.prices?.blockNumber)) return state('UNKNOWN', 'PRICES_NOT_SAME_BLOCK');
+	const nowSec = block.timestamp;
 	if (config.sequencerFeed) {
-		const seq = observation.sequencer;
-		if (!seq || typeof seq !== 'object' || !Number.isSafeInteger(seq.startedAt) || seq.startedAt <= 0 || seq.startedAt > nowSec + policy.futureSkewSec) return state('UNKNOWN', 'SEQUENCER_STATUS_UNAVAILABLE');
-		if (seq.answer !== 0 && seq.answer !== 0n && seq.answer !== '0') return state('SEQUENCER_DOWN', 'SEQUENCER_REPORTED_DOWN');
+		const seq = snapshot.sequencer;
+		if (!seq || typeof seq !== 'object') return state('UNKNOWN', 'SEQUENCER_STATUS_UNAVAILABLE');
+		if (!inBlock(seq.blockNumber)) return state('UNKNOWN', 'SEQUENCER_NOT_SAME_BLOCK');
+		if (!Number.isSafeInteger(seq.startedAt) || seq.startedAt <= 0 || seq.startedAt > nowSec) return state('UNKNOWN', 'SEQUENCER_STATUS_UNAVAILABLE');
+		const answer = intAnswer(seq.answer);
+		if (answer === null) return state('UNKNOWN', 'SEQUENCER_STATUS_UNAVAILABLE');
+		if (answer !== 0n) return state('SEQUENCER_DOWN', 'SEQUENCER_REPORTED_DOWN');
 		if (nowSec - seq.startedAt < policy.sequencerGraceSec) return state('SEQUENCER_GRACE_PERIOD', 'SEQUENCER_RECENTLY_RESTARTED');
-	} else if (observation.sequencer != null) {
+	} else if (snapshot.sequencer != null) {
 		return state('UNKNOWN', 'UNEXPECTED_SEQUENCER_DATA');
 	}
-	const needed = references.filter((ref) => ref.status === 'SUPPORTED_REFERENCE').map((ref) => ref.freshnessFeed.toLowerCase());
+	const needed = (REFERENCES[chainId] ?? []).filter((ref) => ref.status === 'SUPPORTED_REFERENCE').map((ref) => ref.freshnessFeed.toLowerCase());
 	if (!needed.length) return state('UNKNOWN', 'NO_REFERENCE_FEEDS');
-	const feeds = Array.isArray(observation.feeds) ? observation.feeds : [];
+	const feeds = Array.isArray(snapshot.feeds) ? snapshot.feeds : [];
+	let stale = false;
 	for (const feed of needed) {
+		const meta = heartbeats[`${chainId}:${feed}`];
+		if (!meta || !Number.isSafeInteger(meta.heartbeatSec) || meta.heartbeatSec <= 0) return state('UNKNOWN', 'HEARTBEAT_UNKNOWN');
 		const reading = feeds.find((entry) => typeof entry?.feed === 'string' && entry.feed.toLowerCase() === feed);
 		if (!reading) return state('UNKNOWN', 'FEED_MISSING');
-		const answer = typeof reading.answer === 'bigint' ? reading.answer : (typeof reading.answer === 'string' && /^-?\d+$/.test(reading.answer) ? BigInt(reading.answer) : null);
+		if (!inBlock(reading.blockNumber)) return state('UNKNOWN', 'FEED_NOT_SAME_BLOCK');
+		const answer = intAnswer(reading.answer);
 		if (answer === null || answer <= 0n) return state('UNKNOWN', 'FEED_ANSWER_INVALID');
-		if (!Number.isSafeInteger(reading.updatedAt) || reading.updatedAt <= 0 || reading.updatedAt > nowSec + policy.futureSkewSec) return state('UNKNOWN', 'FEED_TIMESTAMP_INVALID');
-		if (nowSec - reading.updatedAt > policy.maxFeedAgeSec) return state('ORACLE_STALE', 'FEED_TOO_OLD');
+		if (!Number.isSafeInteger(reading.updatedAt) || reading.updatedAt <= 0 || reading.updatedAt > nowSec) return state('UNKNOWN', 'FEED_TIMESTAMP_INVALID');
+		if (nowSec - reading.updatedAt > maxFeedAgeSec(meta.heartbeatSec, policy)) stale = true;
 	}
-	return state('ORACLE_FRESH', 'ALL_REFERENCE_FEEDS_FRESH');
+	// erst alle Feeds vollstaendig pruefen: ein fehlender oder kaputter Feed ist UNKNOWN, nicht nur "veraltet"
+	return stale ? state('ORACLE_STALE', 'FEED_TOO_OLD') : state('ORACLE_FRESH', 'ALL_REFERENCE_FEEDS_FRESH');
 }
 
 /* ------------------------------------------- E: Umrechnungs-Referenzen -- */
@@ -298,9 +348,11 @@ export function classifyReserveForConversion(chainId, token) {
 
 /*
 	Heutiger Stand je Kandidat. rpcReady: kein Endpunkt/Schluessel je Chain
-	eingerichtet oder geprueft. oracleReady: Datenquellen bekannt, aber die
-	Hoechstalter sind nur eine obere Grenze und nur die Referenz-Feeds sind
-	abgedeckt. conversionReady: ETH und USDC haben je eine eindeutige Referenz.
+	eingerichtet oder geprueft. oracleReady: Feeds und Heartbeats belegt, die
+	Entscheidung (oracleFreshness) steht, aber das Lesen von Sequencer und
+	Feeds im Scan-Block ist nicht verdrahtet; Reserven ohne eigenen Zeitstempel
+	bleiben ungeprueft. conversionReady: ETH und USDC haben je eine eindeutige
+	Referenz.
 */
 export function currentActivationFacts(deploymentKey) {
 	const entry = AAVE_V3_MULTICHAIN_CANDIDATES.find((market) => market.deploymentKey === deploymentKey);
@@ -320,7 +372,7 @@ export function activationReadiness(facts) {
 	const blockers = [];
 	if (!flag(facts.detectionReady)) blockers.push('DETECTION_NOT_READY');
 	if (!flag(facts.rpcReady)) blockers.push('RPC_NOT_PROVISIONED');
-	if (!flag(facts.oracleReady)) blockers.push('ORACLE_FRESHNESS_NOT_PROVEN');
+	if (!flag(facts.oracleReady)) blockers.push('ORACLE_READ_NOT_WIRED');
 	if (!flag(facts.conversionReady)) blockers.push('CONVERSION_REFERENCE_MISSING');
 	if (facts.nexusScope !== 'CONFIRMED') blockers.push(`NEXUS_SCOPE_${facts.nexusScope === 'PROBABLE' ? 'PROBABLE' : 'NOT_CONFIRMED'}`);
 	if (!flag(facts.enabled)) blockers.push('NOT_ENABLED');

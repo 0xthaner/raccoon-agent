@@ -22,7 +22,7 @@
 	Keine Transaktion, keine Signatur, keine Freigabe; nur eth_call.
 */
 import { formatUnits, getAddress, isAddress } from 'viem';
-import { AAVE_V3_MARKETS, REFERENCE_TOKENS } from './aave-registry.mjs';
+import { AAVE_V3_MARKETS, CHAIN_ID, REFERENCE_TOKENS } from './aave-registry.mjs';
 
 export const LIMITS = Object.freeze({
 	maxReservesPerMarket: 128,
@@ -171,7 +171,31 @@ function round2Calls(market, wallet, reserves) {
 	return calls;
 }
 
-function buildPosition(market, wallet, head, results, blockNumber, detectedAt) {
+/*
+	Referenz-Token je Markt (21.10.2026). REFERENCE_TOKENS sind Ethereum-Adressen
+	und gelten NUR fuer chainId 1. Dieselbe Adresse kann auf einer anderen Chain
+	ein anderer Token sein (cbBTC hat auf Base dieselbe Adresse wie auf
+	Ethereum). Jede andere Chain braucht einen chain-spezifischen Resolver
+	(referenceResolver(chainId, asset) -> { status, coverAsset }); ohne ihn, bei
+	fehlender oder ungueltiger chainId oder bei jeder anderen Antwort als
+	SUPPORTED_REFERENCE gibt es keine Referenz. Nie ein Rueckfall auf die
+	Ethereum-Tabelle.
+*/
+const COVER_ASSET_TOKEN = Object.freeze({ ETH: 'WETH', USDC: 'USDC', cbBTC: 'cbBTC' });
+
+export function referenceLookup(market, referenceResolver = null) {
+	const chainId = market?.chainId;
+	if (!Number.isSafeInteger(chainId) || chainId <= 0) throw new MarketUnavailable('INVALID_CHAIN_ID');
+	if (chainId === CHAIN_ID) return (asset) => Object.keys(REFERENCE_TOKENS).find((key) => same(REFERENCE_TOKENS[key], asset)) ?? null;
+	if (typeof referenceResolver !== 'function') return () => null;
+	return (asset) => {
+		const resolved = referenceResolver(chainId, asset);
+		return resolved?.status === 'SUPPORTED_REFERENCE' && Object.hasOwn(COVER_ASSET_TOKEN, resolved.coverAsset) ? COVER_ASSET_TOKEN[resolved.coverAsset] : null;
+	};
+}
+
+function buildPosition(market, wallet, head, results, blockNumber, detectedAt, referenceResolver = null) {
+	const referenceFor = referenceLookup(market, referenceResolver);
 	const prices = ok(results.at(-1));
 	if (!Array.isArray(prices) || prices.length !== head.reserves.length) throw new MarketUnavailable('INCOMPLETE_RESULT');
 	const supplied = [], borrowed = [], reference = [];
@@ -183,7 +207,7 @@ function buildPosition(market, wallet, head, results, blockNumber, detectedAt) {
 		if (!Number.isInteger(decimals) || decimals < 0 || decimals > 36) throw new MarketUnavailable('BAD_DECIMALS');
 		const price = prices[i];
 		if (typeof price !== 'bigint' || price < 0n) throw new MarketUnavailable('BAD_PRICE');
-		const token = Object.keys(REFERENCE_TOKENS).find((key) => same(REFERENCE_TOKENS[key], asset));
+		const token = referenceFor(asset);
 		if (token && price > 0n) reference.push({ token, asset, decimals, price: price.toString() });
 		const supply = user[0];
 		const debt = user[1] + user[2];
@@ -241,8 +265,9 @@ function buildPosition(market, wallet, head, results, blockNumber, detectedAt) {
  * Liest alle gepruefen Maerkte fuer genau eine Wallet. Ergebnis je Markt:
  * { market, status: 'OK', position|null } oder { market, status: 'UNAVAILABLE', reason }.
  * `client` braucht nur getBlockNumber() und multicall() (viem).
+ * `referenceResolver` gilt nur fuer chainId != 1 (inaktive Multi-Chain-Vorbereitung); die Produktion uebergibt keinen.
  */
-export async function readAaveV3Positions(wallet, { client, markets = AAVE_V3_MARKETS, now = () => Date.now(), rpcTimeoutMs = LIMITS.rpcTimeoutMs, lookupBudgetMs = LIMITS.lookupBudgetMs } = {}) {
+export async function readAaveV3Positions(wallet, { client, markets = AAVE_V3_MARKETS, now = () => Date.now(), rpcTimeoutMs = LIMITS.rpcTimeoutMs, lookupBudgetMs = LIMITS.lookupBudgetMs, referenceResolver = null } = {}) {
 	if (typeof wallet !== 'string' || !isAddress(wallet)) throw new TypeError('invalid wallet');
 	const user = getAddress(wallet);
 	const owner = wallet.toLowerCase();
@@ -297,7 +322,7 @@ export async function readAaveV3Positions(wallet, { client, markets = AAVE_V3_MA
 		markets: heads.map(({ market, head, error }) => {
 			if (error) return unavailable(market, error);
 			try {
-				return { market, status: 'OK', position: buildPosition(market, owner, head, slices.get(market.deploymentKey), blockNumber, detectedAt) };
+				return { market, status: 'OK', position: buildPosition(market, owner, head, slices.get(market.deploymentKey), blockNumber, detectedAt, referenceResolver) };
 			} catch (failure) {
 				return unavailable(market, failure instanceof MarketUnavailable ? failure.reason : 'PARSE_FAILED');
 			}

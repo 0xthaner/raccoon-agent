@@ -19,7 +19,7 @@
 		"productionActivationReady": false,
 		"blockers": [
 			"RPC_NOT_PROVISIONED",
-			"ORACLE_FRESHNESS_NOT_PROVEN",
+			"ORACLE_READ_NOT_WIRED",
 			"NEXUS_SCOPE_PROBABLE",
 			"NOT_ENABLED",
 			"NO_PRODUCTION_PATH"
@@ -46,7 +46,7 @@
 		"productionActivationReady": false,
 		"blockers": [
 			"RPC_NOT_PROVISIONED",
-			"ORACLE_FRESHNESS_NOT_PROVEN",
+			"ORACLE_READ_NOT_WIRED",
 			"NEXUS_SCOPE_PROBABLE",
 			"NOT_ENABLED",
 			"NO_PRODUCTION_PATH"
@@ -73,7 +73,7 @@
 		"productionActivationReady": false,
 		"blockers": [
 			"RPC_NOT_PROVISIONED",
-			"ORACLE_FRESHNESS_NOT_PROVEN",
+			"ORACLE_READ_NOT_WIRED",
 			"NEXUS_SCOPE_PROBABLE",
 			"NOT_ENABLED",
 			"NO_PRODUCTION_PATH"
@@ -100,7 +100,7 @@
 		"productionActivationReady": false,
 		"blockers": [
 			"RPC_NOT_PROVISIONED",
-			"ORACLE_FRESHNESS_NOT_PROVEN",
+			"ORACLE_READ_NOT_WIRED",
 			"NEXUS_SCOPE_PROBABLE",
 			"NOT_ENABLED",
 			"NO_PRODUCTION_PATH"
@@ -127,7 +127,7 @@
 		"productionActivationReady": false,
 		"blockers": [
 			"RPC_NOT_PROVISIONED",
-			"ORACLE_FRESHNESS_NOT_PROVEN",
+			"ORACLE_READ_NOT_WIRED",
 			"NEXUS_SCOPE_PROBABLE",
 			"NOT_ENABLED",
 			"NO_PRODUCTION_PATH"

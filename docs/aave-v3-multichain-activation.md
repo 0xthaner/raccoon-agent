@@ -21,7 +21,18 @@ Mehrere Aave-Deployments und Tokens haben auf verschiedenen Chains **dieselbe Ad
 
 Wer eine Chain aus einer Adresse ableitet, liest im besten Fall den falschen Markt. Im schlechtesten Fall bewertet er eine Position mit Preisen und Cover-Bezug einer anderen Chain.
 
-**Gefundenes Risiko im heutigen Leser** (MC-EDGE-REFERENCE): `REFERENCE_TOKENS` werden nur über die Adresse verglichen. Würde man einen Base-Markt mit dem heutigen Leser lesen, wäre cbBTC auf Base als Ethereum-Referenz erkannt. In Produktion tritt das nicht auf, weil nur Ethereum gelesen wird. Vor jeder Aktivierung muss die Umrechnung aber auf den chain-spezifischen Resolver umgestellt werden.
+**Gefundenes und behobenes Risiko im Leser** (seit 21.10.2026, MC-EDGE-REFERENCE): `REFERENCE_TOKENS` wurden bisher nur über die Adresse verglichen, unabhängig von der Chain. Ein Base-Markt hätte Base-cbBTC als Ethereum-Referenz erkannt. In Produktion trat das nie auf, weil nur Ethereum gelesen wird.
+
+Jetzt gilt im Leser (`referenceLookup` in `src/positions/aave-v3.mjs`):
+
+| Fall | Ergebnis |
+|---|---|
+| chainId 1 (Ethereum) | `REFERENCE_TOKENS`, unverändert wie bisher; ein übergebener Resolver wird ignoriert |
+| andere chainId, kein Resolver übergeben | keine Referenz, **nie** die Ethereum-Tabelle |
+| andere chainId mit Resolver | nur bei Antwort `SUPPORTED_REFERENCE` mit Cover-Asset ETH, USDC oder cbBTC; `AMBIGUOUS_REFERENCE`, `UNAVAILABLE_REFERENCE` und alles andere ergibt keine Referenz |
+| chainId fehlt, ist keine ganze Zahl (`'8453'`, `8453n`, `8453.5`) oder ≤ 0 | Markt `UNAVAILABLE` (`INVALID_CHAIN_ID`) |
+
+Die inaktive Vorbereitung (`scanDeployment`) übergibt dafür immer `classifyReserveForConversion`, den chain-spezifischen Resolver. Er kennt nur die fünf Kandidaten-Chains und löst nur über (chainId, Adresse) auf. Eine Adresse, die auf einer anderen Chain gültig ist, ergibt auf dieser keine Referenz: Ethereum-WETH, Ethereum-USDC und cbBTC außerhalb von Base sind überall UNAVAILABLE. Die Produktion übergibt keinen Resolver und liest nur Ethereum. Ihr Verhalten ist unverändert; `test/positions.test.mjs` ist unverändert grün.
 
 ## Chain-Identität
 
@@ -67,36 +78,88 @@ Chains werden getrennt gelesen, jeweils mit eigenem Client und eigenem Block, ni
 On-chain gelesen am 21.10.2026:
 
 - **AaveOracle** liefert keinen Zeitstempel, nur `getAssetPrice`. Ein Fallback-Oracle ist auf keiner der fünf Chains gesetzt, ein `PriceOracleSentinel` ebenfalls nicht. Aave selbst schützt dort also nicht vor einem Sequencer-Ausfall.
-- **Direkte Chainlink-Feeds** (ETH / USD, BTC / USD, EUR / USD, MATIC / USD, AVAX / USD) liefern `latestRoundData().updatedAt`. Gelesene Alter: wenige Sekunden bis 12 Minuten.
-- **USDC** läuft überall über einen „Capped USDC/USD“-Adapter ohne `latestRoundData`. Der innere Feed (`ASSET_TO_USD_AGGREGATOR`, „USDC / USD“) liefert `updatedAt`. Gelesene Alter: 24 s (Polygon) bis 16,3 h (Avalanche), passend zu einem 24-Stunden-Heartbeat.
+- **Chainlink-Feeds** liefern `latestRoundData().updatedAt`. Auf Arbitrum und Base nutzt Aave die **SVR-Proxies** (Smart Value Recapture, im Chainlink-Verzeichnis als `secondaryProxyAddress` geführt), auf den anderen Chains die normalen Proxies.
+- **USDC** läuft überall über einen „Capped USDC/USD“-Adapter ohne `latestRoundData`. Geprüft wird der innere Feed (`ASSET_TO_USD_AGGREGATOR`, „USDC / USD“).
 - **LST- und CAPO-Adapter** (zum Beispiel weETH) haben keinen eigenen Zeitstempel. Sie werden **nicht** geprüft.
 
-Die Entscheidung trifft `oracleFreshness(chainId, observation)`:
+### Heartbeats je Referenz-Feed
+
+Quelle ist Chainlinks Reference Data Directory (`reference-data-directory.vercel.app/feeds-*.json`, Datenquelle von docs.chain.link), gelesen am 21.10.2026. Jeder Feed ist über die exakte Adresse zugeordnet. Nachweis: `test/fixtures/aave/chainlink-heartbeats-20261021.json`. Vertrauen: offizielle Chainlink-Metadaten. Sie sind nicht on-chain prüfbar und können sich ändern; vor einer Aktivierung erneut lesen.
+
+| Chain | Asset | Feed | Chainlink-Pfad | Heartbeat | Abweichung | Feed-Alter am 21.10. |
+|---|---|---|---|---|---|---|
+| Arbitrum | ETH | `0xbD41…2C00` (SVR) | eth-usd-svr | 86 400 s | 0,05 % | 114 s |
+| Arbitrum | USDC | `0xDbFF…d531` (SVR) | usdc-usd-svr | 86 400 s | 0,1 % | 51 440 s |
+| Base | ETH | `0x9dA0…fCc8` (SVR) | eth-usd-svr | 1 200 s | 0,15 % | 422 s |
+| Base | USDC | `0x1550…Dc65` (SVR) | usdc-usd-svr | 86 400 s | 0,3 % | 36 682 s |
+| Base | cbBTC | `0x3A93…d446` (SVR) | btc-usd-svr (BTC/USD, nicht cbBTC/USD) | 1 200 s | 0,1 % | 490 s |
+| Optimism | ETH | `0x13e3…08c5` | eth-usd | 1 200 s | 0,15 % | 438 s |
+| Optimism | USDC | `0x16a9…E0f3` | usdc-usd | 86 400 s | 0,1 % | 39 664 s |
+| Polygon | ETH | `0xF968…5945` | eth-usd | 27 s | 0,1 % | 7 s |
+| Polygon | USDC | `0xfE4A…b2F7` | usdc-usd | 27 s | 0,005 % | 24 s |
+| Avalanche | ETH | `0x976B…03b0` | eth-usd | 86 400 s | 0,1 % | 122 s |
+| Avalanche | USDC | `0xF096…23B9` | usdc-usd | 86 400 s | 0,1 % | 58 603 s |
+
+**Unbekannte Heartbeats:** keiner der elf Referenz-Feeds. Für die L2-Sequencer-Feeds führt Chainlink keinen Heartbeat (`heartbeat: null`); sie aktualisieren sich nur bei einem Statuswechsel und werden über `startedAt` bewertet, nicht über ein Alter. Für alle anderen Reserven (LST, CAPO, EUR usw.) ist kein Heartbeat hinterlegt; sie gehen nicht in die Frische-Entscheidung ein. Fehlt für einen benötigten Feed der Heartbeat, ist das Ergebnis `UNKNOWN`, nie ein pauschaler Ersatzwert (MC-ORACLE).
+
+Auffällig ist der Polygon-Wert von 27 s (USDC mit 0,005 % Abweichung). Die gelesenen Alter (7 s und 24 s) passen dazu. Die enge Grenze lässt Polygon aber schon bei kurzen RPC- oder Feed-Verzögerungen als veraltet gelten. Das ist gewollt: lieber keine Quote als eine auf alten Preisen.
+
+**Politik (CoverRaccoon, nicht von Chainlink):** Ein Feed ist veraltet, wenn er älter ist als Heartbeat + max(60 s, 5 % des Heartbeats):
+
+| Heartbeat | Grenze |
+|---|---|
+| 27 s | 87 s |
+| 1 200 s | 1 260 s |
+| 86 400 s | 90 720 s |
+
+Die Sequencer-Schonfrist beträgt 3600 s nach einem Neustart.
+
+### Ein Block für alles
+
+`oracleFreshness(chainId, snapshot)` bewertet alles gegen **einen** gewählten Block:
+
+```
+snapshot = {
+  block:     { number, timestamp },          // der gewählte Block
+  prices:    { blockNumber },                 // Aave-Reservepreise (getAssetsPrices)
+  sequencer: { answer, startedAt, blockNumber } | null,
+  feeds:     [{ feed, answer, updatedAt, blockNumber }]
+}
+```
+
+- Preise, jeder Feed und der Sequencer müssen aus genau `block.number` stammen (BigInt-Gleichheit). Sonst gibt es `UNKNOWN` (`PRICES_NOT_SAME_BLOCK`, `FEED_NOT_SAME_BLOCK`, `SEQUENCER_NOT_SAME_BLOCK`).
+- „Jetzt“ ist `block.timestamp`, nie die Serveruhr. Serveruhren können abweichen, und Chains unterscheiden sich in der Blockzeit. Ein `updatedAt` oder `startedAt` nach dem Block-Zeitstempel ist `UNKNOWN`.
+- Reihenfolge: Block → Preise → Sequencer → alle Feeds. Ein fehlender oder kaputter Feed ist `UNKNOWN`, auch wenn ein anderer nur veraltet wäre.
 
 | Ergebnis | Bedingung |
 |---|---|
-| `SEQUENCER_DOWN` | L2-Sequencer-Feed meldet `answer ≠ 0` |
-| `SEQUENCER_GRACE_PERIOD` | Sequencer ist seit weniger als 3600 s wieder oben |
-| `ORACLE_STALE` | ein Referenz-Feed ist älter als 87 300 s (24 h + 15 min) |
-| `ORACLE_FRESH` | alle Referenz-Feeds der Chain gültig und frisch, Sequencer oben und außerhalb der Schonfrist |
+| `SEQUENCER_DOWN` | Rollup-Sequencer meldet `answer ≠ 0` |
+| `SEQUENCER_GRACE_PERIOD` | Sequencer seit weniger als 3600 s wieder oben |
+| `ORACLE_STALE` | ein Referenz-Feed älter als seine Grenze, alles andere gültig |
+| `ORACLE_FRESH` | alle Referenz-Feeds der Chain gültig und frisch, gleicher Block, Sequencer oben und außerhalb der Schonfrist |
 | `UNKNOWN` | in allen anderen Fällen (siehe unten) |
 
-`UNKNOWN` gilt, wenn etwas fehlt oder unplausibel ist:
-- Sequencer-Status fehlt auf einem Rollup,
-- unerwartete Sequencer-Daten auf Polygon oder Avalanche,
-- ein Feed fehlt,
-- ein Feed hat eine Antwort ≤ 0,
-- ein Zeitstempel ist ungültig oder liegt in der Zukunft,
-- die Chain ist unbekannt.
+`UNKNOWN` gilt bei:
+- unbekannter Chain oder chainId, die keine Zahl ist,
+- fehlendem oder ungültigem Block,
+- anderem Block für Preise, Feeds oder Sequencer,
+- fehlendem Sequencer-Status auf einem Rollup,
+- Sequencer-Daten auf Polygon oder Avalanche,
+- fehlendem Heartbeat,
+- fehlendem Feed,
+- Feed-Antwort ≤ 0,
+- ungültigem Zeitstempel.
 
-Eine Quote dürfte später nur `ORACLE_FRESH` sehen; `UNKNOWN` schlägt sicher fehl.
+Eine Quote dürfte später nur `ORACLE_FRESH` sehen; alles andere blockiert.
 
-**Sequencer:** Arbitrum (`0xFdB6…697D`), Base (`0xBCF8…6433`) und Optimism (`0x371E…E389`) haben einen Chainlink-Feed „L2 Sequencer Uptime Status Feed“. Am 21.10.2026 war die Antwort überall 0 (oben), seit 105 bis 153 Tagen. Polygon PoS und Avalanche C-Chain sind keine Rollups; dort gibt es keinen Sequencer-Feed und keine Sequencer-Regel.
+Für die Verdrahtung gibt es ein festes Budget: 4 Zusatzaufrufe im Multicall des Scan-Blocks (Sequencer und bis zu 3 Feeds). Noch ist sie nicht gebaut.
 
-**Grenzen (deshalb Oracle-Bereitschaft nur PARTIAL):**
-1. 87 300 s ist eine obere Grenze aus dem längsten beobachteten Heartbeat (24 h). Die tatsächlichen Heartbeats je Feed, die zum Teil kürzer sind, lassen sich on-chain nicht lesen und sind nicht anders verifiziert. Ein Feed mit 1-Stunden-Heartbeat würde erst nach gut 24 h als veraltet erkannt.
+**Sequencer:** Arbitrum (`0xFdB6…697D`), Base (`0xBCF8…6433`) und Optimism (`0x371E…E389`) haben einen Chainlink-Feed „L2 Sequencer Uptime Status Feed“; on-chain gelesen und im Chainlink-Verzeichnis bestätigt. Am 21.10.2026 war die Antwort überall 0 (oben), seit 105 bis 153 Tagen. Polygon PoS und Avalanche C-Chain sind keine Rollups; dort gibt es keinen Sequencer-Feed und keine Sequencer-Regel.
+
+**Warum Oracle-Bereitschaft trotzdem noch PARTIAL ist:**
+1. Das Lesen von Sequencer und Feeds im Scan-Block ist nicht verdrahtet; `oracleFreshness` ist eine reine Entscheidungsfunktion.
 2. Geprüft werden nur die Referenz-Feeds der Umrechnung (ETH, USDC und auf Base cbBTC), nicht jede Reserve einer Position.
-3. Die Frische-Daten werden heute nicht gelesen. `oracleFreshness` ist eine reine Entscheidungsfunktion; das Lesen der Feeds ist nicht verdrahtet.
+3. Die Heartbeats sind Chainlink-Metadaten von heute. Vor einer Aktivierung müssen sie erneut gelesen werden.
 
 ## Umrechnung in Cover-Assets
 
@@ -157,15 +220,15 @@ Auf Avalanche ist nur natives USDC gelistet. Als Positionswert bleiben beide Var
 | Polygon | nein | PARTIAL | ja (ETH, USDC) | PROBABLE | nein | nein |
 | Avalanche | nein | PARTIAL | ja (ETH, USDC) | PROBABLE | nein | nein |
 
-Blocker je Kandidat heute: `RPC_NOT_PROVISIONED`, `ORACLE_FRESHNESS_NOT_PROVEN`, `NEXUS_SCOPE_PROBABLE`, `NOT_ENABLED`, `NO_PRODUCTION_PATH`.
+Blocker je Kandidat heute: `RPC_NOT_PROVISIONED`, `ORACLE_READ_NOT_WIRED`, `NEXUS_SCOPE_PROBABLE`, `NOT_ENABLED`, `NO_PRODUCTION_PATH`.
 
 ## Was vor dem Freischalten je Chain fehlt
 
 1. **Nexus:** CONFIRMED für Produkt 97 auf genau dieser Chain, schriftlich oder per Annex bzw. Metadaten.
 2. **RPC:** Endpunkt je Chain einrichten und prüfen. Schlüssel nur serverseitig; chainId-Prüfung beim Start.
 3. **Oracle:**
-   - Heartbeats der Referenz-Feeds je Chain belegen (Chainlink-Daten) und die Grenzwerte je Feed statt pauschal setzen,
-   - das Lesen von Sequencer und Feeds im selben Block verdrahten,
+   - das Lesen von Sequencer und Referenz-Feeds im Scan-Block verdrahten (4 Zusatzaufrufe) und `oracleFreshness` vor jeder Quote verlangen,
+   - die Heartbeats direkt vor der Aktivierung erneut aus dem Chainlink-Verzeichnis lesen,
    - festlegen, wie mit Reserven ohne eigenen Zeitstempel umgegangen wird.
-4. **Umrechnung:** Die Adress-Suche in `REFERENCE_TOKENS` muss für Nicht-Ethereum durch den chain-spezifischen Resolver ersetzt werden (siehe das cbBTC-Risiko oben).
+4. **Umrechnung:** im Leser erledigt. Für Nicht-Ethereum gibt es Referenzen nur über den chain-spezifischen Resolver, nie über `REFERENCE_TOKENS`. Der künftige Produktionspfad muss ihn übergeben; ohne ihn gibt es keine Referenz und damit keine Quote.
 5. **Produktionspfad:** Leser je Chain, eigene Caches und Budgets, Anzeige, API. Jeweils nur auf ausdrückliche Anweisung.

@@ -3657,6 +3657,22 @@
 					"reason": "test/nexus-quote.test.mjs: new QUOTE-TINY (the recorded real Nexus answer for the observed amount, test/fixtures/nexus/quote-97-eth-tiny-90d.json, unchanged) and QUOTE-TINY-BOUNDS (two units on one pool, below the amount, no NXM premium, foreign pool, broken premium, wrong asset and malformed shapes stay QUOTE_UNAVAILABLE; a quote within 1 % stays valid). test/nexus-cover-view.test.mjs: the unknown-cause text is now 'Nexus Mutual could not return a valid quote for this amount right now.' (copy only, same code and condition); new VIEW-LANG-DE, VIEW-LANG-EN, VIEW-LANG-SWITCH and VIEW-LANG-WIRING. No assertion weakened."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zo",
+			"summary": "Reference safety for future (inactive) Aave multichain support (21.10.2026). The production Aave reader matched its conversion reference tokens (REFERENCE_TOKENS: WETH, USDC, cbBTC; Ethereum addresses) by address alone, regardless of chain; cbBTC on Base has the same address as on Ethereum. The reader now uses REFERENCE_TOKENS only for chainId 1; any other chain gets a reference only from an injected chain-specific resolver (src/positions/aave-multichain-activation.mjs) answering SUPPORTED_REFERENCE, otherwise none; a missing or non-integer chainId makes the market UNAVAILABLE (INVALID_CHAIN_ID). Production reads only Ethereum and passes no resolver: Ethereum behaviour is unchanged. The inactive freshness model now evaluates Aave prices, reference feeds and the L2 sequencer in one block, with per-feed Chainlink heartbeats (Reference Data Directory) instead of a global 24 h bound; a missing heartbeat is UNKNOWN. No control, property, threshold, external blocker or production route changed; no new chain is enabled.",
+			"changes": [
+				{
+					"id": "src/positions/aave-v3.mjs",
+					"kind": "DEFENSE_IN_DEPTH_HARDENING",
+					"reason": "reference lookup is chain-scoped (referenceLookup): REFERENCE_TOKENS only for chainId 1, other chains only via an injected chain-specific resolver answering SUPPORTED_REFERENCE, invalid chainId -> UNAVAILABLE. Not reachable with a non-Ethereum market in production today; Ethereum behaviour unchanged (test/positions.test.mjs unchanged and green)."
+				},
+				{
+					"id": "test/aave-multichain-activation.test.mjs",
+					"kind": "TEST_INFRA",
+					"reason": "MC-EDGE-REFERENCE and MC-ORACLE (inactive preparation), sanity-checked by five ad-hoc mutations (Ethereum table for every chain, weakened chainId guard, non-SUPPORTED resolver answer accepted, price block not checked, global 24 h bound instead of heartbeat), each failing the intended test. Not mapped as CRSF evidence in this version."
+				}
+			]
 		}
 	]
 }

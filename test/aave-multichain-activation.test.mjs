@@ -26,6 +26,7 @@ const { computeAaveExposure } = await import('../src/positions/exposure.mjs');
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ORACLE = JSON.parse(readFileSync(new URL('./fixtures/aave/multichain-oracle-20261021.json', import.meta.url), 'utf8')).chains;
+const HEARTBEATS = JSON.parse(readFileSync(new URL('./fixtures/aave/chainlink-heartbeats-20261021.json', import.meta.url), 'utf8')).feeds;
 const ZERO = '0x0000000000000000000000000000000000000000';
 const WALLET = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const cfg = (key) => A.configFor(key);
@@ -210,22 +211,51 @@ test('MC-EDGE decimals 2/6/8/18, frozen reserve with balance, wrapped native, ze
 	assert.deepEqual([zero.status, zero.reason], ['UNAVAILABLE', 'MISSING_PRICE']);
 });
 
-test('MC-EDGE-REFERENCE Ethereum reference tokens leak by address onto Base in the current reader; the chain-keyed resolver does not', async () => {
+test('MC-EDGE-REFERENCE non-Ethereum never falls back to Ethereum REFERENCE_TOKENS; same address on another chain never cross-resolves', async () => {
+	const { readAaveV3Positions, referenceLookup } = await import('../src/positions/aave-v3.mjs');
 	// cbBTC hat auf Base dieselbe Adresse wie auf Ethereum
 	assert.equal(REFERENCE_TOKENS.cbBTC, '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf');
 	const cbbtc = reserve(REFERENCE_TOKENS.cbBTC, 'cbBTC', 8, 8_276_061_693_696n, { supply: 100_000n, collateral: true });
-	const leaked = await scan(BASE, [cbbtc]);
-	assert.deepEqual(leaked.position.pricing.reference.map((r) => r.token), ['cbBTC'], 'documented hazard: production reader matches by address only');
-	// deshalb vor jeder Aktivierung: Referenzen nur ueber (chainId, Adresse)
-	assert.equal(A.classifyReserveForConversion(8453, REFERENCE_TOKENS.cbBTC).status, 'SUPPORTED_REFERENCE');
-	for (const chainId of [42161, 10, 137, 43114]) assert.equal(A.classifyReserveForConversion(chainId, REFERENCE_TOKENS.cbBTC).status, 'UNAVAILABLE_REFERENCE', String(chainId));
-	assert.equal(A.classifyReserveForConversion(1, REFERENCE_TOKENS.cbBTC).status, 'UNAVAILABLE_REFERENCE', 'Ethereum stays on the production path');
-	// WETH 0x4200...0006 gibt es auf Base und Optimism
+	const baseMarket = C.find((m) => m.chainId === 8453);
+	// direkter Leseraufruf fuer Base ohne Resolver: keine Referenz, auch nicht die Ethereum-Tabelle
+	const raw = await readAaveV3Positions(WALLET, { client: fakeClient(BASE, [cbbtc]), markets: [baseMarket] });
+	assert.deepEqual(raw.markets[0].position.pricing.reference, [], 'no fallback to Ethereum references');
+	// ein Resolver, der alles ablehnt / mehrdeutig / unbekannt meldet: keine Referenz
+	for (const answer of [null, undefined, { status: 'AMBIGUOUS_REFERENCE', coverAsset: 'cbBTC' }, { status: 'UNAVAILABLE_REFERENCE' }, { status: 'SUPPORTED_REFERENCE', coverAsset: 'BTC' }, { status: 'SUPPORTED_REFERENCE' }, 'SUPPORTED_REFERENCE']) {
+		const r = await readAaveV3Positions(WALLET, { client: fakeClient(BASE, [cbbtc]), markets: [baseMarket], referenceResolver: () => answer });
+		assert.deepEqual(r.markets[0].position.pricing.reference, [], JSON.stringify(answer));
+	}
+	// ueber den vorbereiteten Scan: chain-spezifischer Resolver, Base kennt cbBTC selbst
+	const scanned = await scan(BASE, [cbbtc]);
+	assert.deepEqual(scanned.position.pricing.reference.map((r) => [r.token, r.asset]), [['cbBTC', REFERENCE_TOKENS.cbBTC]]);
+	// dieselbe Adresse als Reserve eines Arbitrum-Markts: keine Referenz
+	const onArb = await scan(ARB, [cbbtc]);
+	assert.deepEqual(onArb.position.pricing.reference, [], 'Base/Ethereum cbBTC address on Arbitrum');
+	// WETH 0x4200...0006 gibt es auf Base und Optimism; auf Arbitrum ist es nichts
 	const opWeth = '0x4200000000000000000000000000000000000006';
-	assert.equal(A.classifyReserveForConversion(8453, opWeth).status, 'SUPPORTED_REFERENCE');
-	assert.equal(A.classifyReserveForConversion(10, opWeth).status, 'SUPPORTED_REFERENCE');
-	assert.equal(A.classifyReserveForConversion(42161, opWeth).status, 'UNAVAILABLE_REFERENCE');
+	assert.deepEqual((await scan(OP, [reserve(opWeth, 'WETH', 18, 1n, { supply: 1n, collateral: true })])).position.pricing.reference.map((r) => r.token), ['WETH']);
+	assert.deepEqual((await scan(ARB, [reserve(opWeth, 'WETH', 18, 1n, { supply: 1n, collateral: true })])).position.pricing.reference, []);
 	assert.equal(A.resolveConversionReference(10, 'ETH', { token: opWeth, decimals: 18, price: 1n, aaveSource: A.referencesFor(8453)[0].aaveSource, sourceDescription: 'ETH / USD' }).reason, 'PRICE_SOURCE_MISMATCH', 'Base source on Optimism');
+	// Ethereum-Adressen von WETH/USDC sind auf keiner anderen Chain eine Referenz
+	for (const chainId of [42161, 8453, 10, 137, 43114]) {
+		assert.equal(A.classifyReserveForConversion(chainId, REFERENCE_TOKENS.WETH).status, 'UNAVAILABLE_REFERENCE', String(chainId));
+		assert.equal(A.classifyReserveForConversion(chainId, REFERENCE_TOKENS.USDC).status, 'UNAVAILABLE_REFERENCE', String(chainId));
+		assert.equal(A.classifyReserveForConversion(chainId, REFERENCE_TOKENS.cbBTC).status, chainId === 8453 ? 'SUPPORTED_REFERENCE' : 'UNAVAILABLE_REFERENCE', String(chainId));
+	}
+	// chainId ist Pflicht und muss eine Zahl sein
+	for (const chainId of [undefined, null, '8453', 8453n, 8453.5, 0, -1, Number.NaN]) {
+		assert.throws(() => referenceLookup({ chainId }), (e) => e.reason === 'INVALID_CHAIN_ID', String(chainId));
+		assert.equal(A.classifyReserveForConversion(chainId, REFERENCE_TOKENS.cbBTC).status, 'UNAVAILABLE_REFERENCE', String(chainId));
+		assert.equal(A.resolveConversionReference(chainId, 'cbBTC').status, 'UNAVAILABLE_REFERENCE', String(chainId));
+	}
+	const noChain = await readAaveV3Positions(WALLET, { client: fakeClient(BASE, [cbbtc]), markets: [{ ...baseMarket, chainId: '8453' }] });
+	assert.deepEqual([noChain.markets[0].status, noChain.markets[0].reason], ['UNAVAILABLE', 'INVALID_CHAIN_ID']);
+	// unbekannte Chain: Resolver kennt sie nicht, keine Referenz
+	assert.equal(A.classifyReserveForConversion(56, REFERENCE_TOKENS.cbBTC).status, 'UNAVAILABLE_REFERENCE');
+	assert.deepEqual(referenceLookup({ chainId: 56 }, A.classifyReserveForConversion)(REFERENCE_TOKENS.cbBTC), null);
+	// Ethereum unveraendert: Tabelle, Resolver wird dort ignoriert
+	const eth = referenceLookup({ chainId: 1 }, () => ({ status: 'SUPPORTED_REFERENCE', coverAsset: 'USDC' }));
+	assert.deepEqual([eth(REFERENCE_TOKENS.WETH), eth(REFERENCE_TOKENS.USDC), eth(REFERENCE_TOKENS.cbBTC), eth('0x0000000000000000000000000000000000000001')], ['WETH', 'USDC', 'cbBTC', null]);
 });
 
 /* ---------------------------------------- E: Umrechnungs-Referenzen -- */
@@ -284,43 +314,80 @@ test('MC-REFERENCE per chain: ETH and native USDC supported, bridged USDC ambigu
 
 /* -------------------------------------------- D: Oracle-Frische -- */
 
-test('MC-ORACLE freshness: fresh, stale, sequencer down, grace period and every missing piece is UNKNOWN', () => {
-	const feedsFor = (chainId, updatedAt = T - 600, answer = '100000000') => A.referencesFor(chainId).map((r) => ({ feed: r.freshnessFeed, answer, updatedAt }));
-	const up = { answer: 0, startedAt: T - 10 * 86_400 };
-	const f = (chainId, patch = {}) => A.oracleFreshness(chainId, { nowSec: T, sequencer: A.configFor(C.find((c) => c.chainId === chainId).deploymentKey).sequencerFeed ? up : null, feeds: feedsFor(chainId), ...patch });
+test('MC-ORACLE same-block freshness with per-feed heartbeats: fresh, stale, sequencer down, grace period, UNKNOWN', () => {
+	const B = 1_000n;
+	const block = { number: B, timestamp: T };
+	const feedsFor = (chainId, age = 10, extra = {}) => A.referencesFor(chainId).map((r) => ({ feed: r.freshnessFeed, answer: '100000000', updatedAt: T - age, blockNumber: B, ...extra }));
+	const up = { answer: 0, startedAt: T - 10 * 86_400, blockNumber: B };
+	const rollup = (chainId) => Boolean(A.CHAIN_CLIENT_CONFIGS.find((c) => c.chainId === chainId).sequencerFeed);
+	const f = (chainId, patch = {}, options) => A.oracleFreshness(chainId, { block, prices: { blockNumber: B }, sequencer: rollup(chainId) ? up : null, feeds: feedsFor(chainId), ...patch }, options);
 	for (const c of C) assert.equal(f(c.chainId).state, 'ORACLE_FRESH', c.label);
-	// real gelesene Alter (bis ~16 h beim USDC-Feed) liegen innerhalb der Grenze
+	// jeder Referenz-Feed hat einen belegten Heartbeat, exakt wie im Chainlink-Verzeichnis
+	for (const c of C) for (const r of A.referencesFor(c.chainId)) {
+		const meta = A.FEED_HEARTBEATS[`${c.chainId}:${r.freshnessFeed.toLowerCase()}`];
+		const rdd = HEARTBEATS.find((h) => h.chainId === c.chainId && h.feed === r.freshnessFeed);
+		assert.ok(meta && rdd, `${c.label} ${r.coverAsset}`);
+		assert.deepEqual([meta.heartbeatSec, meta.deviationPercent, meta.path], [rdd.heartbeat, rdd.deviationPercent, rdd.path]);
+	}
+	assert.equal(Object.keys(A.FEED_HEARTBEATS).length, 11);
+	// real gelesene Alter vom 21.10.2026 sind frisch
 	for (const c of C) {
 		const seen = ORACLE[NAME[c.chainId]];
 		const feeds = A.referencesFor(c.chainId).map((r) => {
 			const a = Object.values(seen.assets).find((x) => x.address === r.token);
-			return { feed: r.freshnessFeed, answer: a.roundData?.answer ?? '1', updatedAt: seen.timestamp - (a.roundData ? a.roundData.ageSec : a.innerAgeSec) };
+			return { feed: r.freshnessFeed, answer: a.roundData?.answer ?? '1', updatedAt: seen.timestamp - (a.roundData ? a.roundData.ageSec : a.innerAgeSec), blockNumber: BigInt(seen.block) };
 		});
-		const sequencer = seen.sequencer ? { answer: Number(seen.sequencer.answer), startedAt: seen.sequencer.startedAt } : null;
-		assert.equal(A.oracleFreshness(c.chainId, { nowSec: seen.timestamp, sequencer, feeds }).state, 'ORACLE_FRESH', `${c.label} as read on 21.10.2026`);
+		const sequencer = seen.sequencer ? { answer: Number(seen.sequencer.answer), startedAt: seen.sequencer.startedAt, blockNumber: BigInt(seen.block) } : null;
+		assert.equal(A.oracleFreshness(c.chainId, { block: { number: BigInt(seen.block), timestamp: seen.timestamp }, prices: { blockNumber: BigInt(seen.block) }, sequencer, feeds }).state, 'ORACLE_FRESH', `${c.label} as read`);
 	}
-	// veraltet
-	assert.equal(f(42161, { feeds: feedsFor(42161, T - A.ORACLE_POLICY.maxFeedAgeSec - 1) }).state, 'ORACLE_STALE');
-	assert.equal(f(137, { feeds: feedsFor(137, T - A.ORACLE_POLICY.maxFeedAgeSec) }).state, 'ORACLE_FRESH', 'boundary');
+	// veraltet je Feed: Base ETH 1200 s -> Grenze 1260 s; Polygon 27 s -> 87 s; Arbitrum 24 h -> 90 720 s
+	assert.deepEqual([A.maxFeedAgeSec(1_200), A.maxFeedAgeSec(27), A.maxFeedAgeSec(86_400)], [1_260, 87, 90_720]);
+	assert.equal(f(8453, { feeds: feedsFor(8453, 1_260) }).state, 'ORACLE_FRESH');
+	assert.equal(f(8453, { feeds: feedsFor(8453, 1_261) }).state, 'ORACLE_STALE');
+	assert.equal(f(137, { feeds: feedsFor(137, 88) }).state, 'ORACLE_STALE', 'a 24 h threshold would have accepted this');
+	assert.equal(f(42161, { feeds: feedsFor(42161, 90_721) }).state, 'ORACLE_STALE');
+	assert.equal(f(42161, { feeds: feedsFor(42161, 50_000) }).state, 'ORACLE_FRESH');
+	// fehlender Heartbeat -> UNKNOWN, kein Ersatzwert
+	assert.equal(f(42161, {}, { heartbeats: {} }).reason, 'HEARTBEAT_UNKNOWN');
+	const partial = Object.fromEntries(Object.entries(A.FEED_HEARTBEATS).filter(([k]) => !k.startsWith('137:0xfe4a')));
+	assert.equal(f(137, {}, { heartbeats: partial }).state, 'UNKNOWN');
+	assert.equal(f(137, {}, { heartbeats: { ...A.FEED_HEARTBEATS, '137:0xfe4a8cc5b5b2366c1b58bea3858e81843581b2f7': { heartbeatSec: 0 } } }).reason, 'HEARTBEAT_UNKNOWN');
 	// Sequencer
-	assert.equal(f(8453, { sequencer: { answer: 1, startedAt: T - 100 } }).state, 'SEQUENCER_DOWN');
-	assert.equal(f(10, { sequencer: { answer: 0, startedAt: T - 3_599 } }).state, 'SEQUENCER_GRACE_PERIOD');
-	assert.equal(f(10, { sequencer: { answer: 0, startedAt: T - 3_600 } }).state, 'ORACLE_FRESH');
-	for (const sequencer of [null, undefined, {}, { answer: 0 }, { answer: 0, startedAt: 0 }, { answer: 0, startedAt: T + 3_600 }, { answer: 0, startedAt: '1' }]) {
-		assert.equal(f(42161, { sequencer }).state, 'UNKNOWN', JSON.stringify(sequencer));
+	assert.equal(f(8453, { sequencer: { ...up, answer: 1 } }).state, 'SEQUENCER_DOWN');
+	assert.equal(f(8453, { sequencer: { ...up, answer: '1' } }).state, 'SEQUENCER_DOWN');
+	assert.equal(f(10, { sequencer: { ...up, startedAt: T - 3_599 } }).state, 'SEQUENCER_GRACE_PERIOD');
+	assert.equal(f(10, { sequencer: { ...up, startedAt: T - 3_600 } }).state, 'ORACLE_FRESH');
+	for (const sequencer of [null, undefined, {}, { ...up, startedAt: 0 }, { ...up, startedAt: T + 1 }, { ...up, startedAt: '1' }, { ...up, answer: 'up' }, { ...up, answer: undefined }]) {
+		assert.equal(f(42161, { sequencer }).state, 'UNKNOWN', JSON.stringify(sequencer, (k, v) => (typeof v === 'bigint' ? String(v) : v)));
 	}
 	assert.equal(f(137, { sequencer: up }).reason, 'UNEXPECTED_SEQUENCER_DATA', 'Polygon has no sequencer feed');
+	assert.equal(f(43114, { sequencer: up }).reason, 'UNEXPECTED_SEQUENCER_DATA');
+	// ein und derselbe Block fuer Preise, Feeds und Sequencer
+	assert.equal(f(42161, { prices: { blockNumber: B - 1n } }).reason, 'PRICES_NOT_SAME_BLOCK');
+	assert.equal(f(42161, { prices: { blockNumber: '1000' } }).reason, 'PRICES_NOT_SAME_BLOCK');
+	assert.equal(f(42161, { prices: undefined }).reason, 'PRICES_NOT_SAME_BLOCK');
+	assert.equal(f(42161, { sequencer: { ...up, blockNumber: B + 1n } }).reason, 'SEQUENCER_NOT_SAME_BLOCK');
+	assert.equal(f(42161, { sequencer: { ...up, blockNumber: undefined } }).reason, 'SEQUENCER_NOT_SAME_BLOCK');
+	assert.equal(f(42161, { feeds: feedsFor(42161, 10, { blockNumber: B - 1n }) }).reason, 'FEED_NOT_SAME_BLOCK');
+	assert.equal(f(137, { feeds: [feedsFor(137)[0], { ...feedsFor(137)[1], blockNumber: B + 5n }] }).reason, 'FEED_NOT_SAME_BLOCK');
+	for (const b of [null, {}, { number: 0n, timestamp: T }, { number: 1000, timestamp: T }, { number: B, timestamp: 0 }, { number: B, timestamp: '1' }]) {
+		assert.equal(f(42161, { block: b }).reason, 'NO_BLOCK', JSON.stringify(b, (k, v) => (typeof v === 'bigint' ? String(v) : v)));
+	}
+	// "jetzt" ist der Block-Zeitstempel: ein Feed nach dem Block ist unplausibel
+	assert.equal(f(43114, { feeds: feedsFor(43114, -1) }).reason, 'FEED_TIMESTAMP_INVALID');
 	// Feeds
-	assert.equal(f(8453, { feeds: feedsFor(8453).slice(1) }).reason, 'FEED_MISSING', 'cbBTC/USDC/ETH all required on Base');
+	assert.equal(f(8453, { feeds: feedsFor(8453).slice(1) }).reason, 'FEED_MISSING', 'ETH, USDC and cbBTC all required on Base');
 	assert.equal(f(43114, { feeds: [] }).state, 'UNKNOWN');
-	assert.equal(f(43114, { feeds: feedsFor(43114, T - 60, '0') }).reason, 'FEED_ANSWER_INVALID');
-	assert.equal(f(43114, { feeds: feedsFor(43114, T - 60, '-1') }).reason, 'FEED_ANSWER_INVALID');
-	assert.equal(f(43114, { feeds: feedsFor(43114, T + 3_600) }).reason, 'FEED_TIMESTAMP_INVALID');
-	assert.equal(f(43114, { feeds: feedsFor(43114, '1792564000') }).reason, 'FEED_TIMESTAMP_INVALID');
+	assert.equal(f(43114, { feeds: feedsFor(43114, 10, { answer: '0' }) }).reason, 'FEED_ANSWER_INVALID');
+	assert.equal(f(43114, { feeds: feedsFor(43114, 10, { answer: '-1' }) }).reason, 'FEED_ANSWER_INVALID');
+	assert.equal(f(43114, { feeds: feedsFor(43114, 10, { updatedAt: '1792564000' }) }).reason, 'FEED_TIMESTAMP_INVALID');
 	assert.equal(f(43114, { feeds: feedsFor(42161) }).reason, 'FEED_MISSING', 'feeds of another chain do not count');
+	// ein veralteter UND ein kaputter Feed: UNKNOWN gewinnt
+	assert.equal(f(137, { feeds: [{ ...feedsFor(137)[0], updatedAt: T - 1_000 }, { ...feedsFor(137)[1], answer: '0' }] }).state, 'UNKNOWN');
 	assert.equal(A.oracleFreshness(42161, null).state, 'UNKNOWN');
-	assert.equal(A.oracleFreshness(1, { nowSec: T }).reason, 'UNSUPPORTED_CHAIN');
-	assert.equal(A.oracleFreshness(56, { nowSec: T }).state, 'UNKNOWN');
+	assert.equal(A.oracleFreshness(1, { block }).reason, 'UNSUPPORTED_CHAIN');
+	assert.equal(A.oracleFreshness('42161', { block }).reason, 'UNSUPPORTED_CHAIN');
+	assert.equal(A.oracleFreshness(56, { block }).state, 'UNKNOWN');
 	assert.deepEqual(A.ORACLE_STATES, ['ORACLE_FRESH', 'ORACLE_STALE', 'SEQUENCER_DOWN', 'SEQUENCER_GRACE_PERIOD', 'UNKNOWN']);
 });
 
@@ -332,7 +399,7 @@ test('MC-READINESS no candidate is quote- or production-ready; PROBABLE always b
 		assert.deepEqual([facts.detectionReady, facts.rpcReady, facts.oracleReady, facts.conversionReady, facts.nexusScope, facts.enabled], [true, false, false, true, 'PROBABLE', false]);
 		const r = A.activationReadiness(facts);
 		assert.deepEqual([r.quoteReady, r.productionActivationReady], [false, false]);
-		assert.deepEqual(r.blockers, ['RPC_NOT_PROVISIONED', 'ORACLE_FRESHNESS_NOT_PROVEN', 'NEXUS_SCOPE_PROBABLE', 'NOT_ENABLED', 'NO_PRODUCTION_PATH']);
+		assert.deepEqual(r.blockers, ['RPC_NOT_PROVISIONED', 'ORACLE_READ_NOT_WIRED', 'NEXUS_SCOPE_PROBABLE', 'NOT_ENABLED', 'NO_PRODUCTION_PATH']);
 	}
 	const all = { detectionReady: true, rpcReady: true, oracleReady: true, conversionReady: true, nexusScope: 'CONFIRMED', enabled: true };
 	// hypothetisch alles erfuellt: Quote waere moeglich, Produktion trotzdem nicht
