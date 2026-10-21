@@ -205,7 +205,8 @@ test('AAVE-MC-INACTIVE no production module imports the candidates; the doc matr
 	const importers = ['api', 'src', 'web/src', 'scripts'].flatMap((dir) => walk(path.join(REPO, dir)))
 		.filter((file) => /\.m?js$/.test(file) && readFileSync(file, 'utf8').includes('aave-multichain-candidates'))
 		.map((file) => path.relative(REPO, file));
-	assert.deepEqual(importers, []);
+	// nur die ebenso inaktive Aktivierungs-Vorbereitung (siehe aave-multichain-activation.test.mjs)
+	assert.deepEqual(importers, ['src/positions/aave-multichain-activation.mjs']);
 	const doc = JSON.parse(readFileSync(path.join(REPO, 'docs/aave-v3-multichain-support.json'), 'utf8'));
 	assert.deepEqual(doc, JSON.parse(JSON.stringify(MC.multichainSupportMatrix())));
 });

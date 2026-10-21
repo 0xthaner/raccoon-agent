@@ -1,0 +1,137 @@
+[
+	{
+		"chain": "Arbitrum",
+		"chainId": 42161,
+		"deploymentKey": "aave-v3-arbitrum",
+		"rpcNetwork": "arb-mainnet",
+		"sequencerFeed": "0xFdB631F5EE196F0ed6FAa767959853A9F217697D",
+		"references": [
+			"ETH:SUPPORTED_REFERENCE",
+			"USDC:SUPPORTED_REFERENCE",
+			"cbBTC:UNAVAILABLE_REFERENCE"
+		],
+		"detectionReady": true,
+		"rpcReady": false,
+		"oracleReady": false,
+		"conversionReady": true,
+		"nexusScope": "PROBABLE",
+		"quoteReady": false,
+		"productionActivationReady": false,
+		"blockers": [
+			"RPC_NOT_PROVISIONED",
+			"ORACLE_FRESHNESS_NOT_PROVEN",
+			"NEXUS_SCOPE_PROBABLE",
+			"NOT_ENABLED",
+			"NO_PRODUCTION_PATH"
+		],
+		"productionEnabled": false
+	},
+	{
+		"chain": "Base",
+		"chainId": 8453,
+		"deploymentKey": "aave-v3-base",
+		"rpcNetwork": "base-mainnet",
+		"sequencerFeed": "0xBCF85224fc0756B9Fa45aA7892530B47e10b6433",
+		"references": [
+			"ETH:SUPPORTED_REFERENCE",
+			"USDC:SUPPORTED_REFERENCE",
+			"cbBTC:SUPPORTED_REFERENCE"
+		],
+		"detectionReady": true,
+		"rpcReady": false,
+		"oracleReady": false,
+		"conversionReady": true,
+		"nexusScope": "PROBABLE",
+		"quoteReady": false,
+		"productionActivationReady": false,
+		"blockers": [
+			"RPC_NOT_PROVISIONED",
+			"ORACLE_FRESHNESS_NOT_PROVEN",
+			"NEXUS_SCOPE_PROBABLE",
+			"NOT_ENABLED",
+			"NO_PRODUCTION_PATH"
+		],
+		"productionEnabled": false
+	},
+	{
+		"chain": "Optimism",
+		"chainId": 10,
+		"deploymentKey": "aave-v3-optimism",
+		"rpcNetwork": "opt-mainnet",
+		"sequencerFeed": "0x371EAD81c9102C9BF4874A9075FFFf170F2Ee389",
+		"references": [
+			"ETH:SUPPORTED_REFERENCE",
+			"USDC:SUPPORTED_REFERENCE",
+			"cbBTC:UNAVAILABLE_REFERENCE"
+		],
+		"detectionReady": true,
+		"rpcReady": false,
+		"oracleReady": false,
+		"conversionReady": true,
+		"nexusScope": "PROBABLE",
+		"quoteReady": false,
+		"productionActivationReady": false,
+		"blockers": [
+			"RPC_NOT_PROVISIONED",
+			"ORACLE_FRESHNESS_NOT_PROVEN",
+			"NEXUS_SCOPE_PROBABLE",
+			"NOT_ENABLED",
+			"NO_PRODUCTION_PATH"
+		],
+		"productionEnabled": false
+	},
+	{
+		"chain": "Polygon",
+		"chainId": 137,
+		"deploymentKey": "aave-v3-polygon",
+		"rpcNetwork": "polygon-mainnet",
+		"sequencerFeed": "NOT_APPLICABLE",
+		"references": [
+			"ETH:SUPPORTED_REFERENCE",
+			"USDC:SUPPORTED_REFERENCE",
+			"cbBTC:UNAVAILABLE_REFERENCE"
+		],
+		"detectionReady": true,
+		"rpcReady": false,
+		"oracleReady": false,
+		"conversionReady": true,
+		"nexusScope": "PROBABLE",
+		"quoteReady": false,
+		"productionActivationReady": false,
+		"blockers": [
+			"RPC_NOT_PROVISIONED",
+			"ORACLE_FRESHNESS_NOT_PROVEN",
+			"NEXUS_SCOPE_PROBABLE",
+			"NOT_ENABLED",
+			"NO_PRODUCTION_PATH"
+		],
+		"productionEnabled": false
+	},
+	{
+		"chain": "Avalanche",
+		"chainId": 43114,
+		"deploymentKey": "aave-v3-avalanche",
+		"rpcNetwork": "avax-mainnet",
+		"sequencerFeed": "NOT_APPLICABLE",
+		"references": [
+			"ETH:SUPPORTED_REFERENCE",
+			"USDC:SUPPORTED_REFERENCE",
+			"cbBTC:UNAVAILABLE_REFERENCE"
+		],
+		"detectionReady": true,
+		"rpcReady": false,
+		"oracleReady": false,
+		"conversionReady": true,
+		"nexusScope": "PROBABLE",
+		"quoteReady": false,
+		"productionActivationReady": false,
+		"blockers": [
+			"RPC_NOT_PROVISIONED",
+			"ORACLE_FRESHNESS_NOT_PROVEN",
+			"NEXUS_SCOPE_PROBABLE",
+			"NOT_ENABLED",
+			"NO_PRODUCTION_PATH"
+		],
+		"productionEnabled": false
+	}
+]

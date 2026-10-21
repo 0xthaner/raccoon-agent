@@ -1,0 +1,432 @@
+{
+ "source": "read-only eth_call via publicnode RPCs, 21.10.2026 ~06:15 UTC (AaveOracle.getSourceOfAsset/getAssetPrice/getFallbackOracle, feed description/decimals/latestRoundData, capped adapter ASSET_TO_USD_AGGREGATOR, Chainlink L2 sequencer uptime feeds)",
+ "chains": {
+  "arbitrum": {
+   "block": "516837153",
+   "timestamp": 1792564901,
+   "fallbackOracle": "0x0000000000000000000000000000000000000000",
+   "assets": {
+    "WETH": {
+     "address": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+     "symbol": "WETH",
+     "decimals": 18,
+     "price": "244083000000",
+     "source": "0xbD41b1548a5A06544cBcf87c0c54864312842C00",
+     "description": "ETH / USD",
+     "feedDecimals": 8,
+     "roundData": {
+      "answer": "244083000000",
+      "updatedAt": 1792564787,
+      "ageSec": 114
+     },
+     "innerAggregator": null,
+     "innerDescription": null,
+     "innerAgeSec": null
+    },
+    "USDCn": {
+     "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+     "symbol": "USDC",
+     "decimals": 6,
+     "price": "99983761",
+     "source": "0xB0C9A7122aaB68F75CffD9851E867144DBFF113b",
+     "description": "Capped USDC/USD",
+     "feedDecimals": 8,
+     "roundData": null,
+     "innerAggregator": "0xDbFF913E9058C1E60446150D23Bb0fFE9144d531",
+     "innerDescription": "USDC / USD",
+     "innerAgeSec": 51440
+    },
+    "USDC_bridged": {
+     "address": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
+     "symbol": "USDC",
+     "decimals": 6,
+     "price": "99983761",
+     "source": "0xB0C9A7122aaB68F75CffD9851E867144DBFF113b",
+     "description": "Capped USDC/USD",
+     "feedDecimals": 8,
+     "roundData": null,
+     "innerAggregator": "0xDbFF913E9058C1E60446150D23Bb0fFE9144d531",
+     "innerDescription": "USDC / USD",
+     "innerAgeSec": 51440
+    },
+    "WBTC": {
+     "address": "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
+     "symbol": "WBTC",
+     "decimals": 8,
+     "price": "8271418142657",
+     "source": "0xDe4Af8b4747192Ea29339D0FeB36d9830d399134",
+     "description": "BTC / USD",
+     "feedDecimals": 8,
+     "roundData": {
+      "answer": "8271418142657",
+      "updatedAt": 1792564783,
+      "ageSec": 118
+     },
+     "innerAggregator": null,
+     "innerDescription": null,
+     "innerAgeSec": null
+    },
+    "EURS": {
+     "address": "0xD22a58f79e9481D1a88e00c343885A588b34b68B",
+     "symbol": "EURS",
+     "decimals": 2,
+     "price": "112196000",
+     "source": "0xA14d53bC1F1c0F31B4aA3BD109344E5009051a84",
+     "description": "EUR / USD",
+     "feedDecimals": 8,
+     "roundData": {
+      "answer": "112196000",
+      "updatedAt": 1792564183,
+      "ageSec": 718
+     },
+     "innerAggregator": null,
+     "innerDescription": null,
+     "innerAgeSec": null
+    },
+    "weETH": {
+     "address": "0x35751007a407ca6FEFfE80b3cB397736D2cf4dbe",
+     "symbol": "weETH",
+     "decimals": 18,
+     "price": "269994399471",
+     "source": "0x258a576895DC50c990500775d6591ff2D52059f2",
+     "description": "Capped weETH / eETH(ETH) / USD",
+     "feedDecimals": 8,
+     "roundData": null,
+     "innerAggregator": "0xbD41b1548a5A06544cBcf87c0c54864312842C00",
+     "innerDescription": "ETH / USD",
+     "innerAgeSec": 114
+    }
+   },
+   "sequencer": {
+    "address": "0xFdB631F5EE196F0ed6FAa767959853A9F217697D",
+    "description": "L2 Sequencer Uptime Status Feed",
+    "answer": "0",
+    "startedAt": 1779307607,
+    "sinceStartSec": 13257294,
+    "updatedAt": 1779307607
+   }
+  },
+  "base": {
+   "block": "52887778",
+   "timestamp": 1792564903,
+   "fallbackOracle": "0x0000000000000000000000000000000000000000",
+   "assets": {
+    "WETH": {
+     "address": "0x4200000000000000000000000000000000000006",
+     "symbol": "WETH",
+     "decimals": 18,
+     "price": "244389923609",
+     "source": "0x9dA00D23465282005DB222a441a663eE7B9dfCc8",
+     "description": "ETH / USD",
+     "feedDecimals": 8,
+     "roundData": {
+      "answer": "244389923609",
+      "updatedAt": 1792564481,
+      "ageSec": 422
+     },
+     "innerAggregator": null,
+     "innerDescription": null,
+     "innerAgeSec": null
+    },
+    "USDC": {
+     "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+     "symbol": "USDC",
+     "decimals": 6,
+     "price": "99981108",
+     "source": "0xf52D010c7d4ecBfda92c2509900593CE34535D86",
+     "description": "Capped USDC/USD",
+     "feedDecimals": 8,
+     "roundData": null,
+     "innerAggregator": "0x1550207eAeB590D1557a6E6C066D3d57B5A4Dc65",
+     "innerDescription": "USDC / USD",
+     "innerAgeSec": 36682
+    },
+    "USDbC": {
+     "address": "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA",
+     "symbol": "USDbC",
+     "decimals": 6,
+     "price": "99981108",
+     "source": "0xf52D010c7d4ecBfda92c2509900593CE34535D86",
+     "description": "Capped USDC/USD",
+     "feedDecimals": 8,
+     "roundData": null,
+     "innerAggregator": "0x1550207eAeB590D1557a6E6C066D3d57B5A4Dc65",
+     "innerDescription": "USDC / USD",
+     "innerAgeSec": 36682
+    },
+    "cbBTC": {
+     "address": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+     "symbol": "cbBTC",
+     "decimals": 8,
+     "price": "8276061693696",
+     "source": "0x3A932b286715abc4A86a4ACAF68A6cdD89E0d446",
+     "description": "BTC / USD",
+     "feedDecimals": 8,
+     "roundData": {
+      "answer": "8276061693696",
+      "updatedAt": 1792564413,
+      "ageSec": 490
+     },
+     "innerAggregator": null,
+     "innerDescription": null,
+     "innerAgeSec": null
+    }
+   },
+   "sequencer": {
+    "address": "0xBCF85224fc0756B9Fa45aA7892530B47e10b6433",
+    "description": "L2 Sequencer Uptime Status Feed",
+    "answer": "0",
+    "startedAt": 1782491507,
+    "sinceStartSec": 10073396,
+    "updatedAt": 1792516697
+   }
+  },
+  "optimism": {
+   "block": "158483064",
+   "timestamp": 1792564905,
+   "fallbackOracle": "0x0000000000000000000000000000000000000000",
+   "assets": {
+    "WETH": {
+     "address": "0x4200000000000000000000000000000000000006",
+     "symbol": "WETH",
+     "decimals": 18,
+     "price": "244355609037",
+     "source": "0x13e3Ee699D1909E989722E753853AE30b17e08c5",
+     "description": "ETH / USD",
+     "feedDecimals": 8,
+     "roundData": {
+      "answer": "244355609037",
+      "updatedAt": 1792564467,
+      "ageSec": 438
+     },
+     "innerAggregator": null,
+     "innerDescription": null,
+     "innerAgeSec": null
+    },
+    "USDCn": {
+     "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+     "symbol": "USDC",
+     "decimals": 6,
+     "price": "99979000",
+     "source": "0x6379A975Ef93EC2bE87f56A02CCF8535dFAde201",
+     "description": "Capped USDC/USD",
+     "feedDecimals": 8,
+     "roundData": null,
+     "innerAggregator": "0x16a9FA2FDa030272Ce99B29CF780dFA30361E0f3",
+     "innerDescription": "USDC / USD",
+     "innerAgeSec": 39664
+    },
+    "USDC_bridged": {
+     "address": "0x7F5c764cBc14f9669B88837ca1490cCa17c31607",
+     "symbol": "USDC",
+     "decimals": 6,
+     "price": "99979000",
+     "source": "0x6379A975Ef93EC2bE87f56A02CCF8535dFAde201",
+     "description": "Capped USDC/USD",
+     "feedDecimals": 8,
+     "roundData": null,
+     "innerAggregator": "0x16a9FA2FDa030272Ce99B29CF780dFA30361E0f3",
+     "innerDescription": "USDC / USD",
+     "innerAgeSec": 39664
+    },
+    "WBTC": {
+     "address": "0x68f180fcCe6836688e9084f035309E29Bf0A2095",
+     "symbol": "WBTC",
+     "decimals": 8,
+     "price": "8277339887856",
+     "source": "0xD702DD976Fb76Fffc2D3963D037dfDae5b04E593",
+     "description": "BTC / USD",
+     "feedDecimals": 8,
+     "roundData": {
+      "answer": "8277339887856",
+      "updatedAt": 1792564447,
+      "ageSec": 458
+     },
+     "innerAggregator": null,
+     "innerDescription": null,
+     "innerAgeSec": null
+    }
+   },
+   "sequencer": {
+    "address": "0x371EAD81c9102C9BF4874A9075FFFf170F2Ee389",
+    "description": "L2 Sequencer Uptime Status Feed",
+    "answer": "0",
+    "startedAt": 1783448495,
+    "sinceStartSec": 9116410,
+    "updatedAt": 1792522873
+   }
+  },
+  "polygon": {
+   "block": "95906360",
+   "timestamp": 1792564908,
+   "fallbackOracle": "0x0000000000000000000000000000000000000000",
+   "assets": {
+    "WETH": {
+     "address": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
+     "symbol": "WETH",
+     "decimals": 18,
+     "price": "244062797133",
+     "source": "0xF9680D99D6C9589e2a93a78A04A279e509205945",
+     "description": "ETH / USD",
+     "feedDecimals": 8,
+     "roundData": {
+      "answer": "244062797133",
+      "updatedAt": 1792564901,
+      "ageSec": 7
+     },
+     "innerAggregator": null,
+     "innerDescription": null,
+     "innerAgeSec": null
+    },
+    "WPOL": {
+     "address": "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
+     "symbol": "WPOL",
+     "decimals": 18,
+     "price": "9553485",
+     "source": "0xAB594600376Ec9fD91F8e885dADF0CE036862dE0",
+     "description": "MATIC / USD",
+     "feedDecimals": 8,
+     "roundData": {
+      "answer": "9553485",
+      "updatedAt": 1792564907,
+      "ageSec": 1
+     },
+     "innerAggregator": null,
+     "innerDescription": null,
+     "innerAgeSec": null
+    },
+    "USDCn": {
+     "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+     "symbol": "USDC",
+     "decimals": 6,
+     "price": "99980204",
+     "source": "0x31Ebeb03223AaC82C8EB24C77624Ea40F4D849Fb",
+     "description": "Capped USDC/USD",
+     "feedDecimals": 8,
+     "roundData": null,
+     "innerAggregator": "0xfE4A8cc5b5B2366C1B58Bea3858e81843581b2F7",
+     "innerDescription": "USDC / USD",
+     "innerAgeSec": 24
+    },
+    "USDC_bridged": {
+     "address": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+     "symbol": "USDC",
+     "decimals": 6,
+     "price": "99980204",
+     "source": "0x31Ebeb03223AaC82C8EB24C77624Ea40F4D849Fb",
+     "description": "Capped USDC/USD",
+     "feedDecimals": 8,
+     "roundData": null,
+     "innerAggregator": "0xfE4A8cc5b5B2366C1B58Bea3858e81843581b2F7",
+     "innerDescription": "USDC / USD",
+     "innerAgeSec": 24
+    },
+    "WBTC": {
+     "address": "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6",
+     "symbol": "WBTC",
+     "decimals": 8,
+     "price": "8272943100000",
+     "source": "0xc907E116054Ad103354f2D350FD2514433D57F6f",
+     "description": "BTC / USD",
+     "feedDecimals": 8,
+     "roundData": {
+      "answer": "8272943100000",
+      "updatedAt": 1792564893,
+      "ageSec": 15
+     },
+     "innerAggregator": null,
+     "innerDescription": null,
+     "innerAgeSec": null
+    },
+    "EURS": {
+     "address": "0xE111178A87A3BFf0c8d18DECBa5798827539Ae99",
+     "symbol": "EURS",
+     "decimals": 2,
+     "price": "112220000",
+     "source": "0x73366Fe0AA0Ded304479862808e02506FE556a98",
+     "description": "EUR / USD",
+     "feedDecimals": 8,
+     "roundData": {
+      "answer": "112220000",
+      "updatedAt": 1792564880,
+      "ageSec": 28
+     },
+     "innerAggregator": null,
+     "innerDescription": null,
+     "innerAgeSec": null
+    }
+   }
+  },
+  "avalanche": {
+   "block": "98125695",
+   "timestamp": 1792564909,
+   "fallbackOracle": "0x0000000000000000000000000000000000000000",
+   "assets": {
+    "WETHe": {
+     "address": "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB",
+     "symbol": "WETH.e",
+     "decimals": 18,
+     "price": "244083000000",
+     "source": "0x976B3D034E162d8bD72D6b9C989d545b839003b0",
+     "description": "ETH / USD",
+     "feedDecimals": 8,
+     "roundData": {
+      "answer": "244083000000",
+      "updatedAt": 1792564787,
+      "ageSec": 122
+     },
+     "innerAggregator": null,
+     "innerDescription": null,
+     "innerAgeSec": null
+    },
+    "WAVAX": {
+     "address": "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
+     "symbol": "WAVAX",
+     "decimals": 18,
+     "price": "965455000",
+     "source": "0x0A77230d17318075983913bC2145DB16C7366156",
+     "description": "AVAX / USD",
+     "feedDecimals": 8,
+     "roundData": {
+      "answer": "965455000",
+      "updatedAt": 1792564842,
+      "ageSec": 67
+     },
+     "innerAggregator": null,
+     "innerDescription": null,
+     "innerAgeSec": null
+    },
+    "USDC": {
+     "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+     "symbol": "USDC",
+     "decimals": 6,
+     "price": "99982321",
+     "source": "0xb0D7A8bbDcdb1203850b742bB4d7f57a1F1C8483",
+     "description": "Capped USDC/USD",
+     "feedDecimals": 8,
+     "roundData": null,
+     "innerAggregator": "0xF096872672F44d6EBA71458D74fe67F9a77a23B9",
+     "innerDescription": "USDC / USD",
+     "innerAgeSec": 58603
+    },
+    "BTCb": {
+     "address": "0x152b9d0FdC40C096757F570A51E494bd4b943E50",
+     "symbol": "BTC.b",
+     "decimals": 8,
+     "price": "8270237000000",
+     "source": "0x2779D32d5166BAaa2B2b658333bA7e6Ec0C65743",
+     "description": "BTC / USD",
+     "feedDecimals": 8,
+     "roundData": {
+      "answer": "8270237000000",
+      "updatedAt": 1792564806,
+      "ageSec": 103
+     },
+     "innerAggregator": null,
+     "innerDescription": null,
+     "innerAgeSec": null
+    }
+   }
+  }
+ }
+}

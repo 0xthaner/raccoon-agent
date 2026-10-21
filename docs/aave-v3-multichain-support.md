@@ -126,6 +126,8 @@ Auf Ethereum bleiben Horizon (UNSUPPORTED) sowie Lido/Prime und EtherFi (AMBIGUO
 
 ## Was vor einer Freischaltung nötig ist
 
+Die technische Vorbereitung dafür (RPC-Modell, Chain-Identität, Budget, Oracle-Frische, Umrechnungs-Referenzen, Bereitschaft) steht in `docs/aave-v3-multichain-activation.md`.
+
 1. **Nexus:** eine schriftliche Bestätigung, dass Produkt 97 die Aave-v3-Märkte auf genau diesen Chains abdeckt. Alternativ ein Annex oder Metadaten an Produkt 97, die sie nennen. Erst dann CONFIRMED, und nur je Chain.
 2. **Technik:** Clients je Chain, chainId-Prüfung, Budget, Referenzpreise für die Umrechnung und ein Kriterium für die Preis-Aktualität auf L2s.
 3. **Freischaltung:** eine ausdrückliche Anweisung des Nutzers. Danach erst `productionEnabled` und die Laufzeit-Registry anpassen.
