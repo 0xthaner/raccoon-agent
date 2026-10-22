@@ -55,8 +55,15 @@ const BINARY = /\.(png|jpe?g|gif|ico|woff2?|ttf|otf|pdf|gz|zip|webp)$/i;
 	und die Lockdatei, sowie dieses Modul selbst (es enthaelt die Suchmuster).
 	Alles andere - Code, Tests, Migrationen, Konfiguration, Dokumentation - wird
 	durchsucht.
+
+	Die erzeugten Berichte liegen in security/reports/out/ (git-ignoriert, von
+	security:verify geschrieben). Bis 22.10.2026 fehlte dieser Pfad hier: ein
+	alter Bericht im Arbeitsverzeichnis zitierte Testnamen und liess die Pruefung
+	scheitern, ein frischer Checkout war gruen. Ausgenommen ist nur dieser
+	Ausgabeordner; security/reports/README.md und alles andere unter security/
+	bleibt durchsucht.
 */
-const EXCLUDED_FILES = [/^security\/crsf\/[^/]+\.(json|md)$/, /^security\/crsf\/(schema|vendor)\//, /^security\/crsf\/lib\/fix-register\.mjs$/, /^security\/mutation\//, /^package-lock\.json$/];
+const EXCLUDED_FILES = [/^security\/crsf\/[^/]+\.(json|md)$/, /^security\/crsf\/(schema|vendor)\//, /^security\/crsf\/lib\/fix-register\.mjs$/, /^security\/mutation\//, /^security\/reports\/out\//, /^package-lock\.json$/];
 
 export function scanFiles(root) {
 	const out = [];

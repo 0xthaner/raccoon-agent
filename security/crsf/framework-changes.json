@@ -3709,6 +3709,32 @@
 					"reason": "slice-based main.js harnesses stub renderUniswapSection (tested in test/uniswap-v3-dashboard.test.mjs); the language-wiring test (VIEW-LANG-WIRING) covers both panel maps; browser-render-sinks feeds a hostile uniswapV3 section. No assertion weakened."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zq",
+			"summary": "Framework maintenance only (22.10.2026), no control, threshold, property, evidence level or expected result changed and no application file touched. (1) Two mutation anchors were no longer exactly-once and made the framework invalid: MUT-CR-QUOTE-008-P1-QTGLOBALRATE (Aave quote path) matched twice after the Uniswap quote path (070693b) added a word-identical global quote limiter line; MUT-CR-VERIFY-003-P1-2SSIGNONE matched zero times after 61357f8 appended the runtime-stack guard to check:ci (unseen while the case was NOT_RUN without npm_network). Both are re-anchored to the same weakening with stable neighbouring context, the existing disambiguation pattern of MUT-CR-QUOTE-008-P1-UNIGLOBALRATE. (2) The fix-register scanner documented that generated reports are not scanned but did not exclude security/reports/out/, so a stale report in a working copy failed CR-VERIFY-003 while a fresh checkout passed (fail closed, never fail open). (3) New test/crsf-mutation-anchors.test.mjs applies every catalogue case with the real executor in test:ci, so a broken anchor fails immediately instead of only in security:verify.",
+			"changes": [
+				{
+					"id": "MUT-CR-QUOTE-008-P1-QTGLOBALRATE",
+					"kind": "MUTATION_ANCHOR_UPDATED",
+					"reason": "the global quote limiter line of the Aave quote path now also exists, word-identical, in the Uniswap quote path (070693b), so the anchor occurred twice and the case was INVALID. Re-anchored with the following line: \"\\t\\tif (!await rateLimitFor(response, nexus-quote-global, all, ...LIMITS.quoteGlobal)) return;\\n\\t\\tconst result = await quote(\" -> \"\\t\\tconst result = await quote(\". Same weakening (only the Aave global quote budget removed; the Uniswap limiter stays, asserted by test/crsf-mutation-anchors.test.mjs), same tests, same expected failure, expected_result KILLED unchanged."
+				},
+				{
+					"id": "MUT-CR-VERIFY-003-P1-2SSIGNONE",
+					"kind": "MUTATION_ANCHOR_UPDATED",
+					"reason": "check:ci now ends with \"node scripts/check-runtime-stack.mjs && npm run check:signaturen\" (61357f8), so the old anchor \"node scripts/check-frontend.mjs && npm run check:signaturen\\\",\\n\" occurred zero times (hidden while the case was NOT_RUN without npm_network). Re-anchored to \"node scripts/check-runtime-stack.mjs && npm run check:signaturen\\\",\\n\" -> \"node scripts/check-runtime-stack.mjs\\\",\\n\": the same weakening (npm audit signatures dropped from check:ci only; `check` keeps build:web in between and is not matched), same test and message, expected_result KILLED unchanged."
+				},
+				{
+					"id": "fix-register-generated-reports",
+					"kind": "FRAMEWORK_FIX",
+					"reason": "security/crsf/lib/fix-register.mjs EXCLUDED_FILES gains /^security\\/reports\\/out\\// (the git-ignored output of security:verify), as its comment already stated for generated reports. Nothing else under security/ is excluded: security/reports/README.md, framework libraries and every other source stay scanned. Regression fixture in test/fix-register.test.mjs: markers in a generated report do not affect the register, the same marker in security/crsf/lib/, security/reports/README.md or security/reports/outline.md still fails closed, and a new tag in framework source is still discovered; the fixture fails without the exclusion."
+				},
+				{
+					"id": "test/crsf-mutation-anchors.test.mjs",
+					"kind": "TEST_INFRA",
+					"reason": "new: every catalogue case applies with security/crsf/lib/exec.mjs applyEdits (each anchor exactly once) and restores the original; the Aave and Uniswap quote-global cases each remove exactly their own limiter and leave the other in place. No mutation, expectation or classification changed by this test."
+				}
+			]
 		}
 	]
 }

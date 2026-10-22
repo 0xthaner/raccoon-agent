@@ -10764,8 +10764,8 @@
 			"edits": [
 				{
 					"file": "package.json",
-					"find": "node scripts/check-frontend.mjs && npm run check:signaturen\",\n",
-					"replace": "node scripts/check-frontend.mjs\",\n"
+					"find": "node scripts/check-runtime-stack.mjs && npm run check:signaturen\",\n",
+					"replace": "node scripts/check-runtime-stack.mjs\",\n"
 				}
 			],
 			"expected_failures": [
@@ -12424,8 +12424,8 @@
 			"edits": [
 				{
 					"file": "api/nexus/quote.mjs",
-					"find": "\t\tif (!await rateLimitFor(response, 'nexus-quote-global', 'all', ...LIMITS.quoteGlobal)) return;\n",
-					"replace": ""
+					"find": "\t\tif (!await rateLimitFor(response, 'nexus-quote-global', 'all', ...LIMITS.quoteGlobal)) return;\n\t\tconst result = await quote(",
+					"replace": "\t\tconst result = await quote("
 				}
 			],
 			"tests": [

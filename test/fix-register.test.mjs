@@ -185,3 +185,27 @@ test('FIXREG Security-Fix: trailer parsing is strict', () => {
 		assert.ok(parseSecurityFixTrailer(bad).error, bad);
 	}
 });
+
+test('FIXREG fixture: a generated report under security/reports/out/ does not affect the register; framework sources and the reports README still do', (t) => {
+	const w = miniWorld();
+	t.after(() => rmSync(w.dir, { recursive: true, force: true }));
+	const marker = `// ${'AUD' + 'IT'} QX-9 hardening\n`;
+	// Ein erzeugter Bericht zitiert Testnamen und Kennungen - er ist Ausgabe, keine Quelle.
+	mkdirSync(path.join(w.dir, 'security/reports/out'), { recursive: true });
+	writeFileSync(path.join(w.dir, 'security/reports/out/crsf-report.json'), JSON.stringify({ test: `test/a.test.mjs :: ${'AUD' + 'IT'} 1271 result`, tag: TAG('AGENT', 'API', '9') }));
+	writeFileSync(path.join(w.dir, 'security/reports/out/crsf-report.md'), marker);
+	assert.deepEqual(w.check().errors, [], 'generated report output must not poison the register');
+	// Gegenprobe: dieselbe Spur in echter Framework-Quelle bzw. im README neben dem Ausgabeordner schlaegt weiter an.
+	for (const file of ['security/crsf/lib/new-helper.mjs', 'security/reports/README.md', 'security/reports/outline.md']) {
+		const w2 = miniWorld();
+		t.after(() => rmSync(w2.dir, { recursive: true, force: true }));
+		mkdirSync(path.dirname(path.join(w2.dir, file)), { recursive: true });
+		writeFileSync(path.join(w2.dir, file), marker);
+		assert.ok(codes(w2.check()).includes('UNCLASSIFIED_SECURITY_MARKER'), file);
+	}
+	const w3 = miniWorld();
+	t.after(() => rmSync(w3.dir, { recursive: true, force: true }));
+	mkdirSync(path.join(w3.dir, 'security/crsf/lib'), { recursive: true });
+	writeFileSync(path.join(w3.dir, 'security/crsf/lib/new-helper.mjs'), `// ${TAG('AGENT', 'API', '9')}: new fix\n`);
+	assert.ok(codes(w3.check()).includes('UNCLASSIFIED_SECURITY_TAG'), 'a new tag in framework source is still discovered');
+});
