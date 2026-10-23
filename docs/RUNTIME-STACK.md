@@ -22,6 +22,8 @@ Nicht Teil des Stacks: PHP, Ruby, Python-Server, Java, Go-Programme, nginx/Apach
 
 `NODE_UNTERGRENZE = 24.22.1`: Node.js-Sicherheitsrelease vom 21.10.2026 (acht CVEs betreffen 24.x) inklusive CA-Store ohne die kompromittierten eMudhra-Zwischenzertifikate. Bei jedem neuen Node-Sicherheitsrelease anheben.
 
+Die CI (`.github/workflows/ci.yml`, beide Jobs) installiert die Untergrenze exakt (`node-version: '24.22.1'`): ein bloßes `'24'` löste am 22.10.2026 auf v24.22.0 auf. Wer die Untergrenze anhebt, zieht die CI-Version mit; ein Test verlangt eine exakte Version, die die Untergrenze erfüllt. Der Schalter `--nur-stack` (nur die Allowlist, ohne Untergrenze) ist ausschließlich für Testfixtures da; kein Skript, kein Vercel-Befehl und kein Workflow darf ihn benutzen.
+
 `engines.node` kann nur die Hauptversion festlegen; Vercel rollt Patchversionen selbst aus. Die Prüfung in `build:web` schreibt deshalb die tatsächliche Build-Version ins Vercel-Build-Log und bricht unter der Untergrenze ab. Die **Funktions**-Laufzeit belegt sie nicht – dafür bleibt die Bestätigung von Vercel bzw. ein geloggtes `process.version` nötig.
 
 ## Eine neue Laufzeit einführen

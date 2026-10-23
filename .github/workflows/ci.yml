@@ -32,8 +32,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          # Dieselbe Hauptversion wie in `engines.node`.
-          node-version: '24'
+          # Exakt, nicht '24': am 22.10.2026 loeste '24' auf v24.22.0 auf, unter
+          # der Sicherheitsuntergrenze (NODE_UNTERGRENZE in
+          # scripts/check-runtime-stack.mjs), und check:ci scheiterte zu Recht.
+          # Fehlt die Version im Runner-Katalog, laedt setup-node sie von
+          # nodejs.org. Wird die Untergrenze angehoben, hier mitziehen - beide Jobs.
+          node-version: '24.22.1'
           cache: npm
       # Dieselbe Installation wie auf Vercel, damit CI und Deploy nicht
       # unterschiedliche Baeume pruefen.
@@ -55,7 +59,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '24'
+          # Dieselbe exakte Version wie im Job `pruefen`.
+          node-version: '24.22.1'
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npm run security:framework-test

@@ -188,20 +188,45 @@ export function projektDateien(wurzel) {
 	}
 }
 
+/*
+	Aufrufmodi. Ohne Schalter prueft die CLI beides (check, check:ci). --nur-node
+	prueft nur die Untergrenze (build:web, vor dem Bundle). --nur-stack prueft nur
+	die Allowlist: ein reiner Testmodus fuer Fixtures, die die Stack-Erkennung
+	pruefen und sonst an der Patchversion des Testrechners haengen wuerden. Kein
+	package.json-Skript, kein vercel.json-Befehl und kein Workflow darf ihn
+	benutzen - das prueft test/runtime-stack-guard.test.mjs. Unbekannte Schalter
+	und beide zugleich brechen ab: ein Aufruf, der nichts prueft, besteht nie.
+*/
+export const MODI = new Map([['', { node: true, stack: true }], ['--nur-node', { node: true, stack: false }], ['--nur-stack', { node: false, stack: true }]]);
+
+/** Ein CLI-Aufruf ohne Seiteneffekte: `schalter` (argv ab Index 2), Node-Version, engines und Dateiquelle. */
+export function pruefeAufruf(schalter, { version, engines, dateien }) {
+	if (schalter.length > 1 || (schalter.length === 1 && !MODI.has(schalter[0])) || schalter[0] === '') return { fehler: `unbekannter Aufruf: ${schalter.join(' ')} (erlaubt: ohne Schalter, --nur-node, --nur-stack)` };
+	const modus = MODI.get(schalter[0] ?? '');
+	const nodeFunde = modus.node ? pruefeNode(version, engines) : [];
+	const stackFunde = modus.stack ? pruefeStack(...dateien()) : [];
+	return { fehler: null, modus, nodeFunde, stackFunde };
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
 	const wurzel = process.cwd();
 	const pkg = JSON.parse(readFileSync(path.join(wurzel, 'package.json'), 'utf8'));
-	console.log(`\nLaufzeit: Node ${process.version} (engines ${pkg.engines?.node}, Untergrenze ${NODE_UNTERGRENZE})`);
-	const nodeFunde = pruefeNode(process.version, pkg.engines?.node);
-	for (const f of nodeFunde) console.error(`  FEHLT ${f}`);
-	let stackFunde = [];
-	if (!process.argv.includes('--nur-node')) {
-		console.log('Laufzeit: keine fremde Produktionslaufzeit (PHP, Ruby, Python-Server, Java, Go, nginx/Apache)');
-		stackFunde = pruefeStack(projektDateien(wurzel), (p) => readFileSync(path.join(wurzel, p), 'utf8'));
-		for (const f of stackFunde) console.error(`  FEHLT ${f.datei}${f.zeile ? `:${f.zeile}` : ''}\n        ${f.laufzeit}: ${f.grund}`);
+	const r = pruefeAufruf(process.argv.slice(2), {
+		version: process.version,
+		engines: pkg.engines?.node,
+		dateien: () => [projektDateien(wurzel), (p) => readFileSync(path.join(wurzel, p), 'utf8')]
+	});
+	if (r.fehler) {
+		console.error(`Laufzeit: ${r.fehler}`);
+		process.exit(2);
 	}
-	if (nodeFunde.length || stackFunde.length) {
-		console.error(`\n${nodeFunde.length + stackFunde.length} Verstoss/Verstoesse. Neue Laufzeit bewusst einfuehren: docs/RUNTIME-STACK.md aendern und den Grund im Review vertreten.`);
+	if (r.modus.node) console.log(`\nLaufzeit: Node ${process.version} (engines ${pkg.engines?.node}, Untergrenze ${NODE_UNTERGRENZE})`);
+	else console.log(`\nLaufzeit: Node-Untergrenze NICHT geprueft (--nur-stack, nur fuer Testfixtures)`);
+	for (const f of r.nodeFunde) console.error(`  FEHLT ${f}`);
+	if (r.modus.stack) console.log('Laufzeit: keine fremde Produktionslaufzeit (PHP, Ruby, Python-Server, Java, Go, nginx/Apache)');
+	for (const f of r.stackFunde) console.error(`  FEHLT ${f.datei}${f.zeile ? `:${f.zeile}` : ''}\n        ${f.laufzeit}: ${f.grund}`);
+	if (r.nodeFunde.length || r.stackFunde.length) {
+		console.error(`\n${r.nodeFunde.length + r.stackFunde.length} Verstoss/Verstoesse. Neue Laufzeit bewusst einfuehren: docs/RUNTIME-STACK.md aendern und den Grund im Review vertreten.`);
 		process.exit(1);
 	}
 	console.log('  ok');
