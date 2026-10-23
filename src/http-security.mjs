@@ -1,7 +1,8 @@
 import { createHmac } from 'node:crypto';
 import { checkRateLimit } from './db.mjs';
 import { dashboardSecretConfigured } from './dashboard-auth.mjs';
-import { siweOrigin } from './siwe-auth.mjs';
+import { PRODUCTION_ORIGIN, siweOrigin } from './siwe-auth.mjs';
+import './runtime-proof.mjs';
 import { recordSecurityEvent, SECURITY_EVENT } from './security-events.mjs';
 
 const JSON_TYPE = /^application\/json(?:\s*;|$)/i;
@@ -87,13 +88,18 @@ export function requireJson(request, response, maxBytes = 16_384) {
  * HARTE GRENZEN:
  * - In Production (`VERCEL_ENV === 'production'`) wird `ALLOWED_APP_ORIGINS`
  *   vollstaendig ignoriert; dort gilt nur die kanonische SIWE-Origin.
+ * - Traegt ein Preview seine eigene Origin als SIWE-Origin (`APP_BASE_URL`,
+ *   siehe siwe-auth.mjs), wird `ALLOWED_APP_ORIGINS` ebenfalls ignoriert: die
+ *   Liste ist nur fuer den Fall da, dass die SIWE-Domain coverraccoon.com
+ *   bleibt. Sonst gaebe es zwei Origins mit verschiedener SIWE-Domain.
  * - Nur absolute https-Origins, EXAKTER String-Vergleich.
  * - Keine Wildcards, kein Regex, kein Subdomain-/startsWith/endsWith-Match.
  * - Keine Ableitung aus Request-Headern (Host/Referer/X-Forwarded-Host).
  * - Malformed/leere Eintraege werden still ignoriert (kein Crash).
  */
-function previewAllowedOrigins() {
+function previewAllowedOrigins(expected) {
 	if (process.env.VERCEL_ENV === 'production') return [];
+	if (expected !== PRODUCTION_ORIGIN) return [];
 	const raw = process.env.ALLOWED_APP_ORIGINS;
 	if (typeof raw !== 'string' || !raw) return [];
 	const origins = [];
@@ -128,7 +134,7 @@ export function requireSameOrigin(request, response) {
 	}
 	// Kanonische SIWE-Origin immer; zusaetzlich - nur ausserhalb Production - eine
 	// exakt gelistete Preview-Origin aus ALLOWED_APP_ORIGINS.
-	if (origin !== expected && !previewAllowedOrigins().includes(origin)) {
+	if (origin !== expected && !previewAllowedOrigins(expected).includes(origin)) {
 		response.status(403).json({ ok: false, error: 'Invalid request origin.' });
 		return false;
 	}

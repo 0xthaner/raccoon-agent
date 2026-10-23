@@ -141,6 +141,31 @@ function configurationError() {
 	return new Error('Anmeldung ist nicht konfiguriert.');
 }
 
+/*
+	Preview-Origin (23.10.2026). Ein Vercel-Preview hat eine eigene Origin; mit
+	`APP_BASE_URL=https://coverraccoon.com` muesste die Wallet dort eine Nachricht
+	fuer coverraccoon.com signieren - genau das Muster, vor dem Wallets als
+	Phishing warnen. Deshalb darf ein Preview seine eigene Origin als SIWE-Domain
+	tragen, unter engen Grenzen:
+
+	- nur bei `VERCEL_ENV=preview` (exakt; Production und ein fehlendes Signal
+	  bleiben bei coverraccoon.com),
+	- nur aus `APP_BASE_URL`, nie aus `VERCEL_URL`, Host oder Forwarded-Headern,
+	- nur https, ohne Port, Pfad, Query, Fragment oder Zugangsdaten,
+	- nur genau ein Label unter vercel.app (Preview-Deployments und ihre Aliase;
+	  geschuetzt durch die Vercel-Anmeldung, kein Cookie-Bereich mit anderen
+	  Hosts, weil vercel.app ein Public Suffix ist), kein Punycode.
+	Danach gilt dieselbe exakte Origin fuer SIWE-Domain, URI, Resource und die
+	Same-Origin-Pruefung. Sessions bleiben getrennt, weil das Preview ein eigenes
+	DASHBOARD_SESSION_SECRET und eine eigene Datenbank braucht; eine Preview-
+	Signatur scheitert in Production schon an Domain und URI.
+*/
+const PREVIEW_HOST = /^(?!xn--)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.vercel\.app$/;
+
+function isPreviewOrigin(url) {
+	return url.protocol === 'https:' && url.port === '' && PREVIEW_HOST.test(url.hostname);
+}
+
 /**
  * Liefert Domain und URI der Anmeldung.
  *
@@ -153,6 +178,8 @@ function configurationError() {
  * `https://agent.coverraccoon.com`, das seither nur noch weiterleitet). Nur in
  * einer ausdruecklich nicht-produktiven Umgebung ist zusaetzlich
  * `http://localhost:<PORT>` beziehungsweise `http://127.0.0.1:<PORT>` erlaubt.
+ * Nur bei `VERCEL_ENV=preview` ist ausserdem die EINE in `APP_BASE_URL`
+ * eingetragene Preview-Origin erlaubt (siehe `isPreviewOrigin`).
  * Alles andere faellt zu: keine Preview-Domain ohne eigene Konfiguration, kein
  * HTTP in Production, keine Wildcard, kein Rueckfall auf eine fremde Domain.
  */
@@ -171,6 +198,8 @@ export function siweOrigin() {
 
 	const origin = url.origin;
 	if (origin === PRODUCTION_ORIGIN) return { domain: url.host, uri: origin };
+
+	if (process.env.VERCEL_ENV?.trim() === 'preview' && isPreviewOrigin(url)) return { domain: url.host, uri: origin };
 
 	const loopback = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
 	if (explicitlyNonProduction() && url.protocol === 'http:' && loopback) {
