@@ -144,6 +144,7 @@ test('HIST META-AUDIT M-3 / 0f3a6ef AppKit starts with value-moving features off
 	const [options] = kit.options;
 	assert.deepEqual(options.features, { analytics: false, email: false, socials: [], send: false, receive: false, swaps: false, onramp: false });
 	assert.equal(options.enableCoinbase, false);
+	assert.equal(options.basic, true, 'AppKit fetches the remote project configuration, which overrides features');
 	assert.match(options.themeVariables?.['--apkt-font-family'] ?? '', /^'Satoshi'/, 'no own font: AppKit preloads fonts.reown.com');
 	assert.deepEqual(options.networks.map((n) => n.id), [1]);
 });

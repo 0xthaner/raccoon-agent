@@ -1138,7 +1138,19 @@ async function setupWalletConnect() {
 			wcSchluessel: Object.keys(localStorage).filter((k) => /^wc@2:/.test(k)).length
 		});
 	}
-	const modal = createAppKit({ universalProviderConfigOverride: appKitMethoden(WALLET_METHODEN_ANMELDEN), themeVariables: { '--apkt-font-family': "'Satoshi', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" }, adapters: [new EthersAdapter()], networks: [mainnet], projectId: config.reownProjectId, metadata: { name: 'Raccoon Agent', description: 'Personal DeFi cover monitoring', url: location.origin, icons: [`${location.origin}/holo-raccoon.svg`] }, allWallets: 'SHOW', enableCoinbase: false, features: { analytics: false, email: false, socials: [], send: false, receive: false, swaps: false, onramp: false }, debug: walletDebug });
+	/*
+		basic: true schaltet die Fern-Konfiguration ab. Ohne sie holt AppKit beim
+		Start /appkit/v1/config von api.web3modal.org, und was dort im Reown-Dashboard
+		steht, ueberschreibt die `features` unten (ConfigUtil.processFeature); scheitert
+		die Verarbeitung, gelten Reowns Vorgaben mit E-Mail- und Social-Login. Beides
+		erzeugt das eingebettete Reown-Wallet (W3mFrameProvider), dessen message-
+		Listener fremde postMessage-Daten ohne Origin-Pruefung mit zod 3.22.4 parsen
+		(GHSA-mrhx-c7xc-m3w5). Mit basic bleibt remoteFeatures leer, das eingebettete
+		Wallet entsteht nie - unabhaengig vom Dashboard. Die Wallet-Liste zeigt dann
+		nur Wallets mit WalletConnect-Unterstuetzung; der Browser-Wallet-Knopf laeuft
+		ohnehin nicht ueber AppKit.
+	*/
+	const modal = createAppKit({ universalProviderConfigOverride: appKitMethoden(WALLET_METHODEN_ANMELDEN), themeVariables: { '--apkt-font-family': "'Satoshi', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" }, adapters: [new EthersAdapter()], networks: [mainnet], projectId: config.reownProjectId, metadata: { name: 'Raccoon Agent', description: 'Personal DeFi cover monitoring', url: location.origin, icons: [`${location.origin}/holo-raccoon.svg`] }, allWallets: 'SHOW', enableCoinbase: false, basic: true, features: { analytics: false, email: false, socials: [], send: false, receive: false, swaps: false, onramp: false }, debug: walletDebug });
 	/*
 		AGENT-UX-3: schlaegt die WalletConnect-Paarung fehl, gibt es keine
 		Paarungsadresse - und damit keinen QR-Code. Der Dialog schloss sich dann

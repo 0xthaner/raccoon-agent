@@ -33,3 +33,34 @@ test('AppKit: the requested methods contain personal_sign and no transaction or 
 	assert.ok(methods.includes('personal_sign'));
 	for (const m of FORBIDDEN) assert.ok(!methods.includes(m), m);
 });
+
+/*
+	basic: true haelt die Fern-Konfiguration von Reown fern (GHSA-mrhx-c7xc-m3w5):
+	ohne sie entsteht das eingebettete Reown-Wallet nie, und mit ihm fehlen die
+	message-Listener, die fremde postMessage-Daten mit zod 3.22.4 parsen. Die
+	letzten beiden Tests halten fest, worauf das beruht - aendert ein AppKit-Update
+	das Verhalten, schlagen sie fehl, statt dass die Sperre still entfaellt.
+*/
+const reown = (pfad) => readFileSync(new URL(`../node_modules/@reown/${pfad}`, import.meta.url), 'utf8');
+
+test('AppKit: basic mode is on, so the remote project configuration is never fetched', () => {
+	assert.equal(appKitOptions().basic, true);
+});
+
+test('AppKit (installed): the only remote-config fetch is skipped in basic mode', () => {
+	const base = reown('appkit/dist/esm/src/client/appkit-base-client.js');
+	assert.equal(base.split('ConfigUtil.fetchRemoteFeatures(').length - 1, 1, 'remote features are fetched in more than one place');
+	assert.match(base, /if \(!options\.basic && !options\.manualWCControl\) \{\s*this\.remoteFeatures = await ConfigUtil\.fetchRemoteFeatures\(options\);/);
+	assert.match(base, /this\.remoteFeatures = \{\};/, 'remoteFeatures no longer start empty');
+	assert.equal(base.split('this.remoteFeatures =').length - 1, 2, 'remoteFeatures are set somewhere else');
+});
+
+test('AppKit (installed): the embedded wallet with the zod-parsing listeners exists only with email or socials', () => {
+	const kit = reown('appkit/dist/esm/src/client/appkit.js');
+	assert.equal(kit.split('W3mFrameProviderSingleton.getInstance(').length - 1, 1);
+	assert.match(kit, /const isAuthEnabled = isEmailEnabled \|\| isSocialsEnabled;\s*[^]{0,200}if \(!this\.authProvider && this\.options\?\.projectId && isAuthEnabled\) \{\s*this\.authProvider = W3mFrameProviderSingleton\.getInstance\(/);
+	assert.match(kit, /const isEmailEnabled = this\.remoteFeatures\?\.email;/);
+	assert.match(kit, /const isSocialsEnabled = Array\.isArray\(this\.remoteFeatures\?\.socials\) && this\.remoteFeatures\.socials\.length > 0;/);
+	const frame = reown('appkit-wallet/dist/esm/src/W3mFrame.js');
+	assert.doesNotMatch(frame.split('export class W3mFrame')[0], /addEventListener/, 'listeners are registered at module load');
+});
