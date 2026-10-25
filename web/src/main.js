@@ -1,5 +1,5 @@
 import { appKitMethoden, WALLET_METHODEN_ANMELDEN } from './wallet-methods.js';
-import { ensureMainnetAccount, ensureAppKitMainnetAccount, eoaLoginTexts, guardedChallengeSignSubmit, normalizeAddress } from './eoa-login.js';
+import { ensureMainnetAccount, ensureAppKitMainnetAccount, eoaLoginTexts, guardedChallengeSignSubmit, normalizeAddress, createLoginAttempts, walletStep, walletErrorMessage, StaleAttemptError, WALLET_TIMEOUTS } from './eoa-login.js';
 import { submitDashboardLogin } from './onchain-login.js';
 import { startAnalytics } from './analytics.js';
 import { mountEye } from './eye.js';
@@ -213,7 +213,7 @@ function debugWallet(label, value) {
 		status.after(debugOutput);
 	}
 	const safe = value instanceof Error ? value.message : value && typeof value === 'object'
-		? JSON.stringify(value, (key, item) => /^(uri|wcUri|topic|signature|token|symKey)$/i.test(key) ? '[hidden]' : item)
+		? JSON.stringify(value, (key, item) => /^(uri|wcUri|topic|signature|token|symKey|address|nonce|message)$/i.test(key) ? '[hidden]' : item)
 		: String(value ?? '');
 	debugOutput.textContent += `${new Date().toLocaleTimeString()} ${label}${safe ? `: ${safe}` : ''}\n`;
 }
@@ -892,7 +892,7 @@ function renderDashboard(data) {
  */
 let expectedWallet = null;
 
-async function openDashboard(wallet, sign, isAborted = () => false) {
+async function openDashboard(wallet, sign, isAborted = () => false, isCurrent = () => true) {
 	if (expectedWallet && String(wallet).toLowerCase() !== expectedWallet) {
 		throw new Error(language === 'de'
 			? `Diese Wallet passt nicht zum Dashboard-Link. Erwartet wird ${shortWallet(expectedWallet)}. Wechsle die Wallet oder fordere in Telegram einen neuen Link an.`
@@ -902,7 +902,7 @@ async function openDashboard(wallet, sign, isAborted = () => false) {
 	// AGENT-UX-5: an jeder Grenze (vor Challenge, vor Signatur, vor POST) auf
 	// chainChanged-Abbruch pruefen. WalletConnect uebergibt kein isAborted -> no-op.
 	const dashboard = await guardedChallengeSignSubmit({
-		isAborted,
+		isAborted, isCurrent,
 		texts: eoaLoginTexts(language),
 		getChallenge: async () => {
 			const challenge = await fetch(`/api/dashboard?wallet=${encodeURIComponent(wallet)}`, { signal: AbortSignal.timeout(15000) }).then((res) => res.json());
@@ -932,12 +932,12 @@ async function openDashboard(wallet, sign, isAborted = () => false) {
 	renderDashboard(dashboard);
 }
 
-async function finish(wallet, sign, isAborted = () => false) {
-	if (!code) return openDashboard(wallet, sign, isAborted);
+async function finish(wallet, sign, isAborted = () => false, isCurrent = () => true) {
+	if (!code) return openDashboard(wallet, sign, isAborted, isCurrent);
 	show('Signaturnachricht wird vorbereitet …');
 	// AGENT-UX-5: dieselbe abbrechbare Sequenz fuer den Telegram-Link-Flow.
 	await guardedChallengeSignSubmit({
-		isAborted,
+		isAborted, isCurrent,
 		texts: eoaLoginTexts(language),
 		getChallenge: () => fetch(`/api/link?code=${encodeURIComponent(code)}&wallet=${encodeURIComponent(wallet)}`).then((res) => res.json()),
 		sign,
@@ -1061,6 +1061,38 @@ async function trenneBrowserWallet() {
 }
 
 /*
+	Timeouts (24.10.2026): jeder Wallet-Schritt gehoert zu genau einem Versuch aus
+	`loginVersuche` (siehe eoa-login.js). Laeuft einer ab, meldet sich die Wallet
+	ab oder meldet sich jemand ab, ist der Versuch entwertet; eine spaete Antwort
+	setzt weder Challenge noch Signatur noch POST fort. Frei wird die Sperre erst
+	am Ende des finally, nach dem Aufraeumen.
+*/
+const loginVersuche = createLoginAttempts();
+
+/** Aufraeumen ausserhalb eines Versuchs: nur wenn keiner laeuft, und selbst unter der Sperre. */
+function raeumeAufWennFrei(aufgabe) {
+	const sperre = loginVersuche.begin({ cleanup: true });
+	if (!sperre) return false;
+	Promise.resolve().then(aufgabe).catch(() => {}).finally(() => sperre.end());
+	return true;
+}
+
+// Eine erst nach Ablauf erteilte Browser-Freigabe, die wegen eines laufenden Versuchs warten musste.
+let spaeteBrowserFreigabe = false;
+loginVersuche.onIdle(() => {
+	if (!spaeteBrowserFreigabe) return;
+	spaeteBrowserFreigabe = false;
+	raeumeAufWennFrei(trenneBrowserWallet);
+});
+
+/** Meldung zum Fehler - nur, solange der Versuch noch gilt oder er selbst abgelaufen ist. */
+function zeigeLoginFehler(error, versuch) {
+	if (error instanceof StaleAttemptError) return debugWallet('Veraltete Wallet-Antwort verworfen');
+	if (!versuch.isCurrent() && error?.name !== 'WalletTimeoutError') return;
+	show(walletErrorMessage(error, eoaLoginTexts(language)));
+}
+
+/*
 	AGENT-UX-5: der EOA-Login ist an Chain ID 1 gebunden (SIWE), aber eine
 	Browser-Erweiterung zeigt beim `personal_sign` das gerade gewaehlte Netz an
 	(z. B. Polygon). Deshalb VOR der Challenge auf Ethereum Mainnet stellen und
@@ -1072,29 +1104,45 @@ async function trenneBrowserWallet() {
 */
 async function verbindeBrowserWallet() {
 	if (!hinweiseAkzeptiert) return;
+	const texts = eoaLoginTexts(language);
+	const versuch = loginVersuche.begin();
+	if (!versuch) return show(texts.busy);
 	let verbunden = false;
 	let abgebrochen = false;
 	const beiChainChanged = (cid) => { if (cid !== '0x1') abgebrochen = true; };
+	const beiDisconnect = () => { if (!versuch.isCurrent()) return; versuch.expire(); show(texts.walletDisconnected); };
 	try {
 		if (!window.ethereum) throw new Error('Keine Browser-Wallet gefunden. Nutze „Connect mobile wallet“.');
 		show('Browser-Wallet wird verbunden …');
-		const [wallet] = await window.ethereum.request({ method: 'eth_requestAccounts' });
+		window.ethereum.on?.('disconnect', beiDisconnect);
+		const freigabe = window.ethereum.request({ method: 'eth_requestAccounts' });
+		// Gibt die Wallet die Seite erst nach Ablauf frei, wird die Freigabe wieder
+		// entzogen - sofort, oder sobald ein inzwischen laufender Versuch fertig ist.
+		Promise.resolve(freigabe).then(() => {
+			if (verbunden || versuch.isCurrent()) return;
+			if (!raeumeAufWennFrei(trenneBrowserWallet)) spaeteBrowserFreigabe = true;
+		}, () => {});
+		const [wallet] = await walletStep(freigabe, { attempt: versuch, ms: WALLET_TIMEOUTS.connect, message: texts.connectTimeout });
 		verbunden = true;
 		window.ethereum.on?.('chainChanged', beiChainChanged);
-		const texts = eoaLoginTexts(language);
-		const konto = await ensureMainnetAccount(window.ethereum, wallet, { texts, isAborted: () => abgebrochen });
+		const step = (promise) => walletStep(promise, { attempt: versuch, ms: WALLET_TIMEOUTS.switchChain, message: texts.switchTimeout });
+		const konto = await ensureMainnetAccount(window.ethereum, wallet, { texts, isAborted: () => abgebrochen, step });
 		// Signer faellt fail closed: kein personal_sign bei Abbruch, und unmittelbar
 		// vor dem Signieren noch einmal eth_chainId === 0x1 verlangen.
 		const signiere = async (message) => {
 			if (abgebrochen) throw new Error(texts.chainChanged);
-			const cid = await window.ethereum.request({ method: 'eth_chainId' }).catch(() => null);
+			const cid = await step(window.ethereum.request({ method: 'eth_chainId' })).catch((error) => { if (error instanceof StaleAttemptError || error?.name === 'WalletTimeoutError') throw error; return null; });
 			if (cid !== '0x1') throw new Error(texts.notMainnet);
-			return window.ethereum.request({ method: 'personal_sign', params: [message, konto] });
+			if (!versuch.isCurrent()) throw new StaleAttemptError();
+			return walletStep(window.ethereum.request({ method: 'personal_sign', params: [message, konto] }), { attempt: versuch, ms: WALLET_TIMEOUTS.sign, message: texts.signTimeout });
 		};
-		await finish(konto, signiere, () => abgebrochen);
-	} catch (error) { show(error.message); } finally {
+		await finish(konto, signiere, () => abgebrochen, versuch.isCurrent);
+	} catch (error) { zeigeLoginFehler(error, versuch); } finally {
 		window.ethereum?.removeListener?.('chainChanged', beiChainChanged);
+		window.ethereum?.removeListener?.('disconnect', beiDisconnect);
 		if (verbunden) await trenneBrowserWallet();
+		// Erst nach dem Aufraeumen frei - es darf keinen neuen Versuch treffen (Review M1).
+		versuch.end();
 	}
 }
 injectedButton.addEventListener('click', () => mitHinweisen(verbindeBrowserWallet));
@@ -1289,15 +1337,35 @@ function istMobil() {
 	return /Android|iPhone|iPad|iPod|Mobile|Silk/i.test(navigator.userAgent);
 }
 
-async function connectWithModal(modal) {
+/*
+	Review M2 (25.10.2026): eine WalletConnect-Sitzung gehoert immer zu einem
+	laufenden Versuch und wird an dessen Ende getrennt (AGENT-SEC-W2). Eine
+	Kopplung, die erst nach dem Timeout zustande kommt, gehoert zu niemandem
+	mehr. Deshalb wird eine noch verbundene Sitzung getrennt, sobald nichts
+	laeuft: wenn die Sperre frei wird und wenn AppKit dann ein Konto meldet.
+*/
+const beobachteteModals = new WeakSet();
+function beobachteVerwaisteSitzung(modal) {
+	if (beobachteteModals.has(modal)) return;
+	beobachteteModals.add(modal);
+	const pruefe = () => {
+		if (!modal.getAddress()) return;
+		raeumeAufWennFrei(() => { debugWallet('Verwaiste WalletConnect-Sitzung wird getrennt'); return trenneWalletConnect(modal); });
+	};
+	modal.subscribeAccount(pruefe);
+	loginVersuche.onIdle(pruefe);
+}
+
+async function connectWithModal(modal, versuch) {
+	beobachteVerwaisteSitzung(modal);
 	show('Wallet-Auswahl wird geöffnet …');
-	const walletPromise = new Promise((resolve, reject) => {
-		const timeout = setTimeout(() => reject(new Error('Wallet-Verbindung hat zu lange gedauert.')), 120000);
-		let unsubscribe = () => {};
+	let unsubscribe = () => {};
+	const walletPromise = walletStep(new Promise((resolve) => {
 		unsubscribe = modal.subscribeAccount((state) => {
-			if (state.isConnected && state.address) { clearTimeout(timeout); unsubscribe(); resolve(state.address); }
-		});
-	});
+			if (state.isConnected && state.address) resolve(state.address);
+		}) ?? (() => {});
+	}), { attempt: versuch, ms: WALLET_TIMEOUTS.connect, message: eoaLoginTexts(language).connectTimeout });
+	walletPromise.catch(() => { unsubscribe(); Promise.resolve(modal.close?.()).catch(() => {}); });
 	/*
 		AGENT-UX-2: hier stand `{ view: 'AllWallets' }`. Damit oeffnete der Dialog
 		direkt die Wallet-Liste und uebersprang die Verbindungsansicht - und genau
@@ -1319,6 +1387,7 @@ async function connectWithModal(modal) {
 	await modal.open(istMobil() ? {} : { view: 'ConnectingWalletConnect' });
 	debugWallet('Connect modal opened');
 	const wallet = await walletPromise;
+	unsubscribe();
 	const provider = modal.getWalletProvider();
 	debugWallet('Provider', provider ? {
 		typ: provider.constructor?.name,
@@ -1349,7 +1418,11 @@ async function trenneWalletConnect(modal) {
 
 async function verbindeWalletConnect() {
 	if (!hinweiseAkzeptiert) return;
+	const texts = eoaLoginTexts(language);
+	const versuch = loginVersuche.begin();
+	if (!versuch) return show(texts.busy);
 	let modal;
+	let abgemeldet = () => {};
 	try {
 		debugWallet('Connect clicked');
 		wcButton.disabled = true;
@@ -1357,18 +1430,26 @@ async function verbindeWalletConnect() {
 		await dashboardRestorePromise;
 		modal = await getWalletConnectModal();
 		if (modal.getAddress()) {
-			debugWallet('Clearing restored account before new login', modal.getAddress());
+			debugWallet('Clearing restored account before new login');
 			show('Wallet-Auswahl wird vorbereitet …');
 			await resetRestoredConnection(modal);
 		}
-		const { wallet, provider } = await connectWithModal(modal);
-		debugWallet('Account received', wallet);
-		const texts = eoaLoginTexts(language);
+		if (!versuch.isCurrent()) throw new StaleAttemptError();
+		const { wallet, provider } = await connectWithModal(modal, versuch);
+		debugWallet('Account received');
+		// Trennt die Wallet die Sitzung waehrend des Versuchs, ist er beendet.
+		// Nur ein echtes 'disconnected' zaehlt: waehrend switchNetwork fehlt die Adresse kurz.
+		abgemeldet = modal.subscribeAccount((state) => {
+			if (state?.status !== 'disconnected' || !versuch.isCurrent()) return;
+			versuch.expire();
+			show(texts.walletDisconnected);
+		}) ?? (() => {});
 		// AGENT-UX-5: Wallet IMMER auf Ethereum Mainnet synchronisieren (auch wenn
 		// AppKit die Chain schon als 1 meldet - MetaMask kann visuell auf Polygon
 		// stehen). switchNetwork reicht wallet_switchEthereumChain an die Wallet.
 		show(language === 'de' ? 'Bitte Ethereum Mainnet in der Wallet bestätigen …' : 'Please confirm Ethereum Mainnet in your wallet …');
-		const konto = await ensureAppKitMainnetAccount({ modal, network: appKitMainnet, expectedAddress: wallet, texts });
+		const step = (promise) => walletStep(promise, { attempt: versuch, ms: WALLET_TIMEOUTS.switchChain, message: texts.switchTimeout });
+		const konto = await ensureAppKitMainnetAccount({ modal, network: appKitMainnet, expectedAddress: wallet, texts, step });
 		// Race: ein Netzwechsel waehrend des laufenden Versuchs entwertet ihn.
 		let abgebrochen = false;
 		const unsubscribe = modal.subscribeNetwork?.((state) => { const id = state?.chainId; if (id !== undefined && Number(id) !== 1) abgebrochen = true; });
@@ -1378,18 +1459,22 @@ async function verbindeWalletConnect() {
 				if (Number(modal.getChainId()) !== 1) throw new Error(texts.notMainnet); // finaler Pre-Sign-Check (defense in depth)
 				const current = normalizeAddress(modal.getAddress());
 				if (!current || current !== konto) throw new Error(texts.accountChanged);
-				return withTimeout(provider.request({ method: 'personal_sign', params: [message, konto] }), 60000, 'Die Wallet hat nicht auf die Signaturanfrage reagiert.');
+				if (!versuch.isCurrent()) throw new StaleAttemptError();
+				return walletStep(provider.request({ method: 'personal_sign', params: [message, konto] }), { attempt: versuch, ms: WALLET_TIMEOUTS.sign, message: texts.signTimeout });
 			};
-			await finish(konto, signiere, () => abgebrochen);
+			await finish(konto, signiere, () => abgebrochen, versuch.isCurrent);
 		} finally {
 			unsubscribe?.();
 		}
 	} catch (error) {
 		debugWallet('Connection error', error);
-		show(error.message);
+		zeigeLoginFehler(error, versuch);
 	} finally {
+		abgemeldet();
 		await trenneWalletConnect(modal);
 		wcButton.disabled = false;
+		// Erst nach dem Trennen frei - es darf keinen neuen Versuch treffen (Review M1).
+		versuch.end();
 	}
 }
 wcButton.addEventListener('click', () => mitHinweisen(verbindeWalletConnect));
@@ -1427,11 +1512,14 @@ async function signiereMitWalletConnect(expectedWallet, message) {
 	const texts = eoaLoginTexts(language);
 	const expected = normalizeAddress(expectedWallet);
 	if (!expected) throw new Error(texts.accountChanged);
+	// Dieselbe Sperre wie der Login: sonst saehe die Sitzung "verwaist" aus (Review M2).
+	const versuch = loginVersuche.begin();
+	if (!versuch) throw new Error(texts.busy);
 	let modal;
 	try {
 		modal = await getWalletConnectModal();
 		if (modal.getAddress()) await resetRestoredConnection(modal);
-		const { wallet, provider } = await connectWithModal(modal);
+		const { wallet, provider } = await connectWithModal(modal, versuch);
 		const konto = await ensureAppKitMainnetAccount({ modal, network: appKitMainnet, expectedAddress: wallet, texts });
 		// Nur die angemeldete Wallet, nur Mainnet - sonst keine Signaturanfrage.
 		if (konto !== expected || normalizeAddress(modal.getAddress()) !== expected) throw new Error(texts.accountChanged);
@@ -1439,10 +1527,13 @@ async function signiereMitWalletConnect(expectedWallet, message) {
 		return await withTimeout(provider.request({ method: 'personal_sign', params: [message, konto] }), 5 * 60_000, language === 'de' ? 'Die Wallet hat nicht auf die Signaturanfrage reagiert.' : 'The wallet did not respond to the signature request.');
 	} finally {
 		await trenneWalletConnect(modal);
+		versuch.end();
 	}
 }
 
 async function endSession({ disconnect = false } = {}) {
+	// Ein noch laufender Anmeldeversuch endet hier; seine spaete Antwort zaehlt nicht mehr.
+	loginVersuche.invalidate();
 	if (disconnect) show('Wallet-Verbindung wird getrennt …');
 	// AUDIT SA-L1: Safe -> "ueberall abmelden" nur mit frischer Bestaetigung. Lehnt
 	// jemand ab oder scheitert sie, wird nur DIESES Geraet abgemeldet.

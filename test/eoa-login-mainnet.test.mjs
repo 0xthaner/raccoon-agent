@@ -198,12 +198,12 @@ test('nicht-ok Challenge -> Abbruch vor Signatur', async () => {
 });
 
 test('Source: openDashboard/finish sind abbrechbar und nutzen den Kombinator', () => {
-	assert.match(main, /async function openDashboard\(wallet, sign, isAborted = \(\) => false\)/);
-	assert.match(main, /async function finish\(wallet, sign, isAborted = \(\) => false\)/);
+	assert.match(main, /async function openDashboard\(wallet, sign, isAborted = \(\) => false, isCurrent = \(\) => true\)/);
+	assert.match(main, /async function finish\(wallet, sign, isAborted = \(\) => false, isCurrent = \(\) => true\)/);
 	assert.ok((main.match(/guardedChallengeSignSubmit\(/g) ?? []).length >= 2);
 	// der injizierte Weg reicht das Abbruch-Praedikat an finish
 	const fn = koerper(main, 'async function verbindeBrowserWallet() {');
-	assert.match(fn, /await finish\(konto, signiere, \(\) => abgebrochen\)/);
+	assert.match(fn, /await finish\(konto, signiere, \(\) => abgebrochen, versuch\.isCurrent\)/);
 });
 
 test('Source: injizierter Signer prueft Abbruch UND eth_chainId vor personal_sign', () => {
@@ -284,14 +284,14 @@ test('WC-G/H race: guardedChallengeSignSubmit stoppt vor Sign/POST bei Abbruch',
 
 test('Source: verbindeWalletConnect synct IMMER (ensureAppKitMainnetAccount, kein getChainId!==1-Skip)', () => {
 	const fn = koerper(main, 'async function verbindeWalletConnect() {');
-	assert.match(fn, /ensureAppKitMainnetAccount\(\{ modal, network: appKitMainnet/);
+	assert.match(fn, /ensureAppKitMainnetAccount\(\{ modal, network: appKitMainnet, expectedAddress: wallet, texts, step \}\)/);
 	// kein konditionaler Switch, der den Bug reproduzieren wuerde
 	assert.equal(/if \(.*getChainId\(\) !== 1\)[^]*switchNetwork/.test(fn), false);
 	// Race-Subscription + sauberes Entfernen
 	assert.match(fn, /subscribeNetwork\?\.\(/);
 	assert.match(fn, /unsubscribe\?\.\(\)/);
 	// isAborted an finish
-	assert.match(fn, /await finish\(konto, signiere, \(\) => abgebrochen\)/);
+	assert.match(fn, /await finish\(konto, signiere, \(\) => abgebrochen, versuch\.isCurrent\)/);
 	// finaler Pre-Sign-Chain-Check im Signer, vor personal_sign
 	const signer = fn.indexOf('const signiere = async');
 	const chk = fn.indexOf('getChainId()) !== 1', signer);

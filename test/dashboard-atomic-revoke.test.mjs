@@ -125,7 +125,9 @@ test('logout failure leaves UI intact and successful logout follows existing res
 	const code = frontend.slice(frontend.indexOf('async function endSession('), frontend.indexOf('function enable()'));
 	for (const mode of ['http', 'body', 'network', 'success']) {
 		const calls = [];
+		let invalidated = 0;
 		const logout = vm.runInNewContext(`(${code.trim()})`, {
+			loginVersuche: { invalidate: () => { invalidated++; } }, // laufender Wallet-Versuch endet beim Logout
 			authFetch: async () => { if (mode === 'network') throw new Error(); return { ok: mode !== 'http', json: async () => ({ ok: mode !== 'body' }) }; },
 			show: () => calls.push('show'), language: 'en', walletConnectPromise: null,
 			frischeBestaetigung: async () => null, debugWallet: () => {}, // EOA: keine frische Bestaetigung (AUDIT SA-L1)
@@ -133,5 +135,6 @@ test('logout failure leaves UI intact and successful logout follows existing res
 		});
 		await logout({ disconnect: true });
 		assert.deepEqual(calls, mode === 'success' ? ['show', 'clear', 'reload'] : ['show', 'show']);
+		assert.equal(invalidated, 1);
 	}
 });
