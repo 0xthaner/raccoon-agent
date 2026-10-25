@@ -90,9 +90,63 @@ test('SCOPE-RECONCILE: legacy rows become unconfirmed - never valid, never stale
 	// Auch eine faelschlich MATCHED gemeldete Position macht die Zeile nicht gueltig.
 	const forged = reconcile([row(LIDO, 1)], { wallet: WALLET, positions: positionsOf([detected(LIDO, { state: 'MATCHED', productId: 97 })]), covers: coversOf([cover(1)]) });
 	assert.deepEqual([forged.valid.length, forged.unconfirmed.length, forged.stale.length], [0, 1, 0]);
-	// Lesefehler bleiben "unknown" wie bisher.
+	// Review N1: auch ein Lesefehler aendert an der Einstufung nichts - weder gueltig noch "pending".
 	const unread = reconcile([row(LIDO, 1)], { wallet: WALLET, positions: null, covers: coversOf([cover(1)]) });
-	assert.deepEqual([unread.valid.length, unread.unknown.length, unread.unconfirmed.length, unread.stale.length], [0, 1, 0, 0]);
+	assert.deepEqual([unread.valid.length, unread.unknown.length, unread.unconfirmed.length, unread.stale.length], [0, 0, 1, 0]);
+});
+
+/*
+	Review N1, 25.10.2026: jede bisherige Stale-Regel und jeder Lesefehler gegen
+	Lido/EtherFi (immer unconfirmed) und Core (Regeln wie bisher).
+*/
+const SCENARIOS = [
+	// [Name, Positionen fuer den Markt, Covers, Erwartung Core]
+	['cover expired', (key) => positionsOf([detected(key, nexusFor(key))]), coversOf([{ ...cover(1), status: 'expired' }]), 'stale:COVER_INACTIVE'],
+	['cover transferred', (key) => positionsOf([detected(key, nexusFor(key))]), coversOf([cover(9)]), 'stale:COVER_NOT_IN_WALLET'],
+	['empty but complete cover list', (key) => positionsOf([detected(key, nexusFor(key))]), coversOf([]), 'stale:COVER_NOT_IN_WALLET'],
+	['cover of another product', (key) => positionsOf([detected(key, nexusFor(key))]), coversOf([{ ...cover(1), productId: 98 }]), 'stale:PRODUCT_MISMATCH'],
+	['position gone', () => positionsOf([]), coversOf([cover(1)]), 'stale:POSITION_NOT_FOUND'],
+	['position matched to another product', (key) => positionsOf([detected(key, { state: 'MATCHED', productId: 98 })]), coversOf([cover(1)]), 'stale:PRODUCT_MISMATCH'],
+	['positions unreadable (RPC)', () => null, coversOf([cover(1)]), 'unknown:POSITION_LOOKUP_UNAVAILABLE'],
+	['positions of another wallet', (key) => ({ ...positionsOf([detected(key, nexusFor(key))]), wallet: '0x' + 'b'.repeat(40) }), coversOf([cover(1)]), 'unknown:POSITION_LOOKUP_UNAVAILABLE'],
+	['covers unreadable', (key) => positionsOf([detected(key, nexusFor(key))]), null, 'unknown:COVER_LOOKUP_UNAVAILABLE'],
+	['nexus catalog unavailable', (key) => positionsOf([detected(key, { state: 'UNAVAILABLE' })]), coversOf([cover(1)]), 'unknown:PRODUCT_LOOKUP_UNAVAILABLE'],
+	['still valid', (key) => positionsOf([detected(key, nexusFor(key))]), coversOf([cover(1)]), 'valid']
+];
+function nexusFor(key) { return key === CORE ? { state: 'MATCHED', productId: 97 } : { state: 'SCOPE_UNCONFIRMED', productId: 97 }; }
+const outcome = (result) => {
+	for (const bucket of ['valid', 'stale', 'unknown', 'unconfirmed']) {
+		if (result[bucket].length) return bucket === 'valid' || bucket === 'unconfirmed' ? bucket : `${bucket}:${result[bucket][0].reason}`;
+	}
+	return 'none';
+};
+
+test('SCOPE-N1: Lido/EtherFi legacy rows are never deleted by any stale rule or read error and never valid; Core rules unchanged', () => {
+	for (const [name, positions, covers, core] of SCENARIOS) {
+		assert.equal(outcome(reconcile([row(CORE, 1)], { wallet: WALLET, positions: positions(CORE), covers })), core, `Core: ${name}`);
+		for (const key of [LIDO, ETHERFI]) {
+			const result = reconcile([row(key, 1)], { wallet: WALLET, positions: positions(key), covers });
+			assert.deepEqual([result.valid.length, result.stale.length, result.unknown.length, result.unconfirmed.length], [0, 0, 0, 1], `${key}: ${name}`);
+			assert.equal(result.unconfirmed[0].reason, 'NEXUS_SCOPE_UNCONFIRMED');
+		}
+	}
+});
+
+test('SCOPE-N1: the classification uses the strict table, never position.nexus', () => {
+	const covers = coversOf([cover(1)]);
+	// Eine (veraltete oder manipulierte) MATCHED-Position macht Lido weder gueltig noch loeschbar.
+	for (const nexus of [{ state: 'MATCHED', productId: 97 }, { state: 'MATCHED', productId: 98 }, null, { state: 'NO_PRODUCT' }]) {
+		const result = reconcile([row(LIDO, 1)], { wallet: WALLET, positions: positionsOf([detected(LIDO, nexus)]), covers });
+		assert.deepEqual([result.valid.length, result.stale.length, result.unconfirmed.length], [0, 0, 1], JSON.stringify(nexus));
+	}
+	// Umgekehrt macht ein SCOPE_UNCONFIRMED-Status Core nicht zum Altbestand und nicht gueltig - nur "nicht entscheidbar".
+	const core = reconcile([row(CORE, 1)], { wallet: WALLET, positions: positionsOf([detected(CORE, { state: 'SCOPE_UNCONFIRMED', productId: 97 })]), covers });
+	assert.deepEqual([core.valid.length, core.stale.length, core.unconfirmed.length, core.unknown.map((u) => u.reason)], [0, 0, 0, ['PRODUCT_LOOKUP_UNAVAILABLE']]);
+	// Fremde Zeilen bleiben unsichtbar, auch als Altbestand.
+	const foreign = reconcile([{ ...row(LIDO, 1), wallet: '0x' + 'b'.repeat(40) }], { wallet: WALLET, positions: null, covers: null });
+	assert.deepEqual([foreign.valid, foreign.stale, foreign.unknown, foreign.unconfirmed], [[], [], [], []]);
+	// Fehlerhafte Zeilen bleiben "unknown" (MALFORMED), wie bisher.
+	assert.equal(reconcile([{ ...row(LIDO, 1), source: 'auto' }], { wallet: WALLET, positions: null, covers: null }).unknown[0].reason, 'MALFORMED');
 });
 
 test('SCOPE-SHELL: the table view never shows Lido/EtherFi as attributed or as "product available"', () => {

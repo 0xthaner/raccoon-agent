@@ -23,6 +23,13 @@
 	               Zuordnung zeigen oder nutzen; nur als "nicht bestaetigt" kennzeichnen
 	  Ein Lesefehler fuehrt nie zum Loeschen.
 
+	  Review N1, 25.10.2026: "unconfirmed" entscheidet allein die strenge Tabelle
+	  (nexus-mapping.mjs) nach deployment_key und product_id der gespeicherten
+	  Zeile - vor jeder Stale-Regel und ohne Positions- oder Cover-Daten. Ablauf,
+	  Transfer, Produkt-Mismatch oder eine verschwundene Position loeschen diese
+	  Altbestaende nicht; ein Lesefehler macht sie weder gueltig noch "pending".
+	  Entfernen nur ausdruecklich per DELETE (oder die Aufbewahrungsfrist in db.mjs).
+
 	Neue Zuordnungen gibt es nur fuer Maerkte, die die strenge Zuordnung
 	(nexus-mapping.mjs) als EXACT fuehrt; sonst COVERAGE_SCOPE_UNCONFIRMED.
 */
@@ -32,6 +39,11 @@ import { mappingFor } from './positions/nexus-mapping.mjs';
 const scopeConfirmed = (deploymentKey, productId) => {
 	const strict = mappingFor(deploymentKey);
 	return strict?.status === 'EXACT' && strict.productId === productId;
+};
+/** Gespeicherte Zeile eines bekannten Markts, dessen Produkt die strenge Tabelle nennt, aber nicht als EXACT fuehrt. */
+const legacyUnconfirmed = (deploymentKey, productId) => {
+	const strict = mappingFor(deploymentKey);
+	return Boolean(strict) && strict.status !== 'EXACT' && strict.productId === productId;
 };
 
 export const ATTRIBUTION_SOURCE = 'user_confirmed';
@@ -117,6 +129,8 @@ export function reconcile(rows, { wallet, positions, covers }) {
 		const productId = Number(row.product_id);
 		if (row.source !== ATTRIBUTION_SOURCE || !Number.isSafeInteger(coverId) || !Number.isSafeInteger(productId)) { result.unknown.push({ row, reason: 'MALFORMED' }); continue; }
 		const market = marketFor(row.deployment_key);
+		// Review N1: vor allen Stale-Regeln, allein aus der strengen Tabelle - nie geloescht, nie gueltig.
+		if (market && legacyUnconfirmed(row.deployment_key, productId)) { result.unconfirmed.push({ row, deploymentKey: row.deployment_key, coverId, productId, label: market.label, reason: 'NEXUS_SCOPE_UNCONFIRMED' }); continue; }
 		if (!market || nexusProductIdFor(row.deployment_key) !== productId) { result.stale.push({ row, reason: 'DEPLOYMENT_UNSUPPORTED' }); continue; }
 		const coversKnown = Array.isArray(covers?.covers) && String(covers.wallet ?? '').toLowerCase() === wallet;
 		const cov = coversKnown ? coverState(covers.covers, coverId) : { known: false };
@@ -129,8 +143,8 @@ export function reconcile(rows, { wallet, positions, covers }) {
 		if (pos.known && pos.position.nexus?.state === 'MATCHED' && pos.position.nexus.productId !== productId) { result.stale.push({ row, reason: 'PRODUCT_MISMATCH' }); continue; }
 		if (!cov.known) { result.unknown.push({ row, reason: 'COVER_LOOKUP_UNAVAILABLE' }); continue; }
 		if (!pos.known) { result.unknown.push({ row, reason: 'POSITION_LOOKUP_UNAVAILABLE' }); continue; }
-		// Vor der Produktpruefung: eine bestehende Lido/EtherFi-Zeile bleibt, wird aber nie gueltig.
-		if (!scopeConfirmed(row.deployment_key, productId) || pos.position.nexus?.state === 'SCOPE_UNCONFIRMED') { result.unconfirmed.push({ row, deploymentKey: row.deployment_key, coverId, productId, label: market.label, reason: 'NEXUS_SCOPE_UNCONFIRMED' }); continue; }
+		// Gueltig nur bei EXACT in der strengen Tabelle UND aktuell MATCHED; ein anderer Nexus-Status ist nicht entscheidbar.
+		if (!scopeConfirmed(row.deployment_key, productId)) { result.unknown.push({ row, reason: 'SCOPE_NOT_EXACT' }); continue; }
 		if (pos.position.nexus?.state !== 'MATCHED') { result.unknown.push({ row, reason: 'PRODUCT_LOOKUP_UNAVAILABLE' }); continue; }
 		result.valid.push({ row, deploymentKey: row.deployment_key, coverId, productId, label: market.label });
 	}

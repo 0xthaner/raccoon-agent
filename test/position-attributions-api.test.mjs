@@ -334,24 +334,74 @@ test('21-24: expired, transferred, disappeared or mismatched relations are not r
 	}
 });
 
-test('25: a failed or partial read never deletes and never shows stored relations', async () => {
+test('N1: expired, transferred, mismatched or disappeared Lido/EtherFi legacy rows are kept, flagged and never valid; Core is still cleaned', async () => {
 	const scenarios = [
-		['positions threw', (s) => { s.fail.positions = new Error('rpc'); }],
+		['cover expired', (s) => s.covers.set(A, coversOf(A, [cover(1, { status: 'expired' }), cover(2, { status: 'expired' }), cover(3, { status: 'expired' })]))],
+		['covers transferred away', (s) => s.covers.set(A, coversOf(A, []))],
+		['cover of another product', (s) => s.covers.set(A, coversOf(A, [cover(1, { productId: 98 }), cover(2, { productId: 98 }), cover(3, { productId: 98 })]))],
+		['positions gone', (s) => s.positions.set(A, positionsOf(A, { positions: [] }))],
+		['positions matched to another product', (s) => s.positions.set(A, positionsOf(A, { positions: [position(CORE, 'Core', { state: 'MATCHED', productId: 98 }), position(LIDO, 'Lido / Prime', { state: 'MATCHED', productId: 98 }), position(ETHERFI, 'EtherFi', { state: 'MATCHED', productId: 98 })] }))]
+	];
+	for (const [name, change] of scenarios) {
+		const { state, handler } = await seeded([[CORE, 1], [LIDO, 2], [ETHERFI, 3]]);
+		change(state);
+		state.calls.length = 0;
+		const r = await call(handler);
+		assert.equal(r.statusCode, 200, name);
+		assert.deepEqual([r.body.attributions, r.body.pending, r.body.removed], [[], 0, 1], `${name}: nur die Core-Zeile ist nachweislich veraltet`);
+		assert.deepEqual(unconfirmedOf(r.body), [[LIDO, 2, 'UNCONFIRMED'], [ETHERFI, 3, 'UNCONFIRMED']], name);
+		assert.deepEqual(rowsOf(state, A).map(([k, c]) => [k, c]), [[LIDO, 2], [ETHERFI, 3]], `${name}: Altbestand bleibt gespeichert`);
+		assert.deepEqual(state.calls.filter(([k]) => k === 'delete').map(([, w, key, id]) => [w, key, id]), [[A, CORE, 1]], `${name}: nur Core geloescht`);
+	}
+	// Der Nutzer kann den Altbestand weiterhin ausdruecklich entfernen; erneut ist es ein No-op.
+	const { state, handler } = await seeded([[CORE, 1], [LIDO, 2]]);
+	const removed = await call(handler, { method: 'DELETE', body: { deploymentKey: LIDO, coverId: 2 } });
+	assert.deepEqual([removed.statusCode, removed.body], [200, { ok: true, deleted: true }]);
+	const again = await call(handler, { method: 'DELETE', body: { deploymentKey: LIDO, coverId: 2 } });
+	assert.deepEqual([again.statusCode, again.body], [200, { ok: true, deleted: false }]);
+	assert.deepEqual(rowsOf(state, A).map(([k, c]) => [k, c]), [[CORE, 1]]);
+	// Und neu anlegen bleibt gesperrt.
+	const post = await call(handler, { method: 'POST', body: { deploymentKey: LIDO, coverId: 2 } });
+	assert.deepEqual([post.statusCode, post.body.code], [422, 'COVERAGE_SCOPE_UNCONFIRMED']);
+	assert.deepEqual(rowsOf(state, A).map(([k, c]) => [k, c]), [[CORE, 1]]);
+});
+
+test('25: a failed or partial read never deletes and never shows stored relations', async () => {
+	/*
+		Review N3, 25.10.2026: je Lesefehler die genaue Aufteilung. Core ist nicht
+		entscheidbar (reconcile -> unknown, in der Antwort `pending`); Lido/EtherFi
+		sind unabhaengig vom Lesestand Altbestand (`unconfirmed`), nie `pending`.
+	*/
+	const scenarios = [
+		['positions threw (RPC)', (s) => { s.fail.positions = new Error('rpc'); }],
+		['positions of another wallet', (s) => s.positions.set(A, positionsOf(B))],
 		['covers threw', (s) => { s.fail.covers = true; }],
+		['covers of another wallet', (s) => s.covers.set(A, coversOf(B, [cover(1), cover(2), cover(3)]))],
+		['positions and covers threw', (s) => { s.fail.positions = new Error('rpc'); s.fail.covers = true; }],
 		['market unavailable', (s) => s.positions.set(A, positionsOf(A, { unavailable: [CORE, LIDO] }))],
 		['catalog unavailable', (s) => s.positions.set(A, positionsOf(A, { positions: [position(CORE, 'Core', { state: 'UNAVAILABLE' }), position(LIDO, 'Lido / Prime', { state: 'UNAVAILABLE' })] }))]
 	];
 	for (const [name, change] of scenarios) {
-		const { state, handler } = await seeded([[CORE, 1], [LIDO, 2]]);
+		const { state, handler } = await seeded([[CORE, 1], [LIDO, 2], [ETHERFI, 3]]);
 		change(state);
+		state.calls.length = 0;
 		const r = await call(handler);
 		assert.equal(r.statusCode, 200, name);
-		assert.deepEqual(r.body.attributions, [], name);
-		// Lido ist auch ohne Katalog nie gueltig; dann steht es als nicht bestaetigt da, sonst als offen.
-		assert.equal(r.body.pending + r.body.unconfirmed.length, 2, name);
-		assert.ok(r.body.pending >= 1, name);
-		assert.equal(state.rows.length, 2, `${name}: nichts geloescht`);
-		assert.ok(!state.calls.some(([k]) => k === 'delete'), name);
+		assert.deepEqual(r.body.attributions, [], `${name}: keine gueltige Zuordnung`);
+		assert.equal(r.body.pending, 1, `${name}: nur Core ist offen`);
+		assert.deepEqual(unconfirmedOf(r.body), [[LIDO, 2, 'UNCONFIRMED'], [ETHERFI, 3, 'UNCONFIRMED']], `${name}: Altbestand bleibt erkennbar`);
+		assert.equal(r.body.removed, 0, name);
+		assert.deepEqual(rowsOf(state, A).map(([k, c]) => [k, c]), [[CORE, 1], [LIDO, 2], [ETHERFI, 3]], `${name}: nichts geloescht`);
+		assert.ok(!state.calls.some(([k]) => k === 'delete' || k === 'upsert'), `${name}: weder geloescht noch geschrieben`);
+	}
+	// Nur Altbestand und alles unlesbar: nichts offen, nichts gueltig, nichts geloescht.
+	{
+		const { state, handler } = await seeded([[LIDO, 2]]);
+		state.fail.positions = new Error('rpc');
+		state.fail.covers = true;
+		const r = await call(handler);
+		assert.deepEqual([r.statusCode, r.body.attributions, r.body.pending, unconfirmedOf(r.body), r.body.removed], [200, [], 0, [[LIDO, 2, 'UNCONFIRMED']], 0]);
+		assert.equal(state.rows.length, 1);
 	}
 	const { state, handler } = await seeded([[CORE, 1]]);
 	state.fail.list = true;

@@ -167,17 +167,21 @@ test('L5-DB', { skip, timeout: 300_000 }, async (t) => {
 			const writes = await writesDuring(async () => { r = await call(handlerWith(view)); });
 			assert.equal(r.statusCode, 200, label);
 			assert.deepEqual(r.body.attributions, [], `${label}: nichts als aktuell gezeigt`);
-			assert.equal(r.body.pending, 2, label);
+			// Review N1/N3: Core ist offen (pending), Lido ist unabhaengig vom Lesestand Altbestand.
+			assert.equal(r.body.pending, 1, label);
+			assert.deepEqual(r.body.unconfirmed.map((a) => [a.deploymentKey, a.coverId]), [[LIDO, 2]], label);
+			assert.equal(r.body.removed, 0, label);
 			assert.deepEqual(writes, [], `${label}: kein Schreibzugriff`);
 			assert.deepEqual(keys(await rowsOf(A)), [`${CORE}#1`, `${LIDO}#2`], `${label}: nichts geloescht`);
 		}
 	});
 
 	await t.test('L5-F/G: a stale row is deleted, a valid row survives, an empty but complete cover list counts as proof', async () => {
-		await seed(A, [[CORE, 1], [LIDO, 2], [ETHERFI, 3]]);
+		// Review N4: Core neben Core - Cover 1 abgelaufen, Cover 3 nicht mehr in der Wallet, Cover 2 gueltig.
+		await seed(A, [[CORE, 1], [CORE, 2], [CORE, 3]]);
 		const r = await call(handlerWith({ covers: (w) => coversOf(w, [cover(1, { status: 'expired' }), cover(2)]) }));
-		assert.deepEqual([r.body.attributions.map((a) => a.coverId), r.body.unconfirmed.map((a) => a.coverId), r.body.removed], [[], [2], 2]);
-		assert.deepEqual(keys(await rowsOf(A)), [`${LIDO}#2`]);
+		assert.deepEqual([r.body.attributions.map((a) => [a.deploymentKey, a.coverId]), r.body.unconfirmed, r.body.removed], [[[CORE, 2]], [], 2]);
+		assert.deepEqual(keys(await rowsOf(A)), [`${CORE}#2`], 'die gueltige Core-Zeile bleibt');
 		const empty = await call(handlerWith({ covers: (w) => coversOf(w, []) }));
 		assert.deepEqual([empty.body.attributions.length, empty.body.removed], [0, 1], 'vollstaendige Antwort "keine Covers" ist ein Nachweis');
 		assert.deepEqual(await rowsOf(A), []);
@@ -214,7 +218,7 @@ test('L5-DB', { skip, timeout: 300_000 }, async (t) => {
 	});
 
 	await t.test('L5-J: GET cleanup racing a user DELETE: both succeed, the row is gone once, nothing else is touched', async () => {
-		await seed(A, [[CORE, 1], [LIDO, 2]]);
+		await seed(A, [[CORE, 1], [CORE, 2]]);
 		const g = gate();
 		const reading = call(handlerWith({ covers: async (w) => { await g.wait(); return coversOf(w, [cover(2)]); } }));
 		await g.arrived;
@@ -222,10 +226,53 @@ test('L5-DB', { skip, timeout: 300_000 }, async (t) => {
 		assert.deepEqual([removed.statusCode, removed.body.deleted], [200, true]);
 		g.open();
 		const r = await within(reading, 'GET endet nicht');
-		assert.deepEqual([r.statusCode, r.body.removed, r.body.attributions.map((a) => a.coverId), r.body.unconfirmed.map((a) => a.coverId)], [200, 0, [], [2]]);
-		assert.deepEqual(keys(await rowsOf(A)), [`${LIDO}#2`]);
+		assert.deepEqual([r.statusCode, r.body.removed, r.body.attributions.map((a) => [a.deploymentKey, a.coverId]), r.body.unconfirmed], [200, 0, [[CORE, 2]], []]);
+		assert.deepEqual(keys(await rowsOf(A)), [`${CORE}#2`]);
 		const again = await call(handlerWith(), { method: 'DELETE', body: { deploymentKey: CORE, coverId: 1 } });
 		assert.deepEqual([again.statusCode, again.body.deleted], [200, false], 'DELETE bleibt idempotent');
+	});
+
+	await t.test('L5-N1: stored Lido/EtherFi rows survive expiry, transfer, product mismatch, a vanished position and read errors; Core next to them is still cleaned', async () => {
+		const scenarios = [
+			['cover expired', { covers: (w) => coversOf(w, [1, 2, 3].map((id) => cover(id, { status: 'expired' }))) }, 1],
+			['covers transferred away', { covers: (w) => coversOf(w, []) }, 1],
+			['cover of another product', { covers: (w) => coversOf(w, [1, 2, 3].map((id) => cover(id, { productId: 98 }))) }, 1],
+			['positions gone', { positions: (w) => positionsOf(w, { markets: [] }) }, 1],
+			['positions matched to another product', { positions: (w) => ({ ...positionsOf(w), positions: positionsOf(w).positions.map((p) => ({ ...p, nexus: { ...NEXUS, productId: 98 } })) }) }, 1],
+			['positions unreadable', { positions: () => { throw new Error('rpc'); } }, 0],
+			['covers unreadable', { covers: () => { throw new Error('rpc'); } }, 0]
+		];
+		for (const [name, world, removed] of scenarios) {
+			await sql.query('delete from public.position_cover_attributions');
+			await seed(A, [[CORE, 1], [LIDO, 2], [ETHERFI, 3]]);
+			const before = await rowsOf(A);
+			const r = await call(handlerWith(world));
+			assert.equal(r.statusCode, 200, name);
+			assert.deepEqual(r.body.attributions, [], `${name}: nie gueltig`);
+			assert.deepEqual(r.body.unconfirmed.map((a) => [a.deploymentKey, a.coverId, a.coverageScope]).sort(), [[ETHERFI, 3, 'UNCONFIRMED'], [LIDO, 2, 'UNCONFIRMED']], name);
+			assert.deepEqual([r.body.removed, r.body.pending], [removed, 1 - removed], `${name}: Core geloescht oder offen`);
+			const after = await rowsOf(A);
+			assert.deepEqual(keys(after), [...(removed ? [] : [`${CORE}#1`]), `${ETHERFI}#3`, `${LIDO}#2`], `${name}: Altbestand bleibt`);
+			for (const key of [LIDO, ETHERFI]) {
+				const [was, is] = [before, after].map((rows) => rows.find((row) => row.deployment_key === key));
+				assert.equal(String(is.confirmed_at), String(was.confirmed_at), `${name}: ${key} nicht umgeschrieben`);
+			}
+		}
+	});
+
+	await t.test('L5-N1: an explicit DELETE still removes a Lido/EtherFi legacy row (idempotent, own wallet only); a POST cannot bring it back', async () => {
+		await seed(A, [[LIDO, 2], [ETHERFI, 3]]);
+		await seed(B, [[LIDO, 2]]);
+		const h = handlerWith();
+		const removed = await call(h, { method: 'DELETE', body: { deploymentKey: LIDO, coverId: 2 } });
+		assert.deepEqual([removed.statusCode, removed.body.deleted], [200, true]);
+		const again = await call(h, { method: 'DELETE', body: { deploymentKey: LIDO, coverId: 2 } });
+		assert.deepEqual([again.statusCode, again.body.deleted], [200, false]);
+		assert.deepEqual(keys(await rowsOf(A)), [`${ETHERFI}#3`]);
+		assert.deepEqual(keys(await rowsOf(B)), [`${LIDO}#2`], 'Wallet B unberuehrt');
+		const post = await call(h, { method: 'POST', body: { deploymentKey: LIDO, coverId: 2 } });
+		assert.deepEqual([post.statusCode, post.body.code], [422, 'COVERAGE_SCOPE_UNCONFIRMED']);
+		assert.deepEqual(keys(await rowsOf(A)), [`${ETHERFI}#3`]);
 	});
 
 	await t.test('L5: concurrent GETs with mixed views and POSTs never lose a confirmation that finished after every read', async () => {
