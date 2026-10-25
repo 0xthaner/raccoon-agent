@@ -178,7 +178,9 @@ test('H: no-cover variant: neutral wallet status, one primary action, three-row 
 	assert.equal(byClass(list, 'nexus-action').length, 1, 'genau eine Aktion');
 	assert.equal(byClass(summary, 'primary').length, 1, 'und die steht in der Zusammenfassung');
 	for (const card of byClass(list, 'position-card').filter((c) => !String(c.className).includes('position-unavailable'))) {
-		assert.match(card.textContent, /Nexus \| Passendes Produkt verfügbar \| Wallet-Cover \| Kein aktives passendes Cover erkannt \| Cover-Zuordnung \| — \| Cover-Details ansehen$/);
+		// Lido/Prime: Deckungsumfang von Produkt 97 nicht bestaetigt (25.10.2026) - kein "verfuegbar", keine Aktion.
+		if (card.textContent.startsWith('Aave v3 · Lido / Prime')) assert.match(card.textContent, /Nexus \| Deckungsumfang nicht bestätigt \| Nexus Mutual hat nicht bestätigt, dass dieses Produkt diesen Markt abdeckt\. CoverRaccoon bietet hier deshalb keine Cover-Zuordnung an\.$/);
+		else assert.match(card.textContent, /Nexus \| Passendes Produkt verfügbar \| Wallet-Cover \| Kein aktives passendes Cover erkannt \| Cover-Zuordnung \| — \| Cover-Details ansehen$/);
 	}
 	assert.doesNotMatch(list.textContent, /Cover #|unversichert|nicht versichert|uninsured/);
 	assert.deepEqual(list.attributionSlots, []);
@@ -191,7 +193,9 @@ test('H: fixture data has the real API shape, fake values only and no coverage w
 	const positions = fixture.positionsFixture('true', fixture.FIXTURE_WALLET);
 	assert.deepEqual(Object.keys(positions).sort(), ['blockNumber', 'chainId', 'checkedDeployments', 'complete', 'fetchedAt', 'ok', 'positions', 'scope', 'wallet']);
 	for (const p of positions.positions) {
-		assert.deepEqual(p.nexus, { state: 'MATCHED', productId: 97, productName: 'Aave v3' });
+		assert.deepEqual(p.nexus, p.deploymentKey === 'aave-v3-ethereum-core'
+			? { state: 'MATCHED', productId: 97, productName: 'Aave v3' }
+			: { state: 'SCOPE_UNCONFIRMED', productId: 97, productName: 'Aave v3', reason: 'NEXUS_SCOPE_UNCONFIRMED' });
 		for (const field of ['suppliedUsd', 'debtUsd', 'netUsd']) assert.equal(typeof p.totals[field], 'string');
 		assert.equal(p.wallet, fixture.FIXTURE_WALLET);
 	}

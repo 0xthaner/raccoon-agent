@@ -130,7 +130,9 @@ test('L5-DB', { skip, timeout: 300_000 }, async (t) => {
 		await seed(B, [[CORE, 1], [LIDO, 2]]);
 		const r = await call(handlerWith({ covers: (w) => coversOf(w, [cover(2)]) }), { wallet: A });
 		assert.equal(r.statusCode, 200);
-		assert.deepEqual(r.body.attributions.map((a) => a.coverId), [2]);
+		// Lido/Prime: Altbestand bleibt gespeichert, gilt aber nie als Zuordnung (25.10.2026).
+		assert.deepEqual(r.body.attributions.map((a) => a.coverId), []);
+		assert.deepEqual(r.body.unconfirmed.map((a) => [a.coverId, a.coverageScope]), [[2, 'UNCONFIRMED']]);
 		assert.equal(r.body.removed, 1);
 		assert.deepEqual(keys(await rowsOf(A)), [`${LIDO}#2`]);
 		assert.deepEqual(keys(await rowsOf(B)), [`${CORE}#1`, `${LIDO}#2`], 'Wallet B unberuehrt');
@@ -174,7 +176,7 @@ test('L5-DB', { skip, timeout: 300_000 }, async (t) => {
 	await t.test('L5-F/G: a stale row is deleted, a valid row survives, an empty but complete cover list counts as proof', async () => {
 		await seed(A, [[CORE, 1], [LIDO, 2], [ETHERFI, 3]]);
 		const r = await call(handlerWith({ covers: (w) => coversOf(w, [cover(1, { status: 'expired' }), cover(2)]) }));
-		assert.deepEqual([r.body.attributions.map((a) => a.coverId), r.body.removed], [[2], 2]);
+		assert.deepEqual([r.body.attributions.map((a) => a.coverId), r.body.unconfirmed.map((a) => a.coverId), r.body.removed], [[], [2], 2]);
 		assert.deepEqual(keys(await rowsOf(A)), [`${LIDO}#2`]);
 		const empty = await call(handlerWith({ covers: (w) => coversOf(w, []) }));
 		assert.deepEqual([empty.body.attributions.length, empty.body.removed], [0, 1], 'vollstaendige Antwort "keine Covers" ist ein Nachweis');
@@ -220,7 +222,7 @@ test('L5-DB', { skip, timeout: 300_000 }, async (t) => {
 		assert.deepEqual([removed.statusCode, removed.body.deleted], [200, true]);
 		g.open();
 		const r = await within(reading, 'GET endet nicht');
-		assert.deepEqual([r.statusCode, r.body.removed, r.body.attributions.map((a) => a.coverId)], [200, 0, [2]]);
+		assert.deepEqual([r.statusCode, r.body.removed, r.body.attributions.map((a) => a.coverId), r.body.unconfirmed.map((a) => a.coverId)], [200, 0, [], [2]]);
 		assert.deepEqual(keys(await rowsOf(A)), [`${LIDO}#2`]);
 		const again = await call(handlerWith(), { method: 'DELETE', body: { deploymentKey: CORE, coverId: 1 } });
 		assert.deepEqual([again.statusCode, again.body.deleted], [200, false], 'DELETE bleibt idempotent');
@@ -245,11 +247,12 @@ test('L5-DB', { skip, timeout: 300_000 }, async (t) => {
 
 	await t.test('L5: the 60-row limit (L1) still counts stored rows; a GET that removes a stale row frees exactly that slot', async () => {
 		await seed(A, Array.from({ length: 60 }, (_, i) => [CORE, 100 + i]));
-		const h = handlerWith({ covers: (w) => coversOf(w, [...Array.from({ length: 59 }, (_, i) => cover(101 + i)), cover(1)]) });
-		assert.equal((await call(h, { method: 'POST', body: { deploymentKey: LIDO, coverId: 1 } })).statusCode, 409, 'veraltete Zeile zaehlt bis zum Abgleich');
+		// Neue Relationen auf Core: Lido/Prime und EtherFi sind seit 25.10.2026 nicht zuordenbar.
+		const h = handlerWith({ covers: (w) => coversOf(w, [...Array.from({ length: 59 }, (_, i) => cover(101 + i)), cover(1), cover(2)]) });
+		assert.equal((await call(h, { method: 'POST', body: { deploymentKey: CORE, coverId: 1 } })).statusCode, 409, 'veraltete Zeile zaehlt bis zum Abgleich');
 		assert.equal((await call(h)).body.removed, 1, 'Cover 100 ist nicht mehr in der Wallet');
-		assert.equal((await call(h, { method: 'POST', body: { deploymentKey: LIDO, coverId: 1 } })).statusCode, 200);
-		assert.equal((await call(h, { method: 'POST', body: { deploymentKey: ETHERFI, coverId: 1 } })).statusCode, 409);
+		assert.equal((await call(h, { method: 'POST', body: { deploymentKey: CORE, coverId: 1 } })).statusCode, 200);
+		assert.equal((await call(h, { method: 'POST', body: { deploymentKey: CORE, coverId: 2 } })).statusCode, 409);
 		assert.equal((await rowsOf(A)).length, 60);
 	});
 

@@ -45,8 +45,8 @@ const TEXTS = {
 		positionsDetails: 'Details und Cover-Zuordnung',
 		positionsLoading: 'Positionen werden gelesen …', positionsError: 'Positionen konnten gerade nicht geladen werden.', positionsNone: 'Keine Positionen gefunden.',
 		supplied: 'eingezahlt', borrowed: 'geliehen',
-		status: { ATTRIBUTED: 'Cover zugeordnet', CONFIRM: 'Zuordnung offen', NO_ACTIVE_COVER: 'Kein aktives Cover', UNAVAILABLE: 'Derzeit kein Cover verfügbar', UNKNOWN: 'Cover-Status unbekannt', NOT_READ: 'Nicht lesbar' },
-		product: { yes: 'Passendes Nexus-Produkt verfügbar', no: 'Kein passendes Nexus-Produkt', unknown: 'Nexus-Katalog nicht prüfbar' },
+		status: { ATTRIBUTED: 'Cover zugeordnet', CONFIRM: 'Zuordnung offen', NO_ACTIVE_COVER: 'Kein aktives Cover', UNAVAILABLE: 'Derzeit kein Cover verfügbar', UNKNOWN: 'Cover-Status unbekannt', NOT_READ: 'Nicht lesbar', SCOPE_UNCONFIRMED: 'Deckungsumfang nicht bestätigt' },
+		product: { yes: 'Passendes Nexus-Produkt verfügbar', no: 'Kein passendes Nexus-Produkt', unknown: 'Nexus-Katalog nicht prüfbar', unconfirmed: 'Deckungsumfang nicht bestätigt' },
 		coversActive: 'Aktiv', coversExpiring: 'Läuft bald ab', coversPast: 'Vergangen',
 		coversExpiringNone: 'Kein Cover läuft in den nächsten 30 Tagen ab.', coversExpiringHint: 'Aktive Covers, die innerhalb von 30 Tagen ablaufen.',
 		coversPastNone: 'Keine vergangenen Covers für diese Wallet gefunden.',
@@ -89,8 +89,8 @@ const TEXTS = {
 		positionsDetails: 'Details and cover attribution',
 		positionsLoading: 'Reading positions …', positionsError: 'Positions could not be loaded right now.', positionsNone: 'No positions found.',
 		supplied: 'supplied', borrowed: 'borrowed',
-		status: { ATTRIBUTED: 'Cover attributed', CONFIRM: 'Attribution open', NO_ACTIVE_COVER: 'No active cover', UNAVAILABLE: 'Cover not currently available', UNKNOWN: 'Cover unknown', NOT_READ: 'Could not be read' },
-		product: { yes: 'Matching Nexus product available', no: 'No matching Nexus product', unknown: 'Nexus catalogue not checkable' },
+		status: { ATTRIBUTED: 'Cover attributed', CONFIRM: 'Attribution open', NO_ACTIVE_COVER: 'No active cover', UNAVAILABLE: 'Cover not currently available', UNKNOWN: 'Cover unknown', NOT_READ: 'Could not be read', SCOPE_UNCONFIRMED: 'Coverage scope not confirmed' },
+		product: { yes: 'Matching Nexus product available', no: 'No matching Nexus product', unknown: 'Nexus catalogue not checkable', unconfirmed: 'Coverage scope not confirmed' },
 		coversActive: 'Active', coversExpiring: 'Expiring soon', coversPast: 'Past',
 		coversExpiringNone: 'No cover expires within the next 30 days.', coversExpiringHint: 'Active covers that end within 30 days.',
 		coversPastNone: 'No past covers found for this wallet.',
@@ -135,6 +135,8 @@ export function daysLeft(iso, now = Date.now()) {
 */
 export function positionStatus(position, attribution) {
 	const state = position?.nexus?.state;
+	// Lido/Prime, EtherFi (25.10.2026): nie "zugeordnet", auch mit gespeicherter Zeile.
+	if (state === 'SCOPE_UNCONFIRMED') return 'SCOPE_UNCONFIRMED';
 	if (state === 'NO_PRODUCT' || state === 'UNSUPPORTED' || state === 'PRODUCT_DEPRECATED') return 'UNAVAILABLE';
 	if (state !== 'MATCHED') return 'UNKNOWN';
 	const entry = attribution?.byPosition?.get?.(position.deploymentKey);
@@ -148,6 +150,7 @@ export function positionStatus(position, attribution) {
 function productSupport(position) {
 	const state = position?.nexus?.state;
 	if (state === 'MATCHED') return 'yes';
+	if (state === 'SCOPE_UNCONFIRMED') return 'unconfirmed';
 	if (state === 'NO_PRODUCT' || state === 'UNSUPPORTED' || state === 'PRODUCT_DEPRECATED') return 'no';
 	return 'unknown';
 }
@@ -252,7 +255,7 @@ function setText(doc, selector, value) {
 	if (node) node.textContent = String(value);
 }
 /* Status nie nur als Farbe: jedes Abzeichen traegt seinen Text und ein eigenes Zeichen. */
-const STATUS_MARK = { ATTRIBUTED: '●', CONFIRM: '◐', NO_ACTIVE_COVER: '○', UNAVAILABLE: '–', UNKNOWN: '?', NOT_READ: '!' };
+const STATUS_MARK = { ATTRIBUTED: '●', CONFIRM: '◐', NO_ACTIVE_COVER: '○', UNAVAILABLE: '–', UNKNOWN: '?', NOT_READ: '!', SCOPE_UNCONFIRMED: '△' };
 function badge(doc, parent, status, t) {
 	const node = make(doc, parent, 'span', `status-badge status-${status.toLowerCase().replaceAll('_', '-')}`);
 	make(doc, node, 'span', 'status-mark', STATUS_MARK[status] ?? '·').setAttribute('aria-hidden', 'true');

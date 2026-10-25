@@ -55,6 +55,11 @@ Object.assign(translations.de, {
 	netPosition: 'Nettoposition', healthFactor: 'Health Factor', noDebt: 'keine Schulden', collateral: 'als Sicherheit', notCollateral: 'nicht als Sicherheit', none: 'keine',
 	matchingProduct: 'Passendes Nexus-Produkt', productAvailable: 'Passendes Nexus-Produkt verfügbar', productDeprecated: 'Nexus-Produkt eingestellt', productNone: 'Kein passendes Nexus-Produkt im aktuellen Katalog',
 	productUnavailable: 'Nexus-Katalog gerade nicht prüfbar', productUnsupported: 'Kein zugeordnetes Nexus-Produkt', productWord: 'Produkt',
+	productScopeUnconfirmed: 'Deckungsumfang nicht bestätigt',
+	scopeUnconfirmedHelp: 'Nexus Mutual hat nicht bestätigt, dass dieses Produkt diesen Markt abdeckt. CoverRaccoon bietet hier deshalb keine Cover-Zuordnung an.',
+	attributionUnconfirmed: 'Gespeichert · Deckungsumfang nicht bestätigt',
+	attributionUnconfirmedHelp: 'Diese früher gespeicherte Zuordnung ist kein Nachweis einer Deckung. Für diesen Markt ist der Deckungsumfang des Nexus-Produkts nicht bestätigt.',
+	scopeUnconfirmedNote: 'Für {markets} ist der Deckungsumfang des Nexus-Produkts nicht bestätigt. Diese Märkte erhalten keine Produktzuordnung und können keinem Cover zugeordnet werden.',
 	positionsNote: 'Ein passendes Nexus-Produkt bedeutet nicht, dass ein konkreter Verlust gedeckt oder ein bestimmter Betrag erstattungsfähig ist. Maßgeblich sind die Produktbedingungen und der Claims-Prozess von Nexus Mutual.'
 });
 Object.assign(translations.en, {
@@ -84,6 +89,11 @@ Object.assign(translations.en, {
 	netPosition: 'Net position', healthFactor: 'Health factor', noDebt: 'no debt', collateral: 'as collateral', notCollateral: 'not as collateral', none: 'none',
 	matchingProduct: 'Matching Nexus product', productAvailable: 'Matching Nexus product available', productDeprecated: 'Nexus product discontinued', productNone: 'No matching Nexus product in the current catalogue',
 	productUnavailable: 'Nexus catalogue cannot be checked right now', productUnsupported: 'No mapped Nexus product', productWord: 'Product',
+	productScopeUnconfirmed: 'Coverage scope not confirmed',
+	scopeUnconfirmedHelp: 'Nexus Mutual has not confirmed that this product covers this market. CoverRaccoon therefore does not offer a cover attribution here.',
+	attributionUnconfirmed: 'Saved · coverage scope not confirmed',
+	attributionUnconfirmedHelp: 'This previously saved attribution is not proof of cover. The coverage scope of the Nexus product is not confirmed for this market.',
+	scopeUnconfirmedNote: 'The coverage scope of the Nexus product is not confirmed for {markets}. These markets get no product match and cannot be attributed to a cover.',
 	positionsNote: 'A matching Nexus product does not mean that a specific loss is covered or that a particular amount is reimbursable. Only the product terms and the Nexus Mutual claims process apply.'
 });
 let language = localStorage.getItem('raccoon_language') || (navigator.language?.toLowerCase().startsWith('de') ? 'de' : 'en');
@@ -333,6 +343,7 @@ function assetGroup(parent, label, assets, withCollateral) {
 
 function productText(nexus) {
 	if (nexus?.state === 'MATCHED') return t.productAvailable;
+	if (nexus?.state === 'SCOPE_UNCONFIRMED') return t.productScopeUnconfirmed;
 	if (nexus?.state === 'PRODUCT_DEPRECATED') return t.productDeprecated;
 	if (nexus?.state === 'NO_PRODUCT') return t.productNone;
 	if (nexus?.state === 'UNSUPPORTED') return t.productUnsupported;
@@ -391,7 +402,8 @@ function activeProductCovers(product) {
 */
 const ATTRIBUTION = Object.freeze({ AUTO: 'AUTO_UNAMBIGUOUS', REQUIRED: 'USER_CONFIRMATION_REQUIRED', CONFIRMED: 'USER_CONFIRMED', NONE: 'NO_ACTIVE_COVER' });
 
-let attributionStore = { wallet: null, status: 'idle', links: new Map() };
+// unconfirmed: gespeicherte Zeilen fuer Maerkte mit Nexus-Status SCOPE_UNCONFIRMED; nie Teil von links.
+let attributionStore = { wallet: null, status: 'idle', links: new Map(), unconfirmed: new Map() };
 let attributionChooser = null;
 let attributionPending = null;
 let attributionError = null;
@@ -399,7 +411,7 @@ let attributionError = null;
 function resetAttributionState() {
 	coverPanels = new Map();
 	uniswapPanels = new Map();
-	attributionStore = { wallet: null, status: 'idle', links: new Map() };
+	attributionStore = { wallet: null, status: 'idle', links: new Map(), unconfirmed: new Map() };
 	attributionChooser = null;
 	attributionPending = null;
 	attributionError = null;
@@ -455,7 +467,7 @@ let attributionApi = {
 };
 
 async function loadAttributions(wallet) {
-	attributionStore = { wallet, status: 'loading', links: new Map() };
+	attributionStore = { wallet, status: 'loading', links: new Map(), unconfirmed: new Map() };
 	let body = null;
 	let ok = false;
 	try {
@@ -464,15 +476,21 @@ async function loadAttributions(wallet) {
 		ok = response.ok && body?.ok === true && Array.isArray(body.attributions);
 	} catch { ok = false; }
 	if (attributionStore.wallet !== wallet) return;
-	const links = new Map();
-	if (ok) {
-		for (const entry of body.attributions) {
-			if (typeof entry?.deploymentKey !== 'string' || !Number.isSafeInteger(entry.coverId) || entry.source !== 'user_confirmed') continue;
-			if (!links.has(entry.deploymentKey)) links.set(entry.deploymentKey, new Set());
-			links.get(entry.deploymentKey).add(entry.coverId);
+	const collect = (entries, target, accept = () => true) => {
+		for (const entry of entries) {
+			if (typeof entry?.deploymentKey !== 'string' || !Number.isSafeInteger(entry.coverId) || entry.source !== 'user_confirmed' || !accept(entry)) continue;
+			if (!target.has(entry.deploymentKey)) target.set(entry.deploymentKey, new Set());
+			target.get(entry.deploymentKey).add(entry.coverId);
 		}
+	};
+	const links = new Map();
+	const unconfirmed = new Map();
+	if (ok) {
+		collect(body.attributions, links);
+		// Nur zur Kennzeichnung und zum Entfernen; nie eine Bestaetigung.
+		if (Array.isArray(body.unconfirmed)) collect(body.unconfirmed, unconfirmed, (entry) => entry.coverageScope === 'UNCONFIRMED');
 	}
-	attributionStore = { wallet, status: ok ? 'ok' : 'error', links };
+	attributionStore = { wallet, status: ok ? 'ok' : 'error', links, unconfirmed };
 	renderPositions();
 }
 
@@ -481,18 +499,22 @@ function attributionCandidates(product, positions, covers) {
 	const candidatePositions = positions.filter((position) => position.nexus?.state === 'MATCHED' && position.nexus.productId === product.productId
 		&& typeof position.deploymentKey === 'string' && (position.supplied?.length || position.borrowed?.length));
 	const candidateCovers = covers.filter((cover) => cover.status === 'active' && cover.demo !== true && Number.isSafeInteger(cover.productId) && cover.productId === product.productId && Number.isSafeInteger(cover.coverId));
-	return candidatePositions.length ? { candidatePositions, candidateCovers } : null;
+	// Nie zuordenbar, aber ein Cover desselben Produkts koennte fuer sie gekauft sein:
+	// dann ist eine 1:1-Zuordnung zur bestaetigten Position nicht mehr eindeutig.
+	const unconfirmedPositions = positions.filter((position) => position.nexus?.state === 'SCOPE_UNCONFIRMED' && position.nexus.productId === product.productId
+		&& (position.supplied?.length || position.borrowed?.length));
+	return candidatePositions.length ? { candidatePositions, candidateCovers, unconfirmedPositions } : null;
 }
 
 /** Zustand je Position fuer genau diese Wallet; null, wenn es nichts zuzuordnen gibt. */
 function resolveAttribution({ product, positions, covers, complete, wallet, links = new Map() }) {
 	const candidates = attributionCandidates(product, positions, covers);
 	if (!candidates || !wallet) return null;
-	const { candidatePositions, candidateCovers } = candidates;
+	const { candidatePositions, candidateCovers, unconfirmedPositions } = candidates;
 	const byPosition = new Map();
 	if (!candidateCovers.length) {
 		for (const position of candidatePositions) byPosition.set(position.deploymentKey, { state: ATTRIBUTION.NONE, covers: [] });
-	} else if (candidatePositions.length === 1 && candidateCovers.length === 1 && complete === true) {
+	} else if (candidatePositions.length === 1 && candidateCovers.length === 1 && complete === true && !unconfirmedPositions.length) {
 		// Live aus oeffentlichen Daten; gespeicherte Bestaetigungen aendern daran nichts.
 		byPosition.set(candidatePositions[0].deploymentKey, { state: ATTRIBUTION.AUTO, covers: [candidateCovers[0]] });
 	} else {
@@ -502,7 +524,7 @@ function resolveAttribution({ product, positions, covers, complete, wallet, link
 			byPosition.set(position.deploymentKey, { state: confirmed.length ? ATTRIBUTION.CONFIRMED : ATTRIBUTION.REQUIRED, covers: confirmed });
 		}
 	}
-	return { candidatePositions, candidateCovers, byPosition, wallet };
+	return { candidatePositions, candidateCovers, unconfirmedPositions, byPosition, wallet };
 }
 
 /** Die aktuelle Zuordnung aus dem Seitenzustand; nur wenn Dashboard und Positionen zur selben Wallet gehoeren. */
@@ -548,6 +570,49 @@ async function assignCover(deploymentKey, coverId) {
 	}
 	renderPositions();
 	return saved;
+}
+
+/*
+	Markt mit Nexus-Status SCOPE_UNCONFIRMED (Lido/Prime, EtherFi): kein "verfuegbar",
+	keine Cover-Auswahl, keine Cover-Details. Eine frueher gespeicherte Zuordnung
+	bleibt sichtbar und entfernbar, aber ausdruecklich als nicht bestaetigt.
+*/
+function renderUnconfirmedScope(box, position) {
+	figureRow(box, t.cardNexusLabel, t.productScopeUnconfirmed, t.scopeUnconfirmedHelp).className += ' scope-unconfirmed';
+	const saved = attributionStore.wallet === positionsState.wallet ? [...(attributionStore.unconfirmed?.get(position.deploymentKey) ?? [])] : [];
+	if (saved.length) {
+		figureRow(box, t.attributionLabel, `${t.attributionUnconfirmed} · ${saved.map((coverId) => `Cover #${coverId}`).join(', ')}`, t.attributionUnconfirmedHelp).className += ' attribution-unconfirmed';
+		const actions = element(box, 'div', 'attribution-actions');
+		for (const coverId of saved) {
+			actionButton(actions, saved.length === 1 ? t.removeAssignment : `${t.removeAssignment} · Cover #${coverId}`, () => removeUnconfirmedAssignment(position.deploymentKey, coverId)).disabled = Boolean(attributionPending);
+		}
+	}
+	if (attributionError?.deploymentKey === position.deploymentKey) addTextElement(box, 'p', attributionError.text, 'attribution-error');
+}
+
+/** Eine gespeicherte, nicht bestaetigte Zuordnung entfernen; nur auf ausdruecklichen Klick. */
+async function removeUnconfirmedAssignment(deploymentKey, coverId) {
+	const wallet = attributionStore.wallet;
+	if (!wallet || attributionStore.status !== 'ok' || !attributionStore.unconfirmed?.get(deploymentKey)?.has(coverId) || attributionPending) return false;
+	attributionPending = deploymentKey;
+	attributionError = null;
+	renderPositions();
+	let removed = false;
+	try {
+		const response = await attributionApi.remove({ deploymentKey, coverId });
+		const body = await response.json().catch(() => null);
+		removed = response.ok && body?.ok === true;
+	} catch { removed = false; }
+	if (attributionStore.wallet !== wallet) return false;
+	attributionPending = null;
+	if (removed) {
+		attributionStore.unconfirmed.get(deploymentKey)?.delete(coverId);
+		if (!attributionStore.unconfirmed.get(deploymentKey)?.size) attributionStore.unconfirmed.delete(deploymentKey);
+	} else {
+		attributionError = { deploymentKey, text: t.attributionRemoveError };
+	}
+	renderPositions();
+	return removed;
 }
 
 /** Eine eigene, gespeicherte Bestaetigung entfernen. */
@@ -606,11 +671,23 @@ function nexusLink(parent, product, primary) {
 	return link;
 }
 
-/** Ein Nexus-Ergebnis fuer das ganze Protokoll: alle gleich und MATCHED, sonst der erste andere Zustand. */
+/*
+	Ein Nexus-Ergebnis fuer das ganze Protokoll: alle gleich und MATCHED, sonst der
+	erste andere Zustand. Maerkte mit SCOPE_UNCONFIRMED zaehlen nur, wenn
+	es keine anderen gibt - sie sollen Core nicht verdecken, aber auch nie MATCHED sein.
+*/
 function protocolProduct(positions) {
-	const results = positions.map((position) => position.nexus).filter(Boolean);
+	const all = positions.map((position) => position.nexus).filter(Boolean);
+	const confirmed = all.filter((nexus) => nexus.state !== 'SCOPE_UNCONFIRMED');
+	const results = confirmed.length ? confirmed : all;
 	if (!results.length) return null;
 	return results.find((nexus) => nexus.state !== 'MATCHED' || nexus.productId !== results[0].productId) ?? results[0];
+}
+
+/** Bezeichnungen der Maerkte mit Guthaben oder Schulden, mit Nexus-Status SCOPE_UNCONFIRMED. */
+function unconfirmedMarketLabels(positions) {
+	return positions.filter((position) => position.nexus?.state === 'SCOPE_UNCONFIRMED' && (position.supplied?.length || position.borrowed?.length))
+		.map((position) => String(position.label ?? position.deploymentKey));
 }
 
 function renderSummary(list, positions, unavailableLabels, product, attribution) {
@@ -650,9 +727,14 @@ function renderSummary(list, positions, unavailableLabels, product, attribution)
 			if (states.includes(ATTRIBUTION.AUTO)) addTextElement(card, 'p', t.attributionAutoNote, 'summary-note');
 			if (states.includes(ATTRIBUTION.REQUIRED)) {
 				addTextElement(card, 'p', `${t.summaryCoverNote} ${t.attributionRequiredNote}`, 'summary-note');
-				if (attribution.candidatePositions.length === 1 && attribution.candidateCovers.length === 1) addTextElement(card, 'p', t.attributionIncompleteNote, 'summary-note');
+				if (attribution.candidatePositions.length === 1 && attribution.candidateCovers.length === 1 && !attribution.unconfirmedPositions?.length) addTextElement(card, 'p', t.attributionIncompleteNote, 'summary-note');
 			}
 			if (states.includes(ATTRIBUTION.CONFIRMED)) addTextElement(card, 'p', t.attributionConfirmedNote, 'summary-note');
+		}
+		const unconfirmed = unconfirmedMarketLabels(positions);
+		if (unconfirmed.length) {
+			const names = unconfirmed.length === 1 ? unconfirmed[0] : `${unconfirmed.slice(0, -1).join(', ')} ${t.listAnd} ${unconfirmed.at(-1)}`;
+			addTextElement(card, 'p', t.scopeUnconfirmedNote.replace('{markets}', names), 'summary-note scope-unconfirmed');
 		}
 		addTextElement(card, 'p', t.positionsNote, 'summary-note');
 	}
@@ -667,6 +749,10 @@ function renderMarketStatus(card, position, attribution) {
 	const product = position.nexus;
 	if (!product) return;
 	const box = element(card, 'div', 'market-status');
+	if (product.state === 'SCOPE_UNCONFIRMED') {
+		renderUnconfirmedScope(box, position);
+		return;
+	}
 	figureRow(box, t.cardNexusLabel, product.state === 'MATCHED' ? t.productAvailableShort : productText(product));
 	const entry = attribution?.byPosition.get(position.deploymentKey);
 	if (product.state !== 'MATCHED' || !entry) return;

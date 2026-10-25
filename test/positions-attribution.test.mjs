@@ -38,7 +38,9 @@ function fakeServer() {
 			list: async () => {
 				server.calls.push(['list', server.session]);
 				if (server.fail.list) return { ok: false, status: 503, json: async () => ({ ok: false }) };
-				return { ok: true, status: 200, json: async () => ({ ok: true, attributions: [...server.storeOf(server.session).values()], pending: 0 }) };
+				// unconfirmed: Altbestand fuer Lido/Prime und EtherFi, wie ihn der echte Server getrennt liefert (25.10.2026).
+				const all = [...server.storeOf(server.session).values()];
+				return { ok: true, status: 200, json: async () => ({ ok: true, attributions: all.filter((a) => !a.coverageScope), unconfirmed: all.filter((a) => a.coverageScope === 'UNCONFIRMED'), pending: 0 }) };
 			},
 			save: async (relation) => {
 				server.calls.push(['save', server.session, relation]);
@@ -371,4 +373,83 @@ test('SESSION: the page copy lives only in module memory', () => {
 	const slice = main.slice(main.indexOf('let positionsState'), main.indexOf('function renderDashboard('));
 	assert.doesNotMatch(slice, /localStorage|sessionStorage|indexedDB|document\.cookie|history\.(push|replace)State|location\.hash/);
 	assert.doesNotMatch(main, /window\.attributionStore|globalThis\.attributionStore/);
+});
+
+/* ------------------------------- Deckungsumfang nicht bestaetigt: Lido/Prime, EtherFi (25.10.2026) */
+
+const SCOPE = { state: 'SCOPE_UNCONFIRMED', productId: 97, productName: 'Aave v3', reason: 'NEXUS_SCOPE_UNCONFIRMED' };
+const LIDO_U = { ...LIDO, nexus: SCOPE };
+const ETHERFI_U = { ...position('aave-v3-ethereum-etherfi', 'EtherFi'), nexus: SCOPE };
+const cardOf = (page, label) => byClass(page.list(), 'position-card').find((card) => card.children[0]?._text === `Aave v3 · ${label}`);
+
+test('SCOPE-UI-1: Lido/EtherFi show "Deckungsumfang nicht bestätigt" - no "verfügbar", no assignment, no cover details', async () => {
+	for (const lang of ['de', 'en']) {
+		const page = load(fakeServer(), lang);
+		await page.show(A, data([CORE, LIDO_U, ETHERFI_U]), [cover(1)]);
+		for (const label of ['Lido / Prime', 'EtherFi']) {
+			const card = cardOf(page, label);
+			assert.match(card.textContent, lang === 'de' ? /Nexus \| Deckungsumfang nicht bestätigt \| Nexus Mutual hat nicht bestätigt/ : /Nexus \| Coverage scope not confirmed \| Nexus Mutual has not confirmed/, `${lang} ${label}`);
+			assert.doesNotMatch(card.textContent, /verfügbar|available|Cover-Zuordnung \| (Eindeutig|Vom Nutzer|Bestätigung)|Wallet-Cover/, `${lang} ${label}`);
+			assert.deepEqual(buttons(card).map((n) => n._text), [], `${lang} ${label}: weder zuordnen noch Cover-Details`);
+			assert.equal(page.current().byPosition.has(`aave-v3-ethereum-${label === 'EtherFi' ? 'etherfi' : 'lido'}`), false);
+		}
+		const summary = byClass(page.list(), 'protocol-summary')[0];
+		assert.match(summary.textContent, lang === 'de' ? /Für Lido \/ Prime und EtherFi ist der Deckungsumfang des Nexus-Produkts nicht bestätigt\./ : /not confirmed for Lido \/ Prime and EtherFi\./);
+	}
+});
+
+test('SCOPE-UI-2: Core is unchanged - alone 1:1 as before; next to an unconfirmed market confirmation stays required', async () => {
+	const alone = load();
+	await alone.show(A, data([CORE]), [cover(1)]);
+	assert.equal(statusOf(alone, CORE.deploymentKey), alone.ATTRIBUTION.AUTO);
+	assert.match(byClass(alone.list(), 'protocol-summary')[0].textContent, /Passendes Nexus-Produkt verfügbar/);
+	// Vorher (Lido faelschlich MATCHED) war das 2:1 und damit "Bestätigung erforderlich" - so bleibt es fuer Core.
+	const mixed = load();
+	await mixed.show(A, data([CORE, LIDO_U]), [cover(1)]);
+	assert.equal(statusOf(mixed, CORE.deploymentKey), mixed.ATTRIBUTION.REQUIRED);
+	const summary = byClass(mixed.list(), 'protocol-summary')[0];
+	assert.match(summary.textContent, /Passendes Nexus-Produkt verfügbar/, 'Core verdeckt nicht durch Lido');
+	assert.doesNotMatch(summary.textContent, /Nicht alle unterstützten Märkte konnten gelesen werden/, 'kein falscher Lesefehler-Hinweis');
+	assert.ok(allNodes(summary).some((n) => String(n.className).includes('nexus-action')), 'Nexus-Link fuer Core bleibt');
+	assert.deepEqual(buttons(cardOf(mixed, 'Core')).map((n) => n._text), ['Cover zuordnen', 'Cover-Details ansehen']);
+	await mixed.assign(CORE.deploymentKey, 1);
+	assert.equal(statusOf(mixed, CORE.deploymentKey), mixed.ATTRIBUTION.CONFIRMED);
+});
+
+test('SCOPE-UI-3: only unconfirmed markets -> no product link and no "verfügbar" anywhere', async () => {
+	const page = load();
+	await page.show(A, data([LIDO_U]), [cover(1)]);
+	assert.equal(page.current(), null, 'nichts zuzuordnen');
+	const summary = byClass(page.list(), 'protocol-summary')[0];
+	assert.match(summary.textContent, /Nexus Mutual \| Deckungsumfang nicht bestätigt/);
+	assert.doesNotMatch(page.list().textContent, /Passendes Nexus-Produkt verfügbar|Passendes Produkt verfügbar/);
+	assert.ok(!allNodes(page.list()).some((n) => String(n.className).includes('nexus-action')), 'kein Nexus-Produktlink');
+});
+
+test('SCOPE-UI-4: a legacy stored Lido attribution is shown as not confirmed, never as "Vom Nutzer bestätigt", and can be removed', async () => {
+	const server = fakeServer();
+	server.storeOf(A).set('aave-v3-ethereum-lido|1', { deploymentKey: 'aave-v3-ethereum-lido', coverId: 1, productId: 97, source: 'user_confirmed', confirmedAt: '2026-10-13T10:00:00.000Z', coverageScope: 'UNCONFIRMED' });
+	const page = load(server);
+	await page.show(A, data([CORE, LIDO_U]), [cover(1)]);
+	const card = cardOf(page, 'Lido / Prime');
+	assert.match(card.textContent, /Cover-Zuordnung \| Gespeichert · Deckungsumfang nicht bestätigt · Cover #1 \| Diese früher gespeicherte Zuordnung ist kein Nachweis einer Deckung\./);
+	assert.doesNotMatch(page.list().textContent, /Vom Nutzer bestätigt/);
+	assert.equal(page.store().links.size, 0, 'nie eine Bestaetigung');
+	assert.equal(statusOf(page, CORE.deploymentKey), page.ATTRIBUTION.REQUIRED, 'Core wird dadurch nicht bestaetigt');
+	assert.ok(!server.calls.some(([kind]) => kind === 'remove' || kind === 'save'), 'Anzeigen loescht und schreibt nichts');
+	await buttons(card, 'Zuordnung entfernen')[0].click();
+	assert.deepEqual(server.calls.filter(([kind]) => kind === 'remove').map(([, wallet, relation]) => [wallet, relation]), [[A, { deploymentKey: 'aave-v3-ethereum-lido', coverId: 1 }]]);
+	assert.equal(server.storeOf(A).size, 0);
+	assert.doesNotMatch(cardOf(page, 'Lido / Prime').textContent, /Gespeichert/);
+});
+
+test('SCOPE-UI-5: even an old server listing Lido as a regular attribution never makes it confirmed', async () => {
+	const server = fakeServer();
+	server.storeOf(A).set('aave-v3-ethereum-lido|1', { deploymentKey: 'aave-v3-ethereum-lido', coverId: 1, productId: 97, source: 'user_confirmed', confirmedAt: '2026-10-13T10:00:00.000Z' });
+	const page = load(server);
+	await page.show(A, data([CORE, LIDO_U]), [cover(1)]);
+	assert.doesNotMatch(page.list().textContent, /Vom Nutzer bestätigt|Eindeutig/);
+	assert.equal(page.current().byPosition.has('aave-v3-ethereum-lido'), false);
+	assert.equal(await page.assign('aave-v3-ethereum-lido', 1), false, 'auch direkt nicht zuordenbar');
+	assert.ok(!server.calls.some(([kind]) => kind === 'save'));
 });

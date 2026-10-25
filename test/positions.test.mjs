@@ -371,7 +371,9 @@ test('G: result shape binds every position to its deployment and the Nexus match
 	assert.equal(result.chainId, 1);
 	assert.equal(result.complete, true);
 	assert.deepEqual(result.checkedDeployments.map((d) => [d.deploymentKey, d.status]), AAVE_V3_MARKETS.map((m) => [m.deploymentKey, 'OK']));
-	assert.deepEqual(result.positions.map((p) => [p.deploymentKey, p.nexus.state, p.nexus.productId]), [['aave-v3-ethereum-core', 'MATCHED', 97], ['aave-v3-ethereum-etherfi', 'MATCHED', 97]]);
+	// EtherFi: Produkt 97 steht im Katalog, sein Deckungsumfang fuer diesen Markt ist aber nicht bestaetigt (25.10.2026).
+	assert.deepEqual(result.positions.map((p) => [p.deploymentKey, p.nexus.state, p.nexus.productId]), [['aave-v3-ethereum-core', 'MATCHED', 97], ['aave-v3-ethereum-etherfi', 'SCOPE_UNCONFIRMED', 97]]);
+	assert.equal(result.positions[1].nexus.reason, 'NEXUS_SCOPE_UNCONFIRMED');
 	assert.ok(result.positions.every((p) => p.wallet === WALLET));
 	assert.doesNotMatch(JSON.stringify(result), /uncovered|gap|recommended|coverAmount|covered/i);
 	const noCatalog = await (positionsCache.reset(), getWalletPositions(WALLET, { client, catalogLoader: async () => null }));

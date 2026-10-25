@@ -3335,8 +3335,8 @@
 			"edits": [
 				{
 					"file": "api/position-attributions.mjs",
-					"find": "\t\t\tconst state = await currentState(wallet, response);\n\t\t\tif (state.aborted) return;\n\t\t\tconst { valid, stale, unknown }",
-					"replace": "\t\t\tfor (const row of rows) await deleteStaleRow(wallet, row.deployment_key, Number(row.cover_id), row.confirmed_at);\n\t\t\tconst state = await currentState(wallet, response);\n\t\t\tif (state.aborted) return;\n\t\t\tconst { valid, stale, unknown }"
+					"find": "\t\t\tconst state = await currentState(wallet, response);\n\t\t\tif (state.aborted) return;\n\t\t\tconst { valid, stale, unknown, unconfirmed }",
+					"replace": "\t\t\tfor (const row of rows) await deleteStaleRow(wallet, row.deployment_key, Number(row.cover_id), row.confirmed_at);\n\t\t\tconst state = await currentState(wallet, response);\n\t\t\tif (state.aborted) return;\n\t\t\tconst { valid, stale, unknown, unconfirmed }"
 				}
 			],
 			"tests": [

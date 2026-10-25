@@ -133,6 +133,8 @@ function formatAmount(cover, language) {
 	sie gerade gueltig ist (Quelle user_confirmed, Cover aktiv und in dieser Wallet,
 	gleiche productId, Position im sicher gelesenen Markt vorhanden). Sonst bleibt
 	es beim allgemeinen Satz. Nie "versichert", "gedeckt" oder "geschuetzt".
+	Zuordnungen zu Maerkten ohne bestaetigten Deckungsumfang (reconcile ->
+	unconfirmed, Lido/Prime und EtherFi) erscheinen hier nie (25.10.2026).
 */
 function expirySentence(thresholdDays, language, context) {
 	const labels = context?.positions ?? [];

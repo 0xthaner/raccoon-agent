@@ -9,11 +9,18 @@
 
 	MATCHED heisst ausschliesslich: im aktuellen Katalog gibt es ein passendes
 	Produkt. Es sagt nichts darueber, ob ein Verlust gedeckt waere.
+
+	SCOPE_UNCONFIRMED (25.10.2026): das Produkt steht im Katalog, aber die strenge
+	Zuordnung (nexus-mapping.mjs) haelt den Markt nicht fuer EXACT - Nexus hat nicht
+	bestaetigt, dass Produkt 97 Lido/Prime oder EtherFi abdeckt. Vorher stand hier
+	fuer alle drei Maerkte MATCHED, und das Dashboard zeigte "Produkt verfuegbar"
+	und liess eine Cover-Zuordnung zu. Nur EXACT wird MATCHED.
 */
 import { getCatalog } from '../nexus-facts.mjs';
 import { nexusProductIdFor } from './aave-registry.mjs';
+import { mappingFor } from './nexus-mapping.mjs';
 
-export const MATCH_STATES = Object.freeze(['MATCHED', 'NO_PRODUCT', 'PRODUCT_DEPRECATED', 'UNSUPPORTED', 'UNAVAILABLE']);
+export const MATCH_STATES = Object.freeze(['MATCHED', 'SCOPE_UNCONFIRMED', 'NO_PRODUCT', 'PRODUCT_DEPRECATED', 'UNSUPPORTED', 'UNAVAILABLE']);
 
 // Erwartete Identitaet je fester Produkt-ID. Aendert Nexus sie, faellt der Treffer weg.
 const EXPECTED = Object.freeze({
@@ -34,6 +41,8 @@ export function matchDeployment(deploymentKey, catalog) {
 	// Angezeigt wird der festgelegte Name: "officialName" ist Fremdtext und kann sich
 	// bei gleichem normalisiertem Namen in Zeichensetzung und Laenge unterscheiden.
 	if (product.deprecated || product.status !== 'ACTIVE') return { state: 'PRODUCT_DEPRECATED', productId, productName: expected.displayName };
+	const strict = mappingFor(deploymentKey);
+	if (strict?.status !== 'EXACT' || strict.productId !== productId) return { state: 'SCOPE_UNCONFIRMED', productId, productName: expected.displayName, reason: 'NEXUS_SCOPE_UNCONFIRMED' };
 	return { state: 'MATCHED', productId, productName: expected.displayName };
 }
 

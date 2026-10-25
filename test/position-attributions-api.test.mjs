@@ -224,10 +224,10 @@ test('9/19: a detected position + active same-product cover is stored once (idem
 	assert.deepEqual(first.body.attribution, { deploymentKey: CORE, coverId: 1, productId: 97, source: 'user_confirmed', confirmedAt: '2026-10-14T10:00:00.000Z' });
 	assert.equal(state.rows.length, 1);
 	assert.deepEqual(Object.keys(state.rows[0]).sort(), ['confirmed_at', 'cover_id', 'deployment_key', 'product_id', 'protocol_key', 'protocol_version', 'source', 'wallet']);
-	// Ein Cover darf mehreren Maerkten, ein Markt mehreren Covers zugeordnet werden.
-	assert.equal((await call(handler, { method: 'POST', body: { deploymentKey: LIDO, coverId: 1 } })).statusCode, 200);
+	// Ein Markt darf mehreren Covers zugeordnet werden. Lido/Prime ist seit 25.10.2026
+	// nicht mehr zuordenbar (Deckungsumfang von Produkt 97 nicht bestaetigt).
 	assert.equal((await call(handler, { method: 'POST', body: { deploymentKey: CORE, coverId: 2 } })).statusCode, 200);
-	assert.equal(state.rows.length, 3);
+	assert.equal(state.rows.length, 2);
 });
 
 test('10-18: every invalid relation is refused and nothing is written', async () => {
@@ -290,17 +290,29 @@ test('LIMIT: a wallet cannot store an unbounded number of relations', async () =
 
 /* ------------------------------------------------------- READ RECONCILIATION */
 
+/*
+	Core-Zeilen entstehen ueber POST. Lido/Prime- und EtherFi-Zeilen kann POST seit
+	25.10.2026 nicht mehr anlegen; sie stehen hier fuer Altbestand von davor und
+	werden direkt in die Tabelle geschrieben.
+*/
 async function seeded(rows) {
 	const w = world();
-	for (const [deploymentKey, coverId] of rows) assert.equal((await call(w.handler, { method: 'POST', body: { deploymentKey, coverId } })).statusCode, 200);
+	for (const [deploymentKey, coverId] of rows) {
+		if (deploymentKey === CORE) { assert.equal((await call(w.handler, { method: 'POST', body: { deploymentKey, coverId } })).statusCode, 200); continue; }
+		w.state.rows.push({ wallet: A, protocol_key: 'aave', protocol_version: 'v3', deployment_key: deploymentKey, product_id: 97, cover_id: coverId, source: 'user_confirmed', confirmed_at: '2026-10-13T10:00:00.000Z' });
+	}
 	return w;
 }
+const unconfirmedOf = (body) => (body.unconfirmed ?? []).map((a) => [a.deploymentKey, a.coverId, a.coverageScope]);
 
-test('20: active relations are returned', async () => {
-	const { handler } = await seeded([[CORE, 1], [LIDO, 2]]);
+test('20: active relations are returned; legacy Lido rows only as unconfirmed', async () => {
+	const { state, handler } = await seeded([[CORE, 1], [LIDO, 2]]);
 	const r = await call(handler);
-	assert.deepEqual(r.body.attributions.map((a) => [a.deploymentKey, a.coverId, a.source]), [[CORE, 1, 'user_confirmed'], [LIDO, 2, 'user_confirmed']]);
+	assert.deepEqual(r.body.attributions.map((a) => [a.deploymentKey, a.coverId, a.source]), [[CORE, 1, 'user_confirmed']]);
+	assert.deepEqual(unconfirmedOf(r.body), [[LIDO, 2, 'UNCONFIRMED']]);
 	assert.equal(r.body.pending, 0);
+	assert.equal(state.rows.length, 2, 'Altbestand bleibt gespeichert');
+	assert.ok(!state.calls.some(([k]) => k === 'delete'), 'nichts geloescht');
 });
 
 test('21-24: expired, transferred, disappeared or mismatched relations are not returned and are deleted', async () => {
@@ -315,7 +327,8 @@ test('21-24: expired, transferred, disappeared or mismatched relations are not r
 		const { state, handler } = await seeded([[CORE, 1], [LIDO, 2]]);
 		change(state);
 		const r = await call(handler);
-		assert.deepEqual(r.body.attributions.map((a) => [a.deploymentKey, a.coverId]), [[LIDO, 2]], name);
+		assert.deepEqual(r.body.attributions, [], name);
+		assert.deepEqual(unconfirmedOf(r.body), [[LIDO, 2, 'UNCONFIRMED']], name);
 		assert.equal(r.body.removed, 1, name);
 		assert.deepEqual(rowsOf(state, A).map(([k, c]) => [k, c]), [[LIDO, 2]], `${name}: nachweislich veraltete Zeile geloescht`);
 	}
@@ -334,7 +347,9 @@ test('25: a failed or partial read never deletes and never shows stored relation
 		const r = await call(handler);
 		assert.equal(r.statusCode, 200, name);
 		assert.deepEqual(r.body.attributions, [], name);
-		assert.equal(r.body.pending, 2, name);
+		// Lido ist auch ohne Katalog nie gueltig; dann steht es als nicht bestaetigt da, sonst als offen.
+		assert.equal(r.body.pending + r.body.unconfirmed.length, 2, name);
+		assert.ok(r.body.pending >= 1, name);
 		assert.equal(state.rows.length, 2, `${name}: nichts geloescht`);
 		assert.ok(!state.calls.some(([k]) => k === 'delete'), name);
 	}
@@ -355,7 +370,8 @@ test('25b: a failed cleanup delete never changes what is returned', async () => 
 	state.covers.set(A, coversOf(A, [cover(2)]));
 	state.fail.delete = true;
 	const r = await call(handler);
-	assert.deepEqual(r.body.attributions.map((a) => a.coverId), [2]);
+	assert.deepEqual(r.body.attributions, []);
+	assert.deepEqual(unconfirmedOf(r.body).map(([, coverId]) => coverId), [2]);
 	assert.equal(r.body.removed, 0);
 });
 
@@ -477,4 +493,68 @@ test('DB: every attribution query is scoped to exactly one wallet', () => {
 	assert.match(del, /\.match\(\{ wallet: wallet\.toLowerCase\(\), deployment_key: deploymentKey, cover_id: coverId \}\)/);
 	const upsert = db.slice(db.indexOf('export async function upsertPositionAttribution'), db.indexOf('export async function deletePositionAttribution'));
 	assert.match(upsert, /rpc\('upsert_position_attribution_limited', \{\n\t\tp_wallet: wallet\.toLowerCase\(\),/);
+});
+
+/* ------------------------------------------- SCOPE: Lido/Prime und EtherFi (25.10.2026) */
+
+const UNCONFIRMED_NEXUS = { state: 'SCOPE_UNCONFIRMED', productId: 97, productName: 'Aave v3', reason: 'NEXUS_SCOPE_UNCONFIRMED' };
+
+test('SCOPE-1: no new attribution for Lido/Prime or EtherFi - neither as server state nor with a forged MATCHED position', async () => {
+	for (const [key, label] of [[LIDO, 'Lido / Prime'], [ETHERFI, 'EtherFi']]) {
+		for (const nexus of [UNCONFIRMED_NEXUS, NEXUS]) {
+			const { state, handler } = world();
+			state.positions.set(A, positionsOf(A, { positions: [position(CORE, 'Core'), position(key, label, nexus)] }));
+			const r = await call(handler, { method: 'POST', body: { deploymentKey: key, coverId: 1 } });
+			assert.equal(r.statusCode, 422, `${key} ${nexus.state}`);
+			assert.equal(r.body.code, 'COVERAGE_SCOPE_UNCONFIRMED', `${key} ${nexus.state}`);
+			assert.match(r.body.error, /Deckungsumfang des Nexus-Produkts nicht bestätigt/);
+			assert.deepEqual(state.rows, [], 'nichts geschrieben');
+			assert.ok(!state.calls.some(([k]) => k === 'upsert'));
+		}
+	}
+});
+
+test('SCOPE-2: Core is unchanged - same response, same row', async () => {
+	const { state, handler } = world();
+	state.positions.set(A, positionsOf(A, { positions: [position(CORE, 'Core'), position(LIDO, 'Lido / Prime', UNCONFIRMED_NEXUS)] }));
+	const r = await call(handler, { method: 'POST', body: { deploymentKey: CORE, coverId: 1 } });
+	assert.equal(r.statusCode, 200);
+	assert.deepEqual(r.body.attribution, { deploymentKey: CORE, coverId: 1, productId: 97, source: 'user_confirmed', confirmedAt: '2026-10-14T10:00:00.000Z' });
+	assert.deepEqual(rowsOf(state, A), [[CORE, 1, 'user_confirmed']]);
+	const list = await call(handler);
+	assert.deepEqual(list.body.attributions.map((a) => [a.deploymentKey, a.coverId]), [[CORE, 1]]);
+	assert.deepEqual(list.body.unconfirmed, []);
+});
+
+test('SCOPE-3: legacy Lido/EtherFi rows stay stored, are never returned as attributions and are never deleted by the scope', async () => {
+	const { state, handler } = await seeded([[CORE, 1], [LIDO, 2], [ETHERFI, 1]]);
+	state.positions.set(A, positionsOf(A, { positions: [position(CORE, 'Core'), position(LIDO, 'Lido / Prime', UNCONFIRMED_NEXUS), position(ETHERFI, 'EtherFi', UNCONFIRMED_NEXUS)] }));
+	state.calls.length = 0; // nur die Abgleiche zaehlen, nicht das Anlegen der Core-Zeile
+	for (let i = 0; i < 3; i++) {
+		const r = await call(handler);
+		assert.deepEqual(r.body.attributions.map((a) => [a.deploymentKey, a.coverId]), [[CORE, 1]]);
+		assert.deepEqual(unconfirmedOf(r.body), [[LIDO, 2, 'UNCONFIRMED'], [ETHERFI, 1, 'UNCONFIRMED']]);
+		assert.equal(r.body.removed, 0);
+		assert.ok(r.body.unconfirmed.every((a) => a.source === 'user_confirmed' && a.productId === 97), 'Zeile unveraendert, nicht umgeschrieben');
+	}
+	assert.equal(state.rows.length, 3, 'alles noch gespeichert');
+	assert.ok(!state.calls.some(([k]) => k === 'delete' || k === 'upsert'), 'weder geloescht noch umgestellt');
+	// Der Nutzer selbst darf eine solche Zeile entfernen.
+	const del = await call(handler, { method: 'DELETE', body: { deploymentKey: LIDO, coverId: 2 } });
+	assert.deepEqual([del.statusCode, del.body.deleted], [200, true]);
+	assert.deepEqual(rowsOf(state, A).map(([k, c]) => [k, c]), [[CORE, 1], [ETHERFI, 1]]);
+});
+
+test('SCOPE-4: a reminder never names Lido/Prime or EtherFi from a legacy row', async () => {
+	const positions = positionsOf(A, { positions: [position(CORE, 'Core'), position(LIDO, 'Lido / Prime', UNCONFIRMED_NEXUS), position(ETHERFI, 'EtherFi', UNCONFIRMED_NEXUS)] });
+	const row = (deployment_key) => ({ wallet: A, deployment_key, product_id: 97, cover_id: 900001, source: 'user_confirmed' });
+	const onlyLegacy = await attributionContext(A, alertCover, coversOf(A, [alertCover]), {}, { loadAttributions: async () => [row(LIDO), row(ETHERFI)], loadPositions: async () => positions });
+	assert.equal(onlyLegacy, null);
+	assert.match(formatExpiryAlert(alertCover, 7, 'de', onlyLegacy), /Dein Cover läuft innerhalb der nächsten 7 Tage aus\./);
+	const mixed = await attributionContext(A, alertCover, coversOf(A, [alertCover]), {}, { loadAttributions: async () => [row(CORE), row(LIDO)], loadPositions: async () => positions });
+	assert.deepEqual(mixed, { positions: ['Core'] }, 'Core wie bisher');
+	for (const language of ['de', 'en', 'zh']) assert.doesNotMatch(formatExpiryAlert(alertCover, 7, language, mixed), /Lido|EtherFi/);
+	// Auch wenn die Positionsabfrage faelschlich MATCHED meldet.
+	const forged = await attributionContext(A, alertCover, coversOf(A, [alertCover]), {}, { loadAttributions: async () => [row(LIDO)], loadPositions: async () => positionsOf(A) });
+	assert.equal(forged, null);
 });

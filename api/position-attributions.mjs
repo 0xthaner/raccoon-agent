@@ -12,9 +12,13 @@
 	       werden geliefert; nachweislich veraltete werden geloescht (Datenschutz-
 	       information: "beim naechsten Abgleich"), aber nur, solange sie seit dem
 	       Lesen nicht neu bestaetigt wurden (Restaudit L5); bei einem Lesefehler wird
-	       nichts geloescht und nichts als aktuell gezeigt.
+	       nichts geloescht und nichts als aktuell gezeigt. Zeilen fuer Maerkte ohne
+	       bestaetigten Deckungsumfang (Lido/Prime, EtherFi) stehen getrennt in
+	       `unconfirmed` mit coverageScope 'UNCONFIRMED' - nie in `attributions`,
+	       nie geloescht (25.10.2026).
 	POST   eine Relation bestaetigen (idempotent). Nur nach erfolgreicher
-	       Pruefung von Position und Cover.
+	       Pruefung von Position und Cover; fuer diese Maerkte 422
+	       COVERAGE_SCOPE_UNCONFIRMED.
 	DELETE eine eigene Relation entfernen (idempotent).
 
 	Keine Transaktion, keine Signatur, keine Nexus-Metadaten. Automatische
@@ -114,16 +118,22 @@ function createInnerHandler({
 			if (!await rateLimitFor(response, 'attributions-wallet', wallet, 60, 600)) return;
 			let rows;
 			try { rows = await listRows(wallet); } catch { return unavailable(response); }
-			if (!rows.length) return response.status(200).json({ ok: true, attributions: [], pending: 0 });
+			if (!rows.length) return response.status(200).json({ ok: true, attributions: [], unconfirmed: [], pending: 0 });
 			const state = await currentState(wallet, response);
 			if (state.aborted) return;
-			const { valid, stale, unknown } = reconcile(rows, { wallet, ...state });
+			const { valid, stale, unknown, unconfirmed } = reconcile(rows, { wallet, ...state });
 			// Nur nachweislich veraltete Zeilen loeschen; ein Loeschfehler aendert die Antwort nicht.
 			let removed = 0;
 			for (const { row } of stale) {
 				try { removed += await deleteStaleRow(wallet, row.deployment_key, Number(row.cover_id), row.confirmed_at); } catch { /* bleibt bis zum naechsten Abgleich */ }
 			}
-			return response.status(200).json({ ok: true, attributions: valid.map(({ row }) => publicAttribution(row)), pending: unknown.length, removed });
+			return response.status(200).json({
+				ok: true,
+				attributions: valid.map(({ row }) => publicAttribution(row)),
+				unconfirmed: unconfirmed.map(({ row }) => ({ ...publicAttribution(row), coverageScope: 'UNCONFIRMED' })),
+				pending: unknown.length,
+				removed
+			});
 		}
 
 		// Schreiben: nur gleiche Herkunft, nur JSON, kleiner Body.
@@ -148,7 +158,10 @@ function createInnerHandler({
 		if (!check.ok) {
 			// Lesefehler -> 503 (spaeter erneut versuchen); inhaltlich unzulaessig -> 422.
 			const retry = RETRYABLE.has(check.code);
-			return response.status(retry ? 503 : 422).json({ ok: false, code: check.code, error: retry ? 'Position oder Cover konnten gerade nicht sicher gelesen werden.' : 'Diese Zuordnung ist für die angemeldete Wallet gerade nicht möglich.' });
+			const error = retry ? 'Position oder Cover konnten gerade nicht sicher gelesen werden.'
+				: check.code === 'COVERAGE_SCOPE_UNCONFIRMED' ? 'Für diesen Markt ist der Deckungsumfang des Nexus-Produkts nicht bestätigt; eine Zuordnung ist nicht möglich.'
+				: 'Diese Zuordnung ist für die angemeldete Wallet gerade nicht möglich.';
+			return response.status(retry ? 503 : 422).json({ ok: false, code: check.code, error });
 		}
 		// Restaudit L1: das Limit (MAX_ATTRIBUTIONS_PER_WALLET) prueft die Datenbank im selben
 		// gesperrten Schritt wie das Schreiben - kein Zaehlen hier, das gleichzeitige Anfragen

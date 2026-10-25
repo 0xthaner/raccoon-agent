@@ -117,7 +117,8 @@ test('L1-DB', { skip, timeout: 600_000 }, async (t) => {
 			for (let round = 0; round < ROUNDS; round++) {
 				await reset(A, 59);
 				const timeouts = rest.state.timeouts;
-				const responses = await rest.race(size, (i) => post(A, LIDO, i + 1));
+				// Neue Relationen auf Core (Cover 1..N, frei neben 300+): Lido/Prime ist seit 25.10.2026 nicht zuordenbar.
+				const responses = await rest.race(size, (i) => post(A, CORE, i + 1));
 				const final = await count(A);
 				const result = tally(responses);
 				observed.push({ layer: 'api', size, round, ...result, final });
@@ -133,7 +134,7 @@ test('L1-DB', { skip, timeout: 600_000 }, async (t) => {
 		await reset(A, 60);
 		const again = await post(A, CORE, 300 + 7);
 		assert.equal(again.statusCode, 200, 'bestehende Zuordnung erneut bestaetigen');
-		const fresh = await post(A, LIDO, 1);
+		const fresh = await post(A, CORE, 1);
 		assert.equal(fresh.statusCode, 409);
 		assert.equal(fresh.body.code, 'TOO_MANY_ATTRIBUTIONS');
 		assert.equal(await count(A), 60);

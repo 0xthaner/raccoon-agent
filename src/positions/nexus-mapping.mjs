@@ -31,6 +31,15 @@ const MAPPING = Object.freeze({
 	'aave-v3-ethereum-etherfi': Object.freeze({ status: 'PROBABLE', productId: 97, reason: 'NEXUS_SCOPE_UNCONFIRMED' })
 });
 
+/**
+ * Strenge Einordnung allein nach Deployment-Kennung, oder null. Dieselbe Tabelle wie
+ * matchPositionToNexus; match-nexus.mjs und die Zuordnungen lesen sie hier, damit
+ * Anzeige, API und Zuordnung nie mehr zusagen als diese strenge Stufe.
+ */
+export function mappingFor(deploymentKey) {
+	return Object.prototype.hasOwnProperty.call(MAPPING, deploymentKey) ? MAPPING[deploymentKey] : null;
+}
+
 function result(status, reason, productId = null, verified = null) {
 	const pinned = productId == null ? null : PINNED_PRODUCTS[productId];
 	const facts = status === 'EXACT' && verified?.productId === productId ? verified : null;

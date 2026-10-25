@@ -51,6 +51,8 @@ export function positionsFixture(variant, wallet, now = Date.now()) {
 	const detectedAt = new Date(now).toISOString();
 	const base = { wallet: FIXTURE_WALLET, chainId: 1, protocolKey: 'aave', protocolVersion: 'v3', valueKind: 'DERIVED_FROM_AAVE_ORACLE', blockNumber: '21000000', detectedAt, status: 'OK' };
 	const nexus = { state: 'MATCHED', productId: 97, productName: 'Aave v3' };
+	// Wie der Server seit 25.10.2026: Produkt 97 ist fuer Lido/Prime nicht als Deckung bestaetigt.
+	const scopeUnconfirmed = { state: 'SCOPE_UNCONFIRMED', productId: 97, productName: 'Aave v3', reason: 'NEXUS_SCOPE_UNCONFIRMED' };
 	// one-to-one / multi-cover: nur Core haelt etwas, alle drei Maerkte sind gelesen.
 	const coreOnly = variant === 'one-to-one' || variant === 'multi-cover';
 	const result = {
@@ -96,7 +98,7 @@ export function positionsFixture(variant, wallet, now = Date.now()) {
 				totals: { suppliedUsd: '2960', debtUsd: '0', netUsd: '2960', healthFactor: null },
 				pricing: { source: 'aave-oracle', oracle: '0x0000000000000000000000000000000000000c02', baseCurrency: 'USD', baseUnitDecimals: 8 },
 				sourceContracts: [],
-				nexus
+				nexus: scopeUnconfirmed
 			}
 		],
 		blockNumber: '21000000',
@@ -116,7 +118,7 @@ export function fixtureAttributionApi() {
 	const reply = (body, status = 200) => Promise.resolve({ ok: status >= 200 && status < 300, status, json: async () => body });
 	const key = ({ deploymentKey, coverId }) => `${deploymentKey}|${coverId}`;
 	return {
-		list: () => reply({ ok: true, attributions: [...store.values()], pending: 0 }),
+		list: () => reply({ ok: true, attributions: [...store.values()], unconfirmed: [], pending: 0 }),
 		save: (relation) => {
 			const attribution = { deploymentKey: relation.deploymentKey, coverId: relation.coverId, productId: 97, source: 'user_confirmed', confirmedAt: new Date().toISOString() };
 			store.set(key(relation), attribution);

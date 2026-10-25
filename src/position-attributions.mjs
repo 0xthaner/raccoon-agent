@@ -18,9 +18,21 @@
 	    valid    - darf als aktuelle Zuordnung gezeigt und genutzt werden
 	    stale    - nachweislich nicht mehr gueltig (sicher gelesen) -> loeschen
 	    unknown  - nicht entscheidbar (Lesefehler) -> behalten, aber NICHT zeigen
+	    unconfirmed - Markt ohne von Nexus bestaetigten Deckungsumfang (Lido/Prime,
+	               EtherFi; 25.10.2026) -> behalten, nie loeschen, nie als gueltige
+	               Zuordnung zeigen oder nutzen; nur als "nicht bestaetigt" kennzeichnen
 	  Ein Lesefehler fuehrt nie zum Loeschen.
+
+	Neue Zuordnungen gibt es nur fuer Maerkte, die die strenge Zuordnung
+	(nexus-mapping.mjs) als EXACT fuehrt; sonst COVERAGE_SCOPE_UNCONFIRMED.
 */
 import { AAVE_V3_MARKETS, nexusProductIdFor } from './positions/aave-registry.mjs';
+import { mappingFor } from './positions/nexus-mapping.mjs';
+
+const scopeConfirmed = (deploymentKey, productId) => {
+	const strict = mappingFor(deploymentKey);
+	return strict?.status === 'EXACT' && strict.productId === productId;
+};
 
 export const ATTRIBUTION_SOURCE = 'user_confirmed';
 const MARKETS = new Map(AAVE_V3_MARKETS.map((market) => [market.deploymentKey, market]));
@@ -71,8 +83,11 @@ export function checkRelation({ wallet, deploymentKey, coverId, positions, cover
 	if (!pos.known) return { ok: false, code: 'POSITION_LOOKUP_UNAVAILABLE' };
 	if (!pos.position) return { ok: false, code: 'POSITION_NOT_FOUND' };
 	const nexus = pos.position.nexus;
+	if (nexus?.state === 'SCOPE_UNCONFIRMED') return { ok: false, code: 'COVERAGE_SCOPE_UNCONFIRMED' };
 	if (nexus?.state !== 'MATCHED' || !Number.isSafeInteger(nexus.productId)) return { ok: false, code: nexus?.state === 'UNAVAILABLE' ? 'PRODUCT_LOOKUP_UNAVAILABLE' : 'PRODUCT_NOT_MATCHED' };
 	if (nexus.productId !== nexusProductIdFor(deploymentKey)) return { ok: false, code: 'PRODUCT_NOT_MATCHED' };
+	// Auch wenn eine Position faelschlich MATCHED meldet: die strenge Tabelle entscheidet.
+	if (!scopeConfirmed(deploymentKey, nexus.productId)) return { ok: false, code: 'COVERAGE_SCOPE_UNCONFIRMED' };
 	const cov = coverState(covers?.covers, coverId);
 	if (!cov.known) return { ok: false, code: 'COVER_LOOKUP_UNAVAILABLE' };
 	if (!cov.cover) return { ok: false, code: 'COVER_NOT_FOUND' };
@@ -94,7 +109,7 @@ export function publicAttribution(row) {
  * null sein (nicht gelesen): dann ist nichts gueltig und nichts wird geloescht.
  */
 export function reconcile(rows, { wallet, positions, covers }) {
-	const result = { valid: [], stale: [], unknown: [] };
+	const result = { valid: [], stale: [], unknown: [], unconfirmed: [] };
 	for (const row of rows ?? []) {
 		// Fremde Zeilen gibt es hier nicht (Abfrage nach Wallet); falls doch: weder zeigen noch loeschen.
 		if (String(row?.wallet ?? wallet).toLowerCase() !== wallet) continue;
@@ -114,6 +129,8 @@ export function reconcile(rows, { wallet, positions, covers }) {
 		if (pos.known && pos.position.nexus?.state === 'MATCHED' && pos.position.nexus.productId !== productId) { result.stale.push({ row, reason: 'PRODUCT_MISMATCH' }); continue; }
 		if (!cov.known) { result.unknown.push({ row, reason: 'COVER_LOOKUP_UNAVAILABLE' }); continue; }
 		if (!pos.known) { result.unknown.push({ row, reason: 'POSITION_LOOKUP_UNAVAILABLE' }); continue; }
+		// Vor der Produktpruefung: eine bestehende Lido/EtherFi-Zeile bleibt, wird aber nie gueltig.
+		if (!scopeConfirmed(row.deployment_key, productId) || pos.position.nexus?.state === 'SCOPE_UNCONFIRMED') { result.unconfirmed.push({ row, deploymentKey: row.deployment_key, coverId, productId, label: market.label, reason: 'NEXUS_SCOPE_UNCONFIRMED' }); continue; }
 		if (pos.position.nexus?.state !== 'MATCHED') { result.unknown.push({ row, reason: 'PRODUCT_LOOKUP_UNAVAILABLE' }); continue; }
 		result.valid.push({ row, deploymentKey: row.deployment_key, coverId, productId, label: market.label });
 	}
