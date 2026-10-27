@@ -30,7 +30,7 @@ const translations = {
 */
 Object.assign(translations.de, {
 	positionsTitle: 'DeFi-Positionen', positionsLoading: 'DeFi-Positionen werden gelesen …', positionsError: 'DeFi-Positionen konnten gerade nicht geladen werden.',
-	positionsNone: 'Keine Aave-v3-Positionen auf Ethereum gefunden.', positionsChecked: 'Geprüft: Aave v3 und Uniswap v3 auf Ethereum',
+	positionsNone: 'Keine Aave-v3-Positionen auf Ethereum gefunden.', positionsChecked: 'Geprüft: Aave v3 und Uniswap v3 auf Ethereum', positionsCheckedAave: 'Geprüft: Aave v3 auf Ethereum',
 	marketUnavailableHelp: 'Dieser Markt konnte nicht gelesen werden und ist in den Summen nicht enthalten.', notAvailable: 'Nicht verfügbar',
 	allMarketsUnavailable: 'Die Aave-v3-Positionen konnten gerade nicht gelesen werden.',
 	totalsIncompleteOne: '{markets} konnte derzeit nicht gelesen werden. Die Summen enthalten nur verfügbare Märkte.',
@@ -64,7 +64,7 @@ Object.assign(translations.de, {
 });
 Object.assign(translations.en, {
 	positionsTitle: 'DeFi Positions', positionsLoading: 'Reading DeFi positions …', positionsError: 'DeFi positions could not be loaded right now.',
-	positionsNone: 'No Aave v3 positions found on Ethereum.', positionsChecked: 'Checked: Aave v3 and Uniswap v3 on Ethereum',
+	positionsNone: 'No Aave v3 positions found on Ethereum.', positionsChecked: 'Checked: Aave v3 and Uniswap v3 on Ethereum', positionsCheckedAave: 'Checked: Aave v3 on Ethereum',
 	marketUnavailableHelp: 'This market could not be read and is not included in the totals.', notAvailable: 'Not available',
 	allMarketsUnavailable: 'The Aave v3 positions could not be read right now.',
 	totalsIncompleteOne: '{markets} could not be read right now. The totals include only available markets.',
@@ -869,7 +869,9 @@ function renderPositions() {
 	const list = document.querySelector('#position-list');
 	if (!list) return;
 	document.querySelector('#positions-title').textContent = t.positionsTitle;
-	document.querySelector('#positions-checked').textContent = positionsState.status === 'ok' ? t.positionsChecked : '';
+	// Uniswap v3 nur, wenn der Server den Abschnitt liefert (UNISWAP_V3_AKTIV, src/pause.mjs).
+	const uniswapSection = positionsState.data?.uniswapV3;
+	document.querySelector('#positions-checked').textContent = positionsState.status === 'ok' ? (uniswapSection ? t.positionsChecked : t.positionsCheckedAave) : '';
 	list.replaceChildren();
 	renderCoverAttributions(null);
 	if (positionsState.status === 'loading' || positionsState.status === 'idle') { addTextElement(list, 'div', t.positionsLoading, 'dash-empty'); return; }
@@ -896,7 +898,8 @@ function renderPositions() {
 	}
 	addTextElement(list, 'p', t.positionsSource, 'position-source');
 	// Eigener Abschnitt, nie mit Aave zusammengelegt; faellt er aus, bleibt Aave stehen.
-	renderUniswapPositions(list);
+	// Ohne Abschnitt vom Server (Uniswap ausgeschaltet) erscheint gar nichts.
+	if (uniswapSection) renderUniswapPositions(list);
 }
 
 function renderDashboard(data) {

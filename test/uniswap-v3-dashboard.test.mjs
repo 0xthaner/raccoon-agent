@@ -135,7 +135,7 @@ function req(body, { method = 'POST', headers = {}, url = '/api/nexus/quote', wa
 }
 
 /** Quote-Handler mit Scan je Wallet (`scans`), Nexus-Nachbau und aufgezeichneten Budgets. */
-function quoteSetup({ scans = { [WALLET]: scanOf([IN, IN2, ZERO_LIQ]) }, override, revoked = false, now = NOW, modelAt = (at) => at, limits = {}, model = null, quoteRun = null } = {}) {
+function quoteSetup({ scans = { [WALLET]: scanOf([IN, IN2, ZERO_LIQ]) }, override, revoked = false, now = NOW, modelAt = (at) => at, limits = {}, model = null, quoteRun = null, enabled = true } = {}) {
 	API._test.reset();
 	S._test.reset();
 	const nx = nexus({ override });
@@ -148,6 +148,8 @@ function quoteSetup({ scans = { [WALLET]: scanOf([IN, IN2, ZERO_LIQ]) }, overrid
 		getUniswap: async (wallet) => { seen.scansFor.push(wallet); const scan = scans[wallet] ?? scans[lc(wallet)]; if (scan instanceof Error) throw scan; return scan ?? scanOf([], { wallet }); },
 		uniswapModel: model ?? ((found, options) => S.uniswapModelFor(found, { ...options, now: modelAt(options.now), fetchImpl: nx.fetchImpl })),
 		uniswapQuote: quoteRun ?? ((prepared, model, priceBook, found, options) => S.runUniswapQuote(prepared, model, priceBook, found, { ...options, fetchImpl: nx.fetchImpl })),
+		// Seit 27.10.2026 standardmaessig aus (UNISWAP_V3_AKTIV); diese Tests pruefen den eingeschalteten Pfad.
+		...(enabled === 'default' ? {} : { uniswapEnabled: enabled }),
 		rateLimit: async (_req, response, scope, max, window) => { seen.limits.push(`${scope}:${max}/${window}`); if (limits[scope] === false) { response.status(429).json({ ok: false }); return false; } return true; },
 		rateLimitFor: async (response, scope, value, max, window) => { seen.limits.push(`${scope}:${value}:${max}/${window}`); if (limits[scope] === false) { response.status(429).json({ ok: false }); return false; } return true; },
 		now: () => now
@@ -156,11 +158,12 @@ function quoteSetup({ scans = { [WALLET]: scanOf([IN, IN2, ZERO_LIQ]) }, overrid
 }
 const quoteBody = (extra = {}) => ({ action: 'uniswap-quote', tokenId: IN, coverAsset: 'USDC', periodDays: 30, ...extra });
 
-function positionsSetup({ aave = { ok: true, wallet: WALLET, complete: true, positions: [], checkedDeployments: [{ deploymentKey: 'aave-v3-ethereum-core', label: 'Core', status: 'OK' }] }, uniswap = () => scanOf([IN]), revoked = false } = {}) {
+function positionsSetup({ aave = { ok: true, wallet: WALLET, complete: true, positions: [], checkedDeployments: [{ deploymentKey: 'aave-v3-ethereum-core', label: 'Core', status: 'OK' }] }, uniswap = () => scanOf([IN]), revoked = false, enabled = true } = {}) {
 	const seen = { uniswapFor: [], aaveFor: [] };
 	const handler = createPositionsHandler({
 		getPositions: async (wallet) => { seen.aaveFor.push(wallet); return { ...aave, wallet }; },
 		getUniswap: async (wallet) => { seen.uniswapFor.push(wallet); const value = uniswap(wallet); if (value instanceof Error) throw value; return value; },
+		...(enabled === 'default' ? {} : { uniswapEnabled: enabled }),
 		isRevoked: async () => revoked,
 		rateLimit: async () => true,
 		rateLimitFor: async () => true
@@ -177,6 +180,36 @@ function expectedMax(id, assetId, feed) {
 	return fromExposure < capacity ? fromExposure : capacity;
 }
 const units = (raw, decimals) => { const s = raw.toString().padStart(decimals + 1, '0'); const whole = s.slice(0, -decimals) || '0'; const frac = s.slice(-decimals).replace(/0+$/, ''); return decimals === 0 ? s : frac ? `${whole}.${frac}` : whole; };
+
+/* ===================================== Schalter UNISWAP_V3_AKTIV (27.10.2026) == */
+
+test('UNI-OFF the switch ships off: src/pause.mjs sets UNISWAP_V3_AKTIV = false', async () => {
+	const { UNISWAP_V3_AKTIV } = await import('../src/pause.mjs');
+	assert.equal(UNISWAP_V3_AKTIV, false);
+});
+
+test('UNI-OFF by default GET /api/positions never scans Uniswap and answers like before the Uniswap release', async () => {
+	const p = positionsSetup({ enabled: 'default' });
+	const r = await p.call();
+	assert.equal(r.statusCode, 200);
+	assert.deepEqual(p.seen.uniswapFor, [], 'no Uniswap scan, so no Uniswap RPC call');
+	assert.equal(p.seen.aaveFor.length, 1, 'Aave is read as before');
+	assert.equal('uniswapV3' in r.body, false);
+	assert.deepEqual(r.body.protocols, [{ protocol: 'Aave v3', chainId: 1, status: 'OK' }]);
+	assert.deepEqual(r.body.checkedDeployments, [{ deploymentKey: 'aave-v3-ethereum-core', label: 'Core', status: 'OK' }]);
+});
+
+test('UNI-OFF by default uniswap-* actions are INVALID_BODY before session, scan, Nexus and wallet or quote budgets', async () => {
+	for (const body of [quoteBody(), { action: 'uniswap-details', tokenId: IN }]) {
+		const q = quoteSetup({ enabled: 'default' });
+		const r = await q.call(body);
+		assert.deepEqual([r.statusCode, r.body.code], [400, 'INVALID_BODY']);
+		assert.deepEqual([q.seen.scansFor, q.seen.positionsFor, q.nx.calls], [[], [], []]);
+		assert.deepEqual(q.seen.limits, ['nexus-cover-ip:30/600'], 'only the IP budget every request pays');
+		const anonymous = await quoteSetup({ enabled: 'default' }).call(body, { wallet: null });
+		assert.deepEqual([anonymous.statusCode, anonymous.body.code], [400, 'INVALID_BODY'], 'same answer with or without a session');
+	}
+});
 
 /* ========================================================= Autorisierung == */
 
@@ -445,7 +478,7 @@ test('UNI-QUOTE quotes are reused for at most 60 s per wallet, NFT, asset, perio
 	const limits = [];
 	const handler = createNexusQuoteHandler({
 		getPositions: async () => { throw new Error('unused'); }, isRevoked: async () => false, readModel: async () => { throw new Error('unused'); }, quote: async () => { throw new Error('unused'); },
-		getUniswap: async (wallet) => scans[wallet],
+		getUniswap: async (wallet) => scans[wallet], uniswapEnabled: true,
 		uniswapModel: (found, options) => S.uniswapModelFor(found, { ...options, fetchImpl: nx.fetchImpl }),
 		uniswapQuote: (prepared, model, priceBook, found, options) => S.runUniswapQuote(prepared, model, priceBook, found, { ...options, fetchImpl: nx.fetchImpl }),
 		rateLimit: async () => true, rateLimitFor: async (_r, scope) => { limits.push(scope); return true; }, now: () => clock
@@ -669,6 +702,29 @@ test('UNI-UI the real page: Aave and Uniswap render side by side; View cover opt
 	assert.deepEqual(requests, [], 'no wallet popup');
 	assert.deepEqual(page.code.eval, []);
 	for (const el of page.dom.all().filter((node) => node.tagName === 'BUTTON')) assert.doesNotMatch(el.textContent, /\b(buy|kaufen|approve|freigeben|purchase|confirm transaction)\b/i, el.textContent);
+});
+
+test('UNI-OFF the real page without a uniswapV3 section shows Aave only: no Uniswap section, card, button or quote request', async () => {
+	const ethereum = { request: async () => null, on() {}, removeListener() {} };
+	const dashboard = { ok: true, wallet: WALLET, checkedAt: new Date().toISOString(), telegramLinked: true, agentSettings: { alertThresholds: [7], weeklySummary: false }, covers: [] };
+	const aavePosition = { deploymentKey: 'aave-v3-ethereum-core', label: 'Core', nexus: { state: 'MATCHED', productId: 97, productName: 'Aave v3' }, supplied: [{ symbol: 'USDC', amount: '100', usdValue: '100', isCollateral: true }], borrowed: [], totals: { suppliedUsd: '100', debtUsd: '0', netUsd: '100', healthFactor: null } };
+	// Genau die Antwort des ausgeschalteten Servers: kein uniswapV3, protocols nur Aave.
+	const positions = { ok: true, wallet: WALLET, complete: true, fetchedAt: new Date().toISOString(), positions: [aavePosition], checkedDeployments: [{ deploymentKey: 'aave-v3-ethereum-core', label: 'Core', status: 'OK' }], protocols: [{ protocol: 'Aave v3', chainId: 1, status: 'OK' }] };
+	for (const language of ['en', 'de']) {
+		const page = await loadPage('main.js', { storage: { raccoon_language: language }, ethereum, routes: {
+			'GET /api/config': { body: { ok: true, telegramUsername: 'Raccoon_Agent_Bot', reownProjectId: 'x' } },
+			'GET /api/dashboard': { body: dashboard },
+			'GET /api/positions': { body: positions },
+			'GET /api/position-attributions': { body: { ok: true, attributions: [] } }
+		} });
+		await page.settle();
+		const list = page.dom.document.querySelector('#position-list').textContent;
+		assert.match(list, /Aave v3 · Core/);
+		assert.doesNotMatch(list, /Uniswap/, `${language}: no Uniswap text, not even "scan incomplete"`);
+		assert.equal(page.dom.all().filter((el) => /uniswap/.test(el.className ?? '')).length, 0, `${language}: no Uniswap element`);
+		assert.equal(page.dom.document.querySelector('#positions-checked').textContent, language === 'en' ? 'Checked: Aave v3 on Ethereum' : 'Geprüft: Aave v3 auf Ethereum');
+		assert.deepEqual(page.calls.filter((c) => c.key === 'POST /api/nexus/quote'), []);
+	}
 });
 
 test('UNI-UI hostile details and quote values from the server render as text only; a hostile wording URL is never linked', async () => {

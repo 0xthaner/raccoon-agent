@@ -16,10 +16,15 @@
 	als bereinigte Ansicht (uniswapSection). Faellt der Uniswap-Scan aus, bleibt
 	die Aave-Antwort unveraendert und der Abschnitt meldet UNAVAILABLE.
 	`protocols` nennt beide Abschnitte mit ihrem Status.
+
+	Seit 27.10.2026 hinter UNISWAP_V3_AKTIV (src/pause.mjs, Standard false):
+	ausgeschaltet laeuft kein Uniswap-Scan, die Antwort hat kein `uniswapV3`
+	und `protocols` nennt nur Aave v3.
 */
 import { resolveDashboardSession } from '../src/dashboard-auth.mjs';
 import { isDashboardSessionRevoked } from '../src/db.mjs';
 import { enforceRateLimit, enforceRateLimitFor } from '../src/http-security.mjs';
+import { UNISWAP_V3_AKTIV } from '../src/pause.mjs';
 import { getWalletPositions, LookupNotAdmittedError, PositionsBusyError } from '../src/positions/index.mjs';
 import { queryKeys, queryParams } from '../src/request-query.mjs';
 import { getUniswapScan, uniswapSection } from '../src/positions/uniswap-v3-service.mjs';
@@ -45,7 +50,7 @@ export function createPositionsHandler(deps) {
 	};
 }
 
-function createInnerHandler({ getPositions, isRevoked, getUniswap = async () => null, rateLimit = enforceRateLimit, rateLimitFor = enforceRateLimitFor, resolveSession = resolveDashboardSession }) {
+function createInnerHandler({ getPositions, isRevoked, getUniswap = async () => null, uniswapEnabled = UNISWAP_V3_AKTIV, rateLimit = enforceRateLimit, rateLimitFor = enforceRateLimitFor, resolveSession = resolveDashboardSession }) {
 	return async function handler(request, response) {
 		response.setHeader('cache-control', 'no-store');
 		if (request.method !== 'GET') return response.status(405).json({ ok: false, error: 'Method not allowed' });
@@ -75,15 +80,18 @@ function createInnerHandler({ getPositions, isRevoked, getUniswap = async () => 
 		// alle Wallets: viele angemeldete Wallets koennen die RPC so nicht vervielfachen.
 		const admit = () => rateLimitFor(response, 'positions-lookup-global', 'all', 200, 600);
 		// Eigenes Budget fuer kalte Uniswap-Scans; ein Nein dort schreibt kein 429, der Abschnitt bleibt nur leer.
+		// Ausgeschaltet wird getUniswap nie aufgerufen: kein Scan, kein Budget, keine RPC.
 		const admitUniswap = () => rateLimitFor(SILENT, 'positions-uniswap-lookup-global', 'all', 200, 600);
-		const uniswap = Promise.resolve().then(() => getUniswap(wallet, { admit: admitUniswap })).catch(() => null);
+		const uniswap = uniswapEnabled ? Promise.resolve().then(() => getUniswap(wallet, { admit: admitUniswap })).catch(() => null) : null;
 		try {
 			const positions = await getPositions(wallet, { admit });
-			const section = uniswapSection(await uniswap);
 			const aaveStatus = positions?.complete ? 'OK' : (positions?.checkedDeployments ?? []).some((entry) => entry.status === 'OK') ? 'INCOMPLETE' : 'UNAVAILABLE';
+			const aave = { protocol: 'Aave v3', chainId: 1, status: aaveStatus };
+			if (!uniswap) return response.status(200).json({ ...positions, protocols: [aave] });
+			const section = uniswapSection(await uniswap);
 			return response.status(200).json({
 				...positions,
-				protocols: [{ protocol: 'Aave v3', chainId: 1, status: aaveStatus }, { protocol: section.protocol, chainId: section.chainId, status: section.status }],
+				protocols: [aave, { protocol: section.protocol, chainId: section.chainId, status: section.status }],
 				uniswapV3: section
 			});
 		} catch (error) {

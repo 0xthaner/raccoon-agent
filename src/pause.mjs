@@ -43,3 +43,17 @@ export const ANTWORT_PAUSE_TEXT = Object.freeze({
 	en: 'I am not answering questions about products or insurance right now. Binding information is in the official Nexus Mutual docs and the respective cover wording. Covers, expiry dates and reminders for connected wallets keep working.',
 	zh: '我目前不回答有关产品或保险的问题。具有约束力的信息请查阅 Nexus Mutual 官方文档及相应的保障条款。已绑定钱包的保障、到期日和提醒仍可正常使用。'
 });
+
+/*
+	UNISWAP V3 DEAKTIVIERT (seit 27.10.2026).
+
+	Getrenntes Production-Release: Sicherheits- und Aave-Korrekturen gehen raus,
+	Uniswap v3 bleibt aus, bis Nexus die Bewertung einer LP-Position und den
+	Proof of Loss fuer ein NFT geklaert hat (offene Punkte in der Uniswap-Doku unter docs/).
+	Solange `false`: kein Uniswap-Scan, keine RPC-Aufrufe dafuer, kein Abschnitt
+	`uniswapV3` in /api/positions, und `uniswap-*`-Aktionen bei /api/nexus/quote
+	werden wie jede unbekannte Aktion als INVALID_BODY abgelehnt - genau wie vor
+	dem Uniswap-Release. Das Dashboard zeigt den Abschnitt nur, wenn der Server
+	ihn liefert. Zum Einschalten hier auf `true` setzen, committen, deployen.
+*/
+export const UNISWAP_V3_AKTIV = false;

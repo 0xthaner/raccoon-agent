@@ -31,12 +31,18 @@
 	wird hoechstens bis zu ihrem Ablauf (60 s) je Wallet, NFT, Asset, Laufzeit,
 	Betrag und Block wiederverwendet; ein Treffer kostet kein Quote-Budget.
 
+	Seit 27.10.2026 hinter UNISWAP_V3_AKTIV (src/pause.mjs, Standard false):
+	ausgeschaltet gehen `uniswap-*`-Aktionen durch parseCoverRequest und werden
+	wie jede unbekannte Aktion mit 400 INVALID_BODY abgelehnt - vor Sitzung,
+	Scan und Wallet-/Quote-Budgets (das IP-Budget zaehlt wie bei jeder Anfrage).
+
 	Keine Transaktion, keine Freigabe, kein Kauf, kein Proof-of-Loss, keine
 	Speicherung, keine Vertragsdaten in der Antwort.
 */
 import { resolveDashboardSession } from '../../src/dashboard-auth.mjs';
 import { isDashboardSessionRevoked } from '../../src/db.mjs';
 import { enforceRateLimit, enforceRateLimitFor, requireJson, requireSameOrigin } from '../../src/http-security.mjs';
+import { UNISWAP_V3_AKTIV } from '../../src/pause.mjs';
 import { getWalletPositions, LookupNotAdmittedError, PositionsBusyError } from '../../src/positions/index.mjs';
 import { getNexusReadModel } from '../../src/nexus-read-model.mjs';
 import { checkQuoteRequest, coverDetails, parseCoverRequest, QUOTE_TTL_MS, requestCoverQuote } from '../../src/nexus-quote.mjs';
@@ -99,6 +105,7 @@ function createInnerHandler({
 	getUniswap = (wallet, options) => getUniswapScan(wallet, options),
 	uniswapModel = (found, options) => uniswapModelFor(found, options),
 	uniswapQuote = (prepared, model, priceBook, found, options) => runUniswapQuote(prepared, model, priceBook, found, options),
+	uniswapEnabled = UNISWAP_V3_AKTIV,
 	rateLimit = enforceRateLimit, rateLimitFor = enforceRateLimitFor, resolveSession = resolveDashboardSession,
 	sameOrigin = requireSameOrigin, json = requireJson, now = () => Date.now()
 }) {
@@ -108,7 +115,7 @@ function createInnerHandler({
 		if (queryKeys(queryParams(request)).length) return response.status(400).json({ ok: false, code: 'QUERY_NOT_ALLOWED', error: 'Diese Anfrage nimmt keine Parameter an.' });
 		if (!sameOrigin(request, response) || !json(request, response, MAX_BODY_BYTES)) return;
 		if (!await rateLimit(request, response, 'nexus-cover-ip', ...LIMITS.ip)) return;
-		const uniswap = typeof request.body?.action === 'string' && request.body.action.startsWith('uniswap-');
+		const uniswap = uniswapEnabled && typeof request.body?.action === 'string' && request.body.action.startsWith('uniswap-');
 		const parsed = uniswap ? parseUniswapBody(request.body) : parseCoverRequest(request.body);
 		if (!parsed.ok) return reply(response, parsed);
 
