@@ -20,17 +20,17 @@ const DETAILS = {
 	position: { protocol: 'Aave v3', network: 'Ethereum', market: 'Core', deploymentKey: 'aave-v3-ethereum-core' },
 	exposure: { calculationMethod: 'AAVE_NET_EXPOSURE_V1', currency: 'USD', grossExposure: '26000.62345678', debt: '6000.00000001', suggestedExposure: '20000.62345677', disclaimers: ['SUGGESTED_AMOUNT_ONLY'] },
 	assets: [
-		{ symbol: 'ETH', decimals: 18, selectable: true, capacity: '3671.27', maxFromExposure: '5.0001558641925', maxAmount: '5.0001558641925', limitedBy: 'EXPOSURE', conversion: { referenceToken: 'WETH', priceUsd: '4000' } },
-		{ symbol: 'USDC', decimals: 6, selectable: true, capacity: '8712444.805266', maxFromExposure: '20000.623456', maxAmount: '20000.623456', limitedBy: 'EXPOSURE', conversion: { referenceToken: 'USDC', priceUsd: '1' } },
+		{ symbol: 'ETH', decimals: 18, selectable: true, capacity: '3671.27', quoteMax: '3671.27', maxFromExposure: '5.0001558641925', suggestedAmount: '5.0001558641925', suggestedLimitedBy: 'EXPOSURE', conversion: { referenceToken: 'WETH', priceUsd: '4000' } },
+		{ symbol: 'USDC', decimals: 6, selectable: true, capacity: '8712444.805266', quoteMax: '8712444.805266', maxFromExposure: '20000.623456', suggestedAmount: '20000.623456', suggestedLimitedBy: 'EXPOSURE', conversion: { referenceToken: 'USDC', priceUsd: '1' } },
 		{ symbol: 'cbBTC', decimals: 8, selectable: false, reason: 'PRICE_UNAVAILABLE', capacity: '107.18' }
 	],
 	periodDays: { min: 28, max: 365, presets: [30, 90, 180, 365] },
 	proofOfLoss: { inputTypes: ['address'] }, gracePeriodDays: 35,
 	wording: { cid: 'QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY', url: WORDING }, annex: null, quoteTtlSeconds: 60
 };
-const QUOTE = { provider: 'Nexus Mutual', productName: 'Aave v3', productTypeName: 'Single Protocol Cover', coverAsset: 'ETH', coverAmount: '1', periodDays: 90, premium: '0.009', premiumAsset: 'ETH', annualPricePercent: '3.65', quoteFetchedAt: new Date(NOW).toISOString(), quoteExpiresAt: new Date(NOW + 60_000).toISOString(), freshness: 'FRESH' };
+const QUOTE = { provider: 'Nexus Mutual', productName: 'Aave v3', productTypeName: 'Single Protocol Cover', coverAsset: 'ETH', requestedAmount: '1', offeredAmount: '1.000105426868420486', roundingDelta: '0.000105426868420486', roundingPercent: '0.02', roundingNotice: false, exposureAmount: '5.0001558641925', aboveExposure: false, premiumBasis: 'OFFERED_AMOUNT', periodDays: 90, premium: '0.009', premiumAsset: 'ETH', annualPricePercent: '3.65', quoteFetchedAt: new Date(NOW).toISOString(), quoteExpiresAt: new Date(NOW + 60_000).toISOString(), freshness: 'FRESH' };
 
-async function mount({ details = DETAILS, quote = QUOTE, language = 'en', quoteStatus = 200, quoteCode = 'QUOTE_UNAVAILABLE' } = {}) {
+async function mount({ details = DETAILS, quote = QUOTE, language = 'en', quoteStatus = 200, quoteCode = 'QUOTE_UNAVAILABLE', errorBody = {} } = {}) {
 	const dom = createRecordingDom();
 	const walletCalls = [];
 	globalThis.document = dom.document;
@@ -44,7 +44,7 @@ async function mount({ details = DETAILS, quote = QUOTE, language = 'en', quoteS
 		post: async (body) => {
 			posts.push(body);
 			if (body.action === 'details') return { status: 200, body: details };
-			return quoteStatus === 200 ? { status: 200, body: { ok: true, status: 'QUOTED', quote } } : { status: quoteStatus, body: { ok: false, code: quoteCode } };
+			return quoteStatus === 200 ? { status: 200, body: { ok: true, status: 'QUOTED', quote } } : { status: quoteStatus, body: { ok: false, code: quoteCode, ...errorBody } };
 		}
 	});
 	dom.document.body.appendChild(panel.element);
@@ -58,7 +58,7 @@ test('VIEW details show provider, product, exposure, suggested amount, capacity,
 	const { text, dom, posts } = await mount();
 	const all = text();
 	for (const part of ['Nexus Mutual', 'Aave v3 · Single Protocol Cover', 'Position protocol', 'Ethereum', '20000.62345677 USD', 'Suggested cover amount', '5.0001558641925 ETH', 'Available capacity', '3671.27 ETH',
-		'Proof of loss requirement', 'Wallet address(es) must be designated when cover is purchased.', 'Grace period', '35 days', 'Cover wording (Nexus Mutual)', DISCLAIMER, 'Get quote']) {
+		'Proof of loss requirement', 'Wallet address(es) must be designated when cover is purchased.', 'Grace period', '35 days', 'General cover wording (Nexus Mutual, Single Protocol Cover)', DISCLAIMER, 'Get quote']) {
 		assert.ok(all.includes(part), `missing: ${part}`);
 	}
 	assert.deepEqual(posts, [{ action: 'details', deploymentKey: 'aave-v3-ethereum-core' }]);
@@ -72,11 +72,11 @@ test('VIEW Aave figures and the purchase stop: supplied, debt, exposure, and cov
 	for (const details of [DETAILS, { ...DETAILS, readiness: { status: 'BLOCKED', reasons: ['NEXUS_TERMS_UNCONFIRMED', 'NEXUS_PROOF_OF_LOSS_UNCONFIRMED', 'WALLET_EXECUTION_NOT_AVAILABLE'] } }]) {
 		const view = await mount({ details });
 		const all = view.text();
-		for (const part of ['Supplied', '26000.62345678 USD', 'Debt', '6000.00000001 USD', 'Suggested exposure (deposits − debt)', '20000.62345677 USD', 'Cover through CoverRaccoon', 'Not available yet',
+		for (const part of ['Supplied', '26000.62345678 USD', 'Debt', '6000.00000001 USD', 'Detected net exposure (deposits − debt)', '20000.62345677 USD', 'Cover through CoverRaccoon', 'Not available yet',
 			'We are finalising the required Nexus Mutual terms and proof-of-loss flow before enabling wallet confirmations.']) assert.ok(all.includes(part), `missing: ${part}`);
 		view.button('Get quote').click();
 		await new Promise((resolve) => setImmediate(resolve));
-		assert.ok(view.text().includes('For information only. Cover cannot be taken out through CoverRaccoon yet.'));
+		assert.ok(view.text().includes('For information only. A quote is not insurance cover, and cover cannot be taken out through CoverRaccoon yet.'));
 		assert.equal(view.dom.all().filter((el) => el.tagName === 'BUTTON').at(-1).textContent, 'Get quote', 'the quote is the last action; nothing after it');
 		assert.deepEqual(view.walletCalls, []);
 	}
@@ -102,7 +102,10 @@ test('VIEW get quote sends only project inputs, shows premium and annual price, 
 	assert.deepEqual(view.posts.at(-1), { action: 'quote', deploymentKey: 'aave-v3-ethereum-core', coverAsset: 'ETH', amount: '5.0001558641925', periodDays: 90 });
 	assert.ok(!('productId' in view.posts.at(-1)));
 	const all = view.text();
-	for (const part of ['Indicative live quote from Nexus Mutual.', '1 ETH · 90 days', 'Premium', '0.009 ETH', 'Annual price', '3.65 %', 'Valid until']) assert.ok(all.includes(part), `missing: ${part}`);
+	for (const part of ['Indicative live quote from Nexus Mutual.', 'ETH · 90 days', 'Requested cover amount', '1 ETH', 'Cover amount offered by Nexus Mutual', '1.000105426868420486 ETH',
+		'Premium (for the offered amount)', '0.009 ETH', 'Annual price', '3.65 %', 'Valid until', 'A quote is not insurance cover']) assert.ok(all.includes(part), `missing: ${part}`);
+	assert.ok(!all.includes('Technical rounding'), 'no rounding row at 0.02 %');
+	assert.ok(!all.includes('above your detected net exposure'), 'no exposure warning within the exposure');
 	assert.equal(view.timers.length, 1);
 	assert.equal(view.timers[0].ms, 60_050);
 	view.advance(60_000);
@@ -175,9 +178,9 @@ test('VIEW unavailable, ambiguous and unsupported states show only the neutral s
 
 /* ------------------------------------------------- Sprache und Kleinbetrag (20.10.2026) -- */
 
-const ENGLISH_LABELS = ['Position protocol', 'Network', 'Supplied', 'Debt', 'Suggested exposure', 'Suggested cover amount', 'Converted with the Aave oracle price', 'Available capacity',
+const ENGLISH_LABELS = ['Position protocol', 'Network', 'Supplied', 'Debt', 'Detected net exposure', 'Requested cover amount', 'offered by Nexus', 'Technical rounding', 'not insurance cover', 'Suggested cover amount', 'Converted with the Aave oracle price', 'Available capacity',
 	'Proof of loss requirement', 'Grace period', 'Cover through CoverRaccoon', 'Not available yet', 'We are finalising', 'Terms', 'Cover wording', 'Suggested cover amount is an estimate',
-	'binding terms', 'Cover asset', 'Cover amount', 'Maximum selectable', 'Duration', 'Get quote', 'Requesting quote', 'Indicative live quote', 'This quote has expired', 'Premium', 'Annual price',
+	'binding terms', 'Cover asset', 'Cover amount', 'Maximum (Nexus capacity)', 'Duration', 'Get quote', 'Requesting quote', 'Indicative live quote', 'This quote has expired', 'Premium', 'Annual price',
 	'Quoted at', 'Valid until', 'For information only', 'days', 'Wallet address(es) must'];
 const READINESS = { status: 'BLOCKED', reasons: ['NEXUS_TERMS_UNCONFIRMED', 'NEXUS_PROOF_OF_LOSS_UNCONFIRMED', 'WALLET_EXECUTION_NOT_AVAILABLE'] };
 
@@ -190,15 +193,15 @@ async function quoted(view) {
 test('VIEW-LANG-DE the whole cover panel is German: figures, readiness, terms, disclaimer, form, quote states and errors', async () => {
 	const view = await mount({ language: 'de', details: { ...DETAILS, readiness: READINESS } });
 	const before = view.text();
-	for (const part of ['Nexus Mutual', 'Aave v3 · Single Protocol Cover', 'Protokoll der Position', 'Netzwerk', 'Einlagen', 'Schulden', 'Vorgeschlagenes Engagement (Einlagen − Schulden)',
+	for (const part of ['Nexus Mutual', 'Aave v3 · Single Protocol Cover', 'Protokoll der Position', 'Netzwerk', 'Einlagen', 'Schulden', 'Erkanntes Netto-Engagement (Einlagen − Schulden)',
 		'Vorgeschlagene Cover-Summe', 'Umgerechnet mit dem Aave-Orakelpreis', 'Verfügbare Kapazität', 'Nachweis im Schadensfall', 'Beim Abschluss des Covers müssen Wallet-Adresse(n) angegeben werden.',
-		'Nachfrist', '35 Tage', 'Abschluss über CoverRaccoon', 'Noch nicht möglich', 'Wir stellen die erforderlichen Bedingungen', 'Bedingungen', 'Cover-Bedingungen (Nexus Mutual)',
-		'Verbindlich sind die verlinkten Bedingungen', 'Die vorgeschlagene Cover-Summe ist eine Schätzung', 'Cover-Asset', 'Cover-Summe (ETH)', 'Höchstens wählbar', 'Laufzeit (Tage)', '30 Tage', 'Quote abrufen']) {
+		'Nachfrist', '35 Tage', 'Abschluss über CoverRaccoon', 'Noch nicht möglich', 'Wir stellen die erforderlichen Bedingungen', 'Bedingungen', 'Allgemeines Cover-Wording (Nexus Mutual, Single Protocol Cover)',
+		'Verbindlich sind die verlinkten Bedingungen', 'Die vorgeschlagene Cover-Summe ist eine Schätzung', 'Cover-Asset', 'Gewünschte Deckungssumme (ETH)', 'Höchstens (Nexus-Kapazität)', '3671.27 ETH', 'Laufzeit (Tage)', '30 Tage', 'Quote abrufen']) {
 		assert.ok(before.includes(part), `missing: ${part}`);
 	}
 	await quoted(view);
 	const after = view.text();
-	for (const part of ['Unverbindliche Live-Quote von Nexus Mutual.', 'Prämie', 'Jahrespreis', 'Abgerufen um', 'Gültig bis', 'Nur zur Information.']) assert.ok(after.includes(part), `missing: ${part}`);
+	for (const part of ['Unverbindliche Live-Quote von Nexus Mutual.', 'Angefragte Deckungssumme', 'Von Nexus Mutual angebotene Deckungssumme', 'Prämie (für die angebotene Summe)', 'Jahrespreis', 'Abgerufen um', 'Gültig bis', 'Nur zur Information.', 'Eine Quote bedeutet noch keinen Versicherungsschutz']) assert.ok(after.includes(part), `missing: ${part}`);
 	view.advance(61_000);
 	view.panel.render();
 	assert.ok(view.text().includes('Diese Quote ist abgelaufen. Bitte eine neue Quote abrufen.'));
@@ -245,6 +248,54 @@ test('VIEW-LANG-SWITCH an open panel follows the app language without reloading:
 	view.panel.setLanguage('fr');
 	assert.ok(view.text().includes('Get quote'), 'unknown language falls back to English');
 	assert.deepEqual(view.walletCalls, []);
+});
+
+/* ------------------------------- Freie Quote und Aufrundung (29.10.2026) -- */
+
+const ANNEX = 'https://api.nexusmutual.io/ipfs/QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ';
+
+test('VIEW-FREE a requested amount above the exposure is allowed in the form, shown with the exposure and a no-cover hint', async () => {
+	const above = { ...QUOTE, requestedAmount: '1', offeredAmount: '1.000105426868420486', exposureAmount: '0.0000925205', aboveExposure: true };
+	for (const [language, parts] of [
+		['en', ['Requested cover amount', '1 ETH', 'Cover amount offered by Nexus Mutual', '1.000105426868420486 ETH', 'Detected net exposure', '0.0000925205 ETH', 'The requested amount is above your detected net exposure. A quote is not insurance cover']],
+		['de', ['Angefragte Deckungssumme', 'Von Nexus Mutual angebotene Deckungssumme', 'Erkanntes Netto-Engagement', '0.0000925205 ETH', 'Die angefragte Summe liegt über deinem erkannten Netto-Engagement. Eine Quote bedeutet noch keinen Versicherungsschutz']]
+	]) {
+		const view = await mount({ language, quote: above });
+		view.panel.state.amount = '1';
+		view.panel.render();
+		await quoted(view);
+		assert.equal(view.posts.at(-1).amount, '1', 'the amount above the exposure is sent as typed');
+		for (const part of parts) assert.ok(view.text().includes(part), `${language} missing: ${part}`);
+		assert.equal(view.byClass('cover-warning').length, 1);
+		assert.deepEqual(view.walletCalls, []);
+	}
+});
+
+test('VIEW-ROUNDING a rounding above 1 % is shown with delta and percent; above 5 % only the error with both amounts, never a premium', async () => {
+	const rounded = { ...QUOTE, requestedAmount: '0.005', offeredAmount: '0.0051465', roundingDelta: '0.0001465', roundingPercent: '2.93', roundingNotice: true, premium: '0.0000111672' };
+	const view = await mount({ quote: rounded });
+	await quoted(view);
+	for (const part of ['Technical rounding', '+0.0001465 ETH (+2.93 %)', 'whole pool allocation steps', 'Premium (for the offered amount)', '0.0000111672 ETH']) assert.ok(view.text().includes(part), `missing: ${part}`);
+	const de = await mount({ language: 'de', quote: rounded });
+	await quoted(de);
+	assert.ok(de.text().includes('Technische Aufrundung') && de.text().includes('+2.93 %'));
+	const errorBody = { requestedAmount: '0.001', offeredAmount: '0.00119', roundingPercent: '19.00', maxRoundingPercent: '5' };
+	const rejected = await mount({ quoteStatus: 422, quoteCode: 'QUOTE_ROUNDING_EXCEEDED', errorBody });
+	await quoted(rejected);
+	for (const part of ['rounding above 5 %', 'Requested cover amount: 0.001 ETH', 'Cover amount offered by Nexus Mutual: 0.00119 ETH (+19.00 %)']) assert.ok(rejected.text().includes(part), `missing: ${part}`);
+	assert.doesNotMatch(rejected.text(), /Premium \(/);
+	const hostile = await mount({ quoteStatus: 422, quoteCode: 'QUOTE_ROUNDING_EXCEEDED', errorBody: { ...errorBody, offeredAmount: '<img src=x>' } });
+	await quoted(hostile);
+	assert.ok(!hostile.text().includes('<img'), 'only plain decimal texts from the server');
+});
+
+test('VIEW-TERMS annex and general wording carry distinct labels', async () => {
+	const view = await mount({ details: { ...DETAILS, annex: { cid: 'QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ', url: ANNEX } } });
+	assert.deepEqual(view.dom.log.urls.map((u) => u.value), [WORDING, ANNEX]);
+	const links = view.byClass('cover-terms-link').map((el) => el.textContent);
+	assert.deepEqual(links, ['General cover wording (Nexus Mutual, Single Protocol Cover)', 'Product annex Aave v3 (designated markets)']);
+	const de = await mount({ language: 'de', details: { ...DETAILS, annex: { cid: 'QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ', url: ANNEX } } });
+	assert.deepEqual(de.byClass('cover-terms-link').map((el) => el.textContent), ['Allgemeines Cover-Wording (Nexus Mutual, Single Protocol Cover)', 'Produkt-Anhang Aave v3 (bezeichnete Märkte)']);
 });
 
 test('VIEW-LANG-WIRING main.js hands the global language to every open cover panel on a DE/EN switch; no second language state', () => {

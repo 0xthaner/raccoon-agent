@@ -10,9 +10,18 @@
 
 	Grenzen je Cover-Asset (alles BigInt, keine Gleitkommazahl):
 	  maxFromExposure = floor(suggestedExposure[USD, 8 Stellen] x 10^decimals / Preis)
-	  maxAmount       = min(maxFromExposure, verfuegbare Kapazitaet)
+	  quoteMax        = verfuegbare Kapazitaet (Grenze der unverbindlichen Quote)
+	  purchaseMax     = min(maxFromExposure, verfuegbare Kapazitaet) (Grenze der
+	                    Kaufbereitschaft, aave-cover-readiness.mjs, CR-NEXUS-007.P4)
 	  Preis: Aave-Orakel aus demselben Block wie die Position (pricing.reference);
 	  ETH wird zum Orakelpreis von WETH bewertet (1:1).
+
+	Freie Quote (29.10.2026, fachlich freigegeben): die gewuenschte Summe darf
+	ueber dem erkannten Engagement liegen; sie geht unveraendert an Nexus und
+	wird nur als aboveExposure gekennzeichnet. Nexus darf sie hoechstens 5 %
+	aufrunden (QUOTE_ROUNDING.ALLOCATION_UNITS, nexus-read-api.mjs); die Quote
+	traegt angefragte und angebotene Summe getrennt, die Praemie gilt fuer die
+	angebotene. Eine Quote ist nie eine Deckung.
 	Laufzeit 28..365 Tage (Cover.sol v3.4.0) - die Nexus-API prueft das selbst
 	nicht (am 18.10.2026 lieferte sie Quotes fuer 27 Tage und fuer DAI).
 
@@ -29,7 +38,7 @@
 import { formatUnits } from 'viem';
 import { AAVE_V3_MARKETS, REFERENCE_TOKENS } from './positions/aave-registry.mjs';
 import { COVER_PERIOD_DAYS, NEXUS_ASSETS } from './nexus-pinned.mjs';
-import { readQuote } from './nexus-read-api.mjs';
+import { QUOTE_ROUNDING, readQuote } from './nexus-read-api.mjs';
 import { evaluateAavePurchaseReadiness, publicReadiness } from './aave-cover-readiness.mjs';
 
 export const QUOTE_TTL_MS = 60_000;
@@ -100,22 +109,27 @@ export function coverBounds(model, position) {
 		const capacityAmount = BigInt(capacity.amount);
 		const price = referencePrice(position, asset.symbol);
 		if (!price || price.decimals !== asset.decimals) {
-			return Object.freeze({ symbol: asset.symbol, decimals: asset.decimals, selectable: false, reason: 'PRICE_UNAVAILABLE', capacity: formatUnits(capacityAmount, asset.decimals), capacityRaw: capacityAmount.toString() });
+			return Object.freeze({ symbol: asset.symbol, decimals: asset.decimals, selectable: false, purchaseSelectable: false, reason: 'PRICE_UNAVAILABLE', capacity: formatUnits(capacityAmount, asset.decimals), capacityRaw: capacityAmount.toString() });
 		}
 		const fromExposure = (suggested * 10n ** BigInt(asset.decimals)) / price.price;
-		const max = fromExposure < capacityAmount ? fromExposure : capacityAmount;
+		const purchaseMax = fromExposure < capacityAmount ? fromExposure : capacityAmount;
 		return Object.freeze({
 			symbol: asset.symbol,
 			decimals: asset.decimals,
-			selectable: max > 0n,
-			...(max > 0n ? {} : { reason: fromExposure === 0n ? 'NO_EXPOSURE' : 'NO_CAPACITY' }),
+			// Quote: nur die Kapazitaet begrenzt; das Engagement nie.
+			selectable: capacityAmount > 0n,
+			...(capacityAmount > 0n ? {} : { reason: 'NO_CAPACITY' }),
 			capacity: formatUnits(capacityAmount, asset.decimals),
 			capacityRaw: capacityAmount.toString(),
+			quoteMax: formatUnits(capacityAmount, asset.decimals),
+			quoteMaxRaw: capacityAmount.toString(),
 			maxFromExposure: formatUnits(fromExposure, asset.decimals),
 			maxFromExposureRaw: fromExposure.toString(),
-			maxAmount: formatUnits(max, asset.decimals),
-			maxAmountRaw: max.toString(),
-			limitedBy: fromExposure <= capacityAmount ? 'EXPOSURE' : 'CAPACITY',
+			// Kauf: Engagement und Kapazitaet (nur fuer die Kaufbereitschaft).
+			purchaseSelectable: purchaseMax > 0n,
+			purchaseMax: formatUnits(purchaseMax, asset.decimals),
+			purchaseMaxRaw: purchaseMax.toString(),
+			purchaseLimitedBy: fromExposure <= capacityAmount ? 'EXPOSURE' : 'CAPACITY',
 			conversion: Object.freeze({
 				source: 'aave-oracle',
 				oracle: position.pricing.oracle ?? null,
@@ -152,7 +166,7 @@ export function coverDetails(model, position, now = Date.now()) {
 			suggestedExposure: model.exposure.suggestedExposure,
 			disclaimers: model.exposure.disclaimers
 		}),
-		assets: Object.freeze(coverBounds(model, position)),
+		assets: Object.freeze(coverBounds(model, position).map(publicBound)),
 		periodDays: Object.freeze({ min: COVER_PERIOD_DAYS.min, max: COVER_PERIOD_DAYS.max, presets: PERIOD_PRESETS }),
 		proofOfLoss: Object.freeze({ inputTypes: w.proofOfLossInputTypes }),
 		gracePeriodDays: w.gracePeriodDays,
@@ -177,13 +191,14 @@ export function checkQuoteRequest(request, model, position) {
 	const bound = coverBounds(model, position).find((entry) => entry.symbol === request.coverAsset);
 	const asset = Object.values(NEXUS_ASSETS).find((entry) => entry.symbol === request.coverAsset);
 	if (!bound || !asset || !model.nexusMatch.supportedCoverAssets.includes(request.coverAsset)) return fail('ASSET_NOT_SUPPORTED');
-	if (!bound.selectable) return fail('AMOUNT_OUT_OF_RANGE', { maxAmount: bound.maxAmount ?? '0' });
+	if (!bound.selectable) return fail('AMOUNT_OUT_OF_RANGE', { maxAmount: bound.quoteMax ?? '0', ...(bound.reason === 'NO_CAPACITY' ? { limitedBy: 'CAPACITY' } : {}) });
 	const amount = parseAssetAmount(request.amount, asset.decimals);
 	if (amount === null) return fail('INVALID_AMOUNT');
-	if (amount <= 0n) return fail('AMOUNT_OUT_OF_RANGE', { maxAmount: bound.maxAmount });
-	if (amount > BigInt(bound.capacityRaw)) return fail('AMOUNT_OUT_OF_RANGE', { maxAmount: bound.maxAmount, limitedBy: 'CAPACITY' });
-	if (amount > BigInt(bound.maxFromExposureRaw)) return fail('AMOUNT_OUT_OF_RANGE', { maxAmount: bound.maxAmount, limitedBy: 'EXPOSURE' });
-	return Object.freeze({ ok: true, productId: model.nexusMatch.productId, coverAsset: asset, amount, periodDays: request.periodDays });
+	if (amount <= 0n) return fail('AMOUNT_OUT_OF_RANGE', { maxAmount: bound.quoteMax, limitedBy: 'CAPACITY' });
+	if (amount > BigInt(bound.quoteMaxRaw)) return fail('AMOUNT_OUT_OF_RANGE', { maxAmount: bound.quoteMax, limitedBy: 'CAPACITY' });
+	// Ueber dem erkannten Engagement ist erlaubt, wird aber gekennzeichnet (nie eine Deckung).
+	const exposureRaw = BigInt(bound.maxFromExposureRaw);
+	return Object.freeze({ ok: true, productId: model.nexusMatch.productId, coverAsset: asset, amount, periodDays: request.periodDays, exposureRaw, aboveExposure: amount > exposureRaw });
 }
 
 /** Frisch bis quoteExpiresAt (ausschliesslich); danach nur noch als veraltet anzeigbar. */
@@ -195,16 +210,46 @@ export function quoteFreshness(quote, now = Date.now()) {
 /** Eine spaetere Aktion darf nur auf einer frischen Quote aufbauen. In P3 gibt es keine solche Aktion. */
 export const isQuoteUsable = (quote, now = Date.now()) => quoteFreshness(quote, now) === 'FRESH';
 
-/** Oeffentliche Form einer Quote: Anzeige-Werte, keine Pools, keine Vertragsdaten. */
-export function quoteView(quote, model, now = Date.now()) {
+/**
+ * Oeffentliche Form einer Grenze: die Kaufgrenze (purchase*) bleibt serverintern
+ * (nur aave-cover-readiness.mjs); angezeigt wird sie nur als Vorschlag fuer die Summe.
+ */
+function publicBound(bound) {
+	const { purchaseSelectable, purchaseMax, purchaseMaxRaw, purchaseLimitedBy, ...rest } = bound;
+	return Object.freeze({ ...rest, ...(purchaseSelectable ? { suggestedAmount: purchaseMax, suggestedLimitedBy: purchaseLimitedBy } : {}) });
+}
+
+/** Aufschlag in Prozent mit zwei Stellen, aufgerundet (nie kleiner dargestellt als er ist). */
+function percentUp(delta, base) {
+	const bps = (delta * 10_000n + base - 1n) / base;
+	return `${bps / 100n}.${String(bps % 100n).padStart(2, '0')}`;
+}
+
+/**
+ * Oeffentliche Form einer Quote: Anzeige-Werte, keine Pools, keine Vertragsdaten.
+ * Drei Betraege bleiben getrennt: erkanntes Engagement (exposureAmount), angefragte
+ * Summe (requestedAmount) und von Nexus angebotene Summe (offeredAmount, Grundlage der Praemie).
+ */
+export function quoteView(quote, model, now = Date.now(), { exposureRaw = null } = {}) {
 	const asset = Object.values(NEXUS_ASSETS).find((entry) => entry.symbol === quote.coverAsset);
 	const fetchedAt = Date.parse(quote.fetchedAt);
+	const requested = BigInt(quote.coverAmount);
+	const offered = BigInt(quote.totalCoverAmount);
+	const delta = offered - requested;
 	const view = {
 		provider: 'Nexus Mutual',
 		productName: model.wording.productName,
 		productTypeName: model.wording.productTypeName,
 		coverAsset: asset.symbol,
-		coverAmount: formatUnits(BigInt(quote.coverAmount), asset.decimals),
+		requestedAmount: formatUnits(requested, asset.decimals),
+		offeredAmount: formatUnits(offered, asset.decimals),
+		roundingDelta: formatUnits(delta, asset.decimals),
+		roundingPercent: percentUp(delta, requested),
+		// Ueber 1 % ist die Aufrundung ausdruecklich anzuzeigen (Regel ALLOCATION_UNITS, hoechstens 5 %).
+		roundingNotice: delta * 100n > requested,
+		exposureAmount: exposureRaw === null ? null : formatUnits(exposureRaw, asset.decimals),
+		aboveExposure: exposureRaw === null ? null : requested > exposureRaw,
+		premiumBasis: 'OFFERED_AMOUNT',
 		periodDays: quote.periodDays,
 		premium: formatUnits(BigInt(quote.premiumInAsset), asset.decimals),
 		premiumAsset: asset.symbol,
@@ -225,11 +270,21 @@ export async function requestCoverQuote(request, model, position, { fetchImpl = 
 	const productId = checked.productId;
 	let quote;
 	try {
-		quote = await readQuote({ productId, coverAsset: checked.coverAsset, amount: checked.amount, periodDays: checked.periodDays, capacity: model.capacity }, { fetchImpl, now, ...(timeoutMs ? { timeoutMs } : {}) });
+		// Nur dieser Aave-Core-Pfad nutzt die erweiterte Aufrundungsregel; Uniswap bleibt STRICT.
+		quote = await readQuote({ productId, coverAsset: checked.coverAsset, amount: checked.amount, periodDays: checked.periodDays, capacity: model.capacity, rounding: QUOTE_ROUNDING.ALLOCATION_UNITS }, { fetchImpl, now, ...(timeoutMs ? { timeoutMs } : {}) });
 	} catch (error) {
-		// Bekannte Ursache: Nexus rundet einen sehr kleinen Betrag auf Allokations-Einheiten auf.
-		if (error?.code === 'QUOTE_AMOUNT_ROUNDED_UP') return fail('QUOTE_AMOUNT_TOO_SMALL', { reason: error.code });
+		// Erklaerte Aufrundung ueber 5 %: eigener Code, mit angefragter und angebotener Summe, ohne Praemie.
+		if (error?.code === 'QUOTE_ROUNDING_EXCEEDED' && typeof error.offeredRaw === 'string') {
+			const requested = checked.amount;
+			const offered = BigInt(error.offeredRaw);
+			return fail('QUOTE_ROUNDING_EXCEEDED', {
+				requestedAmount: formatUnits(requested, checked.coverAsset.decimals),
+				offeredAmount: formatUnits(offered, checked.coverAsset.decimals),
+				roundingPercent: percentUp(offered - requested, requested),
+				maxRoundingPercent: QUOTE_ROUNDING.ALLOCATION_UNITS.maxPercent.toString()
+			});
+		}
 		return fail('QUOTE_UNAVAILABLE', { reason: typeof error?.code === 'string' ? error.code : 'UNKNOWN' });
 	}
-	return Object.freeze({ ok: true, quote: quoteView(quote, model, now) });
+	return Object.freeze({ ok: true, quote: quoteView(quote, model, now, { exposureRaw: checked.exposureRaw }) });
 }

@@ -61,7 +61,7 @@ async function modelFor(pos = position()) {
 	return getNexusReadModel(pos, { fetchImpl: fakeNexus(), now: NOW });
 }
 const quote = (patch = {}) => ({
-	provider: 'Nexus Mutual', coverAsset: 'USDC', coverAmount: '1000', periodDays: 30, premium: '3.000578', premiumAsset: 'USDC',
+	provider: 'Nexus Mutual', coverAsset: 'USDC', requestedAmount: '1000', offeredAmount: '1000.192871', periodDays: 30, premium: '3.000578', premiumAsset: 'USDC',
 	quoteFetchedAt: new Date(NOW).toISOString(), quoteExpiresAt: new Date(NOW + QUOTE_TTL_MS).toISOString(), freshness: 'FRESH', ...patch
 });
 /** Alles technisch Pruefbare erfuellt; nur die externen Blocker bleiben. */
@@ -187,7 +187,7 @@ test('AAVE-EXPOSURE suggested exposure = supplied - debt in exact 8-decimal BigI
 
 /* -------------------------------------------------------------- Quote -- */
 
-test('AAVE-QUOTE amount bounded by suggested exposure and capacity, period 28..365, product only from the EXACT mapping', async () => {
+test('AAVE-QUOTE amount bounded by capacity only (exposure is flagged, not a limit), period 28..365, product only from the EXACT mapping', async () => {
 	const pos = position();
 	const model = await modelFor(pos);
 	assert.equal(model.eligibility.status, 'AVAILABLE');
@@ -195,7 +195,10 @@ test('AAVE-QUOTE amount bounded by suggested exposure and capacity, period 28..3
 	assert.equal(ok.ok, true);
 	assert.equal(ok.productId, 97);
 	assert.equal(ok.amount, 20_000_623_456n);
-	assert.deepEqual(checkQuoteRequest({ coverAsset: 'USDC', amount: '20000.623457', periodDays: 30 }, model, pos), { ok: false, code: 'AMOUNT_OUT_OF_RANGE', maxAmount: '20000.623456', limitedBy: 'EXPOSURE' });
+	assert.equal(ok.aboveExposure, false);
+	const above = checkQuoteRequest({ coverAsset: 'USDC', amount: '20000.623457', periodDays: 30 }, model, pos);
+	assert.deepEqual([above.ok, above.aboveExposure, above.exposureRaw], [true, true, 20_000_623_456n], 'above exposure: quote allowed, flagged');
+	assert.deepEqual(checkQuoteRequest({ coverAsset: 'USDC', amount: '8712444.805267', periodDays: 30 }, model, pos), { ok: false, code: 'AMOUNT_OUT_OF_RANGE', maxAmount: '8712444.805266', limitedBy: 'CAPACITY' });
 	for (const periodDays of [27, 366]) assert.equal(checkQuoteRequest({ coverAsset: 'USDC', amount: '1', periodDays }, model, pos).code, 'PERIOD_OUT_OF_RANGE');
 	for (const amount of ['0', '-1', '1e3', '1.0000001']) assert.equal(checkQuoteRequest({ coverAsset: 'USDC', amount, periodDays: 30 }, model, pos).ok, false, amount);
 	// Lido/Prime: keine Quote, obwohl dasselbe Produkt im Katalog steht
@@ -253,12 +256,24 @@ test('AAVE-READY-REASONS every missing technical condition adds its own reason',
 	assert.ok(reasonsOf({ quote: null }).includes('QUOTE_MISSING'));
 	assert.ok(reasonsOf({ quote: quote({ quoteFetchedAt: new Date(NOW - 59_000).toISOString(), quoteExpiresAt: new Date(NOW + 1_000).toISOString() }) }).includes('QUOTE_STALE'));
 	assert.ok(reasonsOf({ quote: quote({ quoteExpiresAt: new Date(NOW + 120_000).toISOString() }) }).includes('QUOTE_STALE'), 'a quote may not claim a longer validity');
-	assert.ok(reasonsOf({ quote: quote({ coverAsset: 'ETH', premiumAsset: 'ETH', coverAmount: '1' }) }).includes('PAYMENT_ASSET_NOT_SUPPORTED'));
+	assert.ok(reasonsOf({ quote: quote({ coverAsset: 'ETH', premiumAsset: 'ETH', requestedAmount: '1', offeredAmount: '1' }) }).includes('PAYMENT_ASSET_NOT_SUPPORTED'));
 	assert.ok(reasonsOf({ quote: quote({ coverAsset: 'DAI', premiumAsset: 'DAI' }) }).includes('PAYMENT_ASSET_NOT_SUPPORTED'));
 	assert.ok(reasonsOf({ quote: quote({ premiumAsset: 'ETH' }) }).includes('PAYMENT_ASSET_NOT_SUPPORTED'));
-	assert.ok(reasonsOf({ quote: quote({ coverAmount: '20000.623457' }) }).includes('QUOTE_OUT_OF_BOUNDS'));
-	assert.deepEqual(reasonsOf({ quote: quote({ coverAmount: '20000.623456' }) }), []);
-	assert.ok(reasonsOf({ quote: quote({ coverAmount: '0' }) }).includes('QUOTE_OUT_OF_BOUNDS'));
+	// Kaufgrenze auf der ANGEBOTENEN Summe: min(Engagement 20000.623456 USDC, Kapazitaet)
+	assert.ok(reasonsOf({ quote: quote({ requestedAmount: '20000.623457', offeredAmount: '20000.623457' }) }).includes('QUOTE_OUT_OF_BOUNDS'));
+	assert.deepEqual(reasonsOf({ quote: quote({ requestedAmount: '20000.623456', offeredAmount: '20000.623456' }) }), []);
+	assert.ok(reasonsOf({ quote: quote({ offeredAmount: '0' }) }).includes('QUOTE_OUT_OF_BOUNDS'));
+	assert.ok(reasonsOf({ quote: quote({ requestedAmount: '20000', offeredAmount: '20000.623457' }) }).includes('QUOTE_OUT_OF_BOUNDS'), 'offered above exposure -> QUOTE_OUT_OF_BOUNDS although requested is within');
+	assert.ok(reasonsOf({ quote: quote({ requestedAmount: '1', offeredAmount: undefined }) }).includes('QUOTE_OUT_OF_BOUNDS'), 'without an offered amount nothing is in bounds');
+	assert.ok(reasonsOf({ quote: quote({ requestedAmount: '1', offeredAmount: undefined, coverAmount: '1' }) }).includes('QUOTE_OUT_OF_BOUNDS'), 'the old coverAmount field is never read');
+	// freie Quote ueber dem Engagement (1 ETH bei 0.370082 USDC Engagement) ist nie kaufbereit
+	const tiny = position(CORE, { supplied: [{ symbol: 'USDC', usdValue: '0.370082', isCollateral: false }], borrowed: [], totals: { suppliedUsd: '0.370082', debtUsd: '0', netUsd: '0.370082' } });
+	const tinyModel = await modelFor(tiny);
+	const tinyBounds = coverBounds(tinyModel, tiny);
+	assert.equal(tinyBounds.find((b) => b.symbol === 'USDC').purchaseMaxRaw, '370082');
+	const tinyReasons = reasonsOf({ position: tiny, model: tinyModel, bounds: tinyBounds, quote: quote({ coverAsset: 'ETH', premiumAsset: 'ETH', requestedAmount: '1', offeredAmount: '1.000105426868420486' }) });
+	assert.ok(reasonsOf({ position: tiny, model: tinyModel, bounds: tinyBounds, quote: quote({ requestedAmount: '1000', offeredAmount: '1000.192871' }) }).includes('QUOTE_OUT_OF_BOUNDS'), 'tiny exposure, 1000 USDC quote -> QUOTE_OUT_OF_BOUNDS');
+	assert.ok(tinyReasons.includes('QUOTE_OUT_OF_BOUNDS'), 'tiny exposure, 1 ETH quote -> QUOTE_OUT_OF_BOUNDS');
 	assert.ok(reasonsOf({ quote: quote({ periodDays: 27 }) }).includes('QUOTE_PERIOD_INVALID'));
 	// Allokation und Ausfuehrungszustand
 	assert.deepEqual(reasonsOf({ allocation: null }), ['ALLOCATION_NOT_VALIDATED']);

@@ -197,8 +197,10 @@ export function evaluateAavePurchaseReadiness(input) {
 		if (!PURCHASE_COVER_ASSETS.includes(quote.coverAsset) || quote.premiumAsset !== quote.coverAsset) add('PAYMENT_ASSET_NOT_SUPPORTED');
 		const asset = Object.values(NEXUS_ASSETS).find((entry) => entry.symbol === quote.coverAsset);
 		const bound = Array.isArray(bounds) ? bounds.find((entry) => entry?.symbol === quote.coverAsset) : null;
-		const amount = asset ? decimalToRaw(quote.coverAmount, asset.decimals) : null;
-		if (!bound?.selectable || amount === null || amount <= 0n || amount > BigInt(bound.maxAmountRaw ?? '0')) add('QUOTE_OUT_OF_BOUNDS');
+		// Kaufgrenze (CR-NEXUS-007.P4): die von Nexus ANGEBOTENE Summe (Grundlage der Praemie), nicht die
+		// angefragte, gegen min(Engagement, Kapazitaet). Die freie Quote hebt diese Grenze nie auf.
+		const amount = asset ? decimalToRaw(quote.offeredAmount, asset.decimals) : null;
+		if (!bound?.purchaseSelectable || amount === null || amount <= 0n || amount > BigInt(bound.purchaseMaxRaw ?? '0')) add('QUOTE_OUT_OF_BOUNDS');
 		if (!Number.isSafeInteger(quote.periodDays) || quote.periodDays < 28 || quote.periodDays > 365) add('QUOTE_PERIOD_INVALID');
 	}
 

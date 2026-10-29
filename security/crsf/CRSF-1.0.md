@@ -1,4 +1,4 @@
-# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2zq
+# CoverRaccoon Security Framework — CRSF 1.0-draft-phase2zr
 
 > Generated from `security/crsf/*.json` by `security/crsf/generator/crsf-gen.mjs`. Do not edit by hand.
 >
@@ -453,7 +453,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 
 ## 6. Mutation cases
 
-701 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+711 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -789,7 +789,15 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-QUOTE-002-P1-QTAMBIGUOUS | CR-QUOTE-002.P1 | behavioral | KILLED |
 | MUT-CR-QUOTE-003-P1-QTASSET | CR-QUOTE-003.P1 | behavioral | KILLED |
 | MUT-CR-QUOTE-003-P2-QTCAPACITY | CR-QUOTE-003.P2 | behavioral | KILLED |
-| MUT-CR-QUOTE-003-P2-QTEXPOSURE | CR-QUOTE-003.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-003-P2-QTEXPOSUREFLAG | CR-QUOTE-003.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-003-P2-QTEXPOSUREVIEW | CR-QUOTE-003.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-003-P2-QTSILENTCAP | CR-QUOTE-003.P2 | behavioral | KILLED |
+| MUT-CR-QUOTE-004-P1-QTROUNDCAP | CR-QUOTE-004.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-004-P1-QTROUNDEXPLAIN | CR-QUOTE-004.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-004-P1-QTPREMIUMREQ | CR-QUOTE-004.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-004-P1-QTOFFEREDASREQ | CR-QUOTE-004.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-004-P1-QTROUNDDEFAULT | CR-QUOTE-004.P1 | behavioral | KILLED |
+| MUT-CR-QUOTE-004-P1-UNIROUNDLAX | CR-QUOTE-004.P1 | behavioral | KILLED |
 | MUT-CR-QUOTE-003-P3-QTSHORTPERIOD | CR-QUOTE-003.P3 | behavioral | KILLED |
 | MUT-CR-QUOTE-003-P3-QTLONGPERIOD | CR-QUOTE-003.P3 | behavioral | KILLED |
 | MUT-CR-QUOTE-004-P1-QTMALFORMED | CR-QUOTE-004.P1 | behavioral | KILLED |
@@ -1158,6 +1166,8 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-NEXUS-007-P6-AVSESSIONTTL | CR-NEXUS-007.P6 | behavioral | KILLED |
 | MUT-CR-NEXUS-007-P6-AVFRESHQUOTEONLY | CR-NEXUS-007.P6 | behavioral | KILLED |
 | MUT-CR-NEXUS-007-P4-AVDETAILS | CR-NEXUS-007.P4 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P4-AVOFFEREDABOVE | CR-NEXUS-007.P4 | behavioral | KILLED |
+| MUT-CR-NEXUS-007-P4-AVREQUESTED | CR-NEXUS-007.P4 | behavioral | KILLED |
 
 ## 7. ASVS applicable requirements
 
@@ -1478,4 +1488,5 @@ Drift output only prioritises review. security:verify always evaluates every con
 - **1.0-draft-phase2zo** — Reference safety for future (inactive) Aave multichain support (21.10.2026). The production Aave reader matched its conversion reference tokens (REFERENCE_TOKENS: WETH, USDC, cbBTC; Ethereum addresses) by address alone, regardless of chain; cbBTC on Base has the same address as on Ethereum. The reader now uses REFERENCE_TOKENS only for chainId 1; any other chain gets a reference only from an injected chain-specific resolver (src/positions/aave-multichain-activation.mjs) answering SUPPORTED_REFERENCE, otherwise none; a missing or non-integer chainId makes the market UNAVAILABLE (INVALID_CHAIN_ID). Production reads only Ethereum and passes no resolver: Ethereum behaviour is unchanged. The inactive freshness model now evaluates Aave prices, reference feeds and the L2 sequencer in one block, with per-feed Chainlink heartbeats (Reference Data Directory) instead of a global 24 h bound; a missing heartbeat is UNKNOWN. No control, property, threshold, external blocker or production route changed; no new chain is enabled.
 - **1.0-draft-phase2zp** — Uniswap v3 Ethereum read-only integration (21.10.2026): GET /api/positions gains a sanitized uniswapV3 section and a protocols list; POST /api/nexus/quote gains the actions uniswap-details and uniswap-quote (product 72, informational only) behind the existing session, revocation, same-origin, JSON, size and rate-limit checks; the dashboard gains a separate Uniswap card and quote view (web/src/uniswap-cover.js). New behavioural evidence EV-UNISWAP-QUOTE and known-bad evidence EV-KB-UNISWAP-QUOTE (33 cases) on the existing CR-QUOTE controls and CR-API-001 P2; drift rules for the new paths. No control, property, threshold, release class, external blocker or finding changed; no purchase, approval, transaction or wallet method added; purchaseReady stays false.
 - **1.0-draft-phase2zq** — Framework maintenance only (22.10.2026), no control, threshold, property, evidence level or expected result changed and no application file touched. (1) Two mutation anchors were no longer exactly-once and made the framework invalid: MUT-CR-QUOTE-008-P1-QTGLOBALRATE (Aave quote path) matched twice after the Uniswap quote path (070693b) added a word-identical global quote limiter line; MUT-CR-VERIFY-003-P1-2SSIGNONE matched zero times after 61357f8 appended the runtime-stack guard to check:ci (unseen while the case was NOT_RUN without npm_network). Both are re-anchored to the same weakening with stable neighbouring context, the existing disambiguation pattern of MUT-CR-QUOTE-008-P1-UNIGLOBALRATE. (2) The fix-register scanner documented that generated reports are not scanned but did not exclude security/reports/out/, so a stale report in a working copy failed CR-VERIFY-003 while a fresh checkout passed (fail closed, never fail open). (3) New test/crsf-mutation-anchors.test.mjs applies every catalogue case with the real executor in test:ci, so a broken anchor fails immediately instead of only in security:verify.
+- **1.0-draft-phase2zr** — Free Nexus quote with transparent rounding (29.10.2026, approved by the owner): the informative Aave core quote is no longer capped by the detected net exposure, only by Nexus capacity; the amount goes to Nexus unchanged and is flagged when above the exposure. Nexus may round the cover up by more than 1 % only on the Aave core path, only when at most one pool allocation unit per pool explains it (rule ALLOCATION_UNITS) and never by more than 5 % (otherwise QUOTE_ROUNDING_EXCEEDED, no premium). The quote returns requested and offered amount separately; the premium is checked against and shown for the offered amount. The purchase bound min(exposure, capacity) is unchanged, kept server-internal and now explicitly applied to the OFFERED amount by the purchase readiness (CR-NEXUS-007.P4 text unchanged); purchase stays blocked. Uniswap keeps the strict 1 % rule and stays disabled. Release class, minimum level and automation of every control unchanged.
 

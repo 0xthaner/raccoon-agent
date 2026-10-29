@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zq",
+	"crsf_version": "1.0-draft-phase2zr",
 	"controls": [
 		{
 			"id": "CR-AUTH-001",
@@ -11463,13 +11463,13 @@
 				"V2.2.1"
 			],
 			"external_requirement": "Business logic limits are implemented as documented (V2.3.2); input is validated against allow lists and ranges (V2.2.1).",
-			"coverraccoon_requirement": "Cover asset only from the product's supported cover assets (ETH, USDC, cbBTC); amount > 0 and <= min(suggested exposure converted with the Aave oracle price of the same block, available capacity), exact in BigInt; period an integer of 28..365 days - enforced locally because the Nexus API accepts periods below 28 days and unsupported assets.",
+			"coverraccoon_requirement": "Cover asset only from the product's supported cover assets (ETH, USDC, cbBTC); amount > 0 and <= available capacity, exact in BigInt, sent to Nexus unchanged; an amount above the suggested exposure (converted with the Aave oracle price of the same block) is allowed for an informative quote only and flagged aboveExposure with the exposure shown; the purchase bound min(exposure, capacity) stays server-internal and is enforced on the offered amount by the purchase readiness; period an integer of 28..365 days - enforced locally because the Nexus API accepts periods below 28 days and unsupported assets.",
 			"applies_to": [
 				"src/nexus-quote.mjs",
 				"api/nexus/quote.mjs"
 			],
-			"threat": "over-insurance beyond the economic exposure, quotes above capacity, invalid periods or unsupported assets presented as available",
-			"expected_property": "out of bounds -> 422, no quote",
+			"threat": "quotes above capacity, invalid periods or unsupported assets presented as available; an informative quote above the economic exposure presented as cover or reaching purchase readiness (over-insurance)",
+			"expected_property": "out of bounds -> 422, no quote; above exposure -> quote flagged, never purchase-ready",
 			"properties": [
 				{
 					"id": "P1",
@@ -11479,7 +11479,7 @@
 				{
 					"id": "P2",
 					"kind": "REQUIREMENT",
-					"text": "the amount is > 0 and <= min(suggested exposure converted with the Aave oracle price, available capacity), computed exactly"
+					"text": "the amount is > 0 and <= the available capacity, computed exactly, and is sent to Nexus unchanged; an amount above the suggested exposure (converted with the Aave oracle price) is quoted for information only and always flagged as above the exposure, and the purchase bound min(suggested exposure, available capacity) stays enforced on the offered amount by the purchase readiness (CR-NEXUS-007.P4)"
 				},
 				{
 					"id": "P3",
@@ -11569,7 +11569,7 @@
 				"V15.3.2"
 			],
 			"external_requirement": "Third-party API data is validated before use (API10:2023, V2.2.1); external calls do not follow redirects (V15.3.2).",
-			"coverraccoon_requirement": "Only GET /v2/quote with exactly five encoded server-built parameters on the pinned host, no redirects, JSON content type, size cap, never cached; the response must match the requested asset, cover the requested amount (<= 1 % above), allocate only to pools of the product within their capacity with allocations summing to the total, and carry a premium consistent with its annual price and period.",
+			"coverraccoon_requirement": "Only GET /v2/quote with exactly five encoded server-built parameters on the pinned host, no redirects, JSON content type, size cap, never cached; the response must match the requested asset, cover the requested amount (<= 1 % above; on the Aave core path up to 5 % above only when at most one allocation unit per pool explains it, otherwise QUOTE_ROUNDING_EXCEEDED without a premium), allocate only to pools of the product within their capacity with allocations summing to the total, and carry a premium consistent with its annual price and period on the offered amount; requested and offered amount are returned separately.",
 			"applies_to": [
 				"src/nexus-read-api.mjs",
 				"src/nexus-quote.mjs"
@@ -11580,7 +11580,7 @@
 				{
 					"id": "P1",
 					"kind": "REQUIREMENT",
-					"text": "a quote is accepted only if schema, numeric formats, asset, amount, product pools and premium/price consistency all match the request"
+					"text": "a quote is accepted only if schema, numeric formats, asset, amount, product pools and premium/price consistency all match the request; the offered amount is never below the requested amount and at most 1 % above it, except on the Aave core quote path where a round-up explained by at most one pool allocation unit per pool is accepted up to 5 % and anything above is rejected without a premium; every other path (Uniswap) keeps the 1 % rule; the quote carries requested and offered amount separately and its premium is checked against and shown for the offered amount"
 				},
 				{
 					"id": "P2",

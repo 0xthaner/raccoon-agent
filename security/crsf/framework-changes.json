@@ -3735,6 +3735,208 @@
 					"reason": "new: every catalogue case applies with security/crsf/lib/exec.mjs applyEdits (each anchor exactly once) and restores the original; the Aave and Uniswap quote-global cases each remove exactly their own limiter and leave the other in place. No mutation, expectation or classification changed by this test."
 				}
 			]
+		},
+		{
+			"crsf_version": "1.0-draft-phase2zr",
+			"summary": "Free Nexus quote with transparent rounding (29.10.2026, approved by the owner): the informative Aave core quote is no longer capped by the detected net exposure, only by Nexus capacity; the amount goes to Nexus unchanged and is flagged when above the exposure. Nexus may round the cover up by more than 1 % only on the Aave core path, only when at most one pool allocation unit per pool explains it (rule ALLOCATION_UNITS) and never by more than 5 % (otherwise QUOTE_ROUNDING_EXCEEDED, no premium). The quote returns requested and offered amount separately; the premium is checked against and shown for the offered amount. The purchase bound min(exposure, capacity) is unchanged, kept server-internal and now explicitly applied to the OFFERED amount by the purchase readiness (CR-NEXUS-007.P4 text unchanged); purchase stays blocked. Uniswap keeps the strict 1 % rule and stays disabled. Release class, minimum level and automation of every control unchanged.",
+			"changes": [
+				{
+					"id": "CR-QUOTE-003",
+					"kind": "REQUIREMENT_CLARIFICATION",
+					"reason": "P2: the exposure is no longer the upper bound of the informative quote; capacity stays the bound; the exposure bound moves, unchanged, to the purchase readiness on the offered amount. coverraccoon_requirement, threat and expected_property adjusted accordingly. P1, P3 unchanged.",
+					"rationale": "An informative quote above the detected position is useful for the user (e.g. 1 ETH for a position of 0.370082 USDC) and is never cover: purchase is blocked, and the readiness still rejects any offered amount above min(exposure, capacity). The owner approved decoupling the informative quote from the exposure on 29.10.2026.",
+					"why_not_weakening": "No security control is removed without a replacement: the exposure bound still blocks over-insurance at purchase readiness (CR-NEXUS-007.P4, now on the offered, premium-relevant amount, which is stricter than the requested amount), the capacity bound and the 422 path stay, and a new mandatory aboveExposure flag with a no-cover hint replaces the silent cap. MUT-CR-QUOTE-003-P2-QTEXPOSURE is replaced by QTEXPOSUREFLAG, QTEXPOSUREVIEW and QTSILENTCAP; QTCAPACITY is re-anchored; readiness gains AVOFFEREDABOVE and AVREQUESTED.",
+					"before": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "only a cover asset listed by the mapped product and the pinned asset table can be quoted"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "the amount is > 0 and <= min(suggested exposure converted with the Aave oracle price, available capacity), computed exactly"
+							},
+							{
+								"id": "P3",
+								"kind": "REQUIREMENT",
+								"text": "the period is an integer between 28 and 365 days"
+							}
+						],
+						"derivation": {
+							"title": "Quote amount, asset and period strictly bounded",
+							"domain": "CR-QUOTE",
+							"source_refs": [
+								"SRC-ASVS V2.3.2",
+								"SRC-ASVS V2.2.1",
+								"SRC-NEXUS-CONTRACTS"
+							],
+							"derivation_type": "EXTERNAL_STANDARD",
+							"external_requirement": "Business logic limits are implemented as documented (V2.3.2); input is validated against allow lists and ranges (V2.2.1).",
+							"coverraccoon_requirement": "Cover asset only from the product's supported cover assets (ETH, USDC, cbBTC); amount > 0 and <= min(suggested exposure converted with the Aave oracle price of the same block, available capacity), exact in BigInt; period an integer of 28..365 days - enforced locally because the Nexus API accepts periods below 28 days and unsupported assets.",
+							"applicability_reason": "Feature present in CoverRaccoon at the verified commit (POST /api/nexus/quote and the dashboard cover panel; display only).",
+							"profile_level": "ASVS_L2",
+							"applies_to": [
+								"src/nexus-quote.mjs",
+								"api/nexus/quote.mjs"
+							],
+							"threat": "over-insurance beyond the economic exposure, quotes above capacity, invalid periods or unsupported assets presented as available",
+							"expected_property": "out of bounds -> 422, no quote",
+							"automation": "YES"
+						}
+					},
+					"after": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "only a cover asset listed by the mapped product and the pinned asset table can be quoted"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "the amount is > 0 and <= the available capacity, computed exactly, and is sent to Nexus unchanged; an amount above the suggested exposure (converted with the Aave oracle price) is quoted for information only and always flagged as above the exposure, and the purchase bound min(suggested exposure, available capacity) stays enforced on the offered amount by the purchase readiness (CR-NEXUS-007.P4)"
+							},
+							{
+								"id": "P3",
+								"kind": "REQUIREMENT",
+								"text": "the period is an integer between 28 and 365 days"
+							}
+						],
+						"derivation": {
+							"title": "Quote amount, asset and period strictly bounded",
+							"domain": "CR-QUOTE",
+							"source_refs": [
+								"SRC-ASVS V2.3.2",
+								"SRC-ASVS V2.2.1",
+								"SRC-NEXUS-CONTRACTS"
+							],
+							"derivation_type": "EXTERNAL_STANDARD",
+							"external_requirement": "Business logic limits are implemented as documented (V2.3.2); input is validated against allow lists and ranges (V2.2.1).",
+							"coverraccoon_requirement": "Cover asset only from the product's supported cover assets (ETH, USDC, cbBTC); amount > 0 and <= available capacity, exact in BigInt, sent to Nexus unchanged; an amount above the suggested exposure (converted with the Aave oracle price of the same block) is allowed for an informative quote only and flagged aboveExposure with the exposure shown; the purchase bound min(exposure, capacity) stays server-internal and is enforced on the offered amount by the purchase readiness; period an integer of 28..365 days - enforced locally because the Nexus API accepts periods below 28 days and unsupported assets.",
+							"applicability_reason": "Feature present in CoverRaccoon at the verified commit (POST /api/nexus/quote and the dashboard cover panel; display only).",
+							"profile_level": "ASVS_L2",
+							"applies_to": [
+								"src/nexus-quote.mjs",
+								"api/nexus/quote.mjs"
+							],
+							"threat": "quotes above capacity, invalid periods or unsupported assets presented as available; an informative quote above the economic exposure presented as cover or reaching purchase readiness (over-insurance)",
+							"expected_property": "out of bounds -> 422, no quote; above exposure -> quote flagged, never purchase-ready",
+							"automation": "YES"
+						}
+					}
+				},
+				{
+					"id": "CR-QUOTE-004",
+					"kind": "REQUIREMENT_CLARIFICATION",
+					"reason": "P1: the amount check now states the exact round-up rule: >= requested, <= 1 % above, or on the Aave core path <= 5 % above when explained by at most one allocation unit per pool; requested and offered amount separate; premium on the offered amount. coverraccoon_requirement adjusted. P2 unchanged.",
+					"rationale": "Nexus allocates cover in 0.01 NXM units per pool (live: +2.93 % for 0.0005-0.008 ETH, +19 % for 1 USDC). The owner approved accepting a verified allocation round-up up to 5 % on the Aave core path when shown transparently; above 5 % the quote is rejected fail-closed.",
+					"why_not_weakening": "Every existing consistency check stays (schema, asset, product pools, capacity per pool, allocations = total, premium within 0.1 % of total x price x days, never below the requested amount, unexplained round-up -> QUOTE_AMOUNT_MISMATCH). The extension is bounded twice (one unit per pool AND 5 %), opt-in per call (default STRICT, Uniswap unchanged and asserted), and the offered amount is shown and is the amount checked by readiness. New mutations QTROUNDCAP, QTROUNDEXPLAIN, QTPREMIUMREQ, QTOFFEREDASREQ, QTROUNDDEFAULT and UNIROUNDLAX are killed.",
+					"before": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "a quote is accepted only if schema, numeric formats, asset, amount, product pools and premium/price consistency all match the request"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "only GET on the fixed /v2/quote path of the pinned host with encoded server-built parameters, no redirects, no caching"
+							}
+						],
+						"derivation": {
+							"title": "Nexus quote responses strictly validated",
+							"domain": "CR-QUOTE",
+							"source_refs": [
+								"SRC-API API10:2023",
+								"SRC-ASVS V2.2.1",
+								"SRC-ASVS V15.3.2",
+								"SRC-NEXUS-QUOTE"
+							],
+							"derivation_type": "EXTERNAL_STANDARD",
+							"external_requirement": "Third-party API data is validated before use (API10:2023, V2.2.1); external calls do not follow redirects (V15.3.2).",
+							"coverraccoon_requirement": "Only GET /v2/quote with exactly five encoded server-built parameters on the pinned host, no redirects, JSON content type, size cap, never cached; the response must match the requested asset, cover the requested amount (<= 1 % above), allocate only to pools of the product within their capacity with allocations summing to the total, and carry a premium consistent with its annual price and period.",
+							"applicability_reason": "Feature present in CoverRaccoon at the verified commit (POST /api/nexus/quote and the dashboard cover panel; display only).",
+							"profile_level": "ASVS_L2",
+							"applies_to": [
+								"src/nexus-read-api.mjs",
+								"src/nexus-quote.mjs"
+							],
+							"threat": "a malformed, foreign-product, foreign-asset or redirected quote shown as a real premium",
+							"expected_property": "invalid quote -> error, never a premium",
+							"automation": "YES"
+						}
+					},
+					"after": {
+						"properties": [
+							{
+								"id": "P1",
+								"kind": "REQUIREMENT",
+								"text": "a quote is accepted only if schema, numeric formats, asset, amount, product pools and premium/price consistency all match the request; the offered amount is never below the requested amount and at most 1 % above it, except on the Aave core quote path where a round-up explained by at most one pool allocation unit per pool is accepted up to 5 % and anything above is rejected without a premium; every other path (Uniswap) keeps the 1 % rule; the quote carries requested and offered amount separately and its premium is checked against and shown for the offered amount"
+							},
+							{
+								"id": "P2",
+								"kind": "REQUIREMENT",
+								"text": "only GET on the fixed /v2/quote path of the pinned host with encoded server-built parameters, no redirects, no caching"
+							}
+						],
+						"derivation": {
+							"title": "Nexus quote responses strictly validated",
+							"domain": "CR-QUOTE",
+							"source_refs": [
+								"SRC-API API10:2023",
+								"SRC-ASVS V2.2.1",
+								"SRC-ASVS V15.3.2",
+								"SRC-NEXUS-QUOTE"
+							],
+							"derivation_type": "EXTERNAL_STANDARD",
+							"external_requirement": "Third-party API data is validated before use (API10:2023, V2.2.1); external calls do not follow redirects (V15.3.2).",
+							"coverraccoon_requirement": "Only GET /v2/quote with exactly five encoded server-built parameters on the pinned host, no redirects, JSON content type, size cap, never cached; the response must match the requested asset, cover the requested amount (<= 1 % above; on the Aave core path up to 5 % above only when at most one allocation unit per pool explains it, otherwise QUOTE_ROUNDING_EXCEEDED without a premium), allocate only to pools of the product within their capacity with allocations summing to the total, and carry a premium consistent with its annual price and period on the offered amount; requested and offered amount are returned separately.",
+							"applicability_reason": "Feature present in CoverRaccoon at the verified commit (POST /api/nexus/quote and the dashboard cover panel; display only).",
+							"profile_level": "ASVS_L2",
+							"applies_to": [
+								"src/nexus-read-api.mjs",
+								"src/nexus-quote.mjs"
+							],
+							"threat": "a malformed, foreign-product, foreign-asset or redirected quote shown as a real premium",
+							"expected_property": "invalid quote -> error, never a premium",
+							"automation": "YES"
+						}
+					}
+				},
+				{
+					"id": "MUT-CR-QUOTE-003-P2-QTEXPOSURE",
+					"kind": "MUTATION_REPLACED",
+					"reason": "its anchor (the exposure cap in checkQuoteRequest) was removed with the approved free quote; the same risk (over-insurance) is now covered by MUT-CR-QUOTE-003-P2-QTEXPOSUREFLAG (missing aboveExposure flag), -QTEXPOSUREVIEW (warning hidden in the quote view), -QTSILENTCAP (amount silently reduced before Nexus) and, for the purchase bound, MUT-CR-NEXUS-007-P4-AVOFFEREDABOVE / -AVREQUESTED. All KILLED behaviourally."
+				},
+				{
+					"id": "MUT-CR-QUOTE-003-P2-QTCAPACITY",
+					"kind": "MUTATION_ANCHOR_UPDATED",
+					"reason": "the capacity check now reads bound.quoteMaxRaw / bound.quoteMax; same weakening (capacity check removed), same test QUOTE-CAPACITY, expected_result KILLED unchanged."
+				},
+				{
+					"id": "MUT-CR-QUOTE-007-P2-QTEXPOSEDATA",
+					"kind": "MUTATION_ANCHOR_UPDATED",
+					"reason": "the quote view call now passes { exposureRaw }; same weakening (pools and a fee ratio added to the response), same test QUOTE-NOPURCHASE, expected_result KILLED unchanged."
+				},
+				{
+					"id": "EV-KB-NEXUS-QUOTE",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "mutation_ids: - QTEXPOSURE; + QTEXPOSUREFLAG, QTEXPOSUREVIEW, QTSILENTCAP (CR-QUOTE-003.P2); + QTROUNDCAP, QTROUNDEXPLAIN, QTPREMIUMREQ, QTOFFEREDASREQ, QTROUNDDEFAULT, UNIROUNDLAX (CR-QUOTE-004.P1). Coverage notes regenerated."
+				},
+				{
+					"id": "EV-KB-AAVE-READINESS",
+					"kind": "EVIDENCE_BASIS_CHANGE",
+					"reason": "mutation_ids: + MUT-CR-NEXUS-007-P4-AVOFFEREDABOVE (quote bound used instead of the purchase bound), + MUT-CR-NEXUS-007-P4-AVREQUESTED (requested instead of offered amount). CR-NEXUS-007.P4 text unchanged and fully checked."
+				},
+				{
+					"id": "test/nexus-quote.test.mjs, test/aave-cover-readiness.test.mjs, test/nexus-cover-view.test.mjs",
+					"kind": "TEST_INFRA",
+					"reason": "QUOTE-AMOUNT, QUOTE-TINY(-BOUNDS), QUOTE-VALID, QUOTE-DETAILS, AAVE-QUOTE, AAVE-READY-REASONS and VIEW-* updated to the approved behaviour with exact expectations; new QUOTE-ROUNDING (0.36 / 2.93 / 19 %), QUOTE-ROUNDING-BOUNDS (5.00 % passes, +1 wei and unexplained 3 % fail), QUOTE-FREE (1 ETH at 0.370082 USDC exposure), QUOTE-ROUNDING-STRICT (default and Uniswap STRICT), VIEW-FREE, VIEW-ROUNDING, VIEW-TERMS; readiness: offered above exposure, missing offered amount, legacy coverAmount ignored, 1 ETH / 1000 USDC at tiny exposure -> QUOTE_OUT_OF_BOUNDS. QUOTE-NOPURCHASE unchanged: purchase bound fields are not in any response."
+				}
+			]
 		}
 	]
 }

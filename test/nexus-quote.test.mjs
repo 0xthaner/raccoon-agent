@@ -19,7 +19,7 @@ Object.assign(process.env, {
 
 const { AAVE_V3_MARKETS, REFERENCE_TOKENS } = await import('../src/positions/aave-registry.mjs');
 const { getNexusReadModel } = await import('../src/nexus-read-model.mjs');
-const { nexusGet, readQuote, _test: readCache } = await import('../src/nexus-read-api.mjs');
+const { nexusGet, parseQuote, readQuote, QUOTE_ROUNDING, _test: readCache } = await import('../src/nexus-read-api.mjs');
 const quoteLib = await import('../src/nexus-quote.mjs');
 const { checkQuoteRequest, coverDetails, parseCoverRequest, quoteFreshness, isQuoteUsable, quoteView, requestCoverQuote, QUOTE_TTL_MS } = quoteLib;
 const { createNexusQuoteHandler, LIMITS } = await import('../api/nexus/quote.mjs');
@@ -125,7 +125,15 @@ test('QUOTE-VALID USDC quote for an Aave v3 Core position', async () => {
 	assert.equal(q.productName, 'Aave v3');
 	assert.equal(q.productTypeName, 'Single Protocol Cover');
 	assert.equal(q.coverAsset, 'USDC');
-	assert.equal(q.coverAmount, '1000');
+	assert.equal(q.requestedAmount, '1000');
+	assert.equal(q.offeredAmount, '1000.192871', 'the amount Nexus actually offers (pool allocation)');
+	assert.equal(q.roundingDelta, '0.192871');
+	assert.equal(q.roundingPercent, '0.02');
+	assert.equal(q.roundingNotice, false, 'below 1 % no explicit rounding notice');
+	assert.equal(q.exposureAmount, '20000.623456');
+	assert.equal(q.aboveExposure, false);
+	assert.equal(q.premiumBasis, 'OFFERED_AMOUNT');
+	assert.equal(q.coverAmount, undefined, 'no ambiguous single cover amount');
 	assert.equal(q.periodDays, 30);
 	assert.equal(q.premium, '3.000578');
 	assert.equal(q.premiumAsset, 'USDC');
@@ -147,7 +155,8 @@ test('QUOTE-VALID ETH quote, one year', async () => {
 	assert.equal(r.statusCode, 200, JSON.stringify(r.body));
 	assert.equal(r.body.quote.premium, '0.036503848080697347');
 	assert.equal(r.body.quote.premiumAsset, 'ETH');
-	assert.equal(r.body.quote.coverAmount, '1');
+	assert.equal(r.body.quote.requestedAmount, '1');
+	assert.equal(r.body.quote.offeredAmount, '1.000105426868420486');
 	assert.deepEqual(nexus.quoteCalls().map((c) => c.url), [`${NEXUS_API_BASE}${ETH_QUERY}`]);
 });
 
@@ -163,11 +172,13 @@ test('QUOTE-DETAILS shows product, exposure, bounds with unit conversion, terms 
 	assert.deepEqual(d.position, { protocol: 'Aave v3', network: 'Ethereum', market: 'Core', deploymentKey: 'aave-v3-ethereum-core' });
 	assert.equal(d.exposure.suggestedExposure, '20000.62345677');
 	assert.equal(d.exposure.calculationMethod, 'AAVE_NET_EXPOSURE_V1');
-	assert.deepEqual(d.assets.map((a) => [a.symbol, a.maxFromExposure, a.maxAmount, a.limitedBy]), [
-		['ETH', '5.0001558641925', '5.0001558641925', 'EXPOSURE'],
-		['USDC', '20000.623456', '20000.623456', 'EXPOSURE'],
-		['cbBTC', '0.20000623', '0.20000623', 'EXPOSURE']
+	assert.deepEqual(d.assets.map((a) => [a.symbol, a.maxFromExposure, a.suggestedAmount, a.suggestedLimitedBy, a.quoteMax]), [
+		['ETH', '5.0001558641925', '5.0001558641925', 'EXPOSURE', '3671.271908207964819328'],
+		['USDC', '20000.623456', '20000.623456', 'EXPOSURE', '8712444.805266'],
+		['cbBTC', '0.20000623', '0.20000623', 'EXPOSURE', '107.18953358']
 	]);
+	assert.ok(d.assets.every((a) => a.quoteMax === a.capacity), 'the quote is bounded by capacity only');
+	assert.ok(d.assets.every((a) => !Object.keys(a).some((key) => /purchase/i.test(key))), 'the purchase bound stays server-internal');
 	const eth = d.assets[0];
 	assert.equal(eth.conversion.referenceToken, 'WETH');
 	assert.equal(eth.conversion.priceUsd, '4000');
@@ -258,30 +269,36 @@ test('QUOTE-ASSET only the product cover assets ETH, USDC and cbBTC can be quote
 	assert.equal(checkQuoteRequest({ coverAsset: 'USDC', amount: '1', periodDays: 30 }, noUsdc.model, position()).code, 'ASSET_NOT_SUPPORTED', 'only assets the product itself lists');
 });
 
-test('QUOTE-AMOUNT bounded by the suggested exposure (converted with the Aave oracle price)', async () => {
+test('QUOTE-AMOUNT free amount above the exposure (converted with the Aave oracle price) is flagged, never capped; capacity still bounds', async () => {
 	const { model } = await availableModel();
 	const pos = position();
 	const check = (coverAsset, amount) => checkQuoteRequest({ coverAsset, amount, periodDays: 30 }, model, pos);
-	assert.equal(check('USDC', '20000.623456').ok, true, 'exactly the maximum');
+	assert.equal(check('USDC', '20000.623456').ok, true, 'exactly the exposure');
 	assert.equal(check('USDC', '20000.623456').amount, 20_000_623_456n);
-	assert.deepEqual({ ...check('USDC', '20000.623457') }, { ok: false, code: 'AMOUNT_OUT_OF_RANGE', maxAmount: '20000.623456', limitedBy: 'EXPOSURE' });
-	assert.equal(check('ETH', '5.0001558641925').ok, true);
-	assert.equal(check('ETH', '5.000155864192500001').code, 'AMOUNT_OUT_OF_RANGE');
-	assert.equal(check('cbBTC', '0.20000624').code, 'AMOUNT_OUT_OF_RANGE');
+	assert.equal(check('USDC', '20000.623456').aboveExposure, false);
+	const above = check('USDC', '20000.623457');
+	assert.deepEqual([above.ok, above.amount, above.aboveExposure, above.exposureRaw], [true, 20_000_623_457n, true, 20_000_623_456n], 'one unit above the exposure: allowed and flagged, the amount is unchanged');
+	assert.equal(check('ETH', '5.000155864192500001').aboveExposure, true);
+	assert.equal(check('cbBTC', '0.20000624').aboveExposure, true);
+	assert.deepEqual({ ...check('cbBTC', '107.18953359') }, { ok: false, code: 'AMOUNT_OUT_OF_RANGE', maxAmount: '107.18953358', limitedBy: 'CAPACITY' });
 	assert.equal(check('USDC', '0').code, 'AMOUNT_OUT_OF_RANGE');
 	for (const bad of ['-1', '1e3', '0x10', '1.0000001', ' 1', '', '1,5', 'NaN']) assert.equal(check('USDC', bad).code, 'INVALID_AMOUNT', bad);
 	const underwater = position(CORE, { supplied: [{ usdValue: '100' }], borrowed: [{ usdValue: '150' }], totals: { suppliedUsd: '100', debtUsd: '150' } });
 	const zero = await availableModel(underwater);
-	assert.equal(checkQuoteRequest({ coverAsset: 'USDC', amount: '1', periodDays: 30 }, zero.model, underwater).code, 'AMOUNT_OUT_OF_RANGE', 'no exposure, nothing selectable');
+	const noExposure = checkQuoteRequest({ coverAsset: 'USDC', amount: '1', periodDays: 30 }, zero.model, underwater);
+	assert.deepEqual([noExposure.ok, noExposure.exposureRaw, noExposure.aboveExposure], [true, 0n, true], 'no exposure: an informative quote only, always flagged');
+	const zeroUsdc = quoteLib.coverBounds(zero.model, underwater).find((a) => a.symbol === 'USDC');
+	assert.deepEqual([zeroUsdc.purchaseSelectable, zeroUsdc.purchaseMaxRaw], [false, '0'], 'no exposure: nothing within the purchase bound');
 	const noPrice = position(CORE, { pricing: { ...position().pricing, reference: [] } });
 	const unpriced = await availableModel(noPrice);
-	assert.equal(checkQuoteRequest({ coverAsset: 'USDC', amount: '1', periodDays: 30 }, unpriced.model, noPrice).code, 'AMOUNT_OUT_OF_RANGE', 'no trusted price, no conversion');
+	assert.deepEqual({ ...checkQuoteRequest({ coverAsset: 'USDC', amount: '1', periodDays: 30 }, unpriced.model, noPrice) }, { ok: false, code: 'AMOUNT_OUT_OF_RANGE', maxAmount: '0' }, 'no trusted price, no conversion, no capacity claim');
 	assert.ok(coverDetails(unpriced.model, noPrice).assets.every((a) => a.selectable === false && a.reason === 'PRICE_UNAVAILABLE'));
 	const { call } = setup();
-	const r = await call(quoteBody({ amount: '20000.623457' }));
+	const r = await call(quoteBody({ amount: '8712444.805267' }));
 	assert.equal(r.statusCode, 422);
 	assert.equal(r.body.code, 'AMOUNT_OUT_OF_RANGE');
-	assert.equal(r.body.maxAmount, '20000.623456');
+	assert.equal(r.body.maxAmount, '8712444.805266');
+	assert.equal(r.body.limitedBy, 'CAPACITY');
 });
 
 test('QUOTE-CAPACITY bounded by the available capacity of the asset', async () => {
@@ -292,7 +309,7 @@ test('QUOTE-CAPACITY bounded by the available capacity of the asset', async () =
 	assert.equal(check('8712444.805266').ok, true);
 	assert.equal(check('8712444.805266').amount, BigInt(capacity));
 	assert.deepEqual({ ...check('8712444.805267') }, { ok: false, code: 'AMOUNT_OUT_OF_RANGE', maxAmount: '8712444.805266', limitedBy: 'CAPACITY' });
-	assert.equal(coverDetails(model, pos).assets.find((a) => a.symbol === 'USDC').limitedBy, 'CAPACITY');
+	assert.equal(coverDetails(model, pos).assets.find((a) => a.symbol === 'USDC').suggestedLimitedBy, 'CAPACITY');
 });
 
 test('QUOTE-PERIOD only 28 to 365 days', async () => {
@@ -383,22 +400,22 @@ const QUOTE_ETH_TINY = fixture('quote-97-eth-tiny-90d');
 const TINY_ETH = '0.000156433958752724';
 const TINY_QUERY = '/v2/quote?productId=97&amount=156433958752724&period=90&coverAsset=0&paymentAsset=0';
 
-test('QUOTE-TINY Nexus rounding a very small amount up to an allocation unit stays rejected, with its own code and no premium', async () => {
+test('QUOTE-TINY Nexus rounding a very small amount up to an allocation unit (+64 %) stays rejected, with its own code and no premium', async () => {
 	const { model } = await availableModel();
 	const nexus = fakeNexus({ [TINY_QUERY]: QUOTE_ETH_TINY });
 	const result = await requestCoverQuote({ coverAsset: 'ETH', amount: TINY_ETH, periodDays: 90 }, model, position(), { fetchImpl: nexus.fetchImpl, now: NOW });
-	assert.deepEqual({ ...result }, { ok: false, code: 'QUOTE_AMOUNT_TOO_SMALL', reason: 'QUOTE_AMOUNT_ROUNDED_UP' });
+	assert.deepEqual({ ...result }, { ok: false, code: 'QUOTE_ROUNDING_EXCEEDED', requestedAmount: TINY_ETH, offeredAmount: '0.000256687001776552', roundingPercent: '64.09', maxRoundingPercent: '5' });
 	assert.equal(nexus.quoteCalls().length, 1);
 	assert.equal(nexus.quoteCalls()[0].url, `${NEXUS_API_BASE}${TINY_QUERY}`, 'exact request: product 97, amount in wei, 90 days, ETH paid in ETH');
 	// Ueber dem Handler: 422, eigener Code, keine Praemie und kein Nexus-Rohtext.
 	const { call } = setup({ routes: { [TINY_QUERY]: QUOTE_ETH_TINY } });
 	const r = await call(quoteBody({ coverAsset: 'ETH', amount: TINY_ETH, periodDays: 90 }));
 	assert.equal(r.statusCode, 422);
-	assert.deepEqual(r.body, { ok: false, code: 'QUOTE_AMOUNT_TOO_SMALL', error: 'Für diesen sehr kleinen Betrag kann derzeit keine Nexus-Quote erstellt werden.' });
+	assert.deepEqual(r.body, { ok: false, code: 'QUOTE_ROUNDING_EXCEEDED', error: 'Nexus Mutual würde für diesen Betrag deutlich mehr decken als angefragt (Aufrundung über 5 %); die Quote wird nicht angezeigt.', requestedAmount: TINY_ETH, offeredAmount: '0.000256687001776552', roundingPercent: '64.09', maxRoundingPercent: '5' });
 	assert.doesNotMatch(JSON.stringify(r.body), /premium|NXM|allocation|pool/i);
 });
 
-test('QUOTE-TINY-BOUNDS only a round-up of at most one allocation unit per pool counts as too small; everything else stays QUOTE_UNAVAILABLE', async () => {
+test('QUOTE-TINY-BOUNDS only a round-up of at most one allocation unit per pool counts as rounding; everything else stays QUOTE_UNAVAILABLE', async () => {
 	const { model } = await availableModel();
 	const run = async (patch) => {
 		const body = clone(QUOTE_ETH_TINY);
@@ -414,8 +431,8 @@ test('QUOTE-TINY-BOUNDS only a round-up of at most one allocation unit per pool 
 		q.premiumInAsset = q.premiumInAssetWithRefund = premium.toString();
 		q.premiumInNXM = q.premiumInNXMWithRefund = premiumInNXM.toString();
 	};
-	// genau eine Einheit (die echte Antwort, neu berechnet): zu klein, nicht unbekannt
-	assert.equal((await run((q) => setTotal(q, q.totalCoverAmountInAsset))).code, 'QUOTE_AMOUNT_TOO_SMALL');
+	// genau eine Einheit (die echte Antwort, neu berechnet): erklaerte Rundung, aber ueber 5 %
+	assert.equal((await run((q) => setTotal(q, q.totalCoverAmountInAsset))).code, 'QUOTE_ROUNDING_EXCEEDED');
 	// zwei Einheiten bei nur einem Pool: nicht durch Rundung erklaert
 	assert.deepEqual({ ...await run((q) => setTotal(q, (156433958752724n + 2n * 256687001776552n).toString())) }, { ok: false, code: 'QUOTE_UNAVAILABLE', reason: 'QUOTE_AMOUNT_MISMATCH' });
 	// unter dem verlangten Betrag
@@ -429,6 +446,100 @@ test('QUOTE-TINY-BOUNDS only a round-up of at most one allocation unit per pool 
 	for (const result of [await run((q) => { q.refundInAsset = '5'; }), await run((q) => { delete q.poolAllocationRequests; })]) assert.equal(result.reason, 'MALFORMED_QUOTE');
 	// Kontrolle: eine Quote innerhalb von 1 % bleibt eine gueltige Quote
 	assert.equal((await quoteWithPatch(() => {})).ok, true);
+});
+
+/*
+	Freie Quote und transparente Aufrundung (29.10.2026, CRSF CR-QUOTE-003.P2/-004.P1).
+	Antworten aus der echten Tiny-Antwort abgeleitet: gleiche Allokations-Einheit
+	(Praemienverhaeltnis), Pool 23, 88 bps, 90 Tage; nur Betrag und Summe gesetzt.
+*/
+const ethQuery = (raw) => `/v2/quote?productId=97&amount=${raw}&period=90&coverAsset=0&paymentAsset=0`;
+function ethQuoteFor(totalRaw) {
+	const body = clone(QUOTE_ETH_TINY);
+	const q = body.quote;
+	const premium = (BigInt(totalRaw) * 88n * 90n) / 3_650_000n;
+	q.totalCoverAmountInAsset = totalRaw.toString();
+	q.poolAllocationRequests = [{ poolId: '23', coverAmountInAsset: totalRaw.toString() }];
+	q.premiumInAsset = q.premiumInAssetWithRefund = premium.toString();
+	q.premiumInNXM = q.premiumInNXMWithRefund = ((premium * BigInt(QUOTE_ETH_TINY.quote.premiumInNXM)) / BigInt(QUOTE_ETH_TINY.quote.premiumInAsset)).toString();
+	return body;
+}
+async function roundedEthQuote(amountRaw, totalRaw, pos = position()) {
+	const { model } = await availableModel(pos);
+	const nexus = fakeNexus({ [ethQuery(amountRaw)]: ethQuoteFor(totalRaw) });
+	const amount = `${amountRaw / 10n ** 18n}.${String(amountRaw % 10n ** 18n).padStart(18, '0')}`.replace(/\.?0+$/, '');
+	const result = await requestCoverQuote({ coverAsset: 'ETH', amount, periodDays: 90 }, model, pos, { fetchImpl: nexus.fetchImpl, now: NOW });
+	return { result, nexus, amount };
+}
+
+test('QUOTE-ROUNDING 0.36 % is a plain quote, 2.93 % is shown explicitly, 19 % is rejected; the premium is for the offered amount', async () => {
+	// 0.36 %: 0.01 ETH -> 0.010036 ETH, kein Hinweis
+	const small = await roundedEthQuote(10n ** 16n, 10_036_000_000_000_000n);
+	assert.equal(small.result.ok, true, JSON.stringify(small.result));
+	assert.deepEqual([small.result.quote.requestedAmount, small.result.quote.offeredAmount, small.result.quote.roundingPercent, small.result.quote.roundingNotice], ['0.01', '0.010036', '0.36', false]);
+	// 2.93 %: 0.005 ETH -> 0.0051465 ETH (unter einer Einheit), ausdruecklicher Hinweis
+	const mid = await roundedEthQuote(5n * 10n ** 15n, 5_146_500_000_000_000n);
+	assert.equal(mid.result.ok, true, JSON.stringify(mid.result));
+	const q = mid.result.quote;
+	assert.deepEqual([q.requestedAmount, q.offeredAmount, q.roundingDelta, q.roundingPercent, q.roundingNotice], ['0.005', '0.0051465', '0.0001465', '2.93', true]);
+	assert.equal(q.premium, '0.0000111672', 'premium = offered x 0.88 % x 90/365');
+	assert.equal(q.premiumBasis, 'OFFERED_AMOUNT');
+	assert.equal(mid.nexus.quoteCalls()[0].url, `${NEXUS_API_BASE}${ethQuery(5n * 10n ** 15n)}`, 'the requested amount goes to Nexus unchanged');
+	// 19 %: 0.001 ETH -> 0.00119 ETH (unter einer Einheit, also erklaert) - trotzdem abgelehnt, ohne Praemie
+	const big = await roundedEthQuote(10n ** 15n, 1_190_000_000_000_000n);
+	assert.deepEqual({ ...big.result }, { ok: false, code: 'QUOTE_ROUNDING_EXCEEDED', requestedAmount: '0.001', offeredAmount: '0.00119', roundingPercent: '19.00', maxRoundingPercent: '5' });
+	assert.equal(big.result.quote, undefined);
+});
+
+test('QUOTE-ROUNDING-BOUNDS exactly 5 % passes, one wei more is rejected; an unexplained round-up above 1 % is a mismatch', async () => {
+	const at = await roundedEthQuote(5n * 10n ** 15n, 5_250_000_000_000_000n);
+	assert.equal(at.result.ok, true, JSON.stringify(at.result));
+	assert.deepEqual([at.result.quote.roundingPercent, at.result.quote.roundingNotice], ['5.00', true]);
+	const over = await roundedEthQuote(5n * 10n ** 15n, 5_250_000_000_000_001n);
+	assert.equal(over.result.code, 'QUOTE_ROUNDING_EXCEEDED');
+	assert.equal(over.result.roundingPercent, '5.01', 'the shown percentage is rounded up, never down');
+	// 3 % auf 0.1 ETH ist ein Vielfaches der Einheit: nicht durch Allokation erklaert -> fail-closed
+	const unexplained = await roundedEthQuote(10n ** 17n, 103_000_000_000_000_000n);
+	assert.deepEqual({ ...unexplained.result }, { ok: false, code: 'QUOTE_UNAVAILABLE', reason: 'QUOTE_AMOUNT_MISMATCH' });
+	// 1 % und darunter bleibt eine gewoehnliche Quote ohne Hinweis
+	const one = await roundedEthQuote(10n ** 17n, 101_000_000_000_000_000n);
+	assert.deepEqual([one.result.ok, one.result.quote.roundingNotice], [true, false]);
+});
+
+test('QUOTE-FREE 1 ETH quote for a position with only 0.370082 USDC net exposure: allowed, flagged, never a cover', async () => {
+	const tiny = position(CORE, { supplied: [{ symbol: 'USDC', usdValue: '0.370082', isCollateral: false }], borrowed: [], totals: { suppliedUsd: '0.370082', debtUsd: '0', netUsd: '0.370082' } });
+	const { call, nexus } = setup({ positions: [tiny] });
+	const r = await call(quoteBody({ coverAsset: 'ETH', amount: '1', periodDays: 365 }));
+	assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+	const q = r.body.quote;
+	assert.deepEqual([q.requestedAmount, q.offeredAmount, q.exposureAmount, q.aboveExposure], ['1', '1.000105426868420486', '0.0000925205', true]);
+	assert.equal(q.premium, '0.036503848080697347');
+	assert.deepEqual(nexus.quoteCalls().map((c) => c.url), [`${NEXUS_API_BASE}${ETH_QUERY}`], '1 ETH sent unchanged, not reduced to the exposure');
+	const details = await call({ action: 'details', deploymentKey: CORE.deploymentKey });
+	const usdc = details.body.assets.find((a) => a.symbol === 'USDC');
+	assert.deepEqual([usdc.maxFromExposure, usdc.suggestedAmount, usdc.quoteMax, usdc.selectable], ['0.370082', '0.370082', '8712444.805266', true]);
+});
+
+test('QUOTE-ROUNDING-STRICT the extended rule is opt-in: default and Uniswap stay STRICT, unknown rules are refused', async () => {
+	readCache.reset();
+	const { model } = await availableModel();
+	const raw = ethQuoteFor(5_146_500_000_000_000n);
+	const nexus = fakeNexus({ [ethQuery(5n * 10n ** 15n)]: raw });
+	const args = { productId: 97, coverAsset: { assetId: 0, symbol: 'ETH', decimals: 18 }, amount: 5n * 10n ** 15n, periodDays: 90, capacity: model.capacity };
+	await assert.rejects(readQuote(args, { fetchImpl: nexus.fetchImpl, now: NOW }), (error) => error.code === 'QUOTE_AMOUNT_ROUNDED_UP', 'default is STRICT');
+	readCache.reset();
+	const extended = await readQuote({ ...args, rounding: QUOTE_ROUNDING.ALLOCATION_UNITS }, { fetchImpl: nexus.fetchImpl, now: NOW });
+	assert.equal(extended.totalCoverAmount, '5146500000000000');
+	assert.throws(() => parseQuote(raw, { coverAsset: args.coverAsset, amount: args.amount, periodDays: 90, capacity: model.capacity, rounding: { name: 'ALLOCATION_UNITS', maxPercent: 100n } }), (error) => error.code === 'QUOTE_ROUNDING_UNKNOWN', 'only the frozen rules');
+	assert.equal(QUOTE_ROUNDING.STRICT.maxPercent, 1n);
+	assert.equal(QUOTE_ROUNDING.ALLOCATION_UNITS.maxPercent, 5n);
+	assert.ok(Object.isFrozen(QUOTE_ROUNDING) && Object.isFrozen(QUOTE_ROUNDING.ALLOCATION_UNITS));
+	for (const file of ['src/positions/uniswap-v3-nexus.mjs', 'src/positions/uniswap-v3-service.mjs']) {
+		const code = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
+		assert.doesNotMatch(code, /ALLOCATION_UNITS|QUOTE_ROUNDING|rounding\s*:/, `${file} keeps the strict rule`);
+	}
+	const aave = readFileSync(new URL('../src/nexus-quote.mjs', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+	assert.equal(aave.match(/QUOTE_ROUNDING\.ALLOCATION_UNITS/g)?.length, 2, 'Aave core: one readQuote call and one error mapping');
 });
 
 test('QUOTE-TIMEOUT a hanging Nexus quote gives QUOTE_UNAVAILABLE without any fallback premium', async () => {
@@ -453,7 +564,7 @@ test('QUOTE-TIMEOUT a hanging Nexus quote gives QUOTE_UNAVAILABLE without any fa
 test('QUOTE-STALE a quote is fresh for 60 s only and never usable afterwards', async () => {
 	assert.equal(QUOTE_TTL_MS, 60_000);
 	const { model } = await availableModel();
-	const raw = { coverAsset: 'USDC', coverAmount: '1000000000', premiumInAsset: '3000578', annualPriceBps: 365, periodDays: 30, fetchedAt: new Date(NOW).toISOString() };
+	const raw = { coverAsset: 'USDC', coverAmount: '1000000000', totalCoverAmount: '1000192871', premiumInAsset: '3000578', annualPriceBps: 365, periodDays: 30, fetchedAt: new Date(NOW).toISOString() };
 	const fresh = quoteView(raw, model, NOW);
 	assert.equal(fresh.freshness, 'FRESH');
 	assert.equal(fresh.quoteExpiresAt, new Date(NOW + 60_000).toISOString());

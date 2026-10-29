@@ -172,7 +172,9 @@ export function parseCapacity(raw, productId) {
 	Gebunden wird sie deshalb an die eigene Anfrage und an die zuvor gelesene
 	Kapazitaet desselben Produkts:
 	  - Asset (id, Symbol, Dezimalstellen) = angefragtes Cover-Asset
-	  - Gesamtbetrag >= angefragter Betrag, hoechstens 1 % darueber (Pool-Rundung)
+	  - Gesamtbetrag >= angefragter Betrag, hoechstens 1 % darueber (Pool-Rundung);
+	    nur mit der Regel ALLOCATION_UNITS (Aave-Core-Quote, 29.10.2026) bis 5 %,
+	    wenn hoechstens eine Allokations-Einheit je Pool den Mehrbetrag erklaert
 	  - Pool-Zuteilungen summieren exakt zum Gesamtbetrag, jeder Pool gehoert zum
 	    Produkt (capacityPerPool) und traegt hoechstens seine Kapazitaet im Asset
 	  - Jahrespreis in Basispunkten (1..10000); Praemie = Gesamtbetrag x Preis x
@@ -199,7 +201,33 @@ function isAllocationRoundUp(q, amount, total) {
 	return total - amount <= (pools * unitInAsset * 102n) / 100n + 1n;
 }
 
-export function parseQuote(raw, { coverAsset, amount, periodDays, capacity }) {
+/*
+	Regel fuer die Aufrundung der Cover-Summe durch Nexus.
+	  STRICT            hoechstens 1 % (+1 Einheit) ueber dem angefragten Betrag; mehr ist
+	                    QUOTE_AMOUNT_ROUNDED_UP (bzw. QUOTE_AMOUNT_MISMATCH, wenn keine
+	                    Allokations-Rundung es erklaert). Standard, auch fuer Uniswap.
+	  ALLOCATION_UNITS  zusaetzlich bis maxPercent (5 %) ueber dem angefragten Betrag, aber nur,
+	                    wenn hoechstens eine Allokations-Einheit je Pool den Mehrbetrag erklaert;
+	                    darueber QUOTE_ROUNDING_EXCEEDED. Die angebotene Summe (totalCoverAmount)
+	                    ist dann die Grundlage der Praemie und wird so angezeigt.
+	Die Einheit stammt aus dem Praemienverhaeltnis derselben Antwort; die feste Prozentgrenze
+	begrenzt deshalb unabhaengig davon, was eine fehlerhafte Antwort "erklaeren" wuerde.
+*/
+export const QUOTE_ROUNDING = Object.freeze({
+	STRICT: Object.freeze({ name: 'STRICT', maxPercent: 1n }),
+	ALLOCATION_UNITS: Object.freeze({ name: 'ALLOCATION_UNITS', maxPercent: 5n })
+});
+
+class QuoteRoundingError extends NexusReadError {
+	constructor(code, amount, total) {
+		super(code);
+		this.requestedRaw = amount.toString();
+		this.offeredRaw = total.toString();
+	}
+}
+
+export function parseQuote(raw, { coverAsset, amount, periodDays, capacity, rounding = QUOTE_ROUNDING.STRICT }) {
+	if (rounding !== QUOTE_ROUNDING.STRICT && rounding !== QUOTE_ROUNDING.ALLOCATION_UNITS) bad('QUOTE_ROUNDING_UNKNOWN');
 	if (!isPlain(raw) || !isPlain(raw.quote)) bad('MALFORMED_QUOTE');
 	const q = raw.quote;
 	for (const key of QUOTE_DIGITS) if (typeof q[key] !== 'string' || !DIGITS.test(q[key])) bad('MALFORMED_QUOTE');
@@ -233,7 +261,8 @@ export function parseQuote(raw, { coverAsset, amount, periodDays, capacity }) {
 	const expected = (total * annualPrice * BigInt(periodDays)) / (10_000n * 365n);
 	const drift = premium > expected ? premium - expected : expected - premium;
 	if (premium <= 0n || drift > expected / 1_000n + 1n) bad('QUOTE_PRICE_INCONSISTENT');
-	if (roundedUp) bad('QUOTE_AMOUNT_ROUNDED_UP');
+	if (roundedUp && rounding === QUOTE_ROUNDING.STRICT) throw new QuoteRoundingError('QUOTE_AMOUNT_ROUNDED_UP', amount, total);
+	if (roundedUp && (total - amount) * 100n > amount * rounding.maxPercent) throw new QuoteRoundingError('QUOTE_ROUNDING_EXCEEDED', amount, total);
 	return { coverAsset: coverAsset.symbol, coverAmount: amount.toString(), totalCoverAmount: total.toString(), premiumInAsset: premium.toString(), annualPriceBps: Number(annualPrice) };
 }
 
@@ -265,11 +294,11 @@ export const readCapacity = (productId, options) => cachedRead('capacity', produ
  * Server (gepinnte Zuordnung), nie vom Client; `capacity` ist die zuvor
  * gelesene Kapazitaet desselben Produkts.
  */
-export async function readQuote({ productId, coverAsset, amount, periodDays, capacity }, { now = Date.now(), ...options } = {}) {
+export async function readQuote({ productId, coverAsset, amount, periodDays, capacity, rounding = QUOTE_ROUNDING.STRICT }, { now = Date.now(), ...options } = {}) {
 	if (capacity?.productId !== productId) bad('CAPACITY_PRODUCT_MISMATCH');
 	const query = new URLSearchParams({ productId: String(productId), amount: amount.toString(), period: String(periodDays), coverAsset: String(coverAsset.assetId), paymentAsset: String(coverAsset.assetId) });
 	const path = `/v2/quote?${query}`;
-	const quote = parseQuote(await nexusGet(path, options), { coverAsset, amount, periodDays, capacity });
+	const quote = parseQuote(await nexusGet(path, options), { coverAsset, amount, periodDays, capacity, rounding });
 	return deepFreeze({ ...quote, productId, periodDays, fetchedAt: new Date(now).toISOString(), source: `${NEXUS_API_BASE}/v2/quote` });
 }
 

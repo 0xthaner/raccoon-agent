@@ -11985,7 +11985,7 @@
 			"edits": [
 				{
 					"file": "src/nexus-quote.mjs",
-					"find": "\tif (amount > BigInt(bound.capacityRaw)) return fail('AMOUNT_OUT_OF_RANGE', { maxAmount: bound.maxAmount, limitedBy: 'CAPACITY' });\n",
+					"find": "\tif (amount > BigInt(bound.quoteMaxRaw)) return fail('AMOUNT_OUT_OF_RANGE', { maxAmount: bound.quoteMax, limitedBy: 'CAPACITY' });\n",
 					"replace": ""
 				}
 			],
@@ -12005,8 +12005,8 @@
 			"timeout_ms": 300000
 		},
 		{
-			"id": "MUT-CR-QUOTE-003-P2-QTEXPOSURE",
-			"origin": "new (Nexus P3)",
+			"id": "MUT-CR-QUOTE-003-P2-QTEXPOSUREFLAG",
+			"origin": "new (free Nexus quote, 29.10.2026)",
 			"evidence_id": "EV-KB-NEXUS-QUOTE",
 			"targets": [
 				{
@@ -12014,11 +12014,110 @@
 					"property": "P2"
 				}
 			],
-			"description": "5: an amount above the allowed (suggested) exposure is accepted",
+			"description": "free quote: an amount above the exposure is not flagged aboveExposure (replaces QTEXPOSURE)",
 			"edits": [
 				{
 					"file": "src/nexus-quote.mjs",
-					"find": "\tif (amount > BigInt(bound.maxFromExposureRaw)) return fail('AMOUNT_OUT_OF_RANGE', { maxAmount: bound.maxAmount, limitedBy: 'EXPOSURE' });\n",
+					"find": "aboveExposure: amount > exposureRaw });",
+					"replace": "aboveExposure: false });"
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"expected_failures": [
+				{
+					"test": "^QUOTE-AMOUNT "
+				}
+			]
+		},
+		{
+			"id": "MUT-CR-QUOTE-003-P2-QTEXPOSUREVIEW",
+			"origin": "new (free Nexus quote, 29.10.2026)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-003",
+					"property": "P2"
+				}
+			],
+			"description": "free quote: the quote view hides that the requested amount is above the exposure",
+			"edits": [
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "\t\taboveExposure: exposureRaw === null ? null : requested > exposureRaw,\n",
+					"replace": "\t\taboveExposure: false,\n"
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"expected_failures": [
+				{
+					"test": "^QUOTE-FREE "
+				}
+			]
+		},
+		{
+			"id": "MUT-CR-QUOTE-003-P2-QTSILENTCAP",
+			"origin": "new (free Nexus quote, 29.10.2026)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-003",
+					"property": "P2"
+				}
+			],
+			"description": "free quote: an amount above the exposure is silently reduced to the exposure before it is sent to Nexus",
+			"edits": [
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "amount: checked.amount, periodDays: checked.periodDays, capacity: model.capacity, rounding:",
+					"replace": "amount: checked.aboveExposure ? checked.exposureRaw : checked.amount, periodDays: checked.periodDays, capacity: model.capacity, rounding:"
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"expected_failures": [
+				{
+					"test": "^QUOTE-FREE "
+				}
+			]
+		},
+		{
+			"id": "MUT-CR-QUOTE-004-P1-QTROUNDCAP",
+			"origin": "new (free Nexus quote, 29.10.2026)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-004",
+					"property": "P1"
+				}
+			],
+			"description": "rounding: the 5 % cap of ALLOCATION_UNITS is ignored",
+			"edits": [
+				{
+					"file": "src/nexus-read-api.mjs",
+					"find": "\tif (roundedUp && (total - amount) * 100n > amount * rounding.maxPercent) throw new QuoteRoundingError('QUOTE_ROUNDING_EXCEEDED', amount, total);\n",
 					"replace": ""
 				}
 			],
@@ -12028,14 +12127,195 @@
 			"environment": [
 				"node"
 			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
 			"expected_failures": [
 				{
-					"test": "^QUOTE-AMOUNT bounded by the suggested exposure \\(converted with the Aave oracle price\\)$"
+					"test": "^QUOTE-ROUNDING 0\\.36 "
+				},
+				{
+					"test": "^QUOTE-TINY "
 				}
+			]
+		},
+		{
+			"id": "MUT-CR-QUOTE-004-P1-QTROUNDEXPLAIN",
+			"origin": "new (free Nexus quote, 29.10.2026)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-004",
+					"property": "P1"
+				}
+			],
+			"description": "rounding: a round-up above 1 % is accepted without the allocation-unit explanation",
+			"edits": [
+				{
+					"file": "src/nexus-read-api.mjs",
+					"find": "\tif (roundedUp && !isAllocationRoundUp(q, amount, total)) bad('QUOTE_AMOUNT_MISMATCH');\n",
+					"replace": ""
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
 			],
 			"expected_result": "KILLED",
 			"detection": "behavioral",
-			"timeout_ms": 300000
+			"timeout_ms": 300000,
+			"expected_failures": [
+				{
+					"test": "^QUOTE-ROUNDING-BOUNDS "
+				}
+			]
+		},
+		{
+			"id": "MUT-CR-QUOTE-004-P1-QTPREMIUMREQ",
+			"origin": "new (free Nexus quote, 29.10.2026)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-004",
+					"property": "P1"
+				}
+			],
+			"description": "rounding: the premium is checked against the requested instead of the offered amount",
+			"edits": [
+				{
+					"file": "src/nexus-read-api.mjs",
+					"find": "const expected = (total * annualPrice * BigInt(periodDays))",
+					"replace": "const expected = (amount * annualPrice * BigInt(periodDays))"
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"expected_failures": [
+				{
+					"test": "^QUOTE-ROUNDING 0\\.36 "
+				}
+			]
+		},
+		{
+			"id": "MUT-CR-QUOTE-004-P1-QTOFFEREDASREQ",
+			"origin": "new (free Nexus quote, 29.10.2026)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-004",
+					"property": "P1"
+				}
+			],
+			"description": "rounding: the requested amount is shown as the offered amount",
+			"edits": [
+				{
+					"file": "src/nexus-quote.mjs",
+					"find": "\tconst offered = BigInt(quote.totalCoverAmount);\n",
+					"replace": "\tconst offered = BigInt(quote.coverAmount);\n"
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"expected_failures": [
+				{
+					"test": "^QUOTE-VALID USDC "
+				}
+			]
+		},
+		{
+			"id": "MUT-CR-QUOTE-004-P1-QTROUNDDEFAULT",
+			"origin": "new (free Nexus quote, 29.10.2026)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-004",
+					"property": "P1"
+				}
+			],
+			"description": "rounding: the default rule of readQuote becomes ALLOCATION_UNITS (every caller, incl. Uniswap, gets the extended rule)",
+			"edits": [
+				{
+					"file": "src/nexus-read-api.mjs",
+					"find": "export async function readQuote({ productId, coverAsset, amount, periodDays, capacity, rounding = QUOTE_ROUNDING.STRICT }",
+					"replace": "export async function readQuote({ productId, coverAsset, amount, periodDays, capacity, rounding = QUOTE_ROUNDING.ALLOCATION_UNITS }"
+				}
+			],
+			"tests": [
+				"test/nexus-quote.test.mjs",
+				"test/uniswap-v3-nexus.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"expected_failures": [
+				{
+					"test": "^QUOTE-ROUNDING-STRICT "
+				},
+				{
+					"test": "^NX72-QUOTE-FAIL "
+				}
+			]
+		},
+		{
+			"id": "MUT-CR-QUOTE-004-P1-UNIROUNDLAX",
+			"origin": "new (free Nexus quote, 29.10.2026)",
+			"evidence_id": "EV-KB-NEXUS-QUOTE",
+			"targets": [
+				{
+					"control": "CR-QUOTE-004",
+					"property": "P1"
+				}
+			],
+			"description": "rounding: the Uniswap quote path passes the extended ALLOCATION_UNITS rule",
+			"edits": [
+				{
+					"file": "src/positions/uniswap-v3-nexus.mjs",
+					"find": "import { readCapacity, readProduct, readProductType, readQuote } from '../nexus-read-api.mjs';",
+					"replace": "import { QUOTE_ROUNDING, readCapacity, readProduct, readProductType, readQuote } from '../nexus-read-api.mjs';"
+				},
+				{
+					"file": "src/positions/uniswap-v3-nexus.mjs",
+					"find": "capacity: model.capacity }, { fetchImpl, now,",
+					"replace": "capacity: model.capacity, rounding: QUOTE_ROUNDING.ALLOCATION_UNITS }, { fetchImpl, now,"
+				}
+			],
+			"tests": [
+				"test/uniswap-v3-nexus.test.mjs",
+				"test/nexus-quote.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"expected_failures": [
+				{
+					"test": "^NX72-QUOTE-FAIL "
+				},
+				{
+					"test": "^QUOTE-ROUNDING-STRICT "
+				}
+			]
 		},
 		{
 			"id": "MUT-CR-QUOTE-003-P3-QTSHORTPERIOD",
@@ -12391,8 +12671,8 @@
 			"edits": [
 				{
 					"file": "src/nexus-quote.mjs",
-					"find": "\treturn Object.freeze({ ok: true, quote: quoteView(quote, model, now) });",
-					"replace": "\treturn Object.freeze({ ok: true, quote: { ...quoteView(quote, model, now), poolAllocationRequests: model.capacity.pools, commissionRatio: 0 } });"
+					"find": "\treturn Object.freeze({ ok: true, quote: quoteView(quote, model, now, { exposureRaw: checked.exposureRaw }) });",
+					"replace": "\treturn Object.freeze({ ok: true, quote: { ...quoteView(quote, model, now, { exposureRaw: checked.exposureRaw }), poolAllocationRequests: model.capacity.pools, commissionRatio: 0 } });"
 				}
 			],
 			"tests": [
@@ -24854,6 +25134,72 @@
 			"expected_result": "KILLED",
 			"detection": "behavioral",
 			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P4-AVOFFEREDABOVE",
+			"origin": "new (free Nexus quote, 29.10.2026)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P4"
+				}
+			],
+			"description": "readiness accepts a quote above the exposure (quote bound = capacity used instead of the purchase bound)",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "amount > BigInt(bound.purchaseMaxRaw ?? '0')",
+					"replace": "amount > BigInt(bound.quoteMaxRaw ?? '0')"
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"expected_failures": [
+				{
+					"test": "^AAVE-READY-REASONS "
+				}
+			]
+		},
+		{
+			"id": "MUT-CR-NEXUS-007-P4-AVREQUESTED",
+			"origin": "new (free Nexus quote, 29.10.2026)",
+			"evidence_id": "EV-KB-AAVE-READINESS",
+			"targets": [
+				{
+					"control": "CR-NEXUS-007",
+					"property": "P4"
+				}
+			],
+			"description": "readiness checks the requested instead of the offered amount",
+			"edits": [
+				{
+					"file": "src/aave-cover-readiness.mjs",
+					"find": "decimalToRaw(quote.offeredAmount, asset.decimals)",
+					"replace": "decimalToRaw(quote.requestedAmount, asset.decimals)"
+				}
+			],
+			"tests": [
+				"test/aave-cover-readiness.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000,
+			"expected_failures": [
+				{
+					"test": "^AAVE-READY-REASONS "
+				}
+			]
 		}
 	]
 }

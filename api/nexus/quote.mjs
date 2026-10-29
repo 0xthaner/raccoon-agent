@@ -20,6 +20,9 @@
 	  nexus-quote-wallet    10 je Wallet      nur vor einem /v2/quote-Abruf
 	  nexus-quote-global   200 gesamt         nur vor einem /v2/quote-Abruf (rund 1 je 3 s)
 	  positions-lookup-global wie /api/positions (nur bei Positions-Cache-Fehlschlag)
+	Freie Quote (29.10.2026): der Aave-Betrag ist nur durch die Nexus-Kapazitaet
+	begrenzt, nicht durch das erkannte Engagement (src/nexus-quote.mjs); die
+	Antwort traegt angefragte und angebotene Summe getrennt.
 	Quote-Budgets werden erst nach allen lokalen Pruefungen gezogen: eine
 	ungueltige Anfrage erreicht Nexus nie und kostet kein Quote-Budget.
 
@@ -64,6 +67,7 @@ const MESSAGES = {
 	COVER_NOT_AVAILABLE: [409, 'Die Cover-Verfügbarkeit kann für diese Position derzeit nicht bestimmt werden.'],
 	QUOTE_UNAVAILABLE: [503, 'Nexus Mutual hat gerade keine gültige Quote geliefert.'],
 	QUOTE_AMOUNT_TOO_SMALL: [422, 'Für diesen sehr kleinen Betrag kann derzeit keine Nexus-Quote erstellt werden.'],
+	QUOTE_ROUNDING_EXCEEDED: [422, 'Nexus Mutual würde für diesen Betrag deutlich mehr decken als angefragt (Aufrundung über 5 %); die Quote wird nicht angezeigt.'],
 	AMOUNT_ABOVE_EXPOSURE: [422, 'Der Betrag liegt über dem vorgeschlagenen Engagement dieser Position.'],
 	CAPACITY_UNAVAILABLE: [503, 'Die Kapazität von Nexus Mutual ist gerade nicht verfügbar.'],
 	ZERO_LIQUIDITY: [409, 'Diese Position hat keine aktive Liquidität.'],
@@ -85,7 +89,10 @@ const unavailable = (response) => response.status(503).json({ ok: false, code: '
 const reply = (response, result) => {
 	const [status, error] = MESSAGES[result.code] ?? [503, 'Cover-Details sind gerade nicht verfügbar.'];
 	const { ok, code, maxAmount, limitedBy } = result;
-	return response.status(status).json({ ok, code, error, ...(maxAmount ? { maxAmount } : {}), ...(limitedBy ? { limitedBy } : {}) });
+	// Nur feste, vom Server berechnete Dezimaltexte; bei QUOTE_ROUNDING_EXCEEDED die angefragte und die angebotene Summe.
+	const amounts = {};
+	for (const key of ['requestedAmount', 'offeredAmount', 'roundingPercent', 'maxRoundingPercent']) if (typeof result[key] === 'string') amounts[key] = result[key];
+	return response.status(status).json({ ok, code, error, ...(maxAmount ? { maxAmount } : {}), ...(limitedBy ? { limitedBy } : {}), ...amounts });
 };
 
 export function createNexusQuoteHandler(deps) {

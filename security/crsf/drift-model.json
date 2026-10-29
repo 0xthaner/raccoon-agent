@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zq",
+	"crsf_version": "1.0-draft-phase2zr",
 	"rules": [
 		{
 			"pattern": "src/*auth*",

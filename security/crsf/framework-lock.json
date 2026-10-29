@@ -1,5 +1,5 @@
 {
-	"crsf_version": "1.0-draft-phase2zq",
+	"crsf_version": "1.0-draft-phase2zr",
 	"profile_rules_digest": "c521d6bc472ad7e73508abbad585a91d55808a55755d5b526e58fc72a79a2443",
 	"controls": {
 		"CR-ALLOC-001": {
@@ -1291,8 +1291,8 @@
 				"V2.3.2",
 				"V2.2.1"
 			],
-			"properties_digest": "ae49b6127986087a8dd0618fb17e0ced70f9ddcdb5a51af3ca785dec5c670ca8",
-			"derivation_digest": "5abd204fba8cd8dd1a331e28e2c8101097883d3bd105cf9a7b2e454c44760b0e"
+			"properties_digest": "eb985a88fa37cc0f89a6702e355efd38060f3d662d45abb8b093a591efe11210",
+			"derivation_digest": "14d15648a90717def1926c0b34e6f5763786d95cc410f60fd60fff9cf03674b8"
 		},
 		"CR-QUOTE-004": {
 			"release_class": "RELEASE_BLOCKING",
@@ -1303,8 +1303,8 @@
 				"V2.2.1",
 				"V15.3.2"
 			],
-			"properties_digest": "30b096d37b63ead99638893485ba8ab3103957ac0a01fa658a007a275a2f8f7b",
-			"derivation_digest": "c4f7633d5ef79ed533f12561a96aebcb1d622e792ce7be1f0e1b8e6f9ee56a9c"
+			"properties_digest": "34640b63be253c1d74a78851bfa3db176c6a4491be2217a9c11e209c2fecacf0",
+			"derivation_digest": "9f32bd1e5bb60110ef4471ece2052590e23de02d03eebe66db45d86799184146"
 		},
 		"CR-QUOTE-005": {
 			"release_class": "RELEASE_BLOCKING",
