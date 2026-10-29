@@ -287,7 +287,7 @@ test('AAVE-TERMS-POL Terms and proof of loss are BLOCKED while Nexus has not ans
 	const terms = R.termsReadiness();
 	assert.equal(terms.status, 'TERMS_BLOCKED');
 	assert.deepEqual([...terms.blockers], ['CR-TERMS-002']);
-	assert.deepEqual({ ...terms.known }, { wordingCid: 'QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY', annexCid: null });
+	assert.deepEqual({ ...terms.known }, { wordingCid: 'QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY', annexCid: 'QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ' });
 	const pol = R.polReadiness(['address']);
 	assert.equal(pol.status, 'POL_BLOCKED');
 	assert.deepEqual([...pol.blockers], ['CR-POL-002']);

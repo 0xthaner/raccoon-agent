@@ -102,7 +102,12 @@ export const PROOF_OF_LOSS_TYPES = Object.freeze(['address', 'validator', 'free_
 /*
 	Erwartete Identitaet je unterstuetztem Produkt. Name, Typ, Kategorie,
 	Proof-of-Loss-Arten und das Wording (CID des Produkttyps) muessen exakt
-	passen; Produkt 97 hat keinen Annex.
+	passen.
+
+	Annex von Produkt 97 (27.10.2026): Nexus hat ihn on-chain registriert
+	(CoverProducts, Metadaten-CID Qmf5jxEY6AcndNyZR7ue7Rsxqf7k1ZwzSDuqsyc1sbd4JX,
+	2026-10-27T13:44:35Z, Block 26284677). Fest gepinnt, nie aus der API
+	uebernommen: ein anderer, fehlender oder erweiterter Annex ist TERMS_CHANGED.
 */
 export const PINNED_PRODUCTS = Object.freeze({
 	97: Object.freeze({
@@ -113,6 +118,14 @@ export const PINNED_PRODUCTS = Object.freeze({
 		category: 'lending',
 		proofOfLossInputTypes: Object.freeze(['address']),
 		wordingCid: 'QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY',
-		annexCid: null
+		annexCid: 'QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ'
 	})
 });
+
+/*
+	Annex der Kaufstrecke, getrennt vom Lese-Pin oben: die Kaufstrecke ist fuer
+	Bedingungen ohne Annex gebaut (die gespeicherte Annex-CID ist per
+	Datenbank null) und lehnt den neuen Annex daher ausdruecklich ab, bis sie
+	eigens freigegeben und migriert wird.
+*/
+export const PURCHASE_ANNEX_CID = null;

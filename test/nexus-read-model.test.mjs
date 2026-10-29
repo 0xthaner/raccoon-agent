@@ -15,7 +15,7 @@ const { matchPositionToNexus, MATCH_STATUSES } = await import('../src/positions/
 const { computeAaveExposure, EXPOSURE_METHOD, EXPOSURE_DISCLAIMERS } = await import('../src/positions/exposure.mjs');
 const { nexusGet, parseCapacity, NexusReadError, _test: readCache } = await import('../src/nexus-read-api.mjs');
 const { getNexusReadModel, ELIGIBILITY_STATUSES } = await import('../src/nexus-read-model.mjs');
-const { NEXUS_API_BASE, NEXUS_CHAIN_ID, NEXUS_CONTRACTS, PINNED_PRODUCTS, COVER_PERIOD_DAYS } = await import('../src/nexus-pinned.mjs');
+const { NEXUS_API_BASE, NEXUS_CHAIN_ID, NEXUS_CONTRACTS, PINNED_PRODUCTS, PURCHASE_ANNEX_CID, COVER_PERIOD_DAYS } = await import('../src/nexus-pinned.mjs');
 
 const fixture = (name) => JSON.parse(readFileSync(new URL(`./fixtures/nexus/${name}.json`, import.meta.url), 'utf8'));
 const PRODUCT = fixture('product-97');
@@ -105,8 +105,10 @@ test('NEXUS-PIN product 97 identity, chain, API base and contracts are pinned', 
 	assert.deepEqual(Object.keys(PINNED_PRODUCTS), ['97']);
 	assert.deepEqual({ ...PINNED_PRODUCTS[97], proofOfLossInputTypes: [...PINNED_PRODUCTS[97].proofOfLossInputTypes] }, {
 		productId: 97, name: 'Aave v3', productTypeId: 0, productTypeName: 'Single Protocol Cover', category: 'lending',
-		proofOfLossInputTypes: ['address'], wordingCid: 'QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY', annexCid: null
+		proofOfLossInputTypes: ['address'], wordingCid: 'QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY', annexCid: 'QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ'
 	});
+	// Lese- und Kauf-Pin sind getrennt: die Kaufstrecke bleibt ohne Annex (cover_purchase_intents.annex_cid ist null).
+	assert.equal(PURCHASE_ANNEX_CID, null);
 	assert.deepEqual({ ...COVER_PERIOD_DAYS }, { min: 28, max: 365 });
 	assert.equal(NEXUS_CONTRACTS.CoverBroker, '0xCB2B736652D2dBf7d72e4dB880Cf6B7d99507814');
 	assert.ok(Object.isFrozen(PINNED_PRODUCTS) && Object.isFrozen(PINNED_PRODUCTS[97]));
@@ -230,6 +232,27 @@ test('NEXUS-MODEL changed wording CID or a new annex is TERMS_CHANGED', async ()
 	assert.deepEqual([...annex.result.eligibility.reasons], ['TERMS_CHANGED']);
 	const unknownTerms = await model(position(), { '/v2/products/97': { ...PRODUCT, metadata: { annex: otherCid, extra: 'x' } } });
 	assert.equal(unknownTerms.result.eligibility.status, 'UNAVAILABLE');
+});
+
+test('NEXUS-ANNEX only the pinned product 97 annex is accepted; missing, other, malformed or extended annex metadata is TERMS_CHANGED', async () => {
+	// Gueltig: genau die on-chain registrierten Metadaten (Qmf5jx..., 27.10.2026).
+	assert.deepEqual(PRODUCT.metadata, { version: '1.0', annex: 'QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ' });
+	const valid = await model();
+	assert.equal(valid.result.eligibility.status, 'AVAILABLE');
+	assert.equal(valid.result.wording.annexCid, 'QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ');
+	const otherCid = 'QmYhCNjfrNTMq8eyg8i7LbBpTkMCHfix9Sv1jrPb7dYZKd';
+	for (const metadata of [
+		'', null, { version: '1.0' }, otherCid, { version: '1.0', annex: otherCid },
+		{ version: '1.0', annex: 'not-a-cid' }, { version: '1.0', annex: '' }, { version: '1.0', annex: 42 },
+		{ version: '1.0', annex: 'QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ', exclusions: ['x'] }
+	]) {
+		const { result } = await model(position(), { '/v2/products/97': { ...PRODUCT, metadata } });
+		assert.equal(result.eligibility.status, 'UNAVAILABLE', JSON.stringify(metadata));
+		assert.deepEqual([...result.eligibility.reasons], ['TERMS_CHANGED'], JSON.stringify(metadata));
+	}
+	// Metadaten als Liste verwirft schon der API-Parser, vor jedem Pin-Vergleich.
+	const list = await model(position(), { '/v2/products/97': { ...PRODUCT, metadata: ['QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ'] } });
+	assert.deepEqual([...list.result.eligibility.reasons], ['PRODUCT_UNAVAILABLE:MALFORMED_PRODUCT']);
 });
 
 test('NEXUS-MODEL wrong chain position never reaches the Nexus API', async () => {
@@ -400,15 +423,15 @@ test('NEXUS-API only the three GET paths under the pinned base are reachable', a
 
 /* --------------------------------------------------------------- Wording -- */
 
-test('NEXUS-WORDING exposes pinned wording, no annex, PoL types and period limits without summarising terms', async () => {
+test('NEXUS-WORDING exposes pinned wording, the pinned annex, PoL types and period limits without summarising terms', async () => {
 	const { result } = await model();
 	const w = result.wording;
 	assert.equal(w.productName, 'Aave v3');
 	assert.equal(w.productTypeName, 'Single Protocol Cover');
 	assert.equal(w.wordingCid, 'QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY');
 	assert.equal(w.wordingUrl, `${NEXUS_API_BASE}/ipfs/QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY`);
-	assert.equal(w.annexCid, null);
-	assert.equal(w.annexUrl, null);
+	assert.equal(w.annexCid, 'QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ');
+	assert.equal(w.annexUrl, `${NEXUS_API_BASE}/ipfs/QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ`);
 	assert.equal(w.gracePeriodDays, 35);
 	assert.deepEqual({ ...w.coverPeriodDays }, { min: 28, max: 365 });
 	assert.deepEqual([...w.proofOfLossInputTypes], ['address']);

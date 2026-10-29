@@ -15,6 +15,7 @@ const WALLET = '0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed';
 const INTENT_ID = '0b9e6f1c-3d2a-4f5b-8c7d-1e2f3a4b5c6d';
 const T0 = 1_792_400_000;
 const OTHER_CID = 'QmYhCNjfrNTMq8eyg8i7LbBpTkMCHfix9Sv1jrPb7dYZKd';
+const { PINNED_PRODUCTS, PURCHASE_ANNEX_CID } = await import('../src/nexus-pinned.mjs');
 const input = () => ({
 	intentId: INTENT_ID, wallet: WALLET, wordingCid: 'QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY', annexCid: null,
 	coverRaccoonExplanationId: 'coverraccoon.explanation@1', nexusPosDisclosureId: 'nexus.pos-disclosure@1',
@@ -78,6 +79,13 @@ test('P4B-TERMS-TEXT a missing acknowledgement, a bare boolean or a foreign fiel
 	for (const [patch, code] of [[{ wallet: '0x1234' }, 'WALLET'], [{ intentId: 'x' }, 'INTENT_ID'], [{ wordingCid: OTHER_CID }, 'WORDING_CID'], [{ annexCid: OTHER_CID }, 'ANNEX_CID'], [{ acknowledgedAt: '1792400010' }, 'ACKNOWLEDGED_AT'], [{ acknowledgedAt: 0 }, 'ACKNOWLEDGED_AT']]) {
 		assert.ok(T.buildAcknowledgementRecord({ ...input(), ...patch }).errors.includes(code), `${show(patch)} -> ${code}`);
 	}
+});
+
+test('P4B-TERMS-ANNEX the acknowledgement keeps the purchase annex pin and rejects the read-path annex of product 97', () => {
+	assert.equal(PURCHASE_ANNEX_CID, null);
+	assert.equal(PINNED_PRODUCTS[97].annexCid, 'QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ');
+	const { ok, errors } = T.buildAcknowledgementRecord({ ...input(), annexCid: PINNED_PRODUCTS[97].annexCid });
+	assert.ok(ok === false && errors.includes('ANNEX_CID'), `read-path annex -> ANNEX_CID: ${errors}`);
 });
 
 test('P4B-TERMS-RECORD the terms hash is recomputed, never trusted from the caller', () => {

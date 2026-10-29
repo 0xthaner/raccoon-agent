@@ -20,7 +20,7 @@
 	"capacityReductionRatio": "0",
 	"isDeprecated": false,
 	"useFixedPrice": false,
-	"metadata": "",
+	"metadata": { "version": "1.0", "annex": "QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ" },
 	"allowedPools": [],
 	"timestamp": 1761821039,
 	"productType": 0,

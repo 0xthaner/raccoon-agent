@@ -14,7 +14,7 @@
 	Tests und die reinen Kauf-Module importieren dieses Modul.
 */
 import { encodeAbiParameters, keccak256 } from 'viem';
-import { PINNED_PRODUCTS } from './nexus-pinned.mjs';
+import { PINNED_PRODUCTS, PURCHASE_ANNEX_CID } from './nexus-pinned.mjs';
 import { normalizeWallet, isCid, isIntentId, MVP_PRODUCT_ID } from './purchase-intent.mjs';
 
 export const TERMS_DOMAIN = 'coverraccoon.terms';
@@ -119,7 +119,7 @@ function validateInput(input, { allowTermsHash }) {
 	if (wallet === null) errors.push('WALLET');
 	const product = PINNED_PRODUCTS[MVP_PRODUCT_ID];
 	if (!isCid(input.wordingCid) || input.wordingCid !== product.wordingCid) errors.push('WORDING_CID');
-	if ((input.annexCid !== null && !isCid(input.annexCid)) || input.annexCid !== product.annexCid) errors.push('ANNEX_CID');
+	if ((input.annexCid !== null && !isCid(input.annexCid)) || input.annexCid !== PURCHASE_ANNEX_CID) errors.push('ANNEX_CID');
 	const texts = {};
 	for (const [field, category] of Object.entries(ACK_TEXT_FIELDS)) {
 		const resolved = resolveTextRef(input[field], category);

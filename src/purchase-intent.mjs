@@ -20,7 +20,7 @@
 	Transfer, das Ziel wird nicht gelesen.
 */
 import { encodeAbiParameters, keccak256, isAddress } from 'viem';
-import { NEXUS_CHAIN_ID, NEXUS_CONTRACT_SOURCES, PINNED_PRODUCTS, COVER_PERIOD_DAYS } from './nexus-pinned.mjs';
+import { NEXUS_CHAIN_ID, NEXUS_CONTRACT_SOURCES, PINNED_PRODUCTS, PURCHASE_ANNEX_CID, COVER_PERIOD_DAYS } from './nexus-pinned.mjs';
 
 export const PURCHASE_INTENT_DOMAIN = 'coverraccoon.purchase-intent';
 export const PURCHASE_INTENT_HASH_VERSION = 1;
@@ -117,7 +117,7 @@ export function validatePurchaseIntent(input) {
 	if (quotePremiumRaw !== null && maxPremiumRaw !== null && maxPremiumRaw < quotePremiumRaw) fail('MAX_PREMIUM_BELOW_QUOTE');
 	if (!isCid(input.wordingCid) || input.wordingCid !== product.wordingCid) fail('WORDING_CID');
 	if (input.annexCid !== null && !isCid(input.annexCid)) fail('ANNEX_CID');
-	if (input.annexCid !== product.annexCid) fail('ANNEX_CID_NOT_PINNED');
+	if (input.annexCid !== PURCHASE_ANNEX_CID) fail('ANNEX_CID_NOT_PINNED');
 	if (typeof input.termsHash !== 'string' || !BYTES32.test(input.termsHash)) fail('TERMS_HASH');
 	if (input.proofOfLossCid !== null && !isCid(input.proofOfLossCid)) fail('PROOF_OF_LOSS_CID');
 	if (input.commissionRatio !== COMMISSION_POLICY.ratio) fail('COMMISSION_RATIO');

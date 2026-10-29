@@ -9,7 +9,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { keccak256, getAddress } from 'viem';
 
 const P = await import('../src/purchase-intent.mjs');
-const { NEXUS_CONTRACT_SOURCES } = await import('../src/nexus-pinned.mjs');
+const { NEXUS_CONTRACT_SOURCES, PINNED_PRODUCTS, PURCHASE_ANNEX_CID } = await import('../src/nexus-pinned.mjs');
 
 const WALLET = '0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed'; // EIP-55-Beispieladresse
 const T0 = 1_792_400_000;
@@ -80,6 +80,15 @@ test('P4A-INVALID policy violations never validate and never hash', () => {
 		assert.ok(errorsOf(patch).includes(code), `${show(patch)} -> ${code}: ${errorsOf(patch)}`);
 		assert.throws(() => P.computePurchaseIntentHash({ ...base(), ...patch }), /INVALID_PURCHASE_INTENT/);
 	}
+});
+
+test('P4A-ANNEX the purchase path keeps its own annex pin and rejects the read-path annex of product 97', () => {
+	// Lese-Pin (Annex vom 27.10.2026) und Kauf-Pin (ohne Annex, cover_purchase_intents.annex_cid ist null) sind getrennt.
+	assert.equal(PURCHASE_ANNEX_CID, null);
+	assert.equal(PINNED_PRODUCTS[97].annexCid, 'QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ');
+	const r = valid({ annexCid: PINNED_PRODUCTS[97].annexCid });
+	assert.ok(r.ok === false && r.errors.includes('ANNEX_CID_NOT_PINNED'), `read-path annex -> ANNEX_CID_NOT_PINNED: ${r.errors}`);
+	assert.throws(() => P.computePurchaseIntentHash({ ...base(), annexCid: PINNED_PRODUCTS[97].annexCid }), /INVALID_PURCHASE_INTENT/);
 });
 
 test('P4A-INVALID raw amounts are canonical integer strings only, parsed without precision loss', () => {

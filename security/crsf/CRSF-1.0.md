@@ -453,7 +453,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 
 ## 6. Mutation cases
 
-699 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
+701 cases in `security/mutation/cases.json`. Static-detection kills never count as E4.
 
 | ID | Targets | Detection | Expected |
 |---|---|---|---|
@@ -848,6 +848,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-PURCHASE-003-P1-P4APOL | CR-PURCHASE-003.P1 | behavioral | KILLED |
 | MUT-CR-PURCHASE-003-P1-P4AIMPL | CR-PURCHASE-003.P1 | behavioral | KILLED |
 | MUT-CR-PURCHASE-003-P2-P4AEXTRA | CR-PURCHASE-003.P2 | behavioral | KILLED |
+| MUT-CR-PURCHASE-003-P2-ANNEXSPLIT | CR-PURCHASE-003.P2 | behavioral | KILLED |
 | MUT-CR-PURCHASE-003-P3-P4ANUMBER | CR-PURCHASE-003.P3 | behavioral | KILLED |
 | MUT-CR-PURCHASE-003-P4-P4AFETCH | CR-PURCHASE-003.P4 | behavioral | KILLED |
 | MUT-CR-PURCHASE-003-P4-P4AREACH | CR-PURCHASE-003.P4 | behavioral | KILLED |
@@ -869,6 +870,7 @@ ASVS: 345 requirements — APPLICABLE 162, DEFERRED 57, NOT_APPLICABLE 126. Prof
 | MUT-CR-TERMS-001-P1-P4BCOUNTRY | CR-TERMS-001.P1 | behavioral | KILLED |
 | MUT-CR-TERMS-001-P1-P4BMEMBER | CR-TERMS-001.P1 | behavioral | KILLED |
 | MUT-CR-TERMS-001-P2-P4BVERSION | CR-TERMS-001.P2 | behavioral | KILLED |
+| MUT-CR-TERMS-001-P2-ANNEXSPLIT | CR-TERMS-001.P2 | behavioral | KILLED |
 | MUT-CR-TERMS-001-P3-P4BUNRESOLVED | CR-TERMS-001.P3 | behavioral | KILLED |
 | MUT-CR-POL-001-P2-P4BCREATOR | CR-POL-001.P2 | behavioral | KILLED |
 | MUT-CR-POL-001-P2-P4BADDRESS | CR-POL-001.P2 | behavioral | KILLED |

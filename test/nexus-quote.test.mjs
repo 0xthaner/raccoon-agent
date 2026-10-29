@@ -177,7 +177,7 @@ test('QUOTE-DETAILS shows product, exposure, bounds with unit conversion, terms 
 	assert.deepEqual(d.proofOfLoss, { inputTypes: ['address'] });
 	assert.equal(d.gracePeriodDays, 35);
 	assert.equal(d.wording.url, `${NEXUS_API_BASE}/ipfs/QmQQ88vaZkgEY9qXKPtq7Se6caSjB2RTqF1GAnBLW1k8EY`);
-	assert.equal(d.annex, null);
+	assert.deepEqual(d.annex, { cid: 'QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ', url: `${NEXUS_API_BASE}/ipfs/QmWAdgxbaPGj6umcoZJk5xwc8K5rxZRSFx5DSyMxNfSkuJ` });
 	assert.equal(d.quoteTtlSeconds, 60);
 	assert.equal(nexus.quoteCalls().length, 0, 'details never request a quote');
 });

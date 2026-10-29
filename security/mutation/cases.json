@@ -14089,6 +14089,40 @@
 			"timeout_ms": 300000
 		},
 		{
+			"id": "MUT-CR-PURCHASE-003-P2-ANNEXSPLIT",
+			"origin": "new (annex hotfix 27.10.2026)",
+			"evidence_id": "EV-KB-PURCHASE-INTENT",
+			"targets": [
+				{
+					"control": "CR-PURCHASE-003",
+					"property": "P2"
+				}
+			],
+			"description": "the purchase intent accepts the read-path annex pin (purchase and read annex pins merged)",
+			"edits": [
+				{
+					"file": "src/purchase-intent.mjs",
+					"find": "if (input.annexCid !== PURCHASE_ANNEX_CID) fail",
+					"replace": "if (input.annexCid !== product.annexCid) fail"
+				}
+			],
+			"tests": [
+				"test/purchase-intent.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4A-ANNEX the purchase path keeps its own annex pin and rejects the read-path annex of product 97$",
+					"message": "read-path annex -> ANNEX_CID_NOT_PINNED"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
 			"id": "MUT-CR-PURCHASE-003-P3-P4ANUMBER",
 			"origin": "new (P4A)",
 			"evidence_id": "EV-KB-PURCHASE-INTENT",
@@ -14804,6 +14838,40 @@
 			"expected_failures": [
 				{
 					"test": "^P4B-TERMS-TEXT unknown, superseded or wrong-category text references are rejected$"
+				}
+			],
+			"expected_result": "KILLED",
+			"detection": "behavioral",
+			"timeout_ms": 300000
+		},
+		{
+			"id": "MUT-CR-TERMS-001-P2-ANNEXSPLIT",
+			"origin": "new (annex hotfix 27.10.2026)",
+			"evidence_id": "EV-KB-PURCHASE-TERMS-POL",
+			"targets": [
+				{
+					"control": "CR-TERMS-001",
+					"property": "P2"
+				}
+			],
+			"description": "the terms acknowledgement accepts the read-path annex pin (purchase and read annex pins merged)",
+			"edits": [
+				{
+					"file": "src/purchase-terms.mjs",
+					"find": "|| input.annexCid !== PURCHASE_ANNEX_CID)",
+					"replace": "|| input.annexCid !== product.annexCid)"
+				}
+			],
+			"tests": [
+				"test/purchase-terms.test.mjs"
+			],
+			"environment": [
+				"node"
+			],
+			"expected_failures": [
+				{
+					"test": "^P4B-TERMS-ANNEX the acknowledgement keeps the purchase annex pin and rejects the read-path annex of product 97$",
+					"message": "read-path annex -> ANNEX_CID"
 				}
 			],
 			"expected_result": "KILLED",
